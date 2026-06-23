@@ -6,7 +6,7 @@ becomes one AtlasTexture .tres referencing the copied page PNG.
 usage: cocos_export.py <plist_path> <out_subdir>
   e.g. cocos_export.py DV2/480/monster/1/1_image.img_plist monster_1
 """
-import sys, os, re, shutil
+import sys, os, re, shutil, json
 import atlas as atlaslib
 
 OUTROOT = "assets/converted"
@@ -37,6 +37,7 @@ def export(plist_path, out_sub):
     png_res = f"res://{outdir.replace(os.sep,'/')}/{os.path.basename(src_png)}"
 
     n, rotated = 0, 0
+    manifest = {}  # sanitized_name -> {rotated, w, h}  (w,h = display size, unrotated)
     for name, fr in data["frames"].items():
         # frame "{{x,y},{w,h}}"
         x, y, w, h = parse_braces(fr.get("frame") or fr.get("textureRect", ""))
@@ -46,15 +47,20 @@ def export(plist_path, out_sub):
             rw, rh = h, w  # occupied (swapped) in page
         else:
             rw, rh = w, h
-        tres = os.path.join(outdir, sanitize(name) + ".tres")
+        sname = sanitize(name)
+        tres = os.path.join(outdir, sname + ".tres")
         with open(tres, "w", encoding="utf-8") as f:
             f.write('[gd_resource type="AtlasTexture" load_steps=2 format=3]\n\n')
             f.write('[ext_resource type="Texture2D" path="%s" id="1"]\n\n' % png_res)
             f.write("[resource]\n")
             f.write('atlas = ExtResource("1")\n')
             f.write("region = Rect2(%d, %d, %d, %d)\n" % (x, y, rw, rh))
+            f.write("filter_clip = true\n")
+        manifest[sname] = {"rotated": rot, "w": w, "h": h}
         n += 1
-    print(f"{out_sub}: {n} AtlasTexture .tres ({rotated} rotated - need 90deg fix in scene)")
+    json.dump(manifest, open(os.path.join(outdir, "_manifest.json"), "w", encoding="utf-8"),
+              ensure_ascii=False, indent=1)
+    print(f"{out_sub}: {n} AtlasTexture .tres ({rotated} rotated). manifest written.")
 
 
 if __name__ == "__main__":

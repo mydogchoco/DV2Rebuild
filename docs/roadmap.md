@@ -110,8 +110,12 @@
 - [ ] (후속) compute_stats에 grade/문장/각인 보정(§K-5), 전투 시스템(§K-2~K-6)
 
 ### Phase 4 — MPV (최소 플레이 버전)
+- [x] **Cave 메인 화면(로비)** `scenes/cave.tscn` (참고 docs/OldRef_image/Cave.png):
+      배경 스킨(cavebg 15종) + 받침대 + 활성 드래곤 spine + 보유목록 + 스탯패널 +
+      우측 메뉴(도감/인벤토리/카드/스킨). 4기능: 육성·관리, 인벤토리 확인/사용, 도감 열람, 스킨 변경.
+      cocos_export.py로 cave.img_plist→AtlasTexture(+_manifest 회전정보), PMA 블렌드.
 - [ ] 도감(소수 드래곤) + 부화 1종 + 전투 1판
-- [ ] 173몬스터/수백 드래곤 중 **아주 작은 슬라이스만** 사용
+- [ ] 다른 메인 화면(월드맵/모험 등 docs/OldRef_image/Yutakan_main.png)
 - [ ] 🎯 **마일스톤: 알 부화 → 드래곤 획득 → 전투 1판 완주**
 
 ### Phase 5 — 콘텐츠 확장 / 밸런스 / 폴리시
