@@ -14,6 +14,7 @@ var _pma: CanvasItemMaterial
 var _manifest: Dictionary = {}
 var _stand_manifest: Dictionary = {}
 var _battle_manifest: Dictionary = {}
+var _portrait_manifests: Dictionary = {}   # dir -> manifest (캐시)
 var _elem_icon: Sprite2D
 var _bg: TextureRect
 var _stage: Node2D
@@ -304,22 +305,58 @@ func _refresh_dragon() -> void:
 		if ap and ap.has_animation("wait"):
 			ap.play("wait")
 
+## 드래곤 단계 박스 썸네일(480/dragon/dragon_{N}.png의 box_<stage>). 도감에서도 재사용.
+func _portrait_sprite(id: int, stage: String, scale := 1.0) -> Sprite2D:
+	var dir := "portrait_%d" % id
+	if not _portrait_manifests.has(dir):
+		var f := FileAccess.open("res://assets/converted/%s/_manifest.json" % dir, FileAccess.READ)
+		_portrait_manifests[dir] = JSON.parse_string(f.get_as_text()) if f else {}
+	return _atlas_sprite(dir, "dragon_dragon_%d_box_%s" % [id, stage], _portrait_manifests[dir], scale)
+
 func _refresh_list() -> void:
 	for ch in _list_box.get_children():
 		ch.queue_free()
 	var owned: Array = SaveSystem.state["owned_dragons"]
+	var active := int(SaveSystem.state.get("active_dragon", 0))
 	for i in owned.size():
-		var d: Dictionary = Data.get_dragon(int(owned[i]["id"]))
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(132, 84)
-		b.text = "%s\nLv.%d" % [str(d.get("name", "?")), int(owned[i]["level"])]
-		b.add_theme_font_size_override("font_size", 18)
-		var idx := i
-		b.pressed.connect(func():
-			SaveSystem.state["active_dragon"] = idx
-			SaveSystem.save_game()
-			_refresh())
-		_list_box.add_child(b)
+		_list_box.add_child(_dragon_slot(int(owned[i]["id"]), int(owned[i]["level"]), i, i == active))
+
+func _dragon_slot(id: int, level: int, idx: int, is_active: bool) -> Control:
+	var slot := Control.new()
+	slot.custom_minimum_size = Vector2(132, 124)
+	slot.clip_contents = true
+	# 프레임(배경/테두리)
+	var frame := _ui_sprite("scene_cave_dragon_frame", 1.85)
+	frame.position = Vector2(66, 58)
+	if not is_active:
+		frame.modulate = Color(0.7, 0.7, 0.75)
+	slot.add_child(frame)
+	# 단계 썸네일(프레임 위)
+	var stage := Data.stage_for_level(level)
+	var por := _portrait_sprite(id, stage, 1.25)
+	por.position = Vector2(66, 54)
+	if not is_active:
+		por.modulate = Color(0.85, 0.85, 0.85)
+	slot.add_child(por)
+	# 레벨
+	var lv := Label.new()
+	lv.text = "Lv.%d" % level
+	lv.size = Vector2(132, 22)
+	lv.position = Vector2(0, 100)
+	lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lv.add_theme_font_size_override("font_size", 18)
+	lv.add_theme_color_override("font_color", Color(1, 1, 1))
+	slot.add_child(lv)
+	# 클릭(투명)
+	var b := Button.new()
+	b.flat = true
+	b.size = Vector2(132, 124)
+	b.pressed.connect(func():
+		SaveSystem.state["active_dragon"] = idx
+		SaveSystem.save_game()
+		_refresh())
+	slot.add_child(b)
+	return slot
 
 func _refresh_stats() -> void:
 	var a := _active()
