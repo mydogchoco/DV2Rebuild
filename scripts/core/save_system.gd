@@ -18,7 +18,9 @@ func default_state() -> Dictionary:
 		"owned_dragons": [],                       # [{id, level, exp, grade, ...}]
 		"inventory": {},
 		"progress": {},
-		"cave_skin": 0,                            # 배경 스킨 인덱스 (0..14)
+		"cave_skin": 0,                            # 동굴 배경 스킨 인덱스 (0..14)
+		"stand_skin": 0,                           # 받침대(스탠드) 스킨 인덱스 (0..15)
+		"wall_skin": 0,                            # 벽 프레임 스킨 인덱스 (0 = wall/1)
 		"active_dragon": 0,                        # owned_dragons 인덱스
 		"rng_seed": null,
 	}
