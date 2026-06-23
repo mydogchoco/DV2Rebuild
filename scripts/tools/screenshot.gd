@@ -9,18 +9,19 @@ func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
 	var scene_path: String = a[0]
 	_out = a[1]
-	var scl: float = float(a[2]) if a.size() > 2 else 2.0
+	var raw := a.size() > 2 and a[2] == "raw"   # raw: full scene as-is (no bg/reposition)
+	var scl: float = float(a[2]) if (a.size() > 2 and not raw) else 2.0
 
-	# gray background so transparent sprites are visible
-	var bg := ColorRect.new()
-	bg.color = Color(0.18, 0.20, 0.25)
-	bg.size = Vector2(1920, 1080)
-	get_root().add_child(bg)
+	if not raw:
+		var bg := ColorRect.new()
+		bg.color = Color(0.18, 0.20, 0.25)
+		bg.size = Vector2(1920, 1080)
+		get_root().add_child(bg)
 
 	var ps: PackedScene = load(scene_path)
 	var inst := ps.instantiate()
 	get_root().add_child(inst)
-	if inst is Node2D:
+	if inst is Node2D and not raw:
 		(inst as Node2D).position = Vector2(960, 780)
 		(inst as Node2D).scale = Vector2(scl, scl)
 	var ap := inst.get_node_or_null("AnimationPlayer")

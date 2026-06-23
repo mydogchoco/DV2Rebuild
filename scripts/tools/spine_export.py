@@ -136,19 +136,22 @@ def export(dragon_id, stage, anim_filter="all"):
         if not a:
             continue
         tracks = {}  # bone -> {rotation:[(t,val)],position:[(t,[x,y])],scale:[(t,[x,y])]}
+        def cflag(k):
+            # "S"=stepped(hold). bezier arrays approximated as linear "L".
+            return "S" if k.get("curve") == "stepped" else "L"
         for bone_name, tl in a.get("bones", {}).items():
             su = setup.get(bone_name, {})
             bt = {}
             if "rotate" in tl:
-                bt["rotation"] = [[k["time"], d2r(su.get("rotation", 0.0) + k.get("angle", 0.0))]
+                bt["rotation"] = [[k["time"], d2r(su.get("rotation", 0.0) + k.get("angle", 0.0)), cflag(k)]
                                   for k in tl["rotate"]]
             if "translate" in tl:
                 bt["position"] = [[k["time"], [su.get("x", 0.0) + k.get("x", 0.0),
-                                               -(su.get("y", 0.0) + k.get("y", 0.0))]]
+                                               -(su.get("y", 0.0) + k.get("y", 0.0))], cflag(k)]
                                   for k in tl["translate"]]
             if "scale" in tl:
                 bt["scale"] = [[k["time"], [su.get("scaleX", 1.0) * k.get("x", 1.0),
-                                            su.get("scaleY", 1.0) * k.get("y", 1.0)]]
+                                            su.get("scaleY", 1.0) * k.get("y", 1.0)], cflag(k)]
                                for k in tl["scale"]]
             if bt:
                 tracks[bone_name] = bt

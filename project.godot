@@ -9,6 +9,13 @@ config/name="DragonVillage2 Offline"
 config/description="서비스 종료된 드래곤빌리지2의 개인 소장용 오프라인 재구현 (PC)"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+run/main_scene="res://scenes/demo.tscn"
+
+[autoload]
+
+Data="*res://scripts/core/data_loader.gd"
+RNG="*res://scripts/core/rng.gd"
+SaveSystem="*res://scripts/core/save_system.gd"
 
 [display]
 

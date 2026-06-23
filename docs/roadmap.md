@@ -96,14 +96,18 @@
       회전 region·트림 오프셋) + `build_spine_scene.gd`(Node2D 본 계층 + AtlasTexture +
       AnimationPlayer) → `.tscn`. dragon_1 baby + `wait` 검증 완료.
 - [x] 🎯 **마일스톤 달성: 드래곤 1마리 화면 렌더** (`screenshot.gd`로 시각 확인)
-- [ ] (후속) Cocos plist → Godot 변환(몬스터/UI 스프라이트), 베지어 커브 정밀화,
-      여러 stage/anim 일괄 변환, 480→1080 스케일 정책 확정
+- [x] 다듬기: stepped 커브 재현(step-hold), 배치 변환(`spine_batch.py`+`build_all.gd`),
+      Cocos plist→AtlasTexture(`cocos_export.py`), 스케일 정책(변환=native 1:1, 표시=씬에서 scale)
+- [x] (A) 배치 검증: 5드래곤×3단계 변환→`montage.gd` 시각 확인
+- [ ] (후속) 베지어 정밀화(현재 linear 근사), 몬스터 spine 경로 일반화, 전체 드래곤 일괄 변환
 
 ### Phase 3 — 코어 백본
-- [ ] 데이터 로더 (`data/*.json` → 런타임)
-- [ ] 세이브/로드 (`scripts/core/save_system.gd` 단일 진입점)
-- [ ] 시드 고정 가능한 RNG
-- [ ] 🎯 **마일스톤: 마스터 데이터 로드 + 게임 상태 저장/복원**
+- [x] 마스터 데이터 빌드(`build_data.py`): dragons.csv + DragonStat.xlsx → `data/dragons.json`(369) + `data/stat_table.json` (water→aqua 정규화)
+- [x] 데이터 로더 오토로드 `Data` (`scripts/core/data_loader.gd`): get_dragon/compute_stats/stage_for_level
+- [x] 세이브/로드 오토로드 `SaveSystem` (`save_system.gd`, user://save_0.json, 단일 진입점)
+- [x] 시드 고정 RNG 오토로드 `RNG` (`rng.gd`: chance/weighted)
+- [x] 🎯 **마일스톤 달성: 데이터→스탯→씬 통합 데모**(`scenes/demo.tscn`): 이름·속성·계산스탯 + spine 렌더, 드래곤/레벨 순환, 저장
+- [ ] (후속) compute_stats에 grade/문장/각인 보정(§K-5), 전투 시스템(§K-2~K-6)
 
 ### Phase 4 — MPV (최소 플레이 버전)
 - [ ] 도감(소수 드래곤) + 부화 1종 + 전투 1판
