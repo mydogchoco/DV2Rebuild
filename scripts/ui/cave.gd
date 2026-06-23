@@ -14,6 +14,7 @@ var _pma: CanvasItemMaterial
 var _manifest: Dictionary = {}
 var _stand_manifest: Dictionary = {}
 var _battle_manifest: Dictionary = {}
+var _status_manifest: Dictionary = {}
 var _portrait_manifests: Dictionary = {}   # dir -> manifest (캐시)
 var _elem_icon: Sprite2D
 var _bg: TextureRect
@@ -31,6 +32,8 @@ func _ready() -> void:
 	if sf: _stand_manifest = JSON.parse_string(sf.get_as_text())
 	var bf := FileAccess.open("res://assets/converted/battle_ui/_manifest.json", FileAccess.READ)
 	if bf: _battle_manifest = JSON.parse_string(bf.get_as_text())
+	var stf := FileAccess.open("res://assets/converted/status_ui/_manifest.json", FileAccess.READ)
+	if stf: _status_manifest = JSON.parse_string(stf.get_as_text())
 
 	if SaveSystem.state["owned_dragons"].is_empty():
 		for o in SEED_OWNED:
@@ -64,8 +67,7 @@ func _atlas_sprite(dir: String, name: String, man: Dictionary, scale := 1.0) -> 
 		s.texture = load(p)
 	s.material = _pma
 	if man.get(name, {}).get("rotated", false):
-		s.rotation = PI / 2.0
-		s.flip_h = true   # 회전 cocos 프레임: +90°와 함께 수직 반전(월드 기준) 보정
+		s.rotation = -PI / 2.0   # cocos rotated=90°CW 패킹 → -90° 회전으로 복원(플립 없음)
 	s.scale = Vector2(scale, scale)
 	return s
 
@@ -106,30 +108,22 @@ func _build_walls() -> void:
 	# right
 	_wall(dir % "scene_cave_wall_1_wall_right", man.get("scene_cave_wall_1_wall_right", {}), S,
 		func(dw, _dh): return Vector2(1920 - dw / 2.0, 540))
-	# bottom (rotated + 원본이 뒤집혀 있어 수직 반전)
+	# bottom (rotated)
 	_wall(dir % "scene_cave_wall_1_wall_bottom", man.get("scene_cave_wall_1_wall_bottom", {}), S,
-		func(_dw, dh): return Vector2(960, 1080 - dh / 2.0), true)
+		func(_dw, dh): return Vector2(960, 1080 - dh / 2.0))
 
-func _wall(path: String, info: Dictionary, s: float, place: Callable, flip_v := false) -> void:
+func _wall(path: String, info: Dictionary, s: float, place: Callable) -> void:
 	if not ResourceLoader.exists(path): return
 	var spr := Sprite2D.new()
 	spr.texture = load(path)
 	spr.material = _pma
 	if info.get("rotated", false):
-		spr.rotation = PI / 2.0
+		spr.rotation = -PI / 2.0   # 정정: -90° (플립 없음)
 	spr.scale = Vector2(s, s)
 	var dw: float = float(info.get("w", 0)) * s
 	var dh: float = float(info.get("h", 0)) * s
-	var pos: Vector2 = place.call(dw, dh)
-	if flip_v:
-		var holder := Node2D.new()  # x축 기준 수직 반전
-		holder.position = pos
-		holder.scale = Vector2(1, -1)
-		add_child(holder)
-		holder.add_child(spr)
-	else:
-		spr.position = pos
-		add_child(spr)
+	spr.position = place.call(dw, dh)
+	add_child(spr)
 
 func _build_stage() -> void:
 	_stage = Node2D.new()
@@ -279,17 +273,9 @@ func _refresh_dragon() -> void:
 	var si: int = int(SaveSystem.state.get("stand_skin", 0)) % STAND_COUNT
 	var info = _stand_manifest.get("stand_stand%d" % (si + 1), {})
 	var w: float = maxf(1.0, float(info.get("w", 305)))
-	var ped_holder := Node2D.new()
-	ped_holder.position = Vector2(0, 235)
-	ped_holder.scale = Vector2(1, -1)   # x축 기준 반전(수직) — stand 원본이 뒤집혀 있음
-	_stage.add_child(ped_holder)
-	var ped := Sprite2D.new()
-	ped.texture = load(STAND % (si + 1))
-	ped.material = _pma
-	if info.get("rotated", false):
-		ped.rotation = PI / 2.0
-	ped.scale = Vector2(620.0 / w, 620.0 / w)
-	ped_holder.add_child(ped)
+	var ped := _atlas_sprite("stand_ui", "stand_stand%d" % (si + 1), _stand_manifest, 620.0 / w)
+	ped.position = Vector2(0, 235)
+	_stage.add_child(ped)
 	var a := _active()
 	if a.is_empty(): return
 	var stage_name := Data.stage_for_level(int(a["level"]))
@@ -325,18 +311,18 @@ func _dragon_slot(id: int, level: int, idx: int, is_active: bool) -> Control:
 	var slot := Control.new()
 	slot.custom_minimum_size = Vector2(132, 124)
 	slot.clip_contents = true
-	# 프레임(배경/테두리)
-	var frame := _ui_sprite("scene_cave_dragon_frame", 1.85)
+	# 프레임(480/scene/worldmap/status.png): 활성=골드(bg), 일반=실버(bg2)
+	var frame_name := "scene_worldmap_status_status_currentdragon_bg" if is_active else "scene_worldmap_status_status_currentdragon_bg2"
+	var fw: float = maxf(1.0, float(_status_manifest.get(frame_name, {}).get("w", 83)))
+	var frame := _atlas_sprite("status_ui", frame_name, _status_manifest, 120.0 / fw)
 	frame.position = Vector2(66, 58)
-	if not is_active:
-		frame.modulate = Color(0.7, 0.7, 0.75)
 	slot.add_child(frame)
 	# 단계 썸네일(프레임 위)
 	var stage := Data.stage_for_level(level)
-	var por := _portrait_sprite(id, stage, 1.25)
-	por.position = Vector2(66, 54)
+	var por := _portrait_sprite(id, stage, 1.15)
+	por.position = Vector2(66, 52)
 	if not is_active:
-		por.modulate = Color(0.85, 0.85, 0.85)
+		por.modulate = Color(0.88, 0.88, 0.88)
 	slot.add_child(por)
 	# 레벨
 	var lv := Label.new()
