@@ -26,7 +26,7 @@ func _initialize() -> void:
 		(inst as Node2D).scale = Vector2(scl, scl)
 	var ap := inst.get_node_or_null("AnimationPlayer")
 	if ap and ap.get_animation_list().size() > 0:
-		ap.play(ap.get_animation_list()[0])
+		ap.play("wait" if ap.has_animation("wait") else ap.get_animation_list()[0])
 
 	process_frame.connect(_on_frame)
 

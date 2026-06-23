@@ -41,6 +41,10 @@ static func build_one(in_path: String, out_path: String) -> int:
 		bone_path[b["name"]] = root.get_path_to(bone_node[b["name"]])
 
 	# --- slots (sprites) ---
+	# Source atlases are premultiplied-alpha (Cocos/Spine). Blend as PMA to avoid
+	# dark edge fringing/seams between parts. filter_clip stops adjacent-region bleed.
+	var pma := CanvasItemMaterial.new()
+	pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	var tex_cache := {}
 	for s in data["slots"]:
 		var parent_node: Node2D = bone_node.get(s["bone"], root)
@@ -65,7 +69,9 @@ static func build_one(in_path: String, out_path: String) -> int:
 		at.atlas = tex_cache[png]
 		var rr = s["region_rect"]
 		at.region = Rect2(rr[0], rr[1], rr[2], rr[3])
+		at.filter_clip = true
 		spr.texture = at
+		spr.material = pma
 		frame.add_child(spr)
 
 	_set_owner_recursive(root, root)
