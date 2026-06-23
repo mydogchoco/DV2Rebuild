@@ -12,9 +12,9 @@ config/icon="res://icon.svg"
 
 [display]
 
-; ASSUMPTION: 원작은 모바일 세로(480 baseline). PC 타깃이므로 세로형 창을 기본으로 두되 리사이즈 허용.
-window/size/viewport_width=540
-window/size/viewport_height=960
+; 원작은 가로모드. PC 타깃 기준 해상도 1920x1080(16:9). 리사이즈 시 비율 유지.
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 

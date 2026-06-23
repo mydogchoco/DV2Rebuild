@@ -33,6 +33,21 @@
   + region 스프라이트)뿐이라 **Godot `Bone2D`+`Sprite2D`에 거의 1:1 매핑** 가능.
 - 버전 분포(200샘플): noblock(최古 2.x) 108 / 3.0 60 / 2.1 30 / 기타(3.6, 1.9) 소수.
 
+## 에셋 구조 추가 발견 (변환기 설계 단순화, 2026-06-24)
+
+- 드래곤 spine의 `.img_plist`는 **XML plist가 아니라 표준 Spine 아틀라스(.atlas) 텍스트 포맷**.
+  region 이름이 spine_json 어태치먼트와 정확히 일치. ⇒ `spine_json + .img_plist(=atlas) + .png`가
+  **완전한 표준 Spine 에셋 3종 세트**(확장자만 비표준).
+  - ⚠️ 주의: `.img_plist`에는 두 종류가 공존 — (a) 위 **Spine 아틀라스**(dragon spine 등),
+    (b) **Cocos2d-x XML plist**(monster `1_image.img_plist` 등 일반 스프라이트 아틀라스). 변환기는
+    첫 줄로 포맷 판별(XML 선언 → Cocos plist / 그 외 → Spine 아틀라스).
+- 한 드래곤 스켈레톤은 **멀티페이지**: 예) `dragon_1_spine.img_plist`(메인 111리전) +
+  `dragon_1_spine/skin_1_spine.img_plist`(스킨 28리전). baby/child/adult 리전이 두 페이지의
+  **union에 100% 존재**(검증 완료). 변환기는 두 아틀라스를 병합해야 함.
+- 아틀라스 헤더의 페이지 이미지는 `*.pvr.ccz`(PVR 압축)로 적혀 있으나, 폴더에 **디코딩된 `.png`가
+  같이 있음** → `.png`를 페이지 텍스처로 사용(.pvr.ccz 무시).
+- ⇒ 4b 변환기 입력: spine_json(스켈레톤) + Spine 아틀라스 1~N개(.img_plist) + 페이지 PNG들.
+
 ## 전략 옵션
 
 | # | 방안 | 장점 | 단점 |

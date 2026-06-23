@@ -90,12 +90,14 @@
 - [ ] 오프라인 변형 명세: 삭제 시스템 / 솔로화한 시스템 정리.
 
 ### Phase 2 — 엔진 세팅 + 에셋 파이프라인
-- [ ] 프로젝트 루트에 `project.godot` + 폴더 구조 + `git init`
-- [ ] plist → Godot 변환 도구(Python) → SpriteFrames/AtlasTexture
-- [ ] **Spine 오프라인 변환기(옵션 4b)**: spine_json → Godot `Skeleton2D`+`AnimationPlayer` 씬
-      (region 어태치먼트 + rotate/translate/scale 타임라인 + 베지어 커브; noblock/2.1/3.0 흡수)
-      우선 idle(`wait`) 1종만 변환·재생 검증 → attack/damaged/critical 확장
-- [ ] 🎯 **마일스톤: 드래곤 1마리 idle 애니메이션 화면 재생**
+- [x] 프로젝트 루트에 `project.godot` + 폴더 구조 + `git init` (Godot 4.7, `--import` 검증, DV2/ `.gdignore`)
+- [x] 아틀라스 파서(`scripts/tools/atlas.py`): Spine 아틀라스 / Cocos XML plist 판별·파싱
+- [x] **Spine 오프라인 변환기(옵션 4b)** 동작: `spine_export.py`(좌표변환·멀티페이지 병합·
+      회전 region·트림 오프셋) + `build_spine_scene.gd`(Node2D 본 계층 + AtlasTexture +
+      AnimationPlayer) → `.tscn`. dragon_1 baby + `wait` 검증 완료.
+- [x] 🎯 **마일스톤 달성: 드래곤 1마리 화면 렌더** (`screenshot.gd`로 시각 확인)
+- [ ] (후속) Cocos plist → Godot 변환(몬스터/UI 스프라이트), 베지어 커브 정밀화,
+      여러 stage/anim 일괄 변환, 480→1080 스케일 정책 확정
 
 ### Phase 3 — 코어 백본
 - [ ] 데이터 로더 (`data/*.json` → 런타임)
