@@ -36,12 +36,16 @@ func _ready() -> void:
 	var stf := FileAccess.open("res://assets/converted/status_ui/_manifest.json", FileAccess.READ)
 	if stf: _status_manifest = JSON.parse_string(stf.get_as_text())
 
-	if SaveSystem.state["owned_dragons"].is_empty():
+	if UserDB.dragon_count() == 0:
+		UserDB.begin_batch()
 		for o in SEED_OWNED:
-			SaveSystem.add_dragon(o["id"], o["level"])
-		SaveSystem.state["currency"] = {"gold": 125000, "diamond": 980}
-		SaveSystem.state["inventory"] = {"에너지 드링크": 3, "레벨업 물약": 12, "각성의 마석": 2, "문장": 47}
-		SaveSystem.save_game()
+			UserDB.add_dragon(o["id"], o["level"])
+		UserDB.add_currency("gold", 125000)
+		UserDB.add_currency("diamond", 980)
+		var seed_items := {"에너지 드링크": 3, "레벨업 물약": 12, "각성의 마석": 2, "문장": 47}
+		for k in seed_items:
+			UserDB.add_item(k, seed_items[k])
+		UserDB.save()
 
 	_build_background()
 	_build_walls()
@@ -83,10 +87,7 @@ func _panel(col := Color(0, 0, 0, 0.55)) -> Panel:
 	return p
 
 func _active() -> Dictionary:
-	var owned: Array = SaveSystem.state["owned_dragons"]
-	if owned.is_empty(): return {}
-	var i: int = clampi(int(SaveSystem.state.get("active_dragon", 0)), 0, owned.size() - 1)
-	return owned[i]
+	return UserDB.active_dragon()
 
 # ---------- build ----------
 func _build_background() -> void:
@@ -266,19 +267,18 @@ func _build_topbar() -> void:
 
 # ---------- refresh ----------
 func _refresh() -> void:
-	var skin_idx: int = int(SaveSystem.state.get("cave_skin", 0)) % SKIN_COUNT
+	var skin_idx: int = UserDB.get_skin("cave_skin") % SKIN_COUNT
 	_bg.texture = load(BG % (skin_idx + 1))
 	_refresh_dragon()
 	_refresh_list()
 	_refresh_stats()
-	var c: Dictionary = SaveSystem.state["currency"]
-	get_node("TopCurrency").text = "골드 %d    다이아 %d" % [int(c.get("gold", 0)), int(c.get("diamond", 0))]
+	get_node("TopCurrency").text = "골드 %d    다이아 %d" % [UserDB.gold(), UserDB.diamond()]
 
 func _refresh_dragon() -> void:
 	for ch in _stage.get_children():
 		ch.queue_free()
 	# 받침대: stand 스킨 스프라이트 (480/stand.png). 디스크가 드래곤보다 넓게(참고 Cave.png).
-	var si: int = int(SaveSystem.state.get("stand_skin", 0)) % STAND_COUNT
+	var si: int = UserDB.get_skin("stand_skin") % STAND_COUNT
 	var info = _stand_manifest.get("stand_stand%d" % (si + 1), {})
 	var w: float = maxf(1.0, float(info.get("w", 305)))
 	var ped := _atlas_sprite("stand_ui", "stand_stand%d" % (si + 1), _stand_manifest, 620.0 / w)
@@ -323,12 +323,12 @@ func _portrait_sprite(id: int, stage: String, scale := 1.0) -> Sprite2D:
 func _refresh_list() -> void:
 	for ch in _list_box.get_children():
 		ch.queue_free()
-	var owned: Array = SaveSystem.state["owned_dragons"]
-	var active := int(SaveSystem.state.get("active_dragon", 0))
-	for i in owned.size():
-		_list_box.add_child(_dragon_slot(int(owned[i]["id"]), int(owned[i]["level"]), i, i == active))
+	var owned: Array = UserDB.dragons()
+	var active := UserDB.active_uid()
+	for d in owned:
+		_list_box.add_child(_dragon_slot(int(d["id"]), int(d["level"]), int(d["uid"]), int(d["uid"]) == active))
 
-func _dragon_slot(id: int, level: int, idx: int, is_active: bool) -> Control:
+func _dragon_slot(id: int, level: int, uid: int, is_active: bool) -> Control:
 	var slot := Control.new()
 	slot.custom_minimum_size = Vector2(132, 124)
 	slot.clip_contents = true
@@ -359,8 +359,7 @@ func _dragon_slot(id: int, level: int, idx: int, is_active: bool) -> Control:
 	b.flat = true
 	b.size = Vector2(132, 124)
 	b.pressed.connect(func():
-		SaveSystem.state["active_dragon"] = idx
-		SaveSystem.save_game()
+		UserDB.set_active(uid)
 		_refresh())
 	slot.add_child(b)
 	return slot
@@ -402,12 +401,10 @@ func _update_elem_icon(element: String) -> void:
 
 # ---------- actions ----------
 func _on_levelup() -> void:
-	var owned: Array = SaveSystem.state["owned_dragons"]
-	var i := int(SaveSystem.state.get("active_dragon", 0))
-	if i < owned.size():
-		owned[i]["level"] = mini(45, int(owned[i]["level"]) + 1)  # TODO: 경험치/아이템 소비(§E,§K)
-		SaveSystem.save_game()
-		_refresh()
+	var a := _active()
+	if a.is_empty(): return
+	UserDB.set_level(int(a["uid"]), mini(45, int(a["level"]) + 1))  # TODO: 경험치/아이템 소비(§E,§K)
+	_refresh()
 
 func _open_skin() -> void:
 	# 컴팩트 패널(암전X) — 변경을 실시간으로 보면서 선택
@@ -445,11 +442,10 @@ func _skin_row(label: String, key: String, count: int) -> HBoxContainer:
 	idx.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var nxt := Button.new(); nxt.text = "  ▶  "
 	var upd := func():
-		idx.text = "%d / %d" % [int(SaveSystem.state.get(key, 0)) + 1, count]
+		idx.text = "%d / %d" % [UserDB.get_skin(key) + 1, count]
 	upd.call()
 	var step := func(d: int):
-		SaveSystem.state[key] = (int(SaveSystem.state.get(key, 0)) + d + count) % count
-		SaveSystem.save_game()
+		UserDB.set_skin(key, (UserDB.get_skin(key) + d + count) % count)
 		upd.call()
 		_refresh()
 	prev.pressed.connect(func(): step.call(-1))
@@ -482,7 +478,7 @@ func _make_overlay(title: String) -> VBoxContainer:
 func _open_dex() -> void:
 	var box := _make_overlay("도감")
 	var owned_ids := {}
-	for o in SaveSystem.state["owned_dragons"]:
+	for o in UserDB.dragons():
 		owned_ids[int(o["id"])] = true
 	var il := ItemList.new()
 	il.custom_minimum_size = Vector2(1180, 840)
@@ -496,7 +492,7 @@ func _open_dex() -> void:
 
 func _open_inventory() -> void:
 	var box := _make_overlay("인벤토리")
-	var inv: Dictionary = SaveSystem.state.get("inventory", {})
+	var inv: Dictionary = UserDB.inventory()
 	if inv.is_empty():
 		var e := Label.new(); e.text = "보유 아이템 없음"; box.add_child(e); return
 	for item_name in inv.keys():
@@ -507,9 +503,8 @@ func _open_inventory() -> void:
 		row.add_child(l)
 		var use := Button.new(); use.text = "사용"
 		use.pressed.connect(func():
-			inv[item_name] = maxi(0, int(inv[item_name]) - 1)  # TODO: 효과 적용(§E)
-			if inv[item_name] == 0: inv.erase(item_name)
-			SaveSystem.save_game(); _open_inventory())
+			UserDB.use_item(item_name, 1)  # TODO: 효과 적용(§E)
+			_open_inventory())
 		row.add_child(use)
 		box.add_child(row)
 

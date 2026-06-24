@@ -75,9 +75,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		KEY_UP: level = mini(45, level + 5); _show()
 		KEY_DOWN: level = maxi(1, level - 5); _show()
 		KEY_S:
-			SaveSystem.add_dragon(ids[idx], level)
-			SaveSystem.save_game()
-			help.text = "저장됨 — 보유 드래곤 %d마리 (user://save_0.json)" % SaveSystem.state["owned_dragons"].size()
+			UserDB.add_dragon(ids[idx], level)
+			help.text = "저장됨 — 보유 드래곤 %d마리 (user://save_0.json)" % UserDB.dragon_count()
 		KEY_R:
-			SaveSystem.reset()
+			UserDB.reset()
 			help.text = "세이브 리셋됨"
