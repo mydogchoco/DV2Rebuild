@@ -17,6 +17,7 @@ var _battle_manifest: Dictionary = {}
 var _status_manifest: Dictionary = {}
 var _portrait_manifests: Dictionary = {}   # dir -> manifest (캐시)
 var _elem_icon: Sprite2D
+var _dragon_ap: AnimationPlayer            # 현재 활성 드래곤의 AnimationPlayer
 var _bg: TextureRect
 var _stage: Node2D
 var _list_box: VBoxContainer
@@ -129,6 +130,13 @@ func _build_stage() -> void:
 	_stage = Node2D.new()
 	_stage.position = Vector2(980, 510)   # 화면 중앙 쪽으로(받침대가 하단 벽 안 가리게). 드래곤-받침대 상대거리 유지.
 	add_child(_stage)
+	# 드래곤 클릭 영역(투명) — 클릭 시 love(터치) 모션 재생 후 wait 복귀
+	var btn := Button.new()
+	btn.flat = true
+	btn.position = Vector2(820, 360)
+	btn.size = Vector2(320, 320)
+	btn.pressed.connect(_on_dragon_clicked)
+	add_child(btn)
 
 func _build_dragon_list() -> void:
 	var sc := ScrollContainer.new()
@@ -287,9 +295,22 @@ func _refresh_dragon() -> void:
 		_stage.add_child(holder)
 		var inst = load(path).instantiate()
 		holder.add_child(inst)
-		var ap = inst.get_node_or_null("AnimationPlayer")
-		if ap and ap.has_animation("wait"):
-			ap.play("wait")
+		_dragon_ap = inst.get_node_or_null("AnimationPlayer")
+		if _dragon_ap:
+			if _dragon_ap.has_animation("love"):
+				_dragon_ap.get_animation("love").loop_mode = Animation.LOOP_NONE  # 1회 재생
+			_dragon_ap.animation_finished.connect(_on_dragon_anim_finished)
+			if _dragon_ap.has_animation("wait"):
+				_dragon_ap.play("wait")
+
+func _on_dragon_clicked() -> void:
+	if is_instance_valid(_dragon_ap) and _dragon_ap.has_animation("love"):
+		_dragon_ap.play("love")   # 터치 반응
+
+func _on_dragon_anim_finished(anim: StringName) -> void:
+	# love 등 1회성 모션이 끝나면 대기로 복귀
+	if anim != "wait" and is_instance_valid(_dragon_ap) and _dragon_ap.has_animation("wait"):
+		_dragon_ap.play("wait")
 
 ## 드래곤 단계 박스 썸네일(480/dragon/dragon_{N}.png의 box_<stage>). 도감에서도 재사용.
 func _portrait_sprite(id: int, stage: String, scale := 1.0) -> Sprite2D:
