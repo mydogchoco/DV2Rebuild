@@ -6,7 +6,6 @@ const UI := "res://assets/converted/cave_ui/%s.tres"
 const STAND := "res://assets/converted/stand_ui/stand_stand%d.tres"
 const BG := "res://assets/converted/cave_bg/cavebg%d.jpg"
 const DRAGON_SCENE := "res://scenes/dragons/dragon_%d_%s.tscn"
-const SEED_OWNED := [{"id": 1, "level": 5}, {"id": 5, "level": 12}, {"id": 10, "level": 25}]
 const SKIN_COUNT := 15
 const STAND_COUNT := 16
 
@@ -36,17 +35,7 @@ func _ready() -> void:
 	var stf := FileAccess.open("res://assets/converted/status_ui/_manifest.json", FileAccess.READ)
 	if stf: _status_manifest = JSON.parse_string(stf.get_as_text())
 
-	if UserDB.dragon_count() == 0:
-		UserDB.begin_batch()
-		for o in SEED_OWNED:
-			UserDB.add_dragon(o["id"], o["level"])
-		UserDB.add_currency("gold", 125000)
-		UserDB.add_currency("diamond", 980)
-		var seed_items := {"에너지 드링크": 3, "레벨업 물약": 12, "각성의 마석": 2, "문장": 47}
-		for k in seed_items:
-			UserDB.add_item(k, seed_items[k])
-		UserDB.save()
-
+	# 초기 상태(새 게임)는 진입점(main.gd → NewGame)이 보장. 여기선 표시만 한다.
 	_build_background()
 	_build_walls()
 	_build_stage()
@@ -286,7 +275,7 @@ func _refresh_dragon() -> void:
 	_stage.add_child(ped)
 	var a := _active()
 	if a.is_empty(): return
-	var stage_name := Data.stage_for_level(int(a["level"]))
+	var stage_name := Growth.stage_for_level(int(a["level"]))
 	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
 	if ResourceLoader.exists(path):
 		var holder := Node2D.new()
@@ -339,7 +328,7 @@ func _dragon_slot(id: int, level: int, uid: int, is_active: bool) -> Control:
 	frame.position = Vector2(66, 58)
 	slot.add_child(frame)
 	# 단계 썸네일(프레임 위)
-	var stage := Data.stage_for_level(level)
+	var stage := Growth.stage_for_level(level)
 	var por := _portrait_sprite(id, stage, 1.15)
 	por.position = Vector2(66, 52)
 	if not is_active:
@@ -373,7 +362,7 @@ func _refresh_stats() -> void:
 		return
 	var d: Dictionary = Data.get_dragon(int(a["id"]))
 	var lv := int(a["level"])
-	var s := Data.compute_stats(int(a["id"]), lv)
+	var s := Growth.compute_stats(d, Data.stat_table, lv)
 	_grade_label.text = "%.1f" % float(a.get("grade", 8.0))
 	_name_label.text = "레벨 %d  %s" % [lv, str(d.get("name", "?"))]
 	_update_elem_icon(str(d.get("element", "")))
@@ -403,7 +392,7 @@ func _update_elem_icon(element: String) -> void:
 func _on_levelup() -> void:
 	var a := _active()
 	if a.is_empty(): return
-	UserDB.set_level(int(a["uid"]), mini(45, int(a["level"]) + 1))  # TODO: 경험치/아이템 소비(§E,§K)
+	UserDB.set_level(int(a["uid"]), Growth.next_level(int(a["level"])))  # 규칙=Growth, 적용=UserDB
 	_refresh()
 
 func _open_skin() -> void:

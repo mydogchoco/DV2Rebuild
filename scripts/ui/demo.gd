@@ -52,7 +52,7 @@ func _show() -> void:
 		return
 	var id: int = ids[idx]
 	var d: Dictionary = Data.get_dragon(id)
-	var stage := Data.stage_for_level(level)
+	var stage := Growth.stage_for_level(level)
 	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [id, stage]
 	if ResourceLoader.exists(path):
 		var inst = load(path).instantiate()
@@ -60,7 +60,7 @@ func _show() -> void:
 		var ap = inst.get_node_or_null("AnimationPlayer")
 		if ap and ap.has_animation("wait"):
 			ap.play("wait")
-	var s := Data.compute_stats(id, level)
+	var s := Growth.compute_stats(d, Data.stat_table, level)
 	info.text = "#%d  %s\n속성: %s   유형: %s   %s성   %s세대\nLv.%d  [%s]\nHP %d   ATT %d   DEF %d\nCRI %d%%  EVD %d%%  BLK %d%%" % [
 		id, str(d.get("name", "?")), str(d.get("element", "?")), str(d.get("type", "?")),
 		str(d.get("star", "?")), str(d.get("generation", "?")), level, stage,

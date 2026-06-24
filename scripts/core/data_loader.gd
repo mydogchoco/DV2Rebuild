@@ -1,15 +1,16 @@
 extends Node
-## Autoload "Data": loads master data (data/*.json) and computes dragon stats.
+## Autoload "Data": data 층 — 정적 게임 정의(data/*.json)를 읽어 제공만 한다. (CLAUDE.md §10)
+## 규칙(스탯 공식/레벨→단계 등 logic)은 여기 두지 않는다 → scripts/systems/(Growth 등).
 ## Master data is restored by the user (see docs/game_design.md), not in assets.
 
 var dragons: Dictionary = {}     # id(int) -> dragon dict
 var stat_table: Dictionary = {}  # type -> tier -> {base,growth}
-
-const STAGE_BREAKS := {"baby": 9, "child": 19}  # <=9 baby, <=19 child, else adult
+var new_game: Dictionary = {}    # 새 게임 초기 로드아웃 정의
 
 func _ready() -> void:
 	_load_dragons("res://data/dragons.json")
 	stat_table = _load_json("res://data/stat_table.json")
+	new_game = _load_json("res://data/new_game.json")
 	print("[Data] %d dragons, stat types=%s" % [dragons.size(), str(stat_table.keys())])
 
 func _load_json(path: String):
@@ -26,29 +27,8 @@ func _load_dragons(path: String) -> void:
 func get_dragon(id: int) -> Dictionary:
 	return dragons.get(id, {})
 
-func stage_for_level(level: int) -> String:
-	if level <= STAGE_BREAKS["baby"]:
-		return "baby"
-	if level <= STAGE_BREAKS["child"]:
-		return "child"
-	return "adult"
-
-## Final stats = base + growth*(level-1). Crit/dodge/block fixed 10% (§K-1).
-## TODO: grade(개체 등급)/문장/각인 보정 (§K-5) — 추후.
-func compute_stats(id: int, level: int) -> Dictionary:
-	var d := get_dragon(id)
-	var typ = d.get("type")
-	var tier = d.get("stat_tier")
-	var st = stat_table.get(typ, {}).get(tier)
-	if st == null:
-		return {"hp": 0, "att": 0, "def": 0, "cri": 10, "evd": 10, "blk": 10}
-	var lv := maxi(1, level) - 1
-	return {
-		"hp": int(st["base"]["hp"] + st["growth"]["hp"] * lv),
-		"att": int(st["base"]["att"] + st["growth"]["att"] * lv),
-		"def": int(st["base"]["def"] + st["growth"]["def"] * lv),
-		"cri": 10, "evd": 10, "blk": 10,
-	}
+func new_game_def() -> Dictionary:
+	return new_game
 
 func dragon_ids() -> Array:
 	var ids := dragons.keys()

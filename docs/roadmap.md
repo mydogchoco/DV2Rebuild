@@ -103,11 +103,13 @@
 
 ### Phase 3 — 코어 백본
 - [x] 마스터 데이터 빌드(`build_data.py`): dragons.csv + DragonStat.xlsx → `data/dragons.json`(369) + `data/stat_table.json` (water→aqua 정규화)
-- [x] 데이터 로더 오토로드 `Data` (`scripts/core/data_loader.gd`): get_dragon/compute_stats/stage_for_level
-- [x] 세이브/로드 오토로드 `SaveSystem` (`save_system.gd`, user://save_0.json, 단일 진입점)
+- [x] **data 층** 오토로드 `Data` (`scripts/core/data_loader.gd`): 정적 정의 제공만 — get_dragon/stat_table/new_game_def/dragon_ids
+- [x] **logic 층** `scripts/systems/` (§10): `Growth`(stage_for_level/compute_stats/next_level), `NewGame`(초기 로드아웃 적용). 순수 정적·헤드리스 검증
+- [x] **저장 층**: `SaveSystem`(순수 파일IO+백업) / `UserDB`(유저상태 스키마+API, uid식별, v1→v2 마이그레이션)
 - [x] 시드 고정 RNG 오토로드 `RNG` (`rng.gd`: chance/weighted)
+- [x] **씬/상태 기계** 오토로드 `Scenes` (`scene_manager.gd`) + 진입점 `scenes/main.tscn`(`main.gd`): goto(state)로만 전환, enter(params) 전달
 - [x] 🎯 **마일스톤 달성: 데이터→스탯→씬 통합 데모**(`scenes/demo.tscn`): 이름·속성·계산스탯 + spine 렌더, 드래곤/레벨 순환, 저장
-- [ ] (후속) compute_stats에 grade/문장/각인 보정(§K-5), 전투 시스템(§K-2~K-6)
+- [ ] (후속) Growth.compute_stats에 grade/문장/각인 보정(§K-5), 전투 시스템(§K-2~K-6)
 
 ### Phase 4 — MPV (최소 플레이 버전)
 - [x] **Cave 메인 화면(로비)** `scenes/cave.tscn` (참고 docs/OldRef_image/Cave.png):
