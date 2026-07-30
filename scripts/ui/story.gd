@@ -235,6 +235,15 @@ func _play_flow() -> void:
 					_show_npc(folder)
 				_next_line()
 				return
+			"setTalker":
+				# 1~78화 경로 — 원작 `ScenarioLayer::setTalker` 는 NPC 를 **이름 문자열**로 받는다
+				# (번호를 받는 `setNpcTalk` 과 다르다).
+				var f2 := String(o.get("npc_name", ""))
+				_name_label.text = Data.npc_name(f2) if f2 != "" else ""
+				if f2 != "":
+					_show_npc(f2)
+				_next_line()
+				return
 			"setUserTalk":
 				# 주인공(=플레이어) 대사·지문. 원작도 이때 NPC 초상을 띄우지 않는다.
 				_name_label.text = ""

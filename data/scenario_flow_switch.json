@@ -1,5 +1,5 @@
 {
- "_re_basis": "원작 Scenario1~8::setNext 의 점프 테이블을 디스어셈블 수준에서 읽어 스텝별 npc/state/pos/emoticon 을 복원. 도구 = extract_switch_flow.py",
+ "_re_basis": "원작 Scenario1~8::setNext 의 두 겹 점프 테이블(회차→스텝)을 디스어셈블 수준에서 읽어 스텝별 npc/state/pos/emoticon 을 복원. 도구 = scripts/tools/extract_switch_flow.py",
  "flows": {
   "79": [
    {
@@ -634,6 +634,9 @@
    {
     "op": "setUserTalk"
    }
-  ]
+  ],
+  "1033": [],
+  "1046": [],
+  "1062": []
  }
 }
