@@ -42,6 +42,9 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# ⚠️ 절대 눈금은 원작과 다르다(우리 7.0 기준 / 원작 0~6) — 절대값을 쓰는 스킬은 미이식.
 		"grade": float(stats.get("grade", 0.0)),
 		"skills": norm, "skill_uses": {}, "effects": [],
+		# 장착 중인 장비의 카탈로그 키(EquipEffect.keys_of). 조건부 효과를 심을 때만 쓰고,
+		# 스탯은 이미 Equipment.apply 로 stats 에 반영돼 들어온다.
+		"equip_keys": (stats.get("equip_keys", []) as Array),
 		# 스킬 칸 타입(원작 Dragon::getSkillType 0△1□2○3☆). 스킬 자체 타입과 일치하면 추가효과.
 		"skill_slots": skill_slots,
 	# 아티팩트 수정치(Equipment.artifact_mods) — 스킬 id → 값. 비어 있으면 아무 영향 없다.
@@ -92,6 +95,30 @@ static func _dmg_deal_mult(c: Dictionary) -> float:
 	for e in c.get("effects", []):
 		if e.get("kind") == "dmg_deal":
 			pct += float(e["pct"])
+	return maxf(0.0, 1.0 + pct / 100.0)
+
+## **특정 속성 상대에게만** 걸리는 주는 피해 배수.
+## 전용 장비의 "불 속성 드래곤에게 주는 대미지 50% 증가"(빙하고룡의 칼날) 계열 —
+## 상시값인 `dmg_deal` 과 달리 방어자의 속성을 봐야 해서 별도 통로다.
+## 여러 개면 **곱이 아니라 합**으로 본다(같은 축의 증가율이라 dmg_deal 과 같은 규약).
+static func _dmg_deal_vs_mult(attacker: Dictionary, defender: Dictionary) -> float:
+	var el := String(defender.get("element", ""))
+	if el == "":
+		return 1.0
+	var pct := 0.0
+	for e in (attacker.get("effects", []) as Array):
+		var d := e as Dictionary
+		if String(d.get("kind", "")) == "dmg_deal_vs_element" and String(d.get("element", "")) == el:
+			pct += float(d.get("pct", 0.0))
+	return maxf(0.0, 1.0 + pct / 100.0)
+
+## 각성기 피해 배수 — "자신의 각성기 피해량 30% 증가"(발로드의 갈기) 계열.
+## 평타·스킬이 지나는 `dmg_deal` 과 통로가 다르다(각성기는 resolve_awaken 이 따로 굴린다).
+static func _awaken_dmg_mult(c: Dictionary) -> float:
+	var pct := 0.0
+	for e in (c.get("effects", []) as Array):
+		if (e as Dictionary).get("kind") == "awaken_dmg":
+			pct += float((e as Dictionary).get("pct", 0.0))
 	return maxf(0.0, 1.0 + pct / 100.0)
 
 ## 받는 피해 정액 감소 — "받는 피해량 15 감소 (최소 피해량 1)"(14 고요한 바람) 계열.
@@ -242,8 +269,35 @@ static func _evade_chance(attacker: Dictionary, defender: Dictionary) -> int:
 	return maxi(0, _eff(defender, "evd") - _eff(attacker, "accuracy"))
 
 ## 피해 적용: 취약(dmg_taken) 배수 + 1회 생존(survive_once 50). 반환 {dmg(실피해), dead, survived?}.
+## ── 보스 2페이즈 (혼돈의 틈새) ──────────────────────────────────────────────────
+## 원작에는 이 규칙의 **수치가 남아 있지 않다** — 전투가 서버 계산이라
+## (`attack_darknix.hb` 요청 → 클라는 `change%d` 델타만 재생) 조건·계수가 유실됐다.
+## 문자열·심볼·`getIsDarknixMode` 분기 17곳 전수 조회에도 배리어/피해감소 코드가 없다
+## (근거 = docs/ref/porting/ChaosRiftDarknix.md §4-A).
+## ⇒ 🟦 사용자 확정 2026-07-31: **잔여 HP 33% 이하로 떨어지는 즉시 2페이즈**,
+##    그 뒤로 **받는 피해 50%**. 회복 찬스 턴은 구현하지 않는다(사용자 결정).
+## 값은 코드가 아니라 `data/stages.json` 의 `summon.phase2` 에 있다(§2-6 튜닝 노브).
+##
+## 전환을 만든 그 타격 자체는 **감면되지 않는다** — "임계 진입 즉시 전환"이라 감면은
+## 다음 타격부터다. 전환된 턴에 `phase2: true` 를 결과에 실어 render 가 연출하게 한다.
+static func _phase_taken_mult(c: Dictionary) -> float:
+	if int(c.get("phase", 1)) < 2:
+		return 1.0
+	return maxf(0.0, float(c.get("phase2_taken_mult", 1.0)))
+
+## 피해를 넣은 뒤 임계를 넘었는지 본다. 방금 2페이즈가 됐으면 true.
+static func _enter_phase2_if_needed(c: Dictionary) -> bool:
+	var th := float(c.get("phase2_at", 0.0))
+	if th <= 0.0 or int(c.get("phase", 1)) >= 2 or not bool(c.get("alive", true)):
+		return false
+	var hp_max := maxf(1.0, float(c.get("hp_max", 1)))
+	if float(c.get("hp", 0)) / hp_max > th:
+		return false
+	c["phase"] = 2
+	return true
+
 static func _apply_dmg(defender: Dictionary, dmg: int) -> Dictionary:
-	var f := maxi(1, int(round(float(dmg) * _dmg_taken_mult(defender)
+	var f := maxi(1, int(round(float(dmg) * _dmg_taken_mult(defender) * _phase_taken_mult(defender)
 		- _dmg_taken_flat(defender))))
 	# 확률적 피해 고정 — 87 즈믄의 친구. 상한보다 먼저 본다(더 강한 효과라서).
 	f = _aw_fix_damage(defender, f)
@@ -255,12 +309,18 @@ static func _apply_dmg(defender: Dictionary, dmg: int) -> Dictionary:
 		var taken := maxi(0, int(defender["hp"]) - 1)
 		defender["hp"] = 1
 		_remove_flag(defender, "survive_once")
-		return {"dmg": taken, "dead": false, "survived": true}
+		var sp := _enter_phase2_if_needed(defender)
+		var sout := {"dmg": taken, "dead": false, "survived": true}
+		if sp: sout["phase2"] = true
+		return sout
 	defender["hp"] = maxi(0, int(defender["hp"]) - f)
 	var dead := int(defender["hp"]) <= 0
 	if dead:
 		defender["alive"] = false
-	return {"dmg": f, "dead": dead}
+	var out2 := {"dmg": f, "dead": dead}
+	if _enter_phase2_if_needed(defender):
+		out2["phase2"] = true
+	return out2
 
 ## 크리티컬 배수 — 장비 크리티컬 파워(cri_pow %)를 곱한다. 장비 없으면 cfg 기본값 그대로.
 ## ASSUMPTION: 위키 "크리티컬 대미지 100% 증가"(발록 보주) = 크리 배수 ×2 로 해석.
@@ -301,7 +361,8 @@ static func _hit_damage(attacker: Dictionary, defender: Dictionary, crit: bool, 
 ## 반환 이벤트 조각 {damage, dead, [def_skill], [survived], [reflect], [reflect_dead]}.
 static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: int, is_skill: bool, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary) -> Dictionary:
 	# 주는 피해 배수(각성스킬 "입히는 데미지 N% 증가")는 평타·스킬이 공통으로 지나는 여기서 곱한다.
-	raw_dmg = maxi(1, int(round(float(raw_dmg) * _dmg_deal_mult(attacker))))
+	raw_dmg = maxi(1, int(round(float(raw_dmg) * _dmg_deal_mult(attacker)
+		* _dmg_deal_vs_mult(attacker, defender))))
 	# 각성스킬 반응 — 공격 직전(누적 방출 45 불타는 날개 등)에 추가 피해를 얹는다.
 	raw_dmg += _aw_on_attack_bonus(attacker, defender, rng, raw_dmg)
 	# 아티팩트 DEDMG(벤투스) = "상대 스킬 대미지 감소". 스킬 피해에만, 방어측 기준으로 깎는다.
@@ -312,6 +373,8 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 	var dres := _defense_skill_onhit(defender, rng, raw_dmg, is_skill, cfg, skills_db)
 	var ap := _apply_dmg(defender, int(dres["dmg"]))
 	var out := {"damage": int(ap["dmg"]), "dead": bool(ap["dead"])}
+	if ap.has("phase2"):
+		out["phase2"] = true          # 이 타격으로 보스가 2페이즈에 들어갔다(render 가 연출)
 	# 각성스킬 반응 — 피격/사망. 누적기(21 깨어난 방어 감각 등)가 여기서 자란다.
 	_aw_on_hit_taken(defender, attacker, int(ap["dmg"]), rng)
 	if bool(ap["dead"]):
@@ -417,6 +480,9 @@ static func resolve_awaken(attacker: Dictionary, enemies: Array, rng: RandomNumb
 		var em := element_mult(String(attacker["element"]), String(target["element"]), cfg)
 		var rf := rng.randf_range(float(d.get("rand_min", 0.95)), float(d.get("rand_max", 1.05)))
 		var dmg := damage(_eff(attacker, "att"), _eff(target, "def"), float(attacker["pen"]), em, mult, rf, cfg)
+		# 각성기 전용 피해 배수(전용 장비 "각성기 피해량 N% 증가"). 관통을 더하기 **전에** 곱한다 —
+		# 관통은 방어 무시 고정 피해라 각성기 배수의 대상이 아니다.
+		dmg = int(round(float(dmg) * _awaken_dmg_mult(attacker)))
 		dmg += _pure_damage(attacker, target)   # 관통 고정 피해는 각성기에도 더해진다
 		var ap := _apply_dmg(target, dmg)
 		out.append({"type": "awaken", "attacker": attacker["name"], "defender": target["name"],
@@ -476,6 +542,9 @@ static func _skill_limit(sdef: Dictionary, level: int) -> int:
 static func _init_combatant_skills(c: Dictionary, skills_db: Dictionary, cfg: Dictionary = {}) -> void:
 	if not c.has("effects"): c["effects"] = []
 	c["skill_uses"] = {}
+	# 사건 반응이 스킬 한도를 다시 계산해야 할 때가 있다(`skill_restore` — 회피/크리 시
+	# 스킬 사용 횟수 1회 회복). 반응 지점에는 skills_db 가 안 넘어오므로 여기서 실어 둔다.
+	c["_skills_db"] = skills_db
 	var sk: Array = c.get("skills", [])
 	for i in sk.size():
 		var s: Dictionary = sk[i]
@@ -1331,11 +1400,46 @@ static func _aw_acc_set(c: Dictionary, no: int, v: float) -> void:
 	(c["_aw_acc"] as Dictionary)[no] = v
 
 
+## 스킬 사용 **횟수 회복** — 전용 장비 "회피/크리티컬 발동 시 스킬 사용 횟수 1회 회복"
+## (백룡·흑룡의 보주 · 네시의 머리장식 · 시타엘의 신성한 뿔).
+## 남은 횟수가 **한도보다 적은** 스킬 중 앞쪽 것부터 채운다 — 이미 가득이면 아무 일도 없다.
+## to == "ally" 면 아군 전체(시타엘)에 건다.
+static func _restore_skill_use(owner: Dictionary, r: Dictionary, skills_db: Dictionary) -> bool:
+	var targets: Array = [owner]
+	if String(r.get("to", "self")) == "ally":
+		targets = owner.get("_party", [owner])
+	var n := int(r.get("value", 1))
+	var any := false
+	for t in targets:
+		var c := t as Dictionary
+		if not bool(c.get("alive", true)):
+			continue
+		var left := n
+		for sd in (c.get("skills", []) as Array):
+			if left <= 0:
+				break
+			var sid := int((sd as Dictionary).get("id", 0))
+			var lim := _skill_limit(skills_db.get(str(sid), {}), int((sd as Dictionary).get("level", 1)))
+			lim += _skill_uses_bonus(c)
+			if _uses_left(c, sid) < lim:
+				(c["skill_uses"] as Dictionary)[sid] = _uses_left(c, sid) + 1
+				left -= 1
+				any = true
+	return any
+
+
 ## 크리티컬이 터졌다 — 상대 최대 체력 비례 추가 피해(2 · 44).
 static func _aw_on_crit_bonus(_attacker: Dictionary, defender: Dictionary) -> int:
 	var bonus := 0
 	for r in _reacts(_attacker, "crit"):
-		bonus += int(round(float(defender.get("hp_max", 0)) * float(r.get("pct", 0.0)) / 100.0))
+		if String(r.get("do", "")) == "skill_restore":
+			if _restore_skill_use(_attacker, r, _attacker.get("_skills_db", {})):
+				_spend(r)
+			continue
+		var add := float(defender.get("hp_max", 0)) * float(r.get("pct", 0.0)) / 100.0
+		if r.has("max"):
+			add = minf(add, float(r["max"]))     # "(최대 300)" — 전용 장비 저네르의 정기
+		bonus += int(round(add))
 		_spend(r)
 	return bonus
 
@@ -1394,6 +1498,10 @@ static func _aw_on_block(defender: Dictionary, _rng: RandomNumberGenerator) -> v
 static func _aw_on_evade(defender: Dictionary, attacker: Dictionary,
 		_rng: RandomNumberGenerator) -> void:
 	for r in _reacts(defender, "evade"):
+		if String(r.get("do", "")) == "skill_restore":
+			if _restore_skill_use(defender, r, defender.get("_skills_db", {})):
+				_spend(r)
+			continue
 		_add_flag(attacker, "confused", int(r.get("turns", 1)), int(r.get("no", 0)))
 		_spend(r)
 
@@ -1612,6 +1720,12 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				else:
 					_aw_add_stat(t, String(op["stat"]), String(op.get("mode", "flat")), v, src)
 			"dmg_deal":      _push(t, {"kind": "dmg_deal", "pct": v}, src)
+			"dmg_deal_vs_element":
+				# 전용 장비 "불 속성 드래곤에게 주는 대미지 50% 증가" 계열 —
+				# 방어자의 속성을 봐야 하므로 대상 속성을 항목에 함께 싣는다.
+				_push(t, {"kind": "dmg_deal_vs_element", "pct": v,
+					"element": String(op.get("element", ""))}, src)
+			"awaken_dmg":    _push(t, {"kind": "awaken_dmg", "pct": v}, src)
 			"dmg_taken":     _push(t, {"kind": "dmg_taken", "pct": v}, src)
 			"dmg_taken_flat": _push(t, {"kind": "dmg_taken_flat", "value": v}, src)
 			"dmg_cap_pct":   _push(t, {"kind": "dmg_cap_pct", "pct": v}, src)

@@ -37,6 +37,8 @@ var team_buffs: Dictionary = {}      # 종족 조합 버프(원작 info_dragon_t
 var combine_egg: Dictionary = {}     # 알 조합 레시피(원작 CombineEgg/info_combine_egg). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/combine_egg_sheet.md.
 var combine_item: Dictionary = {}    # 아이템 조합 레시피(원작 CombineItem/info_combine_item). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/combine_item_sheet.md.
 var upgrade_egg: Dictionary = {}     # 알 업그레이드 레시피(원작 UpgradeEgg/info_upgrade_egg). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/upgrade_egg_sheet.md.
+var equip_effects: Dictionary = {}   # 장비 조건부 효과의 전투 반영표(build_equip_effects.py).
+                                     # 위키 원문 → 각성스킬과 같은 ops/react 어휘. 실행=Battle.
 var skill_awaken: Dictionary = {}    # 각성 스킬 표시정보(원작 SkillAwaken/info_skill_awaken). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/skill_awaken_sheet.md.
 var level_curve: Dictionary = {}     # 레벨업 경험치 곡선(req[]/cap). ASSUMPTION — 서버유실, 관측앵커로 복원(build_level_curve.py).
 var dragon_voices: Dictionary = {}   # 드래곤별 보이스 번호(baby/child/adult). 원작=info_dragon_v2 컬럼(Dragon.c:13478) → 유실. 값=dragons.csv voice_* 열(사용자 검수 2026-07-31), 반영=build_dragon_voice_sheet.py --apply.
@@ -95,6 +97,7 @@ func _ready() -> void:
 	combine_item = _load_json("res://data/combine_item.json")
 	upgrade_egg = _load_json("res://data/upgrade_egg.json")
 	skill_awaken = _load_json("res://data/skill_awaken.json")
+	equip_effects = _load_json("res://data/equip_effects.json")
 	level_curve = _load_json("res://data/level_curve.json")
 	dragon_voices = _load_json("res://data/dragon_voices.json")
 	battle_missions = _load_json("res://data/battle_missions.json")

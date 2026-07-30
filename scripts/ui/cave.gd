@@ -771,6 +771,13 @@ func _open_equip_select(slot_id: String) -> void:
 					int((o as Dictionary).get("value", 0))])
 			if String(it.get("artifact_effect", "")) != "":
 				mparts.append(String(it["artifact_effect"]))
+			# 전용·특수 장비의 조건부 효과 — 원문과 **전투 반영 여부**를 함께 보여 준다.
+			# (표 = data/equip_effects.json. 반영되는 것은 문구가 비어 있다)
+			if String(it.get("bonus", "")) != "":
+				mparts.append(String(it["bonus"]))
+				var st_txt := EquipEffect.status_text(String(it["key"]), Data.equip_effects)
+				if st_txt != "":
+					mparts.append(st_txt)
 			var usable := Equipment.belong_allows(bel, uid)
 			var tail := "×%d" % int(r["n"])
 			if not usable:

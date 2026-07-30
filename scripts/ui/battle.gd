@@ -74,7 +74,7 @@ func _rebuild() -> void:
 # ---------- 데이터 조립 ----------
 func _setup_enemy() -> void:
 	# 스테이지 데이터(data/stages.json, 사용자 작성)가 있으면 그걸로 구성. 없으면 params.enemy 또는 스텁.
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st: Dictionary = _stage_rec()
 	if st.get("bg") != null and not _params.has("bg"):   # bg=null(미매칭) 가드
 		_params["bg"] = int(st["bg"])
 	# 조우 인덱스(enc): 어드벤처 다중 조우에서 몇 번째 몹인지. 마지막=보스.
@@ -86,6 +86,13 @@ func _setup_enemy() -> void:
 		if not _params.has("enc"):
 			var rr := RandomNumberGenerator.new(); rr.randomize()
 			enc = rr.randi() % enemies.size()
+	# 🔒 소환형(혼돈의 틈새)은 **항상** 소환 때 확정된 보스다 — enc 유무·재추첨과 무관.
+	#    (2026-07-31 사용자 지적: 나갔다 들어오면 다른 보스가 나왔다.)
+	if Darknix.is_summon_stage(st):
+		var dkp := Darknix.enemy_index(st["summon"], UserDB.darknix(),
+			int(Time.get_unix_time_from_system()))
+		if dkp >= 0 and dkp < enemies.size():
+			enc = dkp
 	# 요일별 보스 교대(원작 우노 '미지의 터'). 위키 dungeon_4.pdf §4.2 가 요일을 특정한다 —
 	# 월=볼케이노 화=윗치 수=드라고노이드 목=골드 토=퍼플립스, 일요일은 전부 등장(=무작위).
 	# stages.json `boss_by_weekday` = {"1"(월)…"7"(일): enemies 인덱스, -1 = 무작위}.
@@ -112,6 +119,9 @@ func _setup_enemy() -> void:
 		"hp": int(e.get("hp", e.get("hp_max", 520))),
 		"att": int(e.get("att", 60)),
 		"def": int(e.get("def", 40)),
+		# 원작 `Monster::isBoss` — BGM·등장 연출·보상 배수가 이걸 본다.
+		# `stages.json` 의 각 적 항목이 들고 있다(혼돈의 틈새 3종·밤 지역보스 등).
+		"boss": bool(e.get("boss", false)),
 		# 몬스터 보유 스킬(스킬 id 목록). 원작 몬스터도 스킬을 쓴다 —
 		# `BattleMonster::setReadySkill`/`callReadySkill`/`setAnimatedReadySkill`(준비 모션)이 실재하고
 		# `FightManager::getActorSkillNumber`/`getTargetSkillNumber` 는 진영을 가리지 않는다.
@@ -125,6 +135,18 @@ func _setup_enemy() -> void:
 		for hs in (e.get("skills_hero", []) as Array):
 			if not (_enemy["skills"] as Array).has(int(hs)):
 				(_enemy["skills"] as Array).append(int(hs))
+		# 영웅 난이도 스탯 배수 — 🟦 사용자 확정 2026-07-31: **일반 난이도 스탯의 5배**.
+		# 원작 배율은 서버(info_field 난이도별 몬스터 레코드) 소유라 유실, 위키에도 수치가 없다
+		# → 노브 = `stages.json _variant_rules.hero_stat_mult`. 레벨은 건드리지 않는다
+		# (보상 exp/골드가 적 레벨 파생이라 레벨을 올리면 보상까지 같이 뛴다).
+		# 순서: 여기서 먼저 곱하고, 파티 인원 배수·정예·카데스가 그 위에 다시 곱한다.
+		# 스테이지가 자기 `hero_stat_mult` 를 가지면 그게 이긴다 — 우노 '검은 섬'(24)이 1.0 이다
+		# (🟦 사용자 확정 2026-07-31: 거기는 영웅/일반 적 스탯이 같고, 난이도는 인원 배수가 담당).
+		var hmult := float(st.get("hero_stat_mult",
+			(Data.stages.get("_variant_rules", {}) as Dictionary).get("hero_stat_mult", 1.0)))
+		if hmult > 1.0:
+			for k in ["hp_max", "hp", "att", "def"]:
+				_enemy[k] = maxi(1, int(round(float(int(_enemy[k])) * hmult)))
 	# 파티 **인원수** 연동 보스(원작 우노 '검은 섬' 관문의 수호자).
 	# 🟦 사용자 확정(2026-07-30): 기본 스탯 × (출전 드래곤 수)^power (power=2) —
 	#   1마리 ×1 · 2마리 ×4 · 3마리 ×9. 위키 §4.1 의 "여러 마리를 사용할 경우 난이도가 급등",
@@ -203,17 +225,42 @@ func _apply_kades_enemy(boss: bool) -> void:
 
 ## 카데스의 공간인가. 진입은 **변형 필드 id(601~614)** 로 이뤄진다 → 스테이지가 답을 갖고 있다.
 ## `params.kades` 는 adventure 가 명시로 넘겨 주거나 테스트가 덮어쓰는 override.
+## 이번 런의 난이도 키(일반/영웅/밤/카데스). **params 만 본다** — `_is_kades()` 를 부르면
+## 그쪽이 다시 스테이지를 읽어 순환한다.
+## 드랍 키 → 표시 이름. 가상 키(스킬/알/젬·장비)는 items.json 에 없으므로 합성한다.
+func _drop_display_name(key: String) -> String:
+	var sk := Loadout.parse_item_key(key)
+	if not sk.is_empty():
+		return "%s Lv.%d 스크롤" % [
+			String(Data.skills.get(str(int(sk["id"])), {}).get("name", "스킬")), int(sk["level"])]
+	if key.begins_with(EggGacha.KEY_PREFIX):
+		return String(EggGacha.item_def(key, Data.dragons).get("name", "알"))
+	var gn := Drops.display_name(key, Data.gems, Data.equipment)
+	return gn if gn != key else Data.item_name(key)
+
+func _variant_mode() -> String:
+	return Drops.mode_of(bool(_params.get("hero", false)),
+		bool(_params.get("night", false)), bool(_params.get("kades", false)))
+
+## 이번 런이 쓸 **필드 레코드**. 유타칸 밤(+500)·카데스(+600)는 원작에서 별도 필드 레코드였고
+## (`Field.c` setInfo), 우리는 `stages.json` 의 `night`/`kades` 블록을 덮어 재현한다.
+## 🔴 2026-07-31 이전에는 이 해석이 없어서 **밤에 입장해도 낮 몬스터·낮 드래곤 알**이 나왔다.
+func _stage_rec() -> Dictionary:
+	if not _params.has("stage"):
+		return {}
+	return Field.apply_variant(Data.stage(str(_params.get("stage", ""))), _variant_mode())
+
 func _is_kades() -> bool:
 	if _params.has("kades"):
 		return bool(_params.get("kades"))
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st: Dictionary = _stage_rec()
 	return String(st.get("variant", "")) == "kades"
 
 ## 기본 필드 id(1~15). 아티팩트 배정표 조회용.
 func _base_field() -> int:
 	if _params.has("field"):
 		return int(_params.get("field"))
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st: Dictionary = _stage_rec()
 	return DungeonBG.base_field(DungeonBG.field_id(st))
 
 ## 스토리 서브퀘스트에 이번 던전 완주를 보고한다 — 원작 `AdventureScene::setEventScenario`
@@ -337,6 +384,9 @@ func _setup_party() -> void:
 		# 아티팩트는 스탯이 아니라 **스킬**을 건드린다(원작 typeDetail BOOST/REQHP/BNR/DEDMG/
 		# INRATE/DERATE). 스킬 id 로 키를 잡은 수정치를 만들어 전투원에 실어 보낸다.
 		stats["artifact"] = Equipment.artifact_mods(d.get("equip", {}), Data.equipment, Data.skills)
+		# 전용·특수 장비의 **조건부 효과**는 스탯이 아니라 사건/배수라 따로 간다 —
+		# 장착 키만 실어 보내고, 전투 시작 시 EquipEffect.apply_battle 이 효과를 심는다.
+		stats["equip_keys"] = EquipEffect.keys_of(d.get("equip", {}))
 		# 구형 장신구 필드(accessories.json) — 장비 시스템 이전 세이브 호환. 신규 장착은 equip 로 간다.
 		var accb: Dictionary = d.get("accessory", {})   # 장신구(cri/evd/blk %)
 		for ak in ["cri", "evd", "blk"]:
@@ -370,7 +420,7 @@ func _setup_party() -> void:
 		var eq: Dictionary = _resolve_skills(int(d["uid"]), ddef)
 		_party.append({
 			"id": id, "uid": int(d["uid"]), "level": level,
-			"name": String(ddef.get("name", "드래곤")),
+			"name": Icons.name_of(d),
 			"element": String(ddef.get("element", "")),
 			"stats": stats,
 			"hp": clampi(hp0, 0, hpmax), "hp_max": hpmax,
@@ -405,6 +455,7 @@ func _setup_party() -> void:
 ##
 ## 각성스킬은 '스킬'이 아니라 상시 특성이라 Battle 의 skill_uses 흐름을 타지 않는다.
 var _awaken_fired: Array = []      # 이번 전투에 실제로 발동한 것 [{no, name, owner}]
+var _equip_fired: Array = []       # 장비 조건부 효과로 실제로 걸린 것 [{key, name, owner}]
 
 ## 이번 파티의 각성 스킬 **탐험 보너스** 합 {gold_pct, artifact_chance_pct}.
 ## 전투 밖 보상(골드·아티팩트 확률)에 쓴다 — 전투 계수와 달리 combatant 가 필요 없다.
@@ -415,6 +466,7 @@ func _awaken_explore() -> Dictionary:
 	return AwakenSkill.explore_bonus(lst, Data.skill_awaken)
 func _apply_awaken_skills() -> void:
 	_awaken_fired = []
+	_equip_fired = []
 	if _party.is_empty() or Data.skill_awaken.is_empty():
 		return
 	var pa: Array = []
@@ -429,11 +481,14 @@ func _apply_awaken_skills() -> void:
 		pa.append(c)
 	var eb := Battle.make_combatant("E0", "enemy", String(_enemy.get("element", "")),
 		{"hp": int(_enemy.get("hp_max", 1)), "att": 1, "def": 1})
-	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, {
-		"field_element": _field_element(),
-		"enemy_boss": _is_boss(),
-	})
+	var _ectx := {"field_element": _field_element(), "enemy_boss": _is_boss()}
+	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, _ectx)
+	# 장비 조건부 효과 — 각성스킬과 같은 어휘·같은 시점(전투 시작 1회). 표는 data/equip_effects.json.
+	_equip_fired = EquipEffect.apply_battle(pa, [eb], Data.equip_effects, _ectx)
 	# 결과를 파티로 되돌린다 — 체력은 값으로, 나머지는 효과 목록으로.
+	# ⚠️ `awaken_effects` 는 이름과 달리 **각성스킬 + 장비 조건부 효과**를 함께 담는다.
+	#    둘 다 '전투 시작 시 1회 심는 상시 특성'이고 같은 효과 목록으로 흐르기 때문이다.
+	#    (`_run_and_replay` 는 이 배열을 그대로 전투원에 옮기고 다시 심지 않는다 — 이중 적용 방지)
 	for i in _party.size():
 		var c2: Dictionary = pa[i]
 		var pd2: Dictionary = _party[i]
@@ -528,7 +583,7 @@ func _resolve_skills(uid: int, ddef: Dictionary) -> Dictionary:
 func _build_bg() -> void:
 	# 던전 배경(DungeonBG): 원작 scene/adventure/bg/<필드id>/ 의 원경 + 전경 2겹.
 	# 스테이지를 못 정하면 params.bg → battle_bg/bg_1 폴백.
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st: Dictionary = _stage_rec()
 	if not st.is_empty() and DungeonBG.build(self, st) != null:
 		return
 	var bg := TextureRect.new()
@@ -558,10 +613,9 @@ func _build_bg() -> void:
 ##   그래서 빛 속성 드래곤 1마리로 칼바람의 산맥(몹 aqua/wind)에 들어가면 물·바람 이펙트가
 ##   떴다(사용자 신고). 원작은 적 속성과 무관하며, **속성이 맞는 드래곤 카드에만** 붙는다.
 ##
-## # ASSUMPTION(필드 속성): `Field::setInfo` 는 서버 DB(info_field)를 읽으므로 필드별 속성값은
-##   유실됐다. `data/stages.json` 에 `field_element` 가 있으면 그것을 쓰고, 없으면
-##   **그 던전 몬스터의 최빈 속성**으로 대신한다(원작에서 필드 속성과 서식 몬스터 속성은
-##   같은 계열이다). 확정값이 생기면 stages.json 에 `field_element` 만 채우면 된다.
+## 필드 속성: `Field::setInfo` 가 읽던 서버 DB(info_field) 값은 유실이지만, 던전별 속성은
+##   `data/stages.json` 의 `element` 에 배정돼 있다(23/25 — 우노 24·25 만 없음). 그 값을 쓰고,
+##   없을 때만 **그 던전 몬스터의 최빈 속성**으로 대신한다(# ASSUMPTION).
 func _build_field_buff() -> void:
 	var fel := _field_element()
 	if fel == "" or fel == "none":
@@ -592,15 +646,29 @@ func _build_field_buff() -> void:
 				ap.get_animation(anims[0]).loop_mode = Animation.LOOP_NONE
 				ap.play(anims[0])
 
-## 필드(던전) 속성. stages.json `field_element` 우선, 없으면 몬스터 최빈 속성(ASSUMPTION).
+## 필드(던전) 속성. stages.json `element` = **던전별 배정값**이고 이게 정답이다.
+## 🔴 2026-07-31 수정: 여기서 `field_element` 라는 **다른 키**만 찾다가 하나도 못 찾고
+##   매번 '몬스터 최빈 속성' 폴백으로 떨어지고 있었다(배정은 23스테이지에 이미 있었다).
+##   그래서 카데스 미각성 페널티의 '던전 속성과 같은 속성 → 25%' 와 각성스킬
+##   `field_element` 조건이 추정값으로 판정됐다. 밤·카데스 변형(5xx/6xx)은
+##   `data_loader._variant_stage` 가 기본 필드를 `duplicate(true)` 하므로 같은 속성을 물려받는다
+##   (= 사용자 확인: 일반/밤/카데스의 던전별 속성은 동일).
+## `field_element` 는 배정과 다른 값을 쓰고 싶을 때의 **덮어쓰기 키**로만 남긴다.
+##
+## ⚠️ 반드시 `Drops.normalize_element` 를 통과시킨다 — `stages.json` 은 `ground`/`water` 로,
+##   `dragons.json` 은 `earth`/`aqua` 로 같은 속성을 다르게 적는다(먹이·정기 드롭도 같은
+##   정규화를 쓴다, `drops.gd` ELEMENT_ALIAS). 정규화 없이 비교하면 흙·물 던전에서
+##   카데스 '속성 일치 -25%' 와 각성스킬 필드조건이 **영원히 거짓**이 된다.
 func _field_element() -> String:
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
-	var authored := String(st.get("field_element", ""))
-	if authored != "":
+	var st: Dictionary = _stage_rec()
+	var authored := Drops.normalize_element(st.get("field_element", ""))
+	if authored == "":
+		authored = Drops.normalize_element(st.get("element", ""))   # 우노 24·25 는 null
+	if authored != "" and authored != "none":
 		return authored
 	var tally: Dictionary = {}
 	for e in st.get("enemies", []):
-		var el := String((e as Dictionary).get("element", ""))
+		var el := Drops.normalize_element((e as Dictionary).get("element", ""))
 		if el == "" or el == "none":
 			continue
 		tally[el] = int(tally.get(el, 0)) + 1
@@ -1284,13 +1352,14 @@ func _run_and_replay() -> void:
 	var eb := Battle.make_combatant("E0", "enemy", String(_enemy["element"]),
 		{"hp": int(_enemy["hp_max"]), "att": int(_enemy["att"]), "def": int(_enemy["def"]), "cri": 8, "evd": 6, "blk": 8},
 		0.0, _enemy_skills())
+	_apply_boss_phase(eb)
 	var pb: Array = [eb]
 	if pa.is_empty():
 		_log("출전할 드래곤이 없습니다."); return
 	# 스킬 봉인 던전(원작 우노 '미지의 터'). 위키 dungeon_4.pdf §4.2:
 	# "알수없는 기운으로 인해 드래곤들이 스킬을 사용할수 없다" → 스킬 DB 를 비운 채 시뮬레이션한다.
 	# (드래곤의 스킬 장착은 그대로 두고 **발동만** 막는다 — 상태 변화가 아니라 이 전투 한정 규칙.)
-	var st_now: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st_now: Dictionary = _stage_rec()
 	var skills_db: Dictionary = {} if bool(st_now.get("no_skills", false)) else Data.skills
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -1361,6 +1430,9 @@ func _play_event(ev: Dictionary) -> void:
 	if ev.has("round") and int(ev["round"]) != _cur_round:
 		_cur_round = int(ev["round"])
 		_show_round(_cur_round)
+	# 보스 2페이즈 전환(혼돈의 틈새) — logic 이 임계를 넘긴 타격에 `phase2` 를 실어 준다.
+	if bool(ev.get("phase2", false)):
+		_boss_phase2_fx()
 	match String(ev.get("type", "")):
 		"normal", "double", "awaken":
 			var atk: Dictionary = _find(String(ev.get("attacker", "")))
@@ -2417,10 +2489,20 @@ func _skill_banner(name: String) -> void:
 
 ## 전투 오프닝(원작 OpeningBattleScene): "전투 시작!" 배너가 좌→우로 스윕 + 살짝 플래시.
 ## 이 전투가 보스 조우인지(스테이지 마지막 조우). params.boss로도 강제 가능.
+## 이번 상대가 보스인가 — BGM(`bg_battle_boss`) · 등장 연출(`_boss_show_effect`) ·
+## 보상 배수가 이걸 본다.
+##
+## 🔴 2026-07-31 (사용자 지적: 혼돈의 틈새인데 일반몹 BGM이 나온다).
+##   종전엔 **조우 순번**(`enc + 1 >= total`)으로만 봤다. 그 판정은 `enemies` 가 "순서대로
+##   만나는 목록"인 던전에서만 맞는다. 혼돈의 틈새·유타칸 밤처럼 `enemies` 가 **후보 목록**인
+##   곳에서는 3종 중 1·2번째를 뽑으면 `enc+1 < total` 이라 보스인데도 일반몹이 됐다.
+##   원작은 순번이 아니라 **그 몬스터가 보스인가**(`Monster::isBoss`)를 본다 → 그쪽을 먼저 본다.
+##   순번 판정은 뒤에 남겨 둔다(보스 플래그가 없는 기존 던전 데이터용 폴백).
 func _is_boss() -> bool:
 	if _params.has("boss"): return bool(_params["boss"])
+	if bool(_enemy.get("boss", false)): return true
 	if not _params.has("stage"): return false
-	var st: Dictionary = Data.stage(str(_params.get("stage", "")))
+	var st: Dictionary = _stage_rec()
 	var total := int((st.get("enemies", []) as Array).size())
 	var enc := int(_params.get("enc", 0))
 	return total > 0 and enc + 1 >= total
@@ -2866,7 +2948,7 @@ func _finish() -> void:
 		var names: PackedStringArray = []
 		for u in _downed_uids:
 			var dd := UserDB.get_dragon(int(u))
-			names.append(String(Data.get_dragon(int(dd.get("id", 0))).get("name", "드래곤")))
+			names.append(Icons.name_of(dd))
 		var dn := Label.new()
 		dn.text = "%s — 행동불능 (%s 뒤 회복)" % [", ".join(names),
 			Incapacitation.remain_text(UserDB.cure_time(int(_downed_uids[0])),
@@ -2879,12 +2961,18 @@ func _finish() -> void:
 		dn.z_index = 123
 		add_child(dn)
 	# 어드벤처 다중 조우: 이긴 몹이 마지막(보스)이 아니면 탐험으로 복귀해 다음 조우.
-	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var st: Dictionary = _stage_rec()
 	var total := int((st.get("enemies", []) as Array).size())
 	var enc := int(_params.get("enc", 0))
 	var region := String(_params.get("region", "yutakan"))
 	# 랜덤 보스 스테이지는 단발 보스전(다중 조우 아님) → 항상 클리어(more=false).
-	var more := win and total > 0 and enc + 1 < total and not bool(st.get("random_boss", false))
+	# 유타칸 **밤**은 조우 1회로 끝난다 — '계속하기'를 띄우지 않는다.
+	# 원작 문구 그대로: `<NightTutorial_talk10>` "강력한 만큼 긴 전투 때문에 탐험은 단 한번!
+	# 계속 이어갈 수가 없어." 코드도 같다 — `AdventureScene::checkAdventureNightEnd` 가
+	# `m_nEventType = 0x1d`(Finish) 로 놓고 런을 끝낸다.
+	var night_run := bool(_params.get("night", false))
+	var more := win and total > 0 and enc + 1 < total \
+		and not bool(st.get("random_boss", false)) and not night_run
 	# 원작 연승(initWinningStreak): 조우 체인 연속 승리 카운트. 승리 시 +1, 패배 시 0.
 	var streak := int(_params.get("streak", 0))
 	if win: streak += 1
@@ -2896,6 +2984,19 @@ func _finish() -> void:
 	var run_gold := int(_params.get("run_gold", 0))
 	var run_items: Array = (_params.get("run_items", []) as Array).duplicate()
 	var best_streak := maxi(int(_params.get("best_streak", 0)), streak)
+	# ── 소환형 보스 처치 ────────────────────────────────────────────────────────────
+	# 🔴 2026-07-31 정정 2회: "마무리 일격 버튼"(자작)도, "탐험을 두 번 하는 2연전"(원작
+	#   `getDarknixFace` 1→2 + `WorldMapScene::onEnter` 자동 재진입을 그렇게 읽은 것)도
+	#   **둘 다 틀렸다**(사용자 확인). 원작의 2페이즈는 **한 번의 전투 안에서** 보스 잔여
+	#   체력이 임계 밑으로 떨어질 때 일어나는 분기다(중상/배리어 → 아군 회복 찬스 턴 →
+	#   보스 피해 반감). 그 기믹은 서버 계산이라 수치가 유실됐다 — 미구현이고 확정 대기.
+	#   상세 = docs/ref/porting/ChaosRiftDarknix.md §4-A.
+	# ⇒ 지금은 **한 번의 전투에서 이기면 처치**다(페이즈 분기 없음).
+	var dk_cfg: Dictionary = (st.get("summon", {}) as Dictionary) if Darknix.is_summon_stage(st) else {}
+	var dk_live := not dk_cfg.is_empty() \
+		and Darknix.is_active(UserDB.darknix(), int(Time.get_unix_time_from_system()))
+	var dk_pending := false
+	var dk_kill := win and dk_live
 	# 보상: 스테이지 rewards가 유실(null)이라 처치 몹 레벨 기반 파생(ASSUMPTION). 보스=보너스.
 	var reward_txt := ""
 	if win:
@@ -2939,36 +3040,80 @@ func _finish() -> void:
 		#    배지 코드는 참고용으로 남겨 둔다(호출부 없음).
 		reward_txt = "  +EXP %d / +골드 %d" % [exp_r, gold_r]
 		run_exp += exp_r; run_gold += gold_r   # 런 누적
-		# 아이템 드롭(보스 클리어 시).
-		# 1) 스테이지 고정 드롭표(`data/stages.json` `drops`) — 위키로 확정된 던전만 갖는다.
+		# ── 아이템 드롭 — **화이트리스트**(사용자 확정 2026-07-31) ──────────────
+		# 탐험에서 나오는 것은 다섯 가지뿐이다: 특수 드랍 / 먹이 / 속성 정기 / 드래곤 알 / 젬·장비.
+		# 판정은 전부 `Drops`(logic), 표는 `data/drops.json` + `stages.json drops`.
+		# 🟠 걷어낸 것: 드랍표가 없는 던전에서 `items_by("consumable")+("material")`(+한때 food)
+		#   풀에서 **아무 아이템이나** 시드 추첨해 주던 폴백. 지역과 무관한 재료가 쏟아지고
+		#   불 지역에서 물 드래곤 먹이가 나오던 원인이다.
+		var fsrc := Drops.SOURCE_BOSS if boss else Drops.SOURCE_NORMAL
+		var frng := RandomNumberGenerator.new(); frng.randomize()
+		var hero_mode := bool(_params.get("hero", false))
+		# 드랍 풀은 난이도마다 다르다 — 일반/영웅/밤(유타칸 +500)/카데스(+600).
+		# 사용자 확정 2026-07-31. 표 = `stages.json drops` 의 난이도별 블록.
+		var dmode := Drops.mode_of(hero_mode, bool(_params.get("night", false)), _is_kades())
+		# 1) 특수 드랍 — 그 지역 전용 표(`stages.json drops`). 사용자가 CSV 로 채운다:
+		#    docs/input/sheets/adventure_drop_pool.csv ↔ scripts/tools/build_adventure_drops.py
 		#    🔴 2026-07-29: 이 표는 데이터에만 있고 **아무도 읽지 않고 있었다** — 우노의
 		#    아니마·보네르가 인게임에서 나올 길이 없어 각성 자체가 도달 불가였다.
-		#    영웅 난이도는 `hero_min/hero_max`(위키 item.pdf 각주 [40] 확정: 일반 5~10 / 영웅 15~20).
-		if boss:
-			var dr := RandomNumberGenerator.new(); dr.randomize()
-			var hero_mode := bool(_params.get("hero", false))
-			for dp in (st.get("drops", []) as Array):
-				if dr.randi_range(1, 100) > int((dp as Dictionary).get("rate", 100)):
-					continue
-				var lo := int(dp.get("hero_min", dp.get("min", 1))) if hero_mode else int(dp.get("min", 1))
-				var hi := int(dp.get("hero_max", dp.get("max", 1))) if hero_mode else int(dp.get("max", 1))
-				var qty := dr.randi_range(mini(lo, hi), maxi(lo, hi))
-				if qty <= 0: continue
-				var dkey := String(dp.get("item", ""))
-				if dkey == "": continue
-				UserDB.add_item(dkey, qty)
-				reward_txt += " / %s x%d" % [Data.item_name(dkey), qty]
-				run_items.append(dkey)
-		# 2) 그 밖의 던전 — 드롭표 유실 → 소비/재료/음식 풀서 시드추첨(ASSUMPTION).
-		if boss and (st.get("drops", []) as Array).is_empty():
-			var pool: Array = Data.items_by("consumable") + Data.items_by("food") + Data.items_by("material")
-			if not pool.is_empty():
-				var r := RandomNumberGenerator.new()
-				r.seed = hash("drop_%s_%d" % [String(_params.get("stage", "")), enc])
-				var key: String = pool[r.randi() % pool.size()]
-				UserDB.add_item(key, 1)
-				reward_txt += " / %s x1" % Data.item_name(key)
-				run_items.append(key)   # 아이템 key 저장(썸네일 렌더용). 표시는 Data.item_name.
+		#    영웅 난이도는 `hero_min/hero_max`(위키 item.pdf 각주 [40]: 일반 5~10 / 영웅 15~20).
+		# `boss_only` 판정을 로직에 넘긴다 — 사용자 표의 "보스에서만 드랍".
+		# 소환형 2연전의 **1차 승리에서는 건너뛴다** — 전리품은 2차 승리 뒤
+		# (원작 state 10 `initEvent` case 10)에 `_darknix_kill()` 이 같은 판정으로 준다.
+		for sd in (Drops.roll_special(st, frng, dmode, boss) if not dk_live else []):
+			var skey := String((sd as Dictionary)["key"])
+			var sqty := int((sd as Dictionary)["count"])
+			UserDB.add_item(skey, sqty)
+			reward_txt += " / %s x%d" % [_drop_display_name(skey), sqty]
+			run_items.append(skey)
+		# 2) 먹이 — **그 지역 속성에 맞는 것만**(사용자 확정 2026-07-30).
+		#    지역 속성이 비어 있으면(우노 24·25 = element null) 아무것도 안 나온다.
+		if frng.randf() < float((Data.drops.get("food", {}).get("chance", {}) as Dictionary).get(fsrc, 0.0)):
+			var fkey := Drops.roll_food(Data.items, st.get("element", ""), frng)
+			if fkey != "":
+				var fc: Dictionary = Data.drops.get("food", {}).get("count", {})
+				var fqty := frng.randi_range(int(fc.get("min", 1)), maxi(int(fc.get("min", 1)), int(fc.get("max", 1))))
+				UserDB.add_item(fkey, fqty)
+				reward_txt += " / %s x%d" % [Data.item_name(fkey), fqty]
+				run_items.append(fkey)
+		# 2b) **몬스터별 고유 드랍** — 장소가 아니라 그 몬스터에 붙는 것.
+		#     밤 공용 조우 4종(#160 골드 임프·#161 실버 임프·#162 검은 로브의 사도·#175 블랙 윗치)과
+		#     혼돈의 틈새 랜덤 보스 3종(#36·#138·#139). 원작 근거 = `<NightTutorial_talk11>`
+		#     "보물들을 훔쳐간 골드임프, 실버임프를 만날 수 있어. 그 훔쳐간 보물들을 수집해서 오면".
+		#     표 = data/monster_drops.json (사용자 CSV). **지역 표와 합산**된다.
+		#     소환형 2연전 1차 승리에서는 건너뛴다(위 특수 드랍과 같은 이유) —
+		#     혼돈의 틈새 보스가 주는 드래곤 알이 바로 이 표에 있다.
+		for md in (Drops.roll_monster(Data.monster_drops, int(_enemy.get("id", 0)), frng) if not dk_live else []):
+			var mrow: Dictionary = md
+			var mqty := int(mrow["count"])
+			if String(mrow.get("kind", "item")) == "currency":
+				# 재화는 아이템이 아니다(블랙 윗치의 다이아).
+				UserDB.add_currency(String(mrow["currency"]), mqty)
+				reward_txt += " / 다이아 x%d" % mqty
+				continue
+			var mkey := String(mrow["key"])
+			UserDB.add_item(mkey, mqty)
+			reward_txt += " / %s x%d" % [_drop_display_name(mkey), mqty]
+			run_items.append(mkey)
+		# 소환형 보스 처치 확정 — 원작은 1·2차 어느 쪽도 전리품을 안 주다가 **2차 승리**
+		# (state 10)에서만 준다. 위 두 표를 여기서 한 번에 굴리고 월드맵에서 보스를 지운다.
+		if dk_kill:
+			reward_txt += _darknix_kill(st, run_items)
+		# 3) 속성 정기 — 그 지역 속성의 `ele_*`(items.json currency/essence 9종).
+		var ess := Drops.roll_essence(Data.drops, Data.items, st.get("element", ""), fsrc, frng)
+		if not ess.is_empty():
+			UserDB.add_item(String(ess["key"]), int(ess["count"]))
+			reward_txt += " / %s x%d" % [Data.item_name(String(ess["key"])), int(ess["count"])]
+			run_items.append(String(ess["key"]))
+		# 4) 드래곤 알 — **그 탐험지 팝업에 등재된 드래곤만**, H 는 영웅 난이도 희귀 드롭
+		#    (사용자 확정 2026-07-30). 원작 근거 = <AdventureResultEgg> "%1$s의 알" +
+		#    AdventureRewardLayer 의 EGG 셀(포팅 카드 AdventureEventFlow.md §5).
+		#    가상 인벤 키 `egg:<드래곤id>` 라 items.json 이 아니라 EggGacha 가 이름을 만든다.
+		var ekey := Drops.roll_egg(Data.drops, st, fsrc, frng, bool(_params.get("hero", false)))
+		if ekey != "":
+			UserDB.add_item(ekey, 1)
+			reward_txt += " / %s x1" % String(EggGacha.item_def(ekey, Data.dragons).get("name", "알"))
+			run_items.append(ekey)
 		# 젬·장비 드롭(사용자 확정 2026-07-27): **탐험이 기본 획득처**다. 고레벨 지역일수록,
 		# 일반몹 < 보스 일수록 더 좋은 것이 나온다(보물상자는 adventure.gd 담당).
 		# 판정=Drops(logic) · 표=data/drops.json.
@@ -3021,11 +3166,13 @@ func _finish() -> void:
 		stk.z_index = 123
 		add_child(stk)
 		stk.create_tween().tween_property(stk, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK)
-	# 원작 계속/중단 선택 — 레퍼런스 docs/ref/orig_image/battle/{전리품드랍후.png, 화면 캡처 …024440.png}:
-	#   화면 중앙에 **그만하기(붉은)** / **계속하기(초록)** 큰 버튼 2개가 나란히 서고,
-	#   하단 텍스트박스에 "탐험을 계속 이어가시겠습니까?"가 뜬다.
-	#   프레임 = `9patch/btn`(붉은) · `9patch/btn2`(초록) — 지금까지 미사용이던 원작 9patch다
-	#   (`asset_index.py --grep 9patch/bt` → 전부 🟠).
+	# 원작 계속/중단 선택 = `AdventureScene::setRetryButton`(포팅 카드 AdventureEventFlow.md §3).
+	#   좌 = `btn1.png`(붉은) + `choice_stop_KR`   tag 0xbbc → onClickStop
+	#   우 = `btn2.png`(초록) + `choice_continue_KR` tag 0xbbb → onClickRetry
+	#   레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png 와 일치(붉은 그만하기 좌 · 초록 계속하기 우).
+	# 🟠 2026-07-30 교체: 종전엔 `9patch/btn`/`btn2` + **텍스트 라벨**을 썼다(자작).
+	#   원작 프레임 `scene/adventure/btn1|btn2` + `choice_stop_KR`/`choice_continue_KR` 이
+	#   전부 보유분이라 자작할 이유가 없었다.
 	var btn_y := (vis.y * 0.5 + 200.0) if (win and not more) else (vis.y * 0.38)
 	if more:
 		_log("탐험을 계속 이어가시겠습니까?")
@@ -3034,11 +3181,14 @@ func _finish() -> void:
 		# 닫기 전까지 배회가 멈춘다(adventure.gd `_open_levelup_result`). 사용자 지시 2026-07-27.
 		var lvq := _levelup_queue.duplicate()
 		_levelup_queue.clear()
-		_big_button("그만하기", "9patch_btn", Vector2(vis.x * 0.5 - 300.0, btn_y),
-			func(): Scenes.goto("worldmap", {"region": region}))
-		_big_button("계속하기", "9patch_btn2", Vector2(vis.x * 0.5 + 20.0, btn_y),
+		_retry_buttons(
+			func(): Scenes.goto("worldmap", {"region": region}),
 			func(): Scenes.goto("adventure",
 				{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1, "hp_state": hp_state,
+				# 🔴 난이도 플래그를 이월하지 않으면 '계속하기' 이후 조우가 **일반 난이도로 되돌아간다**
+				#   (영웅 5배 스탯도, 영웅/밤 드랍 풀도 사라진다). 2026-07-31 발견.
+				"hero": bool(_params.get("hero", false)), "night": bool(_params.get("night", false)),
+				"run_seed": int(_params.get("run_seed", 0)),
 				"streak": streak, "run_exp": run_exp, "run_gold": run_gold,
 				"run_items": run_items, "best_streak": best_streak, "levelups": lvq}))
 	else:
@@ -3046,7 +3196,8 @@ func _finish() -> void:
 		if not _levelup_queue.is_empty():
 			var q := _levelup_queue.duplicate()
 			_levelup_queue.clear()
-			LevelUpResult.open(self, q)
+			# 🔀 2026-07-31: 동굴 축복 아이템과 **같은 화면**을 공유한다(LevelUpScreen).
+			LevelUpScreen.open_queue(self, q)
 		_big_button("월드맵으로", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, btn_y),
 			func(): Scenes.goto("worldmap", {"region": region}))
 	# 원작 onClickRetry/setRetryButton: 패배 시 재도전(부활+현 조우 재시작, 골드 비용).
@@ -3058,7 +3209,10 @@ func _finish() -> void:
 				# 던전을 나가지 않았으므로 방금 건 행동불능을 되돌린다(원작 setCureTime(0)).
 				_undo_defeat_incapacitation()
 				# 현 조우를 처음부터(파티 풀피=hp_state 없이) 재시작. 연승 리셋.
-				Scenes.goto("adventure", {"stage": _params.get("stage", ""), "region": region, "enc": enc}))
+				Scenes.goto("adventure", {"stage": _params.get("stage", ""), "region": region, "enc": enc,
+					"hero": bool(_params.get("hero", false)),
+					"night": bool(_params.get("night", false)),
+					"run_seed": int(_params.get("run_seed", 0))}))
 
 ## 던전 패배 → 출전 드래곤 **행동불능**(원작 `Dragon::setCureTime`). 사용자 확정 2026-07-29:
 ##   "패배 후 던전 나가면 해당 던전에 들어갔던 드래곤이 행동불능 상태가 되어 치료제를 쓰거나
@@ -3090,7 +3244,152 @@ func _undo_defeat_incapacitation() -> void:
 		UserDB.set_cure_time(int(uid), 0)
 	_downed_uids.clear()
 
+## 원작 `setRetryButton` — 그만하기(좌·붉은) / 계속하기(우·초록).
+##
+## 원작 리터럴 그대로:
+##   · 배경 `scene/adventure/btn1.png`(붉은) · `btn2.png`(초록) — 262×94
+##   · 라벨 `scene/adventure/choice_stop_%s.png` · `choice_continue_%s.png`
+##   · 배치 y = 버튼높이*0.5 + 20(하단 기준) · x = 중앙 ∓ (버튼폭*0.5 + 50)
+##   · 등장 `CCMoveTo(0.5)` + `CCEaseExponentialInOut` — **그만하기는 화면 왼쪽 밖**(x = -50-w),
+##     계속하기는 오른쪽 밖에서 밀려 들어온다.
+##
+## ⚫ 자동반복(`getIsAutoRetry` → `CounterButton::create(..., onClickRetry, ...)` 카운트다운)은
+##   미구현이다. 프레임 `scene/adventure/btn3|btn4`(CounterButton)는 보유하고 있으므로
+##   되살릴 때 여기만 손대면 된다.
+const _RETRY_BTN := Vector2(262.0, 94.0)      # scene/adventure/btn1|btn2 실측
+
+func _retry_buttons(on_stop: Callable, on_continue: Callable) -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var w := _RETRY_BTN.x * S
+	# Cocos 좌표 y = 화면높이*0.5 + 20 (원점 좌하단) → godot_y = visH*0.5 - 20 ≈ 화면 47%.
+	# 레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png 의 버튼 높이와 일치한다.
+	var y := vis.y * 0.5 - 20.0
+	var man := _man("adventure_ui")
+	_retry_button("scene_adventure_btn1", "scene_adventure_choice_stop_KR", man,
+		Vector2(vis.x * 0.5 - (w * 0.5 + 50.0), y), Vector2(-50.0 - w, y), on_stop)
+	_retry_button("scene_adventure_btn2", "scene_adventure_choice_continue_KR", man,
+		Vector2(vis.x * 0.5 + (w * 0.5 + 50.0), y), Vector2(vis.x + 50.0 + w, y), on_continue)
+
+func _retry_button(bg_key: String, label_key: String, man: Dictionary,
+		to: Vector2, from: Vector2, cb: Callable) -> void:
+	var S := Design.ASSET_SCALE
+	var holder := Node2D.new()
+	holder.position = from
+	# 🔴 결과 화면의 몬스터 스파인(holder z_index 8~100)보다 항상 위 — 2026-07-27 실제 버그.
+	holder.z_index = 124
+	add_child(holder)
+	var bg := _spr("adventure_ui", bg_key, man, S)
+	if bg:
+		holder.add_child(bg)
+	var lb := _spr("adventure_ui", label_key, man, S)
+	if lb:
+		holder.add_child(lb)
+	var hit := Button.new()
+	hit.flat = true
+	hit.size = _RETRY_BTN * S
+	hit.position = -_RETRY_BTN * S * 0.5
+	hit.pressed.connect(cb)
+	holder.add_child(hit)
+	var tw := holder.create_tween()
+	tw.tween_property(holder, "position", to, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+
 ## 원작 대형 버튼 — `9patch/btn*` 프레임 위에 라벨. 레퍼런스의 그만하기/계속하기 크기(약 280×86)를 따른다.
+## (계속/그만은 위 `_retry_buttons` 가 원작 프레임으로 그린다 — 여기 남은 호출처는
+##  '월드맵으로'·'재도전' 처럼 원작에 대응 프레임이 없는 버튼뿐이다.)
+## 2페이즈 진입 연출. 원작 전용 자산이 없다(§4-A — 배리어/중상 프레임·문자열 0건) →
+## 보유 프레임으로만 알린다: 화면 전체 붉은 플래시 + 경고 텍스트(`scene_adventure_txt_danger`
+## 가 있으면 그것, 없으면 라벨) + 보스에게 지속 오라 대신 한 번의 강조.
+## 원본 자산을 확보하면 여기 한 곳만 교체하면 된다.
+var _phase2_shown := false
+func _boss_phase2_fx() -> void:
+	if _phase2_shown:
+		return
+	_phase2_shown = true
+	var vis := _vis()
+	var flash := ColorRect.new()
+	flash.color = Color(0.8, 0.05, 0.05, 0.0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 118
+	add_child(flash)
+	var tw := flash.create_tween()
+	tw.tween_property(flash, "color:a", 0.45, 0.12)
+	tw.tween_property(flash, "color:a", 0.0, 0.5)
+	tw.tween_callback(flash.queue_free)
+	var l := Label.new()
+	l.text = "%s 이(가) 중상을 입고 몸을 웅크렸다!" % String(_enemy.get("name", "보스"))
+	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_color_override("font_color", Color(1, 0.85, 0.5))
+	l.add_theme_color_override("font_outline_color", Color(0.25, 0.02, 0.02, 0.95))
+	l.add_theme_constant_override("outline_size", 6)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(vis.x, 40)
+	l.position = Vector2(0, vis.y * 0.3)
+	l.pivot_offset = Vector2(vis.x * 0.5, 20)
+	l.scale = Vector2(0.4, 0.4)
+	l.z_index = 126
+	add_child(l)
+	var t2 := l.create_tween()
+	t2.tween_property(l, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	t2.tween_interval(1.1)
+	t2.tween_property(l, "modulate:a", 0.0, 0.35)
+	t2.tween_callback(l.queue_free)
+	Bgm.sfx("effect_chaos_explosion")   # 보유 음원(DV2/music/effect_chaos_explosion.mp3)
+	var pct := int(round(100.0 - _phase2_mult_pct()))
+	_log("%s 이(가) 중상 상태에 들어갔다 — 받는 피해 %d%% 감소." % [String(_enemy.get("name", "보스")), pct])
+
+## 2페이즈 피해 배수를 % 로(로그 문구용). 데이터가 없으면 100(= 감면 없음).
+func _phase2_mult_pct() -> float:
+	var st := _stage_rec()
+	if not Darknix.is_summon_stage(st):
+		return 100.0
+	var p: Dictionary = (st["summon"] as Dictionary).get("phase2", {})
+	return float(p.get("damage_taken_mult", 1.0)) * 100.0
+
+## 보스 2페이즈 배선 — 데이터(`stages.json` `summon.phase2`)를 전투원에 실어 준다.
+## logic(`Battle._apply_dmg`)은 스테이지를 모르고 전투원의 필드만 본다(§8.2 단방향 의존).
+func _apply_boss_phase(eb: Dictionary) -> void:
+	var st := _stage_rec()
+	if not Darknix.is_summon_stage(st):
+		return
+	var p: Dictionary = (st["summon"] as Dictionary).get("phase2", {})
+	if p.is_empty():
+		return
+	eb["phase"] = 1
+	eb["phase2_at"] = float(p.get("hp_threshold", 0.0))
+	eb["phase2_taken_mult"] = float(p.get("damage_taken_mult", 1.0))
+
+## ── 혼돈의 틈새 2차전 처치 (원작 face==2 승리) ──────────────────────────────
+## 원작 `AdventureScene::setEventFightEnd` face==2 승리 가지(:61050~61058):
+##   `setWinSound` + 승리 대사 + state 10(보상) + **`setLimitTime_darknix(0)`**
+##   = 월드맵에서 보스 소멸. 전리품은 `initEvent` case 10(:22194)이 준다 —
+##   원작은 인벤 여유와 무관하게 우편함이었으나 오프라인엔 우편함이 없어(§2-1) 인벤 직행.
+func _darknix_kill(st: Dictionary, run_items: Array) -> String:
+	var frng := RandomNumberGenerator.new(); frng.randomize()
+	var dmode := Drops.mode_of(bool(_params.get("hero", false)),
+		bool(_params.get("night", false)), _is_kades())
+	var txt := ""
+	for sd in Drops.roll_special(st, frng, dmode, true):
+		var skey := String((sd as Dictionary)["key"])
+		var sqty := int((sd as Dictionary)["count"])
+		UserDB.add_item(skey, sqty)
+		txt += " / %s x%d" % [_drop_display_name(skey), sqty]
+		run_items.append(skey)
+	for md in Drops.roll_monster(Data.monster_drops, int(_enemy.get("id", 0)), frng):
+		var mrow: Dictionary = md
+		var mqty := int(mrow["count"])
+		if String(mrow.get("kind", "item")) == "currency":
+			UserDB.add_currency(String(mrow["currency"]), mqty)
+			txt += " / 다이아 x%d" % mqty
+			continue
+		var mkey := String(mrow["key"])
+		UserDB.add_item(mkey, mqty)
+		txt += " / %s x%d" % [_drop_display_name(mkey), mqty]
+		run_items.append(mkey)
+	UserDB.darknix_clear()   # 원작 setLimitTime_darknix(0) — 월드맵에서 사라진다
+	return txt
+
 func _big_button(text: String, frame: String, pos: Vector2, cb: Callable) -> void:
 	var np := NinePatchRect.new()
 	np.texture = load("res://assets/converted/ninepatch_ui/%s.tres" % frame)
