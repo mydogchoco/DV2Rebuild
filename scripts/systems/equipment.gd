@@ -24,8 +24,8 @@
 #
 # ⚠️ 미구현(데이터만 보유):
 #   - 전용 장비(exclusive) — 드래곤별 고유 효과라 개별 로직 필요. equipment.json 에 implemented=false.
-#   - 레이드 편린(pieces) — 아이콘 폴더 `raidpiece_acc/`·`raidpiece_cave/` 가 덤프에 통째로 없다
-#     (2026-07-31 제외 확정). PIECE_SLOTS/_add_piece_sets 는 남지만 플래그가 꺼져 있어 무동작.
+#   - 레이드 편린(pieces) — 🟢 2026-07-31 **아이콘 복원 완료**로 다시 켰다(위키 PDF 표에서 6장).
+#     남은 것은 획득·장착 경로(원작 4세대 레이드 산출물 → 솔로 재설계 대상)로, 에셋 문제가 아니다.
 #   - 특수 장비의 **부가 효과**(bonus 텍스트) — "체방형 공격 시 25% 추가 대미지" 등 조건부.
 #     주 능력(main)만 전투에 반영한다. 2026-07-29 조사: 원작 클라에도 이 효과를 계산하는
 #     훅이 없다(서버가 보내는 장비 레코드는 index/belong/option/rarity/grade/cnt 6개뿐).
@@ -184,10 +184,9 @@ static func aggregate(equip_field: Dictionary, table: Dictionary) -> Dictionary:
 ## 편린 세트 효과(위키 §3): 같은 편린 2개/3개를 맞추면 각각 set2/set3 효과.
 ## set2 는 수치가 명확해 반영하고, set3 는 조건부 메커닉(회피 2회마다 …)이라 데이터로만 둔다.
 ##
-## ⚠️ 2026-07-31 부로 **편린 계열은 구현 대상이 아니다**(`pieces.implemented: false`).
-## 아이콘 폴더(`raidpiece_acc/` · `raidpiece_cave/`)가 통째로 추출 에셋에 없고 프레임명이
-## 서버 res key 라 복원 근거가 없다 — 근거·정책은 data/equipment.json `pieces._impl_basis`.
-## 구세이브에 `pieces` 가 남아 있어도 여기서 걸러 스탯에 반영되지 않는다.
+## 편린 계열은 `pieces.implemented` 가 꺼져 있으면 통째로 무시한다 — 아이콘 미보유로 구현에서
+## 뺀 계열의 세트효과가 스탯에 남는 것을 막는다(구세이브에 `pieces` 가 있어도 마찬가지).
+## 2026-07-31 현재는 위키에서 아이콘을 복원해 **켜져 있다**.
 ## (여기는 logic 이라 아이콘을 모른다 — **데이터 플래그만** 본다, §8.2 단방향 의존)
 static func _add_piece_sets(equip_field: Dictionary, table: Dictionary, out: Dictionary) -> void:
 	if not bool((table.get("pieces", {}) as Dictionary).get("implemented", true)):

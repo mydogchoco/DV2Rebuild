@@ -37,7 +37,8 @@ const ELEMENT_SMALL := {
 static func element_small_frame(element: String) -> String:
 	return String(ELEMENT_SMALL.get(element, ""))
 
-## 논리키 조회. section = "equipment_basic" | "artifact" | "event" | "gem".
+## 논리키 조회.
+## section = "equipment_basic" | "artifact" | "event" | "gem" | "special" | "piece" | "exclusive".
 ## 반환: {dir, frame, fallback?} 또는 {}
 static func entry(section: String, key: String) -> Dictionary:
 	var m: Dictionary = Data.icon_map
@@ -135,8 +136,26 @@ static func equip_texture(item: Dictionary) -> Texture2D:
 		return texture("artifact", "%s:%s" % [parts[1], parts[2]])
 	if grp == "event":
 		return texture("event", String(item.get("name", "")))
-	# special(해골요새·발록·피오드) 계열은 개별 아이콘이 이 덤프에 없다(후기 추가분) → null.
+	# special(해골요새·발록·피오드) — 키는 "special:<계열>:<이름>", icon_map 키는 "<계열>:<이름>".
+	# 원본 아틀라스(`item/newaccessory*`)는 덤프에 없지만 위키에서 복원해 배선했다(2026-07-31).
+	if grp.begins_with("special") and parts.size() >= 3:
+		return texture("special", "%s:%s" % [parts[1], parts[2]])
 	return null
+
+## 레이드 편린 아이콘. 편린은 장비 카탈로그가 아니라 **이름**으로만 식별된다
+## (`equip_field["pieces"]` 가 이름 배열 — Equipment 주석 참조).
+static func piece_texture(name: String) -> Texture2D:
+	return texture("piece", name)
+
+## 전용 장비 아이콘. `data/equipment.json` `exclusive.list` 의 **행 번호**로 건다 —
+## 우리 데이터의 `name_raw` 가 PDF 줄바꿈으로 깨져 있어 이름을 키로 쓸 수 없다
+## (icon_map `exclusive` 항목의 `name` 필드에 위키에서 읽은 깨끗한 이름이 있다).
+static func exclusive_texture(index: int) -> Texture2D:
+	return texture("exclusive", str(index))
+
+## 전용 장비의 표시용 이름(위키 원문). 없으면 "".
+static func exclusive_name(index: int) -> String:
+	return String(entry("exclusive", str(index)).get("name", ""))
 
 ## 장비 아이콘 **뒤**에 까는 희귀도 실루엣. 원작 `Equip::getGradeImageSmallSprite` 대응 —
 ## `<이름>_bg.png` 흰 실루엣을 만들고 희귀도 색을 입힌다(일반=안 그림).

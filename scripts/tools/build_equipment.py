@@ -455,29 +455,29 @@ def icon_names(section: str) -> set[str]:
 
 
 # 아이콘 프레임이 없는 장비는 **구현 대상에서 뺀다**(사용자 확정 2026-07-30).
-#   근거: CLAUDE.md §10 '이벤트 장비 아이콘 19종' · '후기 장비 아이콘' 행 —
-#   이벤트 25종 중 6종, 특수(해골요새·발록·피오드) 12종 중 0종만 아이콘이 추출 에셋에 있다
-#   (`item/newaccessory*` · `item/item_small/new_acc/*` 아틀라스가 통째로 덤프에 없다).
-#   데이터(수치·부가효과)는 그대로 남기고 `implemented: false` 만 붙인다 — 원본을 확보하면
-#   icon_map 에 프레임이 생기고 이 빌더가 자동으로 다시 켠다.
-IMPL_NOTE = ("아이콘 프레임 미보유(원작 후기 업데이트분 — CLAUDE.md §10) ⇒ 구현 제외"
-             "(사용자 확정 2026-07-30). 카탈로그·가챠·상점 어디에도 나오지 않는다. "
-             "데이터는 보존 — 원본 아이콘을 확보해 icon_map 에 실리면 자동으로 켜진다.")
-
-
-# 레이드 편린도 같은 규칙으로 제외한다(사용자 확정 2026-07-31). 조회 근거:
-#   · 원작은 편린 아이콘 경로를 **폴더 접두어 + 서버 res key** 로 조립한다 —
-#     `Item.c` "raidpiece_acc/" · `RaidpieceItem::getImageInCave` "raidpiece_cave/".
-#   · `find DV2 -ipath "*raidpiece*"` → **0건**(두 폴더가 통째로 덤프에 없다).
-#   · 전용 문자열 번들 `string/raidpiece/strings.xml`(RaidpieceItem.c:1729)도 없다
-#     — `DV2/string/` 에는 `stringsData_*.xml` 뿐.
-#   ⇒ 그림도 이름도 없다. 게다가 우리 쪽엔 획득·장착 경로가 아예 없어서
-#     `Equipment._add_piece_sets` 가 읽는 세이브 필드를 아무도 채우지 않는 휴면 데이터였다.
+# 판정은 `data/icon_map.json` 조회로 자동이므로, **아이콘을 확보하면 그대로 다시 켜진다.**
+#
+# 🟢 2026-07-31: 실제로 다시 켰다. 이벤트 19 · 특수 12 · 편린 6 의 아이콘이 커뮤니티 위키
+#    PDF 표의 '사진' 열에 원본(PNG + SMask 알파)으로 실려 있어 `extract_equip_icons.py` 가
+#    행 순서로 복원해 `assets/converted/equip_wiki/` 에 굽고, `build_item_icons.py` 가
+#    icon_map 의 event/special/piece/exclusive 섹션을 채운다. 개수·이름이 이 파일이 만드는
+#    배열과 1:1 로 대조된다(추출기 `--check`).
+#
+# ⚠️ 전용 장비(exclusive)만 여전히 꺼져 있다 — **아이콘이 아니라 수치가 없어서**다.
+#    위키 표에 주 능력치 열 자체가 없고 조건부 효과 문구뿐이라(`effect`) 장착해도 붙일 스탯이
+#    없다. 아이콘은 icon_map `exclusive` 에 95장 다 들어 있으니, 효과 규칙이 정해지면
+#    데이터만 채우면 된다.
+IMPL_NOTE = ("아이콘 프레임 미보유 ⇒ 구현 제외. 판정은 build_item_icons.py 가 만든 "
+             "data/icon_map.json 조회로 자동이라, 아이콘을 확보하면 그대로 다시 켜진다.")
+EXCLUSIVE_NOTE = ("전용 장비는 **아이콘이 아니라 수치가 없어서** 미구현이다(2026-07-31 갱신). "
+                  "위키 표에 주 능력치 열이 없고 드래곤별 조건부 효과 문구(effect)뿐이라 "
+                  "장착해도 붙일 스탯이 없다. 아이콘은 위키에서 복원해 icon_map `exclusive` 에 "
+                  "95장 실려 있다(행 번호 키) — 효과 규칙이 정해지면 데이터만 채우면 된다.")
+# 편린 아이콘을 못 찾았을 때만 쓰는 문구(2026-07-31 이전 상태로 되돌아간 경우).
 PIECES_IMPL_NOTE = (
-    "아이콘 폴더(`raidpiece_acc/` · `raidpiece_cave/`)가 통째로 추출 에셋에 없고 프레임명은 "
-    "서버 res key 라 복원 근거가 없다 ⇒ 구현 제외(사용자 확정 2026-07-31). "
-    "세트 효과 데이터는 보존 — 원본 아이콘을 확보하면 이 행부터 다시 확인한다. "
-    "읽는 곳 = Equipment._add_piece_sets(이 플래그가 false 면 세트효과를 합산하지 않는다).")
+    "아이콘 폴더(`raidpiece_acc/` · `raidpiece_cave/`)가 추출 에셋에 없고 프레임명이 서버 "
+    "res key 라 원본 덤프만으로는 복원 근거가 없다 ⇒ 구현 제외. 위키 PDF 표(equipment_0 p11)에 "
+    "원본 6장이 실려 있으므로 `extract_equip_icons.py` 를 돌리면 다시 켜진다.")
 
 
 def mark_implemented(events: list[dict], special: dict, pieces: dict) -> tuple[int, int]:
@@ -489,17 +489,30 @@ def mark_implemented(events: list[dict], special: dict, pieces: dict) -> tuple[i
         e["implemented"] = ok
         if ok:
             on += 1
+            e.pop("_impl_basis", None)
         else:
             e["_impl_basis"] = IMPL_NOTE
             off += 1
-    # 특수 장비(해골요새·발록·피오드)는 icon_map 에 섹션 자체가 없다 —
-    # `Icons.equip_texture` 도 special 분기에서 항상 null 을 돌려준다. ⇒ 계열째 제외.
-    for fam in special.values():
-        fam["implemented"] = False
-        fam["_impl_basis"] = IMPL_NOTE
-    # 레이드 편린 — 아이콘 폴더 자체가 없다(위 PIECES_IMPL_NOTE).
-    pieces["implemented"] = False
-    pieces["_impl_basis"] = PIECES_IMPL_NOTE
+    # 특수 장비(해골요새·발록·피오드) — icon_map `special` 은 "<계열>:<이름>" 키다.
+    sp_have = icon_names("special")
+    for fam, v in special.items():
+        ok = all("%s:%s" % (fam, it["name"]) in sp_have for it in v.get("items", []))
+        v["implemented"] = ok
+        if ok:
+            v.pop("_impl_basis", None)
+        else:
+            v["_impl_basis"] = IMPL_NOTE
+    # 레이드 편린 — icon_map `piece` 는 편린 이름 키.
+    pc_have = icon_names("piece")
+    pieces["implemented"] = all(p["name"] in pc_have for p in pieces.get("list", []))
+    if pieces["implemented"]:
+        pieces.pop("_impl_basis", None)
+        pieces["_impl_note"] = (
+            "아이콘은 위키에서 복원해 배선했다(icon_map `piece`). 남은 것은 **획득·장착 경로**로, "
+            "원작 레이드(4세대) 산출물이라 솔로 재설계 대상이다 — 에셋 문제가 아니다. "
+            "세트 효과는 Equipment._add_piece_sets 가 그대로 합산한다.")
+    else:
+        pieces["_impl_basis"] = PIECES_IMPL_NOTE
     return on, off
 
 
@@ -512,8 +525,10 @@ def build() -> dict:
     special = json.loads(json.dumps(SPECIAL, ensure_ascii=False))   # 상수 원본을 건드리지 않는다
     pieces = json.loads(json.dumps(PIECES, ensure_ascii=False))
     on, off = mark_implemented(events, special, pieces)
-    print(f"  아이콘 보유 이벤트 장비 {on}종 구현 / {off}종 제외 · 특수 장비 계열 {len(special)}종 전부 제외"
-          f" · 편린 {len(pieces['list'])}종 제외")
+    sp_on = sum(1 for v in special.values() if v.get("implemented"))
+    print(f"  아이콘 판정 — 이벤트 {on}구현/{off}제외 · 특수 계열 {sp_on}/{len(special)} 구현"
+          f" · 편린 {'구현' if pieces.get('implemented') else '제외'}"
+          f" · 전용 {len(exclusive)}종은 수치 부재로 제외(아이콘은 보유)")
 
     basic = {}
     for name, spec in BASIC.items():
@@ -562,6 +577,10 @@ def build() -> dict:
         "exclusive": {
             "_note": "전용 장비는 드래곤별 고유 효과라 개별 전투 로직이 필요하다. 현재는 데이터 보관만 "
                      "(implemented=false) — 전투 미반영. 위키 표가 줄단위로 쪼개져 name_raw 는 이름+사용자가 섞여 있다.",
+            "_impl_basis": EXCLUSIVE_NOTE,
+            "_icons": "아이콘 95장은 위키에서 복원해 icon_map `exclusive` 에 **행 번호 키**로 실려 있다"
+                      "(`extract_equip_icons.py`). 이 배열의 인덱스와 같은 순서다 — 깨끗한 이름은 "
+                      "icon_map 쪽 `name` 필드에 있다.",
             "list": exclusive,
         },
     }

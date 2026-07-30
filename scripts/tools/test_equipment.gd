@@ -11,11 +11,14 @@ func _init() -> void:
 	var table = JSON.parse_string(FileAccess.open("res://data/equipment.json", FileAccess.READ).get_as_text())
 	var cat := E.catalog(table)
 
-	# 0) 카탈로그 — 일반 6종(등급 7·7·**6**·6·6·6=38) + 이벤트 **6** + 특수 **0** + 아티팩트 6×6=36.
+	# 0) 카탈로그 — 일반 6종(등급 7·7·**6**·6·6·6=38) + 이벤트 **25** + 특수 **12** + 아티팩트 6×6=36.
 	#    부적이 6등급인 근거: 위키 §2.1 등급표의 아만타 칸이 `-` + 아틀라스 talisman1..6 (2026-07-27 정정).
-	#    이벤트 25→6 · 특수 12→0 은 **아이콘 미보유분 구현 제외**(사용자 확정 2026-07-30).
-	#    데이터는 equipment.json 에 그대로 있고 `implemented: false` 로만 꺼져 있다.
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 6 + 0 + 36)
+	#    🟢 2026-07-31: 이벤트 6→25 · 특수 0→12 로 복구. 2026-07-30 에 아이콘 미보유로 껐던
+	#    19+12 종의 원본 아이콘을 커뮤니티 위키 PDF 표에서 복원해 배선했다
+	#    (`extract_equip_icons.py` → icon_map event/special). 판정은 여전히 icon_map 조회 자동.
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36)
+	fails += _true("특수 장비가 카탈로그에 있다", cat.has("special:balrog:카이저 발록의 보주"))
+	fails += _true("아이콘 복원 이벤트 장비가 카탈로그에 있다", cat.has("event:마룡의 보옥"))
 	fails += _eq("부적 등급 수(아만타 없음)", (table["basic"]["부적"]["grades"] as Array).size(), 6)
 	fails += _true("아만타의 부적 없음", not cat.has("basic:부적:6"))
 	fails += _eq("깃털 최고등급 이름", String(cat["basic:깃털:6"]["name"]), "아만타의 금우")
@@ -24,12 +27,13 @@ func _init() -> void:
 	fails += _eq("장비 인벤 키 왕복", E.parse_item_key(E.item_key("basic:깃털:6")), "basic:깃털:6")
 	fails += _eq("장비 아닌 키는 빈 문자열", E.parse_item_key("gem:체력의 젬:0"), "")
 	fails += _eq("눈사람 인형 회피", int(cat["event:눈사람 인형"]["stat_main"]["evd"]), 13)
-	# 아이콘 미보유 = 구현 제외(사용자 확정 2026-07-30). 카탈로그에 들어오면 안 된다 —
-	# 들어오면 목록·뽑기에 이름만 있고 그림이 없는 유령 장비가 된다.
-	fails += _true("특수 장비(발록)는 카탈로그에 없다",
-		not cat.has("special:balrog:카이저 발록의 팔찌"))
-	fails += _true("아이콘 없는 이벤트 장비는 카탈로그에 없다", not cat.has("event:크리스마스 종"))
-	fails += _eq("구현 이벤트 장비 = 6종", E.event_pool(table).size(), 6)
+	# 아이콘 보유 = 구현 대상(판정은 icon_map 조회 자동). 아이콘 없는 장비가 카탈로그에 들어오면
+	# 목록·뽑기에 이름만 있고 그림이 없는 유령 장비가 되므로, 그 규칙 자체는 그대로 둔다.
+	# 🟢 2026-07-31: 위키 PDF 에서 원본 아이콘을 복원해 이벤트 25종·특수 12종이 전부 켜졌다.
+	fails += _true("특수 장비(발록)가 카탈로그에 있다",
+		cat.has("special:balrog:카이저 발록의 팔찌"))
+	fails += _true("아이콘 복원된 크리스마스 종이 카탈로그에 있다", cat.has("event:크리스마스 종"))
+	fails += _eq("구현 이벤트 장비 = 25종", E.event_pool(table).size(), 25)
 	fails += _eq("이벤트 원본 데이터는 25종 그대로", (table["event"] as Array).size(), 25)
 
 	# 1) 슬롯 규칙(위키 §2): 관통(pure)=전투형, 회피(evd)=보조형, 아티팩트=전용칸.
@@ -70,14 +74,13 @@ func _init() -> void:
 	fails += _eq("hp +5% 적용", int(st_pct["hp"]), 1050)
 	fails += _eq("def 는 옵션 없으니 그대로", int(st_pct["def"]), 100)
 
-	# 5) 편린 — **구현 제외**(사용자 확정 2026-07-31). 아이콘 폴더 `raidpiece_acc/`·`raidpiece_cave/`
-	#    가 통째로 추출 에셋에 없고 프레임명이 서버 res key 라 복원 근거가 없다
-	#    (equipment.json `pieces._impl_basis`). 세트효과 데이터는 남지만 스탯에 합산되지 않는다.
-	#    구세이브에 pieces 가 남아 있어도 무시되는지까지 확인한다.
-	fails += _true("편린 계열 구현 제외 플래그", not bool((table["pieces"] as Dictionary).get("implemented", true)))
+	# 5) 편린 세트2(위키 §3): 모험가의 편린 2개 → 체력 10%.
+	#    🟢 2026-07-31: 아이콘 6장을 위키 PDF(equipment_0 p11)에서 복원해 계열을 다시 켰다.
+	#    (합산은 `pieces.implemented` 플래그가 켜져 있을 때만 — 아이콘을 잃으면 자동으로 꺼진다)
+	fails += _true("편린 계열 구현 플래그", bool((table["pieces"] as Dictionary).get("implemented", false)))
 	var eq3 := {"slots": [], "pieces": ["모험가의 편린", "모험가의 편린"]}
 	var st3 := E.apply({"hp": 1000, "att": 100, "def": 100}, eq3, table)
-	fails += _eq("편린 2세트도 무효(구현 제외)", int(st3["hp"]), 1000)
+	fails += _eq("편린 2세트 체력 10%", int(st3["hp"]), 1100)
 	var eq4 := {"slots": [], "pieces": ["모험가의 편린"]}
 	fails += _eq("편린 1개는 무효", int(E.apply({"hp": 1000}, eq4, table)["hp"]), 1000)
 

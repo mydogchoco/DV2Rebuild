@@ -118,6 +118,16 @@ def convert() -> list[str]:
     return done
 
 
+def wiki_rows() -> dict:
+    """`extract_equip_icons.py` 가 남긴 행↔이름 대조표. 없으면 빈 dict(그 계열은 비활성)."""
+    p = CONV / "equip_wiki" / "_rows.json"
+    if not p.exists():
+        print("  ! equip_wiki 없음 — 먼저 scripts/tools/extract_equip_icons.py 를 돌린다",
+              file=sys.stderr)
+        return {}
+    return json.loads(p.read_text(encoding="utf-8")).get("rows", {})
+
+
 def load_frames(sub: str) -> dict:
     p = CONV / sub / "_manifest.json"
     if not p.exists():
@@ -151,8 +161,16 @@ def build_map(subs: list[str]) -> dict:
                              "원작 `Equip::getGradeImageSmallSprite` 가 `<이름>_bg.png` 로 만들어 "
                              "rarity(2~6)에 따라 setColor 한다(1=일반은 아예 안 그림). "
                              "논리키는 equipment_basic/artifact/event 와 같다.",
+                 "_wiki_note": "event(19) · special(12) · piece(6) · exclusive(95) 는 원작 후기 "
+                               "업데이트분이라 아이콘 아틀라스(`item/newaccessory*` · `raidpiece_*`)가 "
+                               "우리 구판 덤프에 통째로 없다. 커뮤니티 위키 PDF 표의 '사진' 열에 원본이 "
+                               "알파까지 실려 있어 `extract_equip_icons.py` 로 복원해 "
+                               "`assets/converted/equip_wiki/` 에 굽는다(2026-07-31). "
+                               "**원본 아틀라스에 있는 것은 항상 그쪽이 우선**이고(이벤트 6종), "
+                               "위키본은 없는 것만 채운다 — 위키 이미지는 PDF 재압축을 한 번 거친다.",
                  "equipment_basic": {}, "artifact": {}, "event": {}, "gem": {},
-                 "equipment_bg": {}, "shop": {}}
+                 "equipment_bg": {}, "shop": {},
+                 "special": {}, "piece": {}, "exclusive": {}}
 
     # 일반 장비: <종류>:<등급인덱스(0-base)> → feather3 등
     for kr, pre in BASIC_PREFIX.items():
@@ -211,6 +229,25 @@ def build_map(subs: list[str]) -> dict:
         if hit:
             out["equipment_bg"][kr] = {"dir": hit[0], "frame": hit[1]}
 
+    # 위키에서 복원한 장비 아이콘(`extract_equip_icons.py` → equip_wiki/_rows.json).
+    #   · event  는 이미 채운 6종(원본 아틀라스)을 **덮어쓰지 않는다** — 원본이 우선.
+    #   · special/piece/exclusive 는 원본 아틀라스에 아예 없으므로 전부 위키본.
+    rows = wiki_rows()
+    for r in rows.get("event", []):
+        out["event"].setdefault(str(r["ours"]), {"dir": "equip_wiki", "frame": r["frame"],
+                                                 "from_wiki": True})
+    for r in rows.get("special", []):
+        out["special"][str(r["ours"])] = {"dir": "equip_wiki", "frame": r["frame"],
+                                          "from_wiki": True}
+    for r in rows.get("piece", []):
+        out["piece"][str(r["ours"])] = {"dir": "equip_wiki", "frame": r["frame"],
+                                        "from_wiki": True}
+    # 전용 장비는 우리 데이터의 이름(name_raw)이 PDF 줄바꿈으로 깨져 있어 **행 번호**로 건다.
+    # 위키에서 읽은 깔끔한 이름을 함께 실어 둔다(표시·검수용).
+    for r in rows.get("exclusive", []):
+        out["exclusive"][str(r["index"])] = {"dir": "equip_wiki", "frame": r["frame"],
+                                             "name": r["wiki_name"], "from_wiki": True}
+
     # 상점 장비 가챠 버튼 아이콘 — 사용자 확정 2026-07-29(몽타주 '정체 미상' 2건의 정답):
     #   gooddeco = 다이아 가챠 / olddeco = 골드 가챠. `item/accessory` 아틀라스에 실재한다.
     for logical, frame in (("equip_gacha_diamond", "item_accessory_gooddeco"),
@@ -225,16 +262,20 @@ def main() -> None:
     print("[build_item_icons] 아틀라스 변환")
     subs = convert()
     m = build_map(subs)
-    n = sum(len(m[k]) for k in ("equipment_basic", "gem", "artifact", "event", "equipment_bg", "shop"))
+    n = sum(len(m[k]) for k in ("equipment_basic", "gem", "artifact", "event", "equipment_bg", "shop",
+                             "special", "piece", "exclusive"))
     if "--dry" in sys.argv:
-        for sec in ("equipment_basic", "artifact", "event", "gem", "equipment_bg", "shop"):
+        for sec in ("equipment_basic", "artifact", "event", "gem", "equipment_bg", "shop",
+                    "special", "piece", "exclusive"):
             keys = list(m[sec])[:6]
             print(f"  {sec}: {len(m[sec])}건  예: {keys}")
         return
     OUT.write_text(json.dumps(m, ensure_ascii=False, indent=1), encoding="utf-8")
-    print("[build_item_icons] wrote %s: basic=%d artifact=%d event=%d gem=%d bg=%d shop=%d (total %d)" % (
-        OUT.relative_to(REPO), len(m["equipment_basic"]), len(m["artifact"]),
-        len(m["event"]), len(m["gem"]), len(m["equipment_bg"]), len(m["shop"]), n))
+    print("[build_item_icons] wrote %s: basic=%d artifact=%d event=%d gem=%d bg=%d shop=%d "
+          "special=%d piece=%d exclusive=%d (total %d)" % (
+              OUT.relative_to(REPO), len(m["equipment_basic"]), len(m["artifact"]),
+              len(m["event"]), len(m["gem"]), len(m["equipment_bg"]), len(m["shop"]),
+              len(m["special"]), len(m["piece"]), len(m["exclusive"]), n))
 
 
 if __name__ == "__main__":

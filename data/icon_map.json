@@ -3,6 +3,7 @@
  "_note": "논리키 → {dir, frame}. render 층만 이 표를 보고 AtlasTexture 를 로드한다(§8.4).",
  "_soul_note": "소울젬 4종×10단계는 원작 후기 추가분이라 `item/gem` 아틀라스(190=10종×19티어)에 없다. 커뮤니티 위키 `docs/ref/wiki/gems.pdf` §3 '사진' 열에 원본이 알파까지 실려 있어 `extract_soul_gem_icons.py` 로 복원해 `assets/converted/gem_soul/` 에 굽는다(2026-07-31). 교차검증: 같은 PDF §2.2.7 꼬리 10장 ↔ 우리 `gem_white9~18` RMSE 10~11. 종전의 '일반젬 최고티어 폴백'은 폐기 — 가방에서 일반젬과 같은 그림으로 보였다.",
  "_bg_note": "equipment_bg = 아이콘 **뒤**에 깔고 희귀도 색을 입히는 흰 실루엣. 원작 `Equip::getGradeImageSmallSprite` 가 `<이름>_bg.png` 로 만들어 rarity(2~6)에 따라 setColor 한다(1=일반은 아예 안 그림). 논리키는 equipment_basic/artifact/event 와 같다.",
+ "_wiki_note": "event(19) · special(12) · piece(6) · exclusive(95) 는 원작 후기 업데이트분이라 아이콘 아틀라스(`item/newaccessory*` · `raidpiece_*`)가 우리 구판 덤프에 통째로 없다. 커뮤니티 위키 PDF 표의 '사진' 열에 원본이 알파까지 실려 있어 `extract_equip_icons.py` 로 복원해 `assets/converted/equip_wiki/` 에 굽는다(2026-07-31). **원본 아틀라스에 있는 것은 항상 그쪽이 우선**이고(이벤트 6종), 위키본은 없는 것만 채운다 — 위키 이미지는 PDF 재압축을 한 번 거친다.",
  "equipment_basic": {
   "깃털:0": {
    "dir": "item_accessory",
@@ -327,6 +328,101 @@
   "곰 인형": {
    "dir": "item_accessory",
    "frame": "item_accessory_children_teddy"
+  },
+  "크리스마스 종": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event03",
+   "from_wiki": true
+  },
+  "오색 비치볼": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event07",
+   "from_wiki": true
+  },
+  "멋진 선글라스": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event08",
+   "from_wiki": true
+  },
+  "시원한 밀짚모자": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event09",
+   "from_wiki": true
+  },
+  "유타칸의 바람": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event10",
+   "from_wiki": true
+  },
+  "유타칸의 별빛": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event11",
+   "from_wiki": true
+  },
+  "유타칸의 햇빛": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event12",
+   "from_wiki": true
+  },
+  "온화한 호박 반지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event13",
+   "from_wiki": true
+  },
+  "사악한 호박 반지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event14",
+   "from_wiki": true
+  },
+  "할로윈 바구니": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event15",
+   "from_wiki": true
+  },
+  "붉은 달의 조각": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event16",
+   "from_wiki": true
+  },
+  "허리케인의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event17",
+   "from_wiki": true
+  },
+  "팔라곤의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event18",
+   "from_wiki": true
+  },
+  "발록의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event19",
+   "from_wiki": true
+  },
+  "다르고스의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event20",
+   "from_wiki": true
+  },
+  "포세이돈의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event21",
+   "from_wiki": true
+  },
+  "그라노스의 뱃지": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event22",
+   "from_wiki": true
+  },
+  "잠뜰의 모자": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event23",
+   "from_wiki": true
+  },
+  "마룡의 보옥": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_event24",
+   "from_wiki": true
   }
  },
  "gem": {
@@ -1606,6 +1702,672 @@
   "equip_gacha_gold": {
    "dir": "item_accessory",
    "frame": "item_accessory_olddeco"
+  }
+ },
+ "special": {
+  "skull:엘더 블랙퀸의 스태프": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special00",
+   "from_wiki": true
+  },
+  "skull:엘더 블랙퀸의 목걸이": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special01",
+   "from_wiki": true
+  },
+  "skull:G스컬의 은빛망토": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special02",
+   "from_wiki": true
+  },
+  "skull:G스컬의 붉은장갑": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special03",
+   "from_wiki": true
+  },
+  "skull:G스컬의 영혼불길": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special04",
+   "from_wiki": true
+  },
+  "skull:엘더 블랙퀸의 목도리": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special05",
+   "from_wiki": true
+  },
+  "balrog:카이저 발록의 투구": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special06",
+   "from_wiki": true
+  },
+  "balrog:카이저 발록의 팔찌": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special07",
+   "from_wiki": true
+  },
+  "balrog:카이저 발록의 보주": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special08",
+   "from_wiki": true
+  },
+  "fiod:피오드의 부서진 낙인": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special09",
+   "from_wiki": true
+  },
+  "fiod:피오드의 빛을 잃은 마석": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special10",
+   "from_wiki": true
+  },
+  "fiod:피오드의 텅 빈 모래시계": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_special11",
+   "from_wiki": true
+  }
+ },
+ "piece": {
+  "모험가의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece00",
+   "from_wiki": true
+  },
+  "신비의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece01",
+   "from_wiki": true
+  },
+  "수호자의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece02",
+   "from_wiki": true
+  },
+  "요새의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece03",
+   "from_wiki": true
+  },
+  "정복자의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece04",
+   "from_wiki": true
+  },
+  "단죄의 편린": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_piece05",
+   "from_wiki": true
+  }
+ },
+ "exclusive": {
+  "0": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive00",
+   "name": "고대신룡의 금관",
+   "from_wiki": true
+  },
+  "1": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive01",
+   "name": "다크닉스의 구슬",
+   "from_wiki": true
+  },
+  "2": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive02",
+   "name": "번개고룡의 팬던트",
+   "from_wiki": true
+  },
+  "3": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive03",
+   "name": "빙하고룡의 칼날",
+   "from_wiki": true
+  },
+  "4": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive04",
+   "name": "파워드래곤의장갑",
+   "from_wiki": true
+  },
+  "5": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive05",
+   "name": "엔젤 드래곤의티아라",
+   "from_wiki": true
+  },
+  "6": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive06",
+   "name": "백룡의 보주",
+   "from_wiki": true
+  },
+  "7": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive07",
+   "name": "흑룡의 보주",
+   "from_wiki": true
+  },
+  "8": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive08",
+   "name": "트로페우스의얼음결정",
+   "from_wiki": true
+  },
+  "9": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive09",
+   "name": "제피로스의 보석",
+   "from_wiki": true
+  },
+  "10": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive10",
+   "name": "번네스의 화염신발",
+   "from_wiki": true
+  },
+  "11": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive11",
+   "name": "루미네스의 빙결신발",
+   "from_wiki": true
+  },
+  "12": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive12",
+   "name": "저네르의 정기",
+   "from_wiki": true
+  },
+  "13": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive13",
+   "name": "노웨마의 갈기",
+   "from_wiki": true
+  },
+  "14": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive14",
+   "name": "라 솔라의 불꽃",
+   "from_wiki": true
+  },
+  "15": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive15",
+   "name": "홀리의 빛나는양뿔",
+   "from_wiki": true
+  },
+  "16": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive16",
+   "name": "발레포르의 고리",
+   "from_wiki": true
+  },
+  "17": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive17",
+   "name": "루시퍼의 날개장식",
+   "from_wiki": true
+  },
+  "18": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive18",
+   "name": "프로스티의 무늬",
+   "from_wiki": true
+  },
+  "19": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive19",
+   "name": "다크프로스티의 무늬",
+   "from_wiki": true
+  },
+  "20": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive20",
+   "name": "청룡의 여의주",
+   "from_wiki": true
+  },
+  "21": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive21",
+   "name": "네시의 머리장식",
+   "from_wiki": true
+  },
+  "22": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive22",
+   "name": "미니드래곤 고리",
+   "from_wiki": true
+  },
+  "23": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive23",
+   "name": "샤크곤의 물안경",
+   "from_wiki": true
+  },
+  "24": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive24",
+   "name": "라이오스의 바람방패",
+   "from_wiki": true
+  },
+  "25": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive25",
+   "name": "발로드의 갈기",
+   "from_wiki": true
+  },
+  "26": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive26",
+   "name": "투탕카의 도리깨",
+   "from_wiki": true
+  },
+  "27": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive27",
+   "name": "익시아의 왕관",
+   "from_wiki": true
+  },
+  "28": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive28",
+   "name": "다크나이트의투구",
+   "from_wiki": true
+  },
+  "29": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive29",
+   "name": "데스퍼라티오의 용암신발",
+   "from_wiki": true
+  },
+  "30": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive30",
+   "name": "포세이돈의 삼지창",
+   "from_wiki": true
+  },
+  "31": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive31",
+   "name": "프리스트의 빛나는 날개",
+   "from_wiki": true
+  },
+  "32": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive32",
+   "name": "파이썬의 갑옷",
+   "from_wiki": true
+  },
+  "33": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive33",
+   "name": "타로스의 용암구슬",
+   "from_wiki": true
+  },
+  "34": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive34",
+   "name": "레드와이번의뿔",
+   "from_wiki": true
+  },
+  "35": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive35",
+   "name": "솔라의 불꽃구슬",
+   "from_wiki": true
+  },
+  "36": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive36",
+   "name": "수라드래곤의고대 장식",
+   "from_wiki": true
+  },
+  "37": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive37",
+   "name": "사이커드래곤의 초록 번개",
+   "from_wiki": true
+  },
+  "38": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive38",
+   "name": "오르페우스의비석",
+   "from_wiki": true
+  },
+  "39": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive39",
+   "name": "에메랄드 드래곤의 보석 왕관",
+   "from_wiki": true
+  },
+  "40": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive40",
+   "name": "발칸의 푸른불꽃",
+   "from_wiki": true
+  },
+  "41": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive41",
+   "name": "운디네의 물방울",
+   "from_wiki": true
+  },
+  "42": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive42",
+   "name": "엔투라스의 불꽃 주먹",
+   "from_wiki": true
+  },
+  "43": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive43",
+   "name": "설리반의 가면",
+   "from_wiki": true
+  },
+  "44": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive44",
+   "name": "금오드래곤의고대목걸이",
+   "from_wiki": true
+  },
+  "45": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive45",
+   "name": "블랙홀의 암흑결정체",
+   "from_wiki": true
+  },
+  "46": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive46",
+   "name": "시타엘의 신성한 뿔",
+   "from_wiki": true
+  },
+  "47": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive47",
+   "name": "쿠르파의 푸른갑주",
+   "from_wiki": true
+  },
+  "48": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive48",
+   "name": "헤네스의 지성의 왕관",
+   "from_wiki": true
+  },
+  "49": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive49",
+   "name": "현무드래곤의동방갑옷",
+   "from_wiki": true
+  },
+  "50": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive50",
+   "name": "발록의 전투갑주",
+   "from_wiki": true
+  },
+  "51": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive51",
+   "name": "가오론의 뿔갑옷",
+   "from_wiki": true
+  },
+  "52": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive52",
+   "name": "아루루가의 물갈퀴",
+   "from_wiki": true
+  },
+  "53": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive53",
+   "name": "일란의 영예의관",
+   "from_wiki": true
+  },
+  "54": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive54",
+   "name": "아틀라스의 마력 수정",
+   "from_wiki": true
+  },
+  "55": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive55",
+   "name": "바리안의 백색갑옷",
+   "from_wiki": true
+  },
+  "56": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive56",
+   "name": "진의 나무비늘",
+   "from_wiki": true
+  },
+  "57": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive57",
+   "name": "다르고스의 파괴의 힘",
+   "from_wiki": true
+  },
+  "58": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive58",
+   "name": "커스리퍼의 뼈투구",
+   "from_wiki": true
+  },
+  "59": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive59",
+   "name": "살라의 화염창[57]",
+   "from_wiki": true
+  },
+  "60": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive60",
+   "name": "팔라곤의 권위의 투구",
+   "from_wiki": true
+  },
+  "61": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive61",
+   "name": "루키르의 바람의 날개",
+   "from_wiki": true
+  },
+  "62": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive62",
+   "name": "루너스의 달빛불꽃",
+   "from_wiki": true
+  },
+  "63": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive63",
+   "name": "글라시아의 왕관",
+   "from_wiki": true
+  },
+  "64": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive64",
+   "name": "레지아나의 빛나는 깃털",
+   "from_wiki": true
+  },
+  "65": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive65",
+   "name": "프로스트랩터의 얼음수정",
+   "from_wiki": true
+  },
+  "66": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive66",
+   "name": "나이트 드래곤의 기사 투구",
+   "from_wiki": true
+  },
+  "67": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive67",
+   "name": "말덱의 흡수의서",
+   "from_wiki": true
+  },
+  "68": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive68",
+   "name": "스트라의 방출의 서",
+   "from_wiki": true
+  },
+  "69": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive69",
+   "name": "푸르푸르의 혼돈의 번개",
+   "from_wiki": true
+  },
+  "70": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive70",
+   "name": "즈믄의 빛나는갑주",
+   "from_wiki": true
+  },
+  "71": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive71",
+   "name": "팡팡드래곤의풍선",
+   "from_wiki": true
+  },
+  "72": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive72",
+   "name": "섬머샤인의 선글라스",
+   "from_wiki": true
+  },
+  "73": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive73",
+   "name": "실러캔스의 물빛 투구",
+   "from_wiki": true
+  },
+  "74": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive74",
+   "name": "카일루스의 신성 방패",
+   "from_wiki": true
+  },
+  "75": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive75",
+   "name": "세로님의 전쟁보닛",
+   "from_wiki": true
+  },
+  "76": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive76",
+   "name": "디기의 금빛장식",
+   "from_wiki": true
+  },
+  "77": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive77",
+   "name": "페이스리스의사슬",
+   "from_wiki": true
+  },
+  "78": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive78",
+   "name": "아가레스의 투구[75]",
+   "from_wiki": true
+  },
+  "79": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive79",
+   "name": "콜테일의 헛된희망",
+   "from_wiki": true
+  },
+  "80": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive80",
+   "name": "미르의 별빛방울",
+   "from_wiki": true
+  },
+  "81": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive81",
+   "name": "루페스의 결정화된 분노",
+   "from_wiki": true
+  },
+  "82": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive82",
+   "name": "모노케로스의붉은 보주",
+   "from_wiki": true
+  },
+  "83": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive83",
+   "name": "크로우 드래곤의 해골투구",
+   "from_wiki": true
+  },
+  "84": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive84",
+   "name": "워든의 부유검",
+   "from_wiki": true
+  },
+  "85": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive85",
+   "name": "쏜 네일의 가시갑옷",
+   "from_wiki": true
+  },
+  "86": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive86",
+   "name": "아카이아의 성물",
+   "from_wiki": true
+  },
+  "87": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive87",
+   "name": "샤마쉬의 흉갑",
+   "from_wiki": true
+  },
+  "88": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive88",
+   "name": "불나래의 불꽃구슬",
+   "from_wiki": true
+  },
+  "89": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive89",
+   "name": "레이어스의 반석 방패",
+   "from_wiki": true
+  },
+  "90": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive90",
+   "name": "오울드라의 어둠갑옷",
+   "from_wiki": true
+  },
+  "91": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive91",
+   "name": "세크라포의 어깨보호대",
+   "from_wiki": true
+  },
+  "92": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive92",
+   "name": "멜로우 드래곤의 부메랑",
+   "from_wiki": true
+  },
+  "93": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive93",
+   "name": "소라게 드래곤의 마법의 소라",
+   "from_wiki": true
+  },
+  "94": {
+   "dir": "equip_wiki",
+   "frame": "equip_wiki_exclusive94",
+   "name": "완숙이의 후라이팬",
+   "from_wiki": true
   }
  }
 }
