@@ -469,68 +469,35 @@ func _cast_npc(no: int, part: int, k: int) -> String:
 	var bypart: Dictionary = byno.get(str(part), {})
 	return String(bypart.get(str(k), ""))
 
-## NPC 초상 합성 — 원작 `npc/<plist>` 의 body + eye + mouth 파츠.
-## 배치 근거는 adventure.gd `_show_npc` 와 같은 `PopSeekFinishLayer.c:191-217`
-## (body 앵커 (0.5,0) 화면 하단중앙, mouth @(103,310), eye @(104,346) — body 로컬 y-up).
+## NPC 초상 — **공용 컴포넌트 `NpcPortrait` 를 쓴다**(상점·연구소·육성과 같은 것).
 ##
-## 🔴 **2026-07-31 정정 — "표정 조합표 유실"은 오진이었다.** 조합표 같은 건 없다.
-##   `ScenarioLayer::setTalker(bool, name, int body, int state, …)` 이 **같은 `state` 값을**
-##   `setNpcEye`/`setNpcMouse`/`setNpcLeftArm`/`setNpcRightArm` 에 그대로 넘긴다(전부 `param_9`).
-##   `NpcManager::setNpcEye` 는 `<경로>eye_%d`, `setNpcMouse` 는 `mouth_%d` 로 프레임을 만든다.
-##   ⇒ **`Character_State` 번호 = 파츠 번호**다. 아틀라스 키가 `eye_<state>_<i>` 인 것은
-##   `i` 가 깜빡임 프레임이기 때문(`InfoNpc::getEyeCount` + `NpcManager::setNextEye` 가 순환).
-##   우리는 첫 프레임(`_1`)을 쓴다. 없으면 있는 것 중 첫 번째로 폴백.
-func _show_npc(npc: String, body := 1, state := 0) -> void:
+## 🔴 2026-07-31: 여기 자체 합성 코드를 두고 있었는데, 파츠 좌표를 다른 화면
+##   (`PopSeekFinishLayer`)의 상수로 박아 둬서 **눈이 이마 위로 튀어나갔다**(사용자 지적).
+##   원작은 `NpcManager::setTarget` 이 **NPC·포즈마다** 눈/입 위치를 잡고, 그 값은 이미
+##   `data/npc_face.json` 으로 추출돼 `NpcPortrait` 가 앵커(0,1)까지 맞춰 그리고 있었다.
+##   ⇒ 자체 구현을 버리고 공용 컴포넌트로 교체(CLAUDE.md §3 "우리 코드에 같은 헬퍼가 있는지 먼저 grep").
+##
+## 표정 = `Character_State`. `ScenarioLayer::setTalker(bool, name, int body, int state, …)` 이
+##   같은 값을 `setNpcEye`/`setNpcMouse`/양팔에 그대로 넘긴다(전부 `param_9`) —
+##   조합표 같은 건 없고 **표정 번호 = 파츠 번호**다.
+func _show_npc(npc: String, body := 1, state := 1) -> void:
 	var want := "%s|%d|%d" % [npc, body, state]
 	if is_instance_valid(_npc_node) and _npc_node.get_meta("npc", "") == want:
 		return
 	if is_instance_valid(_npc_node):
 		_npc_node.queue_free()
-	var dir := "npc_%s" % npc
-	var man := _man(dir)
-	if man.is_empty(): return
-	var bkey := "npc_%s_body_%d" % [npc, body]
-	var bi: Dictionary = man.get(bkey, {})
-	if bi.is_empty(): return
-	var S := Design.ASSET_SCALE
-	var bw_px := float(bi.get("w", 219))
-	var bh_px := float(bi.get("h", 351))
-	var vis := _vis()
-	_npc_node = Node2D.new()
-	_npc_node.set_meta("npc", want)
-	_npc_node.position = Vector2(vis.x * 0.5, vis.y - BOX_H)
-	_npc_node.z_index = 4
-	add_child(_npc_node)
-	var b := _spr(dir, bkey, S)
-	if b == null: return
-	b.position = Vector2(0, -bh_px * S * 0.5)
-	_npc_node.add_child(b)
-	for part in [["mouth", Vector2(103, 310)], ["eye", Vector2(104, 346)]]:
-		var key := _part_key(man, npc, String(part[0]), state)
-		if key == "": continue
-		var ps := _spr(dir, key, 1.0)   # body 의 scale 을 상속 → 여기서 또 곱하지 않는다
-		if ps == null: continue
-		var pos: Vector2 = part[1]
-		ps.position = Vector2(pos.x / S - bw_px * 0.5, bh_px * 0.5 - pos.y / S)
-		b.add_child(ps)
-	_npc_node.modulate.a = 0.0
-	_npc_node.create_tween().tween_property(_npc_node, "modulate:a", 1.0, 0.2)
-
-## `eye`/`mouth` 파츠 키 — 원작은 `<part>_<state>`, 아틀라스는 `<part>_<state>_<깜빡임>`.
-## 그 state 의 프레임이 없으면(NPC 마다 보유 표정이 다르다) 있는 것 중 첫 번째로 폴백한다.
-func _part_key(man: Dictionary, npc: String, part: String, state: int) -> String:
-	var want := "npc_%s_%s_%d_1" % [npc, part, state]
-	if man.has(want):
-		return want
-	var pre := "npc_%s_%s_" % [npc, part]
-	var cands: Array = []
-	for k in man.keys():
-		if String(k).begins_with(pre):
-			cands.append(String(k))
-	if cands.is_empty():
-		return ""
-	cands.sort()
-	return cands[0]
+	var p := NpcPortrait.create(npc, maxi(state, 1), body)
+	if p == null:
+		_npc_node = null
+		return
+	_npc_node = p
+	p.set_meta("npc", want)
+	# 원작 대화 초상은 하단 대화상자 위에 발밑을 붙인다(몸통 앵커 (0.5,0)).
+	p.position = Vector2(_vis().x * 0.5, _vis().y - BOX_H)
+	p.z_index = 4
+	add_child(p)
+	p.modulate.a = 0.0
+	p.create_tween().tween_property(p, "modulate:a", 1.0, 0.2)
 
 # ---------- 헬퍼 ----------
 func _vis() -> Vector2:
