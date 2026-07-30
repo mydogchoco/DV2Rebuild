@@ -555,6 +555,28 @@ func _ready() -> void:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_questpop_done.png")
 			print("WIRE shot_done=res://scratch_shots/_questpop_done.png")
+			# 라온 도움 창(다이아 결제) — 미션을 다시 미완료로 되돌리고 연다.
+			UserDB.set_pmeta("quests", {})
+			for c3 in tw_scene.get_children():
+				if c3 is CanvasLayer and (c3 as CanvasLayer).layer >= 30: c3.queue_free()
+			for i in 5: await get_tree().process_frame
+			tw_scene.call("_open_raon_help")
+			await get_tree().create_timer(1.0).timeout
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_raonhelp.png")
+			print("WIRE shot_raon=res://scratch_shots/_raonhelp.png")
+			# 결제 경로 검증: 확인 누르면 다이아 차감 + 미션 완료 + 다음 요금 상승.
+			var dia0 := UserDB.diamond()
+			var okb := _find_label_button(tw_scene, "확인")
+			if okb != null:
+				okb.emit_signal("pressed")
+				for i in 5: await get_tree().process_frame
+				print("WIRE raon_pay dia=", dia0, "->", UserDB.diamond(),
+					" cleared=", UserDB.quest_claimed("battles"),
+					" cnt=", UserDB.quest_count("dia_clear"),
+					" next_price=", tw_scene.call("_raon_price"))
+			else:
+				print("WIRE raon_pay: 확인 버튼 없음")
 			get_tree().quit()
 		"shop":
 			Scenes.goto("worldmap", {"region": "yutakan"})
@@ -2106,6 +2128,56 @@ func _ready() -> void:
 					if a.begins_with("--sub=") and sc.has_method("_open_potion_buy"):
 						sc.call("_open_potion_buy", a.substr(6), 25, "diamond")
 						for i in 20: await get_tree().process_frame
+		"slotreset":
+			# 젬/스킬 슬롯 재추첨 검수(원작 ItemCommentPopup → ResetLayer,
+			# docs/ref/porting/SlotResetScreens.md). --stage=gem|skill.
+			# 시계열: 확인창 → 롤 중 → 흰 섬광 → 확정 → 결과문.
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var srcv := _find_method_node(get_tree().root, "_apply_slot_reset")
+			if srcv == null:
+				print("SHOT slotreset: cave 노드 없음")
+			else:
+				UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+				var srkind := "skill" if stage == "skill" else "gem"
+				var srkey := "skillslot_change" if srkind == "skill" else "gemslot_change"
+				UserDB.add_item(srkey, 3)
+				var sruid := UserDB.active_uid()
+				var srd := UserDB.get_dragon(sruid)
+				var srbefore := UserDB.get_dragon(sruid)
+				var srpop := ItemCommentPopup.open_slot_reset(srcv, srkind, srd, srkey,
+					func(): srcv.call("_apply_slot_reset", srkey,
+						"skillslot" if srkind == "skill" else "gemslot", sruid))
+				await get_tree().create_timer(1.0).timeout
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(out.get_basename() + "_00.png")
+				print("SHOT slotreset 확인창: ", out.get_basename() + "_00.png",
+					"  before gems=", Gem.types(srbefore.get("gems", {})),
+					" skill_slots=", Loadout.slot_types(srbefore))
+				# 확인 버튼을 **팝업 안에서** 라벨로 찾아 누른다(배선까지 함께 검증).
+				var srhit := false
+				for b in _all_buttons(srpop):
+					var par := (b as Button).get_parent()
+					for l in _all_labels(par):
+						if String((l as Label).text) == "확인":
+							(b as Button).pressed.emit(); srhit = true
+							break
+					if srhit: break
+				print("SHOT slotreset 확인클릭=", srhit)
+				var srt := [0.9, 1.7, 2.0, 3.0]
+				var srprev := 0.0
+				for ti in srt.size():
+					await get_tree().create_timer(float(srt[ti]) - srprev).timeout
+					srprev = float(srt[ti])
+					await RenderingServer.frame_post_draw
+					var sro := out.get_basename() + ("_%02d.png" % (ti + 1))
+					get_viewport().get_texture().get_image().save_png(sro)
+					print("SHOT slotreset t=%.1f saved: %s" % [srt[ti], sro])
+				var srnew := UserDB.get_dragon(sruid)
+				print("SHOT slotreset gems=", Gem.types(srnew.get("gems", {})),
+					" skill_slots=", Loadout.slot_types(srnew),
+					" equip=", Loadout.equipped_ids(srnew))
+				get_tree().quit()
 		"lvfx":
 			# 레벨업 연출 타임라인(원작 ExpLayer 안무) 검수 — 데르사 축복 = 트리플맥스 보장.
 			# 시계열 캡처: 워드아트 비행 → 숫자 롤 → MAX 뱃지 → 컷인 → 슬롯개방 → 최종.

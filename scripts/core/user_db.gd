@@ -7,7 +7,7 @@ extends Node
 ##   - 저장은 SaveSystem(순수 파일IO)에 위임. 마스터 데이터(불변)는 Data가 담당.
 ##   - 드래곤은 배열 인덱스가 아니라 안정적 고유 uid로 식별한다(방생/정렬에도 안전).
 
-const SCHEMA_VERSION := 13  # v13=알 강화 등급이 `{알키:등급}`→**`{알키:{등급:개수}}`**(원작 Egg 개체 grade 를 스택 아이템에 옮긴 곁 테이블, 2026-07-30) · v12=피로도→**허기**(hunger) 개칭·정식 필드화(원작 후기판은 피로도 삭제·허기만 남음, 사용자 확정 2026-07-30) · v11=장비칸 해금이 개수(int)→**해금 칸 id 배열**(원작 드래곤 강화는 임의 순서 해금) · v10=레벨 자동 습득 기록(skill_grants 10·25·45) · v9=스킬 학습 풀/장착 2칸 분리(skill_equip) · v1=인덱스기반 → v2=uid기반 → v3=개체 편차(stat_bonus)/grade 파생화 → v4=레벨업 롤 누적(gain_log) → v5=드래곤 보관소(storage, '드래곤의 고삐') → v6=젬 슬롯 타입(gems.types, 원작 getGemType) → v7=슬롯 타입 불일치 젬 회수 → v8=유저 프로필(user.nickname, 원작 User::getNickName)
+const SCHEMA_VERSION := 15  # v15=알 강화 등급이 곁 테이블(`meta.egg_grades`)→**인벤 키 접미사**(`egg:17#2`, EggItem). 원작 AccountManager::setInfoEggs 가 등급별로 목록 항목을 따로 두어 가방에서 다른 칸이 된다(2026-07-31) · v14=혼돈의 틈새 소환 상태(`darknix` {status,until,face}) — 원작 AccountManager 의 서버 계정 상태를 세이브로 옮김(2026-07-31) · v13=알 강화 등급이 `{알키:등급}`→**`{알키:{등급:개수}}`**(원작 Egg 개체 grade 를 스택 아이템에 옮긴 곁 테이블, 2026-07-30) · v12=피로도→**허기**(hunger) 개칭·정식 필드화(원작 후기판은 피로도 삭제·허기만 남음, 사용자 확정 2026-07-30) · v11=장비칸 해금이 개수(int)→**해금 칸 id 배열**(원작 드래곤 강화는 임의 순서 해금) · v10=레벨 자동 습득 기록(skill_grants 10·25·45) · v9=스킬 학습 풀/장착 2칸 분리(skill_equip) · v1=인덱스기반 → v2=uid기반 → v3=개체 편차(stat_bonus)/grade 파생화 → v4=레벨업 롤 누적(gain_log) → v5=드래곤 보관소(storage, '드래곤의 고삐') → v6=젬 슬롯 타입(gems.types, 원작 getGemType) → v7=슬롯 타입 불일치 젬 회수 → v8=유저 프로필(user.nickname, 원작 User::getNickName)
 
 var _data: Dictionary = {}
 var _autosave := true       # false면 변경이 메모리에만 반영(일괄 작업 후 save())
@@ -41,6 +41,8 @@ func _default() -> Dictionary:
 		"cosmetics": {"cave_skin": 0, "stand_skin": 0, "wall_skin": 0},
 		"progress": {},                              # 스테이지/퀘스트 진행도
 		"dex_master": [],                            # **오라성체까지 키운 전적**이 있는 도감 id 목록(가방 알칸 `M` 배지)
+		# 혼돈의 틈새 소환 상태(원작 AccountManager 의 darknix 3필드). 아래 §혼돈의 틈새 참조.
+		"darknix": {"status": 0, "until": 0, "face": 0},
 		"rng_seed": null,
 	}
 
@@ -638,24 +640,11 @@ func set_pmeta(key: String, value) -> void:
 	_data["meta"][key] = value
 	_commit()
 
-## ---- 알 강화 등급(연구소 '알 강화') ----
-## 원작의 알은 서버 객체(`Egg`)라 개체마다 grade 를 들었다(Egg::getGrade). 우리 알은 인벤토리의
-## **스택 아이템**이라 개체가 없어서 "알키 → {등급: 개수}" 곁 테이블을 meta 에 둔다(v13).
-## 0강 개수는 저장하지 않는다 = 인벤 보유수 − 강화된 개수 합(EggUpgrade.owned_at).
-## 규칙은 logic 층 EggUpgrade — 여기서는 상태 저장/조회만.
-func egg_grade_counts(item_key: String) -> Dictionary:
-	var all = get_pmeta("egg_grades", {})
-	if not (all is Dictionary):
-		return {}
-	return EggUpgrade.normalize((all as Dictionary).get(item_key, {}))
-
-func set_egg_grade_counts(item_key: String, counts: Dictionary) -> void:
-	var all = get_pmeta("egg_grades", {})
-	var d: Dictionary = (all as Dictionary).duplicate() if all is Dictionary else {}
-	var saved := EggUpgrade.to_save(counts)
-	if saved.is_empty(): d.erase(item_key)
-	else: d[item_key] = saved
-	set_pmeta("egg_grades", d)
+## ---- 알 강화 등급 ----
+## v15 부터 **곁 테이블이 없다.** 등급은 인벤 키에 실린다(`egg:17#2` — `EggItem`).
+## 근거: 원작 `AccountManager::setInfoEggs` 가 서버 행마다 `Egg` 개체를 따로 만들어 목록에
+## 넣으므로 같은 알 번호라도 등급이 다르면 **가방에서 다른 칸**이다(EggItem 주석 전문).
+## 그래서 조회는 `EggItem.grade_of(key)`, 보유수는 그냥 `item_count(key)` 다.
 
 ## 일일 퀘스트 카운터(날짜 바뀌면 자동 리셋). bump=증가, count=조회, is_claimed/claim=보상 수령.
 func quest_count(key: String) -> int:
@@ -675,8 +664,15 @@ func quest_claimed(key: String) -> bool:
 	if String(q.get("date", "")) != Time.get_date_string_from_system(): return false
 	return bool(q.get("claimed_" + key, false))
 
+## 🔴 `bump_quest` 과 **똑같이 날짜를 찍는다.** 안 찍으면 어제 날짜가 남은 딕셔너리에 기록되고,
+##    바로 뒤의 `bump_quest` 가 날짜 불일치를 보고 `{"date": today}` 로 갈아엎어 **수령 기록이
+##    조용히 사라진다.** 마을 미션은 카운터가 0 이면 완료가 안 되니 종전엔 드러나지 않았는데,
+##    라온 도움(다이아 결제)은 카운터와 무관하게 완료시키므로 날짜가 바뀐 뒤 첫 동작이면
+##    **다이아만 빠져나갔다**(2026-07-31 townwire 회귀 검사가 잡음).
 func claim_quest(key: String) -> void:
+	var today := Time.get_date_string_from_system()
 	var q: Dictionary = (get_pmeta("quests", {}) as Dictionary).duplicate()
+	if String(q.get("date", "")) != today: q = {"date": today}
 	q["claimed_" + key] = true
 	set_pmeta("quests", q)
 
@@ -703,10 +699,76 @@ func set_progress(key: String, value) -> void:
 	_data["progress"][key] = value
 	_commit()
 
+# ============================================================ 혼돈의 틈새 소환 상태
+# 원작 `AccountManager` 의 다크닉스 3필드를 그대로 옮긴 것 —
+#   `getDarkNixStatus()`     → status (1/2/3, 어느 보스가 소환됐나)
+#   `getLimitTime_darknix()` → until  (unix초, 이 시각까지 월드맵에 상주)
+#   `getDarknixFace()`       → face   (0 없음 / 1 조우~1차전투 / 2 마무리 일격 대기)
+# 원작은 셋 다 **서버가 내려주던 계정 상태**다(로그인 응답 + `cash_darknix.hb` 응답).
+# 오프라인에선 세이브가 그 자리를 대신한다. 규칙 판정은 `Darknix`(logic), 여기는 저장만(§8.2).
+func darknix() -> Dictionary:
+	var d = _data.get("darknix", {})
+	return (d as Dictionary) if d is Dictionary else {}
+
+## 소환 확정 — `Darknix.roll()` 결과를 그대로 받는다(`{status, enemy, until, face}`).
+func darknix_summon(v: Dictionary) -> void:
+	_data["darknix"] = {
+		"status": int(v.get("status", 1)),
+		"until": int(v.get("until", 0)),
+		"face": int(v.get("face", 0)),
+		"seen": 0,                      # 갓 소환 → 등장 연출을 한 번 보여준다
+	}
+	_commit()
+
+## 등장 연출(`appear`)을 이미 보여줬는가 — 원작 `AccountManager::getAlarm_darknix()==2`.
+## 원작 `showDarknix`(:5123)는 이 값이 2면 `showDarknix(false)`(등장 생략, 곧바로 breath),
+## 아니면 2로 세우고 `showDarknix(true)`(등장 재생)한다. `hideDarknix` 가 0으로 되돌린다.
+## 🔴 이게 없으면 월드맵을 떠났다 돌아올 때마다 5.2초짜리 `appear` 가 다시 돌아
+##    그동안 드래곤 슬롯이 꺼져 있어 **보스가 사라지고 이펙트만 뜬 것처럼** 보인다
+##    (2026-07-31 사용자 신고: 상점 갔다 오면 그렇다).
+func darknix_seen() -> bool:
+	return int(darknix().get("seen", 0)) != 0
+
+func darknix_mark_seen() -> void:
+	var d := darknix()
+	d["seen"] = 1
+	_data["darknix"] = d
+	_commit()
+
+## 대면 단계 갱신(원작 `setDarknixFace`).
+func darknix_set_face(face: int) -> void:
+	var d := darknix()
+	d["face"] = face
+	_data["darknix"] = d
+	_commit()
+
+## 처치/만료 — 원작 `setLimitTime_darknix(0)` + `setDarknixFace(0)`.
+func darknix_clear() -> void:
+	_data["darknix"] = {"status": 0, "until": 0, "face": 0}
+	_commit()
+
 # ============================================================ 저장 제어
 func _commit() -> void:
 	if _autosave:
 		SaveSystem.save(_data)
+
+## ---- 커스텀 종(600·700)의 종 이름 ----
+## 원작에 없는 축이다. 커스텀 종은 마스터 `name` 이 비어 있고(`name_from_player: true`)
+## **점술집 '드래곤 소환'에서 재료가 된 드래곤의 이름을 종 이름으로 물려받는다**
+## (사용자 확정 2026-07-30 — 예: 고대신룡 "별밤이"를 수비형 재료로 쓰면 600 의 종 이름이 "별밤이").
+## 종당 1마리 상한(`Summon.species_available`)이라 세이브당 종 이름이 하나로 정해진다.
+## 읽는 쪽은 `Icons.species_name` / `Icons.name_of` — 여기서는 저장/조회만 한다(§8.2).
+func species_name(id: int) -> String:
+	var all = get_pmeta("species_names", {})
+	if not (all is Dictionary):
+		return ""
+	return String((all as Dictionary).get(str(id), ""))
+
+func set_species_name(id: int, name: String) -> void:
+	var all = get_pmeta("species_names", {})
+	var d: Dictionary = (all as Dictionary) if all is Dictionary else {}
+	d[str(id)] = name
+	set_pmeta("species_names", d)
 
 ## 일괄 변경 시: begin_batch() → ...여러 변경... → save() 로 디스크 쓰기 1회.
 func begin_batch() -> void:
@@ -801,16 +863,34 @@ func _ensure_schema(d: Dictionary) -> Dictionary:
 			if mid > 0 and not dm.has(mid):
 				dm.append(mid)
 	d["dex_master"] = dm
-	# v13: 알 강화 등급이 `{알키: 등급}`(스택 전체가 한 등급) → `{알키: {등급: 개수}}`.
-	# 구형 값은 "그 등급 알 1개"로 읽는다(EggUpgrade.normalize). 멱등.
+	# v15: 알 강화 등급 곁 테이블(`meta.egg_grades = {알키: {등급: 개수}}`)을 **인벤 키로 옮긴다**.
+	#   `egg:17` 8개 중 2강 1개·1강 2개  →  `egg:17` 5개 + `egg:17#1` 2개 + `egg:17#2` 1개.
+	# 원작이 알 개체를 목록에 따로 담아 **등급별로 다른 칸**이 되는 것에 맞춘다(EggItem 주석).
+	# 곁 테이블은 옮긴 뒤 지우므로 재실행해도 no-op = 멱등.
 	var eg = d.get("meta", {}).get("egg_grades", null)
-	if eg is Dictionary:
-		var fixed: Dictionary = {}
+	if eg is Dictionary and not (eg as Dictionary).is_empty():
+		var inv: Dictionary = d.get("inventory", {})
+		var moved := 0
 		for k in (eg as Dictionary):
-			var c := EggUpgrade.to_save(EggUpgrade.normalize((eg as Dictionary)[k]))
-			if not c.is_empty():
-				fixed[String(k)] = c
-		d["meta"]["egg_grades"] = fixed
+			# ⚠️ 변수명 `base` 금지 — 이 함수 첫 줄의 `var base := _default()` 와 충돌해
+			#    스크립트 전체가 파스 에러가 난다(2026-07-31).
+			var ekey := String(k)
+			for g in EggUpgrade.normalize((eg as Dictionary)[ekey]):
+				var n := mini(int(EggUpgrade.normalize((eg as Dictionary)[ekey])[g]),
+					int(inv.get(ekey, 0)))
+				if n <= 0:
+					continue
+				# 0강 스택에서 빼서 등급 스택으로 옮긴다(총량 보존).
+				inv[ekey] = int(inv.get(ekey, 0)) - n
+				if int(inv[ekey]) <= 0:
+					inv.erase(ekey)
+				var gk := EggItem.key(ekey, int(g))
+				inv[gk] = int(inv.get(gk, 0)) + n
+				moved += n
+		d["inventory"] = inv
+		print("[UserDB] v15: 강화 알 %d개를 등급별 인벤 칸으로 분리" % moved)
+	if d.has("meta") and (d["meta"] as Dictionary).has("egg_grades"):
+		(d["meta"] as Dictionary).erase("egg_grades")
 	for dr in d.get("dragons", []):
 		_ensure_dragon_schema(dr, d["inventory"])
 	for dr2 in d.get("storage", []):        # 보관소 개체도 같은 스키마로 보강(v5 추가)

@@ -1510,6 +1510,171 @@ func _open_quests() -> void:
 	cancel.pressed.connect(func(): overlay.queue_free())
 	win.add_child(cancel)
 
+	# 라온에게 부탁하기 — 원작 `TownWorldPopUp::initWidget`(tag 0x2c0 창)의
+	# `RoundedButton` tag **0xe** 위에 `scene/town/elpis/sd_raon.spine_json` 을 `"quest_start"`
+	# 루프로 얹어 둔 것과 같은 조합. 그 창은 미이식이라 이 통합 미션판 왼쪽에 붙인다.
+	# 남은 미션이 없으면 띄우지 않는다(원작도 대상 퀴스트가 있을 때만 버튼을 만든다).
+	if _raon_target() >= 0:
+		var rx := -58.0
+		if ResourceLoader.exists("res://scenes/npc_town/sd_raon.tscn"):
+			var rh := Node2D.new()
+			rh.position = Vector2(rx, 262.0)
+			rh.scale = Vector2(0.62, 0.62)
+			win.add_child(rh)
+			var ri = load("res://scenes/npc_town/sd_raon.tscn").instantiate()
+			rh.add_child(ri)
+			var rap: AnimationPlayer = ri.get_node_or_null("AnimationPlayer")
+			if rap != null and rap.has_animation("quest_start"):
+				rap.get_animation("quest_start").loop_mode = Animation.LOOP_LINEAR
+				rap.play("quest_start")
+		var rb := _rounded_button("라온에게 부탁", Vector2(rx, 330.0), true)
+		rb.size = Vector2(150.0, 44.0)
+		rb.position = Vector2(rx, 330.0) - rb.size * 0.5
+		rb.add_theme_font_size_override("font_size", 16)
+		rb.pressed.connect(func(): overlay.queue_free(); _open_raon_help())
+		win.add_child(rb)
+		win.add_child(_q_label("다이아 %d" % _raon_price(), "font_common", 14,
+			Color8(255, 245, 225), Vector2(rx, 362.0), Vector2(150.0, 20.0)))
+
+
+
+# ── 라온에게 부탁하기 (다이아로 미션 대신 완료) ─────────────────────────────
+## 원작 `TownQuestManager::requestQuestHelp` / `setQuestHelpSpeech` / `setHelpConfrim` /
+## `setHelpCancel` + `TownQuestPopUp::initRaonHelp`. **전부 클라에 남아 있다**(가격표까지).
+##
+## 진입: 원작은 `TownWorldPopUp::initWidget`(HUD tag 0x2c0 = 진행 중 미션 창)의
+##   `RoundedButton` tag **0xe** 위에 `scene/town/elpis/sd_raon.spine_json` 을 `"quest_start"`
+##   루프로 얹어 둔다. 그 창은 미이식(진입 데이터가 서버 `QuestData`)이라 **우리 통합 미션판
+##   왼쪽에** 같은 조합(버튼 + 라온 스파인)으로 붙인다.
+##
+## 가격 = `getDiaClearCnt()`(오늘 다이아로 완료한 횟수) 기준. 원작 표를 .so 에서 읽었다 —
+##   `DAT_022bb090`(과금 검사) · `DAT_022b72a8`(가격 표시) **둘 다 `[5,5,7,7]`**, 그 밖은 3:
+##     cnt 0·1 → 3다이아 · 2·3 → 5다이아 · 4·5 → 7다이아 (cnt≥6 도 코드상 3)
+##   `GameManager::isMEC()` 빌드는 1로 고정하는데 우리와 무관하다.
+## 대사 = `setQuestHelpSpeech` 의 키 조합 그대로:
+##   제안(NpcTalkMode 1) cnt==0 → `RaonHelp1`(%1$s = NPC 이름), 그 외 → `RaonHelp{cnt+1}`
+##   수락(2) → `RaonHelpClear{rand&3 +1}` · 거절(3) → `RaonQuestCancel{rand&1 +1}`
+const _RAON_PRICE := [3, 3, 5, 5, 7, 7]      # 원작 DAT 표 + else 3
+const _RAON_CNT_KEY := "dia_clear"           # 원작 getDiaClearCnt (일일 리셋)
+const _RAON_TITLE := "라온에게 부탁하기"        # RaonHelp_Title
+const _RAON_MSG := "도움이 필요한가?"           # RaonHelpMsg1
+const _RAON_HELP := [
+	"뭐? %s의 부탁을 대신 들어달라고? 난 바쁜 사람이라고.",   # RaonHelp1 (%1$s = NPC 이름)
+	"부탁 할 것이 또 있는 거야?",                             # RaonHelp2
+	"조금 더운걸... 이번 부탁은 조금 더 어렵겠어.",            # RaonHelp3
+	"부탁 할 것이 또 있는거야?",                              # RaonHelp4
+	"직접 할 생각은 저~언혀 없는거야?",                        # RaonHelp5
+]
+const _RAON_CLEAR := [
+	"그래 이 정도 보상이라면 해주지 뭐.",                                  # RaonHelpClear1
+	"요즘 새로운 드래곤을 육성하느라 다이아가 급했는데 잘됐어.",              # RaonHelpClear2
+	"나쁘지 않은 거래야. 손해 봤다고 생각하는 건 아니겠지?",                 # RaonHelpClear3
+	"하하 나라면 이 정도는 거뜬하지. 넌 어려운가 보군!",                    # RaonHelpClear4
+]
+const _RAON_CANCEL := [
+	"하긴~ 너라는 녀석이 그렇지 뭐!",              # RaonQuestCancel1
+	"아... 겁쟁이 같은 변명은 그만 중얼거리라고!",   # RaonQuestCancel2
+]
+
+## 오늘 다이아로 완료한 횟수 → 다음 요금(원작 표).
+func _raon_price() -> int:
+	var cnt := UserDB.quest_count(_RAON_CNT_KEY)
+	return _RAON_PRICE[cnt] if cnt < _RAON_PRICE.size() else 3
+
+## 라온이 대신 해 줄 대상 = **아직 못 깬 미션 중 첫 번째**.
+## 원작은 "현재 진행 중인 퀘스트" 1개가 대상이라(`QuestManager::getTargetQuest`) 같은 성격이다.
+func _raon_target() -> int:
+	for i in _QUESTS.size():
+		if not _quest_done(_QUESTS[i]):
+			return i
+	return -1
+
+func _npc_display_name(npc_id: String) -> String:
+	var db: Dictionary = Data.npc_lines() if Data.has_method("npc_lines") else {}
+	return String((db.get(npc_id, {}) as Dictionary).get("name", npc_id))
+
+## 원작 `TownQuestPopUp::initRaonHelp` 이식 — 제목띠 + 라온 대사 + `common/diamond_big` + "X%d"
+## + 확인(tag -100)/취소(tag -101). 원작은 `NpcTalkLayer` 로 대사를 따로 띄우지만
+## 우리는 같은 창 안에서 문구만 바꾼다(창을 하나 더 만들 근거가 없다).
+func _open_raon_help() -> void:
+	var idx := _raon_target()
+	if idx < 0:
+		return
+	var qd: Dictionary = _QUESTS[idx]
+	var price := _raon_price()
+	var cnt := UserDB.quest_count(_RAON_CNT_KEY)
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var cm := _load_manifest("common_ui")
+	var layer := CanvasLayer.new(); layer.layer = 45; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	const BW := 520.0
+	const BH := 300.0
+	var win := NinePatchRect.new()
+	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	win.patch_margin_left = 130; win.patch_margin_top = 190
+	win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(BW, BH)
+	win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
+	layer.add_child(win)
+	# 제목 띠 — 원작 initRaonHelp 도 `9patch/pop_title_bg` 를 (w/2, h−40) 에 둔다.
+	var tbar := NinePatchRect.new()
+	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20
+	tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(BW * 0.86, 52.0)
+	tbar.position = Vector2((BW - tbar.size.x) * 0.5, 40.0 - tbar.size.y * 0.5)
+	win.add_child(tbar)
+	win.add_child(_q_label(_RAON_TITLE, "font_subtitle", 22, Color.WHITE,
+		Vector2(BW * 0.5, 40.0), Vector2(tbar.size.x, 36.0)))
+
+	# 라온 대사 — 원작 setQuestHelpSpeech(NpcTalkMode 1)
+	var say := ""
+	if cnt == 0:
+		say = String(_RAON_HELP[0]) % _npc_display_name(String(qd["npc"]))
+	else:
+		say = String(_RAON_HELP[mini(cnt, _RAON_HELP.size() - 1)])
+	var msg := _q_label(say, "font_common", 16, Color8(90, 60, 25),
+		Vector2(BW * 0.5, 108.0), Vector2(BW - 70.0, 44.0))
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	win.add_child(msg)
+	win.add_child(_q_label("%s  [%s]" % [_RAON_MSG, String(qd["label"])], "font_common", 15,
+		Color8(120, 100, 70), Vector2(BW * 0.5, 148.0), Vector2(BW - 70.0, 24.0)))
+
+	# 가격 — `common/diamond_big` + "X%d" (원작 initRaonHelp)
+	var dia := _atlas_sprite("common_ui", "common_diamond_big", cm, S * 0.9)
+	if dia != null:
+		dia.position = Vector2(BW * 0.5 - 34.0, 190.0)
+		win.add_child(dia)
+	win.add_child(_q_label("X%d" % price, "font_subtitle", 22,
+		Color.WHITE if UserDB.diamond() >= price else Color8(200, 60, 60),
+		Vector2(BW * 0.5 + 22.0, 190.0), Vector2(90.0, 30.0), HORIZONTAL_ALIGNMENT_LEFT))
+
+	var ok := _rounded_button("확인", Vector2(BW * 0.5 - 118.0, BH - 52.0), true)
+	var no := _rounded_button("취소", Vector2(BW * 0.5 + 118.0, BH - 52.0), true)
+	win.add_child(ok)
+	win.add_child(no)
+	# 원작 setHelpCancel → 거절 대사(RaonQuestCancel), setHelpConfrim → 잔액 검사 후 수락 대사.
+	var finish := func(text: String):
+		msg.text = text
+		for n in [ok, no]:
+			(n as Button).queue_free()
+		var done_btn := _rounded_button("확인", Vector2(BW * 0.5, BH - 52.0), true)
+		done_btn.pressed.connect(func(): layer.queue_free())
+		win.add_child(done_btn)
+	no.pressed.connect(func(): finish.call(_RAON_CANCEL[randi() % _RAON_CANCEL.size()]))
+	ok.pressed.connect(func():
+		# 원작 setHelpConfrim: `getCash() < price` 면 진행하지 않는다.
+		if not UserDB.spend("diamond", price):
+			finish.call("다이아가 부족하다고! 그 정도는 준비해 와야지!")
+			return
+		UserDB.claim_quest(String(qd["key"]))
+		UserDB.bump_quest(_RAON_CNT_KEY)     # 원작 getDiaClearCnt 증가 → 다음 요금 상승
+		_refresh_quest_marks()
+		_refresh_hud()
+		finish.call(_RAON_CLEAR[randi() % _RAON_CLEAR.size()]))
 
 ## 원작 TownRewardPopUp 1:1(initValue_town): 보상 획득 팝업 — popup4 + pop_title_bg + backlight3(광배)
 ## + yongsin_ball spine(용신 볼 축하연출) + coin 보상. 근거: TownRewardPopUp.c(9patch/popup4·pop_title_bg,
