@@ -1,7 +1,5945 @@
 {
  "_re_basis": "원작 Scenario1~8::setNext 의 두 겹 점프 테이블(회차→스텝)을 디스어셈블 수준에서 읽어 스텝별 npc/state/pos/emoticon 을 복원. 도구 = scripts/tools/extract_switch_flow.py",
  "flows": {
+  "0": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "1": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "2": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "3": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "4": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "5": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "6": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "7": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "8": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "9": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "10": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "11": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "12": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "13": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "14": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "15": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "16": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "17": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "18": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "19": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_2",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_4",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_5",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_7",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_9",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_11",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_12",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk13_16",
+    "body": 1,
+    "state": 2
+   }
+  ],
+  "30": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "31": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "32": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "33": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "34": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "35": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "36": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "37": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "38": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "39": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_1",
+    "body": 5,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_10",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_12",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_13",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_14",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_15",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_21",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_28",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_29",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_33",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_34",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_35",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_36",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_39",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_40",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk39_41",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "40": [],
+  "41": [],
+  "42": [],
+  "43": [],
+  "44": [],
+  "45": [],
+  "46": [],
+  "47": [],
+  "48": [],
+  "49": [],
+  "59": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "60": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "61": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "62": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
   "63": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "64": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "65": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "66": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "67": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "68": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "69": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "70": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "71": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "72": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "73": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "74": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "75": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "76": [
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setOutTalker"
+   }
+  ],
+  "77": [
    {
     "op": "setTalker",
     "npc_name": "ScenarioTalk63_3",
@@ -161,37 +6099,157 @@
   ],
   "78": [
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_3",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_5",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_9",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_11",
+    "body": 1,
+    "state": 4
    },
    {
     "op": "setOutTalker"
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_16",
+    "body": 1,
+    "state": 7
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_19",
+    "body": 1,
+    "state": 5
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_22",
+    "body": 1,
+    "state": 7
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "cenarioTalk66_35",
+    "body": 1,
+    "state": 7
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_24",
+    "body": 1,
+    "state": 7
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_25",
+    "body": 1,
+    "state": 4
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_26",
+    "body": 1,
+    "state": 4
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_27",
+    "body": 1,
+    "state": 4
    },
    {
-    "op": "setOutTalker"
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_29",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_30",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_31",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_33",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_34",
+    "body": 1,
+    "state": 3
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_36",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_37",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_39",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_40",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_41",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_42",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_44",
+    "body": 1,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "ScenarioTalk63_45",
+    "body": 1,
+    "state": 2
    },
    {
     "op": "setOutTalker"
@@ -829,6 +6887,1466 @@
    },
    {
     "op": "setUserTalk"
+   }
+  ],
+  "107": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "108": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "109": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "110": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "111": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "112": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "113": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "114": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "115": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
+   }
+  ],
+  "116": [
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk2",
+    "body": 1,
+    "state": 7
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk3",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk4",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk5",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk6",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk7",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk9",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk10",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk12",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk14",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk15",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk17",
+    "body": 2,
+    "state": 2
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "NPC_nuri",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk19",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk20",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk21",
+    "body": 3,
+    "state": 7
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setOutTalker"
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk26",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk27",
+    "body": 1,
+    "state": 1
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk29",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk30",
+    "body": 1,
+    "state": 6
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk31",
+    "body": 1,
+    "state": 5
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk32",
+    "body": 1,
+    "state": 4
+   },
+   {
+    "op": "setTalker",
+    "npc_name": "PrologueTalk33",
+    "body": 1,
+    "state": 1
    }
   ]
  }

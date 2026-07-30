@@ -364,11 +364,13 @@ def main():
             #    따라가야 한다 — 다음 작업 지점.
             #    Scenario8 은 회차가 3개뿐이라 표도 3개로 갈려 있어 이 모델이 통한다.
             pairs: list[tuple[int, dict]] = []
-            if sn_blocks:
+            step_tables = [t0 for t0 in tables if t0["kind"] == "step"]
+            if sn_blocks and step_tables:
+                # 회차들이 **표를 공유**한다 → 회차마다 표를 want_sn 으로 걸어 본다.
+                # ⚠️ "가장 큰 표" 같은 근사는 틀린다(Scenario7: 108엔트리 표는 대사 0,
+                #    실제 내용은 50엔트리 표에 있었다). 회차마다 **가장 많이 나오는 표**를 쓴다.
                 for sn0 in sorted(sn_blocks):
-                    t0 = table_from_block(sn_blocks[sn0])
-                    if t0 is not None:
-                        pairs.append((sn0, t0))
+                    pairs.append((sn0, step_tables))
             else:
                 for t0 in tables:
                     if t0["kind"] != "step":
@@ -378,12 +380,21 @@ def main():
                         print(f"  {cls}: 스텝 테이블 {t0['tbl']:#x} 회차 판별 실패"); continue
                     pairs.append((sn0, t0))
 
-            for sn, t in pairs:
-                flow: list[dict] = []
-                for idx in range(t["count"]):
-                    flow.extend(walk_case(listing, af, fm, body, entry_target(t, idx), slots,
-                                          npc_talk_addr, user_talk_addrs, text,
-                                          talker_addrs, rostr))
+            TALK_OPS = ("setNpcTalk", "setUserTalk", "setTalker")
+            for sn, tt in pairs:
+                cands = tt if isinstance(tt, list) else [tt]
+                best: list[dict] = []
+                best_t = None
+                for t in cands:
+                    f0: list[dict] = []
+                    for idx in range(t["count"]):
+                        f0.extend(walk_case(listing, af, fm, body, entry_target(t, idx), slots,
+                                            npc_talk_addr, user_talk_addrs, text,
+                                            talker_addrs, rostr,
+                                            sn if sn_blocks else None))
+                    if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
+                        best, best_t = f0, t
+                flow, t = best, (best_t or cands[0])
                 if t["dflt"] and default_is_user_talk(listing, af, body, t["dflt"], user_talk_addrs):
                     flow.append({"op": "setUserTalk"})
                 out[str(sn)] = flow
@@ -463,8 +474,17 @@ def default_is_user_talk(listing, af, body, dflt: int, user_talk_addrs: set) -> 
 
 def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
               npc_talk_addr: int, user_talk_addrs: set, text,
-              talker_addrs: set | None = None, rostr=None) -> list[dict]:
-    """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정."""
+              talker_addrs: set | None = None, rostr=None,
+              want_sn: int | None = None) -> list[dict]:
+    """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
+
+    `want_sn` 을 주면 **블록 안의 회차 분기**(`cmp <sn레지스터>,#K` + `b.eq/b.ne`)에서
+    그 회차 경로만 따라간다. `Scenario1~7` 은 스텝 표 하나를 여러 회차가 공유하고
+    case 블록 안에서 다시 sn 으로 갈리기 때문에, 이게 없으면 회차를 못 가른다
+    (실측: Scenario1 = sn 테이블 4개 · 스텝 테이블 1개(82엔트리) · 회차 9개).
+    """
+    snreg: str | None = None          # 0x168 에서 읽은 = 회차 레지스터
+    last_cmp: tuple[str, int] | None = None
     regs: dict[str, int] = {}
     slotval: dict[str, int] = {}
     xptr: dict[str, str] = {}
@@ -483,6 +503,27 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
             break
         seen.add(a)
         t = text(cur)
+        # 회차 레지스터 추적 — `ldr wN,[x?,#0x168]`
+        m = re.fullmatch(r"ldr (w\d+),\[x\d+,#0x168\]", t)
+        if m:
+            snreg = m.group(1)
+        m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
+        if m:
+            last_cmp = (m.group(1), int(m.group(2), 0))
+        # 회차 분기 — 원하는 회차 경로만 따라간다
+        if (want_sn is not None and snreg is not None and last_cmp is not None
+                and last_cmp[0] == snreg and re.fullmatch(r"b\.(eq|ne) 0x[0-9a-f]+", t)):
+            eq = last_cmp[1] == want_sn
+            taken = (t.startswith("b.eq") and eq) or (t.startswith("b.ne") and not eq)
+            last_cmp = None
+            if taken:
+                fl3 = cur.getFlows()
+                if not fl3:
+                    break
+                cur = listing.getInstructionAt(fl3[0])
+                continue
+            cur = listing.getInstructionAfter(cur.getAddress())
+            continue
         m = re.fullmatch(r"(mov|movz) (w\d+),#(0x[0-9a-f]+|\d+)", t)
         if m:
             regs[m.group(2)] = int(m.group(3), 0)
