@@ -203,7 +203,8 @@ def main():
         for f in fm.getFunctions(True):
             q = "::" + f.getName(True)
             if "::Scenario" in q:
-                scenario_entries.append(f.getEntryPoint().getOffset())
+                cls_name = f.getName(True).rsplit("::", 2)[-2] if "::" in f.getName(True) else ""
+                scenario_entries.append((f.getEntryPoint().getOffset(), cls_name))
             for c in classes:
                 if f"::{c}::setNext" in q and f.getBody().getNumAddresses() > 40:
                     funcs[c] = f
@@ -217,8 +218,11 @@ def main():
             entry = fn.getEntryPoint().getOffset()
             # 이웃 Scenario 클래스로 넘어가지 않도록 하드 상한. Ghidra 가 setNext 를 여러 조각으로
             # 쪼개 놓아서 **같은 클래스의 다른 진입점**은 상한에서 뺀다.
-            cap = next((e for e in scenario_entries
-                        if e > entry + 0x40 and not _same_class(fn, e, fm)), 1 << 62)
+            # ⚠️ 같은 클래스의 다른 조각(Ghidra 가 setNext 를 쪼갠 것)은 상한이 아니다.
+            #    종전에는 이걸 남으로 봐서 범위를 entry+0x100 수준으로 잘랐고,
+            #    그 바람에 스텝 테이블이 통째로 범위 밖이 됐다.
+            cap = next((e for e, c in scenario_entries
+                        if e > entry + 0x40 and c != cls), entry + 0x40000)
             body_end = entry + fn.getBody().getNumAddresses()
             lo, hi, tables = discover(entry, body_end, cap)
 
@@ -272,13 +276,54 @@ def main():
                     for i in range(t["count"]):
                         sn_blocks[i + t["shift"]] = entry_target(t, i)
 
+            def table_from_block(start: int):
+                """회차 블록 시작에서 **제어 흐름을 따라가** 그 회차의 스텝 테이블을 찾는다.
+
+                ⚠️ 주소 근접("가장 가까운 앞선 블록 시작")으로 귀속하면 틀린다 —
+                   컴파일러가 회차 코드를 뒤섞어 배치해서, 같은 표가 여러 회차로 붙었다
+                   (Scenario7 에서 ep63/68/61/76/69 가 전부 같은 표로 나왔다).
+                   블록에서 실제로 **도달하는** 표만이 그 회차의 것이다.
+                """
+                # ⚠️ 예산이 짧으면 도달 전에 끊긴다 — Scenario1 은 회차 블록 시작에서
+                #    스텝 분기까지 550명령쯤 간다.
+                seen: set[int] = set()
+                stack = [start]
+                while stack:
+                    a0 = stack.pop()
+                    if a0 in seen:
+                        continue
+                    cur2 = at(a0)
+                    for _ in range(4000):
+                        if cur2 is None:
+                            break
+                        a1 = cur2.getAddress().getOffset()
+                        if a1 in seen or not (lo <= a1 <= hi):
+                            break
+                        seen.add(a1)
+                        mn = cur2.getMnemonicString()
+                        if mn == "br":
+                            t2 = read_table(cur2)
+                            if t2 and t2["kind"] == "step":
+                                return t2
+                            break        # 다른 스위치 — 이 경로는 여기서 끝, 다른 경로 계속
+                        if mn == "ret":
+                            break
+                        if mn == "b":                      # 무조건 분기 — 따라간다
+                            fl2 = cur2.getFlows()
+                            if not fl2:
+                                break
+                            cur2 = listing.getInstructionAt(fl2[0])
+                            continue
+                        if mn.startswith("b.") or mn.startswith("cb") or mn.startswith("tb"):
+                            for f2 in cur2.getFlows():     # 조건 분기 — 타깃도 훑는다
+                                stack.append(f2.getOffset())
+                        cur2 = listing.getInstructionAfter(cur2.getAddress())
+                return None
+
             def episode_of(step_tbl: dict) -> int | None:
-                """스텝 테이블이 속한 회차. ① sn 테이블이 있으면 그 블록 범위로,
-                ② 없으면(Scenario8) 앞선 `cmp w,#sn` 가드로 판정한다."""
+                """스텝 테이블이 속한 회차 — sn 테이블이 없을 때(Scenario8)의 폴백."""
                 if sn_blocks:
-                    a = step_tbl["at"]
-                    cand = [(st, sn) for sn, st in sn_blocks.items() if st <= a]
-                    return max(cand)[1] if cand else None
+                    return None
                 # ⚠️ 회차 가드는 **그 스텝 로드로 오는 분기** 앞의 cmp 다.
                 #    "0x168 에서 읽은 뒤 첫 cmp" 같은 근사는 틀린다 —
                 #    가드가 `cmp 0x51; b.eq <ep81>; cmp 0x4f; b.ne <끝>` 처럼 연쇄라
@@ -307,12 +352,33 @@ def main():
                 return None
 
             body = Range(lo, hi)
-            for t in tables:
-                if t["kind"] != "step":
-                    continue
-                sn = episode_of(t)
-                if sn is None:
-                    print(f"  {cls}: 스텝 테이블 {t['tbl']:#x} 회차 판별 실패"); continue
+            # 회차 → 스텝 테이블. sn 테이블이 있으면 **블록에서 도달하는 표**로 묶고,
+            # 없으면(Scenario8) 표에서 가드를 거꾸로 찾는다.
+            #
+            # 🔴 **Scenario1~7 은 이 모델로 안 된다(2026-07-31 실측).**
+            #    Scenario1 실측: sn 테이블이 **4개**(각 10엔트리) 나오고 스텝 테이블은 **1개뿐**인데
+            #    그 크기가 82다. 회차 9개에 표 하나 ⇒ "회차 하나 = 스텝 표 하나"가 아니라
+            #    **한 표를 회차들이 공유하고 case 블록 안에서 다시 sn 으로 갈린다.**
+            #    그래서 회차 귀속을 어떻게 하든 같은 표가 여러 회차로 붙거나(주소 근접),
+            #    아무 회차도 못 찾는다(도달성). 제대로 하려면 case 블록 **안의 sn 분기**까지
+            #    따라가야 한다 — 다음 작업 지점.
+            #    Scenario8 은 회차가 3개뿐이라 표도 3개로 갈려 있어 이 모델이 통한다.
+            pairs: list[tuple[int, dict]] = []
+            if sn_blocks:
+                for sn0 in sorted(sn_blocks):
+                    t0 = table_from_block(sn_blocks[sn0])
+                    if t0 is not None:
+                        pairs.append((sn0, t0))
+            else:
+                for t0 in tables:
+                    if t0["kind"] != "step":
+                        continue
+                    sn0 = episode_of(t0)
+                    if sn0 is None:
+                        print(f"  {cls}: 스텝 테이블 {t0['tbl']:#x} 회차 판별 실패"); continue
+                    pairs.append((sn0, t0))
+
+            for sn, t in pairs:
                 flow: list[dict] = []
                 for idx in range(t["count"]):
                     flow.extend(walk_case(listing, af, fm, body, entry_target(t, idx), slots,
@@ -324,6 +390,15 @@ def main():
                 talk = sum(1 for o in flow if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
                 print(f"  {cls} ep{sn}: 스텝 {t['count']} · 대사 {talk}")
 
+        # ⚠️ 단일 클래스로 돌려도 **기존 산출물을 지우지 않는다** — 종전에는
+        #    `--classes Scenario1` 한 번에 79~81 화가 통째로 날아갔다.
+        if OUT.exists():
+            try:
+                prev = json.loads(OUT.read_text(encoding="utf-8")).get("flows", {})
+            except Exception:
+                prev = {}
+            for k, v in prev.items():
+                out.setdefault(k, v)
         OUT.write_text(json.dumps({
             "_re_basis": ("원작 Scenario1~8::setNext 의 두 겹 점프 테이블(회차→스텝)을 디스어셈블 "
                           "수준에서 읽어 스텝별 npc/state/pos/emoticon 을 복원. "
