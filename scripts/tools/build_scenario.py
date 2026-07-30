@@ -125,6 +125,11 @@ def main() -> None:
             if not dst.exists():
                 shutil.copyfile(f, dst)
 
+    # 프롤로그 대사 — `<PrologueTalk%d>` 34줄(원작 인트로). 회차 구조 밖이라 따로 담는다.
+    pro = {int(k): unescape(v).strip()
+           for k, v in re.findall(r"<PrologueTalk(\d+)>(.*?)</PrologueTalk\1>", raw, re.S)}
+    prologue: list[str] = [pro[k] for k in sorted(pro)]
+
     scenarios: dict[str, dict] = {}
     for (sno, mno, gender), lines in sorted(buckets.items(),
                                            key=lambda kv: (kv[0][0], kv[0][1] or 0, kv[0][2])):
@@ -148,6 +153,7 @@ def main() -> None:
             "→ 화자·배경·연출은 docs/input/review/scenario_sheet.md 로 사용자가 채운다."),
         "_generated": "scripts/tools/build_scenario.py",
         "npc_names": npc_names,
+        "prologue": prologue,
         "scenarios": scenarios,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

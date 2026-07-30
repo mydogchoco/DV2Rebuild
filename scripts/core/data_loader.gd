@@ -442,6 +442,13 @@ func scenario_npc_folder(npc_no: int) -> String:
 func scenario_bg_paths(bg_no: int) -> Array:
 	return scenario_flow.get("backgrounds", {}).get(str(bg_no), [])
 
+## 프롤로그 대사 34줄 — 원작 `<PrologueTalk0~33>`(회차 구조 밖의 인트로).
+func prologue_lines() -> Array[String]:
+	var out: Array[String] = []
+	for v in scenario.get("prologue", []):
+		out.append(String(v))
+	return out
+
 ## NPC 표시 이름(원작 `<NPC_<폴더>>` 62종). 없으면 폴더명 그대로.
 func npc_name(folder: String) -> String:
 	if folder == "":

@@ -19,11 +19,16 @@ const REGISTRY := {
 	"shop": "res://scenes/shop.tscn",
 	# 엘피스 시설(원작 클래스명으로 등록)
 	"magicshop": "res://scenes/magicshop.tscn",   # 점술집 — MagicShopScene
+	# 임프상인 — ImpShopScene. **밤에만** 월드맵에서 진입(원작 <NightTutorial_talk12>
+	# "낮에는 방랑상인이 가끔 서 있던 곳에 밤에는 임프상인이 항상 서 있어").
+	"imp_shop": "res://scenes/imp_shop.tscn",
 	"laboratory": "res://scenes/laboratory.tscn", # 연구소 — LaboratoryScene
 	"mamorudiclab": "res://scenes/mamorudiclab.tscn", # 우노 마모루딕 연구소 — DragonAwaken
 	"promote": "res://scenes/promote.tscn",       # 육성(훈련·교배·하늘둥지) — PromoteScene
 	# 스토리(시나리오) 재생 — 원작 ScenarioLayer + ScenarioTextBox
 	"story": "res://scenes/story.tscn",
+	# 프롤로그 — 원작 <PrologueTalk0~33> + scenario/prologue 삽화
+	"prologue": "res://scenes/prologue.tscn",
 }
 
 # 허용 전환표(상태기계). from에 키가 없으면 모든 전환 허용(규칙 미정의).
@@ -39,12 +44,15 @@ const TRANSITIONS := {
 	"breeding": ["cave", "worldmap"],
 	"shop": ["town", "worldmap"],
 	"magicshop": ["town", "worldmap"],
+	"imp_shop": ["worldmap"],
 	"laboratory": ["town", "worldmap"],
 	"mamorudiclab": ["worldmap"],
 	"promote": ["worldmap", "town", "cave"],
 	# worldmap→worldmap = 지역 갈아타기(원작 `WorldMapScene::moveMap(int)`). 자기 자신도 허용.
 	"worldmap": ["worldmap", "town", "cave", "battle", "adventure", "mamorudiclab", "story",
-		"shop", "magicshop", "laboratory", "breeding", "promote"],
+		"prologue", "shop", "magicshop", "laboratory", "breeding", "promote", "imp_shop"],
+	# 프롤로그는 인트로라 끝나면 메인(월드맵)/동굴로만 나간다.
+	"prologue": ["worldmap", "cave"],
 	"adventure": ["battle", "worldmap", "story"],
 	"battle": ["worldmap", "cave", "adventure", "story"],
 	# 스토리는 어디서든 열리고(마을·동굴·던전 진입) 끝나면 부른 곳으로 돌아간다.

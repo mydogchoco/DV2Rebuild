@@ -537,6 +537,24 @@ func _ready() -> void:
 			for c in Scenes.current_scene().get_children():
 				if c is CanvasLayer and (c as CanvasLayer).layer == 30: tw_pop = true
 			print("WIRE quest_popup=", tw_pop)
+			await get_tree().create_timer(1.0).timeout
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_questpop.png")
+			print("WIRE shot=res://scratch_shots/_questpop.png")
+			# 6/6 상태 렌더링 검증 — 회전 후광·클리어 도장·[보상 받기] 활성.
+			# `begin_batch()` 로 디스크 기록을 막아 **사용자 세이브를 건드리지 않는다**.
+			UserDB.begin_batch()
+			var tw_scene := Scenes.current_scene()
+			for q in (tw_scene.get("_QUESTS") as Array):
+				UserDB.claim_quest(String((q as Dictionary)["key"]))
+			for c2 in tw_scene.get_children():
+				if c2 is CanvasLayer and (c2 as CanvasLayer).layer == 30: c2.queue_free()
+			for i in 5: await get_tree().process_frame
+			tw_scene.call("_open_quests")
+			await get_tree().create_timer(1.2).timeout
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_questpop_done.png")
+			print("WIRE shot_done=res://scratch_shots/_questpop_done.png")
 			get_tree().quit()
 		"shop":
 			Scenes.goto("worldmap", {"region": "yutakan"})
@@ -1931,6 +1949,11 @@ func _ready() -> void:
 			print("SHOT storymark: active=", StoryProgress.active_episode(),
 				" spec=", StoryProgress.spec(StoryProgress.active_episode()),
 				" mark_field=", StoryProgress.mark_field())
+		"prologue":
+			# 프롤로그 검수(원작 <PrologueTalk0~33> + scenario/prologue 삽화).
+			Scenes.goto("prologue", {"back": "worldmap"})
+			for i in 25: await get_tree().process_frame
+			print("SHOT prologue: 대사 ", Data.prologue_lines().size(), "줄")
 		"storyauto":
 			# 시나리오 **자동 발동** 검수(원작 WorldMapScene.c:21999 launchScenarioIfAvailable).
 			# 흐름 데이터가 있는 첫 회차(79) 직전 상태를 메모리에만 만들고 메인 화면으로 간다.

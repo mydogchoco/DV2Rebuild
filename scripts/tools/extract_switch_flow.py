@@ -88,53 +88,69 @@ def main():
             return re.sub(r",\s+", ",", re.sub(r"\s+", " ", str(i).strip()))
 
         def read_table(br_ins):
-            """`br` 앞 16개 명령에서 점프 테이블 정보를 읽는다."""
-            seq, cur = [], br_ins
-            for _ in range(16):
+            """`br` 앞 명령들에서 점프 테이블 정보를 읽는다.
+
+            ⚠️ 조회창은 **넉넉히** 잡아야 한다. `Scenario1` 은 `ldr [.,#0x158]` 와 `br` 사이에
+            레지스터 준비 명령이 20개나 끼어 있어, 16칸만 보면 스텝 테이블을 통째로 놓친다
+            (그래서 "1~78화엔 스텝 분기가 없다"고 오판했었다).
+            창 안에서는 **정방향**으로 읽고, 기준이 되는 `ldr` 뒤에 처음 나오는
+            cmp/b.hi/adrp+add/adr 만 취한다(뒤쪽의 다른 스위치 값이 섞이지 않게).
+            """
+            win, cur = [], br_ins
+            for _ in range(48):
                 cur = listing.getInstructionBefore(cur.getAddress())
                 if cur is None:
                     break
-                seq.append(cur)
-            seq.reverse()
-            tbl = base = count = dflt = kind = step_ld = None
+                win.append(cur)
+            win.reverse()
+            kind = step_ld = None
+            start = 0
+            for idx, s2 in enumerate(win):
+                m = re.fullmatch(r"ldr (w\d+),\[x\d+,#(0x[0-9a-f]+)\]", text(s2))
+                if not m:
+                    continue
+                off = int(m.group(2), 0)
+                if off == OFF_SN:
+                    kind, start = "sn", idx
+                elif off == OFF_STEP:
+                    kind, start, step_ld = "step", idx, s2.getAddress().getOffset()
+            if kind is None:
+                return None
+            tbl = base = count = dflt = None
             page = shift = 0
-            for s in seq:
-                t = text(s)
-                m = re.fullmatch(r"b\.hi (0x[0-9a-f]+)", t)
-                if m:
-                    dflt = int(m.group(1), 0)
+            for s2 in win[start:]:
+                t = text(s2)
+                if dflt is None:
+                    m = re.fullmatch(r"b\.hi (0x[0-9a-f]+)", t)
+                    if m:
+                        dflt = int(m.group(1), 0)
                 m = re.fullmatch(r"adrp (x\d+),(0x[0-9a-f]+)", t)
                 if m:
                     page = int(m.group(2), 0)
-                m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
-                if m and page:
-                    tbl = page + int(m.group(2), 0)
-                m = re.fullmatch(r"adr (x\d+),(0x[0-9a-f]+)", t)
-                if m:
-                    base = int(m.group(2), 0)
-                m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
-                if m:
-                    count = int(m.group(2), 0) + 1
-                m = re.fullmatch(r"ldr (w\d+),\[x\d+,#(0x[0-9a-f]+)\]", t)
-                if m:
-                    off = int(m.group(2), 0)
-                    if off == OFF_SN:
-                        kind = "sn"
-                    elif off == OFF_STEP:
-                        kind = "step"
-                        step_ld = s.getAddress().getOffset()
-                # `sub w8,w9,#0x1` → 인덱스 보정(스텝 번호는 1부터)
+                if tbl is None:
+                    m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
+                    if m and page:      # `\1` 역참조라 그룹은 (레지스터, 즉값) 둘뿐이다
+                        tbl = page + int(m.group(2), 0)
+                if base is None:
+                    m = re.fullmatch(r"adr (x\d+),(0x[0-9a-f]+)", t)
+                    if m:
+                        base = int(m.group(2), 0)
+                if count is None:
+                    m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
+                    if m:
+                        count = int(m.group(2), 0) + 1
                 m = re.fullmatch(r"sub (w\d+),(w\d+),#(0x[0-9a-f]+|\d+)", t)
                 if m:
                     shift = int(m.group(3), 0)
-            if tbl and base and count and kind:
+            if tbl and base and count:
                 return {"kind": kind, "tbl": tbl, "base": base, "count": count, "dflt": dflt,
                         "shift": shift, "step_ld": step_ld,
                         "at": br_ins.getAddress().getOffset()}
             return None
 
-        def rostr(addr: int) -> str | None:
-            """그 주소가 짧은 ASCII C 문자열이면 돌려준다(NPC 폴더 이름 후보)."""
+        def rostr(addr: int):
+            """그 주소가 짧은 ASCII C 문자열이면 돌려준다(NPC 폴더 이름 후보).
+            1~78화의 `ScenarioLayer::setTalker` 는 NPC 를 **이름 문자열**로 받는다."""
             try:
                 out = []
                 for k in range(24):
@@ -154,26 +170,31 @@ def main():
         def entry_target(t: dict, idx: int) -> int:
             return t["base"] + (mem.getShort(af.getAddress(t["tbl"] + idx * 2)) & 0xFFFF) * 4
 
-        def discover(entry: int):
-            """실제 코드 범위와 점프 테이블 전부를 찾는다(꼬리가 짧게 잡히는 문제 회피)."""
-            hi, cur, n = entry, at(entry), 0
+        def discover(entry: int, body_end: int, cap: int):
+            """실제 코드 범위와 점프 테이블 전부를 찾는다(꼬리가 짧게 잡히는 문제 회피).
+
+            ⚠️ 종료 조건은 **테이블 근거로 넓힌 도달 범위**로 판단한다. 예전에는 `hi` 를 매
+            명령마다 갱신해서 조건이 영원히 거짓이 됐고, 그대로 바이너리 끝까지 훑었다
+            (Scenario8 를 스캔하는데 0x178xxxx 의 남의 함수 `br` 을 읽고 있었다).
+            """
+            reach = max(body_end, entry + 0x400)
             tables = []
+            cur, n = at(entry), 0
             while cur is not None and n < MAX_SCAN:
                 a = cur.getAddress().getOffset()
-                if a > hi + 0x800:
+                if a > min(reach + 0x800, cap):
                     break
-                hi = max(hi, a)
                 if cur.getMnemonicString() == "br":
                     t = read_table(cur)
                     if t:
                         tables.append(t)
                         for i in range(t["count"]):
-                            hi = max(hi, entry_target(t, i))
+                            reach = max(reach, entry_target(t, i))
                         if t["dflt"]:
-                            hi = max(hi, t["dflt"])
+                            reach = max(reach, t["dflt"])
                 cur = listing.getInstructionAfter(cur.getAddress())
                 n += 1
-            return entry, hi + 0x400, tables
+            return entry, min(reach + 0x400, cap), tables
 
         funcs = {}
         # 다른 Scenario 클래스 코드로 넘어가지 않도록 하드 상한을 둔다
@@ -194,11 +215,12 @@ def main():
             if fn is None:
                 print(f"  {cls}: setNext 없음"); continue
             entry = fn.getEntryPoint().getOffset()
-            cap = next((e for e in scenario_entries if e > entry + 0x40), 1 << 62)
-            lo, hi, tables = discover(entry)
-            if hi > cap:
-                hi = cap
-                tables = [t for t in tables if t["at"] < cap]
+            # 이웃 Scenario 클래스로 넘어가지 않도록 하드 상한. Ghidra 가 setNext 를 여러 조각으로
+            # 쪼개 놓아서 **같은 클래스의 다른 진입점**은 상한에서 뺀다.
+            cap = next((e for e in scenario_entries
+                        if e > entry + 0x40 and not _same_class(fn, e, fm)), 1 << 62)
+            body_end = entry + fn.getBody().getNumAddresses()
+            lo, hi, tables = discover(entry, body_end, cap)
 
             # ── 대사 호출 위치(범위 기반) ────────────────────────────────────
             npc_talk_addr, user_talk_addrs, talker_addrs = None, set(), set()
@@ -311,6 +333,19 @@ def main():
         print(f"-> {OUT}  회차 {len(out)}")
 
 
+def _same_class(fn, addr_off: int, fm) -> bool:
+    """`addr_off` 의 함수가 `fn` 과 같은 클래스인가(Ghidra 가 쪼갠 조각 구분용)."""
+    try:
+        other = fm.getFunctionAt(fn.getEntryPoint().getNewAddress(addr_off))
+    except Exception:
+        return False
+    if other is None:
+        return False
+    a = fn.getName(True).rsplit("::", 1)[0]
+    b = other.getName(True).rsplit("::", 1)[0]
+    return a == b
+
+
 class Range:
     def __init__(self, lo: int, hi: int):
         self.lo, self.hi = lo, hi
@@ -359,6 +394,7 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
     slotval: dict[str, int] = {}
     xptr: dict[str, str] = {}
     pages: dict[str, int] = {}
+    xstr: dict[str, str] = {}
     last_str = None
     store: dict[str, int] = {}
     ops: list[dict] = []
@@ -398,13 +434,18 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
         m = re.fullmatch(r"adrp (x\d+),(0x[0-9a-f]+)", t)
         if m:
             pages[m.group(1)] = int(m.group(2), 0)
-        m = re.fullmatch(r"add (x\d+),,#(0x[0-9a-f]+|\d+)", t)
-        if m and m.group(1) in pages:
+        m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
+        if m and m.group(1) in pages:      # `` 역참조 → 그룹은 (레지스터, 즉값)
             cand = pages[m.group(1)] + int(m.group(2), 0)
             if rostr:
                 sv = rostr(cand)
                 if sv:
                     last_str = sv
+                    xstr[m.group(1)] = sv
+        # 레지스터 간 복사(문자열 포인터가 x2 로 옮겨진다)
+        m = re.fullmatch(r"mov (x\d+),(x\d+)", t)
+        if m and m.group(2) in xstr:
+            xstr[m.group(1)] = xstr[m.group(2)]
         if cur.getMnemonicString() == "bl":
             if a == npc_talk_addr:
                 ops.append({"op": "setNpcTalk", **store})
@@ -413,7 +454,11 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
                 ops.append({"op": "setUserTalk"})
                 return ops
             if talker_addrs and a in talker_addrs:
-                ops.append({"op": "setTalker", "npc_name": last_str})
+                # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
+                # (원작 `ScenarioLayer::setTalker(bool, string, int body, int state, float×4, …)`)
+                ops.append({"op": "setTalker",
+                            "npc_name": xstr.get("x2", last_str),
+                            "body": regs.get("w3"), "state": regs.get("w4")})
                 return ops
             fl = cur.getFlows()
             callee = fm.getFunctionAt(fl[0]) if fl else None
