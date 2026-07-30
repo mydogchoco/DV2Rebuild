@@ -345,18 +345,31 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
             cend = cases[ci + 1].start() if ci + 1 < len(cases) else len(seg)
             steps.append((int(cm.group(1), 0), seg[cm.end():cend]))
         steps.sort(key=lambda t: t[0])
+        # 라벨 블록(공유 꼬리) — case 본문이 `goto LAB_x` 로 여기 합류해 값을 대입한다.
+        labels: dict[str, str] = {}
+        for lm in re.finditer(r"(LAB_\w+):", seg):
+            nxt = re.search(r"(?:LAB_\w+:|case (?:0x[0-9a-f]+|\d+):|default:)", seg[lm.end():])
+            labels[lm.group(1)] = seg[lm.end(): lm.end() + (nxt.start() if nxt else 400)]
         flow: list[dict] = []
-        cur = {k: None for k in names}
         for _n, chunk in steps:
-            for label, var in names.items():
-                # `local_110 = (undefined **)CONCAT44(local_110._4_4_, 3);` · `local_15c = 0;`
-                mm = None
-                for mm in re.finditer(
-                        re.escape(var) + r"\s*=\s*(?:\([^)]*\))?\s*(?:CONCAT44\([^,]*,\s*)?(" + NUM + r")",
-                        chunk):
-                    pass
-                if mm:
-                    cur[label] = int(mm.group(1), 0)
+            # 실행 경로를 펼친다: 본문 + 따라가는 goto 라벨 블록(최대 4단)
+            path, seen_lbl = chunk, set()
+            for _ in range(4):
+                gm = re.search(r"goto (LAB_\w+);", path)
+                if not gm or gm.group(1) in seen_lbl or gm.group(1) not in labels:
+                    break
+                seen_lbl.add(gm.group(1))
+                path += " " + labels[gm.group(1)]
+            # 경로 안의 스칼라 대입을 순서대로 추적(중간 변수 uVarNN 포함)
+            env: dict[str, int] = {}
+            for am in re.finditer(r"\b(\w+)\s*=\s*(?:\([^()]*\))?\s*(?:CONCAT44\([^,]*,\s*)?"
+                                  r"(" + NUM + r"|\w+)\s*\)?\s*;", path):
+                dst, srcv = am.group(1), am.group(2)
+                if re.fullmatch(NUM, srcv):
+                    env[dst] = int(srcv, 0)
+                elif srcv in env:
+                    env[dst] = env[srcv]
+            cur = {k: env.get(v) for k, v in names.items()}
             for op, args in (("changeBackGround", ("bg",)), ("drawIllust", ("illust", "kind"))):
                 for om in re.finditer(r"ScenarioSupport::" + op + r"\s*\(([^;]*?)\)", chunk):
                     rec: dict = {"op": op}
