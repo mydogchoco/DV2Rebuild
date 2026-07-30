@@ -335,13 +335,19 @@ func _ready() -> void:
 			# ⚠️ `get_tree().current_scene` 는 **main.tscn 루트**다 — 씬 매니저가 관리하는
 			#    화면은 `Scenes.current_scene()` 로 잡아야 한다(이걸 틀리면 팝업이 조용히
 			#    안 열려 메뉴 격자만 찍힌다). 프레임 수로 어림하지 말고 실제로 뜰 때까지 기다린다.
+			# ⚠️ `Scenes.current_scene()` 는 **add_child 전에** 이미 새 씬을 가리킨다.
+			#    그때 `_open_feature` 를 부르면 뒤이어 도는 `_ready` → `_rebuild()` 가
+			#    자식을 전부 queue_free 해서 팝업이 조용히 사라진다(메뉴 격자만 찍힌다).
+			#    트리에 들어가 `_ready` 까지 끝난 뒤에 부른다.
 			var ms: Node = null
-			for i in 120:
+			for i in 180:
 				await get_tree().process_frame
 				var c := Scenes.current_scene()
-				if c != null and c.has_method("_open_feature"):
+				if c != null and c.has_method("_open_feature") \
+						and c.is_inside_tree() and c.is_node_ready():
 					ms = c
 					break
+			for i in 5: await get_tree().process_frame
 			if ms == null:
 				push_error("[shot] magicshop 진입 실패")
 			else:
