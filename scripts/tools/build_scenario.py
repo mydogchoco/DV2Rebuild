@@ -103,6 +103,18 @@ def main() -> None:
                     shutil.copyfile(p, dst)
                 illust.setdefault(int(m.group(1)), []).append(p.name)
                 continue
+            # 🔴 2026-07-31: 컷 프레임은 **아틀라스**에도 있다(`sn_20.img_plist` 25종).
+            #   종전에는 `sn_<no>/` 폴더만 봐서 25개 아틀라스(123프레임)를 통째로 놓쳤다.
+            #   변환본은 assets/converted/scenario_cut/ (cocos_export.py).
+            m = re.match(r"sn_(\d+)(?:_\d+)?\.img_plist$", p.name)
+            if m:
+                keys = re.findall(r"<key>(scenario/main_story/[^<]+\.png)</key>",
+                                  p.read_text(encoding="utf-8", errors="replace"))
+                for k in keys:
+                    cuts.setdefault(int(m.group(1)), []).append(
+                        k.replace("scenario/main_story/", "scenario_main_story_")
+                         .replace("/", "_").removesuffix(".png"))
+                continue
             m = re.match(r"sn_(\d+)$", p.name)
             if m and p.is_dir():
                 for f in sorted(p.iterdir()):
