@@ -504,6 +504,40 @@ func _ready() -> void:
 								r["facing"] = f
 								tn.call("_npc_face", r)
 								tn.call("_npc_play", r, "walk")
+		"townwire":
+			# 마을 배선 회귀 검사 — 원작 `TownMainMenuLayer` 이식(2026-07-31) 검증용.
+			#   ① 우상단 close_btn(tag 700) → 월드맵 복귀   ② 두루마리(tag 0x2c1) → 퀘스트 팝업
+			#   ③ 둥지 표지판(tag 0x208) 히트영역 존재      ④ 의뢰 게시판은 히트영역이 **없어야** 한다
+			# 실제 마우스 이벤트를 주입해 히트테스트까지 태운다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 30: await get_tree().process_frame
+			var tw_town := Scenes.current_scene()
+			var tw_acts := []
+			for ha in (tw_town.get("_hit_areas") as Array):
+				tw_acts.append(String(ha.get("action", "")))
+			print("WIRE hit_actions=", tw_acts)
+			print("WIRE cave=", "cave" in tw_acts, " quest_board_removed=", not ("quest" in tw_acts))
+			# ⚠️ `_click_at` 은 **창 픽셀**을 받는데 UI 좌표는 디자인 공간(1231×692)이다
+			#    (stretch 로 1366×768 에 늘어난다) → 반드시 변환해서 넣는다.
+			var tw_vis := get_viewport().get_visible_rect().size
+			var tw_k: Vector2 = Vector2(DisplayServer.window_get_size()) / tw_vis
+			# ① 닫기(tag 700) → 월드맵. **가장 먼저** 시험한다 — 팝업을 띄웠다 닫은 뒤에
+			#    누르면 해제 대기 중인 오버레이가 클릭을 먹어 오탐이 난다.
+			_click_at(Vector2(tw_vis.x - 50.0, 50.0) * tw_k)
+			for i in 30: await get_tree().process_frame
+			print("WIRE after_close=", Scenes.current_state())
+			# ② 두루마리(tag 0x2c1) — 다시 마을로 들어가 팝업이 뜨는지 본다.
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 30: await get_tree().process_frame
+			_click_at(Vector2(180.0, 60.0) * tw_k)
+			for i in 10: await get_tree().process_frame
+			var tw_pop := false
+			for c in Scenes.current_scene().get_children():
+				if c is CanvasLayer and (c as CanvasLayer).layer == 30: tw_pop = true
+			print("WIRE quest_popup=", tw_pop)
+			get_tree().quit()
 		"shop":
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 8: await get_tree().process_frame
@@ -513,9 +547,20 @@ func _ready() -> void:
 		"magicshop":
 			# 점술집 1층 기능 팝업 검수. `--feat=<ITEMS[0] 인덱스>`
 			#   0 드링크 강화 · 1 젬 강화 · 2 뽑기 · 3 카드 코드 · 4 드래곤 소환 · 5 연금술(층전환)
+			# `--floor=1` = 지하(연금술 층). 지하 메뉴 = 혼성젬 강화 0 · 혼성젬 제작 1 ·
+			#   젬 분해 2 · 용액 제작 3 · 용액 상점 4 (magicshop.gd AL_ITEMS 순서).
+			# `--sands=1` = 샌즈의 눈물 2종을 지급(제작 화면 투입 칸 검수용).
 			var feat := 3
+			var ms_floor := 0
 			for a in OS.get_cmdline_user_args():
 				if a.begins_with("--feat="): feat = int(a.substr(7))
+				elif a.begins_with("--floor="): ms_floor = int(a.substr(8))
+				elif a == "--sands=1":
+					UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
+					UserDB.add_item("alchemy_platinum_01", 3)
+					UserDB.add_item("alchemy_platinum_02", 2)
+					for pk in ["hp_powder", "att_powder", "def_powder"]:
+						UserDB.add_item(pk, 60)
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 8: await get_tree().process_frame
 			Scenes.goto("town", {"area": "elpis"})
@@ -540,8 +585,13 @@ func _ready() -> void:
 			if ms == null:
 				push_error("[shot] magicshop 진입 실패")
 			else:
+				if ms_floor != 0:
+					ms.call("_set_floor", ms_floor)
+					for i in 20: await get_tree().process_frame
 				ms.call("_open_feature", feat)
 				for i in 20: await get_tree().process_frame
+				print("SHOT magicshop: floor=", ms.get("_floor"), " feat=", feat,
+					" 눈물=", ms.get("_sands_key"))
 				# --reveal=<드래곤id> : 알 획득 공개창(코드 보상·소환이 쓰는 것)을 띄운다.
 				for a in OS.get_cmdline_user_args():
 					if a.begins_with("--reveal="):

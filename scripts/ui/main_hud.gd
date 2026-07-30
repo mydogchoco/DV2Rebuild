@@ -90,14 +90,23 @@ var _man_common: Dictionary = {}
 var _man_wm: Dictionary = {}
 var _portrait_man: Dictionary = {}
 var _root: Control
+## 화면 종류. `"worldmap"` = 메인 화면(하단 돌바+설정+유타칸 토글),
+## `"town"` = 마을(원작 `TownElpisScene` 가 얹는 그대로 — 닫기 + 마을퀘스트).
+## 좌상단 프로필·우상단 재화는 **둘 다 원작 `TownMainMenuLayer::setMenu`** 라 공통이다.
+var _mode := "worldmap"
 ## 유타칸 토글을 그릴지(지역 개요/타 지역에서는 숨긴다) + 현재 상태.
 var _show_variants := false
 ## 유타칸 시각 위상 — "day" / "night" / "kades". 월드맵이 넘겨 준다(worldmap.gd `_yutakan_phase`).
 ## 빈 문자열이면 `UserDB` 플래그로 직접 판단한다(다른 화면에서 붙일 때).
 var _phase := ""
 
+## 마을 모드 — 원작 tag 700 `common/close_btn` → `CCDirector::popScene()`.
+signal town_close()
+## 마을 모드 — 원작 tag 0x2c1 `icon_townquest_scroll` → `TownWorldPopUp(true)`.
+signal town_quest()
+
 ## scene 위에 HUD 를 얹는다. 이미 붙어 있으면 그것을 갱신한다.
-static func attach(scene: Node, show_variants := false, phase := "") -> MainHud:
+static func attach(scene: Node, show_variants := false, phase := "", mode := "worldmap") -> MainHud:
 	for c in scene.get_children():
 		# ⚠️ queue_free() 는 프레임 끝에 처리된다 — `_rebuild()` 직후에는 해제 예약된
 		#    구 HUD 가 아직 자식으로 남아 있으므로 건너뛰어야 새 HUD 가 만들어진다.
@@ -105,12 +114,14 @@ static func attach(scene: Node, show_variants := false, phase := "") -> MainHud:
 			var h := c as MainHud
 			h._show_variants = show_variants
 			h._phase = phase
+			h._mode = mode
 			h.refresh()
 			return h
 	var hud := MainHud.new()
 	hud.layer = 10
 	hud._show_variants = show_variants
 	hud._phase = phase
+	hud._mode = mode
 	scene.add_child(hud)
 	return hud
 
@@ -129,8 +140,14 @@ func refresh() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var vis := _vis()
+	# 프로필·재화 = 원작 `TownMainMenuLayer::setMenu` — 메인 화면과 마을이 같은 레이어를 쓴다.
 	_build_profile(vis)
 	_build_currency(vis)
+	if _mode == "town":
+		_build_close_button(vis)
+		_build_town_quest(vis)
+		return
+	_build_setting_button(vis)
 	_build_bottom_bar(vis)
 	if _show_variants:
 		_build_variant_toggles(vis)
@@ -155,17 +172,24 @@ func _build_profile(_vis_size: Vector2) -> void:
 	# 원작 후기판은 좌상단에 기울어진 리본 배경을 쓰지만(Yutakan_main.png) 그 프레임은
 	# `newCommon/ma_*` 라 우리 덤프에 없다(§10). 재화와 같은 어휘인 RoundedLayer 받침을 쓴다 —
 	# 맵 라벨 위에 겹쳐도 읽히게 하려면 받침이 필요하고, 이건 원작에도 있는 표현이다.
+	#
+	# ⚠️ **마을에서는 띠를 그리지 않는다.** 원작 `TownMainMenuLayer::setMenu` 는 프로필 프레임
+	#   (`dragon_bg1`+`cover1`+초상+레벨)까지만 그리고 칭호·닉네임은 없다 — 그 자리는 마을퀘스트
+	#   아이콘(tag 0x2c1 @ x=180 · 0x2c0 @ x=270)이 쓴다. 띠는 우리가 월드맵 메인화면용으로
+	#   덧댄 것이라, 마을에 그대로 두면 두루마리와 겹친다(2026-07-31 스크린샷 검수).
 	var ix := cx + bw * 0.5 - 14.0
 	var iy := cy - INFO.y * 0.5
-	var band := Panel.new()
-	var bsb := StyleBoxFlat.new()
-	bsb.bg_color = Color(0, 0, 0, ROUNDED_ALPHA)
-	bsb.set_corner_radius_all(int(INFO.y * 0.35))
-	band.add_theme_stylebox_override("panel", bsb)
-	band.size = INFO
-	band.position = Vector2(ix, iy)
-	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(band)
+	var show_band := _mode != "town"
+	if show_band:
+		var band := Panel.new()
+		var bsb := StyleBoxFlat.new()
+		bsb.bg_color = Color(0, 0, 0, ROUNDED_ALPHA)
+		bsb.set_corner_radius_all(int(INFO.y * 0.35))
+		band.add_theme_stylebox_override("panel", bsb)
+		band.size = INFO
+		band.position = Vector2(ix, iy)
+		band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_root.add_child(band)
 
 	var bg := _spr("common_ui", "common_dragon_bg1", _man_common, S * 1.05)
 	if bg: bg.position = Vector2(cx, cy); _root.add_child(bg)
@@ -187,7 +211,7 @@ func _build_profile(_vis_size: Vector2) -> void:
 	if cover: cover.position = Vector2(cx, cy); _root.add_child(cover)
 
 	# 칭호(원작 User::getTitle) 아트가 곧 텍스트다(title/<no>_kr.png) — 좌측 정렬로 띠 위쪽에.
-	var tno := UserDB.user_title_no()
+	var tno := UserDB.user_title_no() if show_band else 0
 	if tno > 0:
 		var tp := "res://assets/converted/%s/title_%d_kr.tres" % [
 			String(Data.titles.get("atlas_dir", "title_ui")), tno]
@@ -202,7 +226,7 @@ func _build_profile(_vis_size: Vector2) -> void:
 			_root.add_child(tr)
 
 	# 닉네임. BMFont 한글 불가 → TTF (§10).
-	var nick := UserDB.user_nickname()
+	var nick := UserDB.user_nickname() if show_band else ""
 	if nick != "":
 		_root.add_child(_label(nick, 19, Color(1, 0.96, 0.86),
 			Vector2(ix + 36.0, iy + INFO.y * 0.5), Vector2(INFO.x - 46.0, 24.0),
@@ -264,6 +288,115 @@ func _currency_row(icon_x: float, y: float, icon_key: String, charge_key: String
 	var cw := float(_man_common.get(charge_key, {}).get("w", 30)) * S * 1.05
 	var hit := _hit(Rect2(cx - cw * 0.5, y - cw * 0.5, cw, cw), "다이아 상점")
 	hit.pressed.connect(func(): _act("cashshop"))
+	_root.add_child(hit)
+
+# ============================================================ 마을 전용 (mode == "town")
+## 원작 `TownMainMenuLayer::initWidget` @01a75860 (tag 700):
+##   `common/close_btn.png` @ `VisibleRect::rightTop() − (50,50)`
+##   등장 = opacity 0 · scale 0 → Delay(1.0) → Spawn(FadeIn 0.5, ScaleTo 0.5→1.1) → ScaleTo(0.1→1.0)
+##   클릭 = `onClickMenu` tag 700 → `CCDirector::popScene()` = **왔던 곳(유타칸 월드맵) 복귀**
+##   (`TownElpisScene::keyBackClicked`/`onClickClose` 도 같은 popScene)
+## ASSUMPTION: `createWithSpriteFrameName(..., 1.5)` 의 1.5 는 CCMenuItemImageEx 의 **누를 때 확대율**로
+##   읽었다 — 원작이 등장 연출 끝에서 `ScaleTo(…, 1.0)` 으로 1.0 에 수렴시키므로 그려지는 크기는 1.0 이다.
+func _build_close_button(vis: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var c := Vector2(vis.x - 50.0, 50.0)
+	var btn := _spr("common_ui", "common_close_btn", _man_common, S)
+	if btn != null:
+		btn.position = c
+		btn.modulate.a = 0.0
+		btn.scale = Vector2.ZERO
+		_root.add_child(btn)
+		var tw := btn.create_tween()
+		tw.tween_interval(1.0)
+		tw.tween_property(btn, "modulate:a", 1.0, 0.5)
+		tw.parallel().tween_property(btn, "scale", Vector2(S, S) * 1.1, 0.5)
+		tw.tween_property(btn, "scale", Vector2(S, S), 0.1)
+	var w := float(_man_common.get("common_close_btn", {}).get("w", 44)) * S
+	var h := float(_man_common.get("common_close_btn", {}).get("h", 44)) * S
+	var hit := _hit(Rect2(c.x - w * 0.5, c.y - h * 0.5, w, h), "월드맵으로")
+	hit.pressed.connect(func(): town_close.emit())
+	_root.add_child(hit)
+
+## 원작 `TownMainMenuLayer::setInfoTownQuestTotal` @01a76c00 (tag 0x2c1):
+##   `scene/town/elpis/icon_townquest_scroll.png` scale 1.1 @ `(180, top − 29 − h/2)`
+##   + 진행도 라벨(font_subtitle, scale 0.7) @ 아이템 내부 `(w − 7, 7)`
+##   클릭 → `TownWorldPopUp(true)` = 마을 퀘스트 진행/보상 창.
+## 원작 분모는 **6 고정**이고 분자는 `TownManager::getElpisDic()["c_state"]` 배열의 `==1` 개수인데,
+## 그 딕셔너리는 서버 테이블이라 유실됐다 → 우리 로컬 일일퀘스트 개수를 부모 씬에서 받는다.
+##
+## ⚪ 미구현 — 원작에는 tag 0x2c0 (진행 중 NPC 퀘스트 아이콘 @ x=270) 이 하나 더 있다.
+##   아이콘 경로가 `QuestData::getNpcQuestImagePath()` = **서버 퀘스트 레코드**라 무엇을 그렸는지
+##   알 수 없다(`docs/ref/porting/TownMainMenuLayer.md` §4). 미수령 알림은 0x2c0 이 달던
+##   `common/alert` 를 이 두루마리에 얹어 대신한다.
+func _build_town_quest(_vis_size: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var man := _manifest("town_elpis")
+	var key := "scene_town_elpis_icon_townquest_scroll"
+	var sc := S * 1.1
+	var w := float(man.get(key, {}).get("w", 60)) * sc
+	var h := float(man.get(key, {}).get("h", 60)) * sc
+	var c := Vector2(180.0, 29.0 + h * 0.5)
+	var icon := _spr("town_elpis", key, man, sc)
+	if icon != null:
+		icon.position = c
+		_root.add_child(icon)
+
+	# 진행도 — 원작 `"%d/6"`. 분모는 부모 씬(마을)이 준다.
+	var done := 0
+	var total := 0
+	var host := get_parent()
+	if host != null and host.has_method("town_quest_progress"):
+		var p: Vector2i = host.call("town_quest_progress")
+		done = p.x
+		total = p.y
+	if total > 0:
+		# 원작 라벨 앵커 (1,0.5) @ 아이템 내부 (w−7, 7) — 아이템은 bottom-left 원점이므로
+		# 중심 기준으로 오른쪽 아래 모서리에서 7pt 안쪽이다.
+		_root.add_child(_label("%d/%d" % [done, total], 17, Color.WHITE,
+			Vector2(c.x - w * 0.5, c.y + h * 0.5 - 7.0 - 11.0), Vector2(w - 7.0, 22.0),
+			HORIZONTAL_ALIGNMENT_RIGHT))
+
+	# 미수령 알림 — 원작 0x2c0 이 `common/alert` 를 `size − (10,10)` 에 붙인다(같은 규약).
+	if host != null and host.has_method("town_quest_alert") and bool(host.call("town_quest_alert")):
+		var al := _spr("common_ui", "common_alert", _man_common, S * 0.55)
+		if al != null:
+			al.position = Vector2(c.x + w * 0.5 - 10.0, c.y - h * 0.5 + 10.0)
+			al.z_index = 5
+			_root.add_child(al)
+			var pt := al.create_tween().set_loops()
+			pt.tween_property(al, "scale", al.scale * 1.15, 0.5).set_trans(Tween.TRANS_SINE)
+			pt.tween_property(al, "scale", al.scale, 0.5).set_trans(Tween.TRANS_SINE)
+
+	var hit := _hit(Rect2(c.x - w * 0.5, c.y - h * 0.5, w, h), "마을 퀘스트")
+	hit.pressed.connect(func(): town_quest.emit())
+	_root.add_child(hit)
+
+# ============================================================ 설정(⚙)
+## 원작 `WorldMapScene::onClickMenu` **tag 0x1ceb** → `SettingLayer::show(127.0)`
+## (`WorldMapScene.c:12545`). 원작은 설정을 하단바가 아니라 **우상단 메뉴 그룹**에 두었다 —
+## 같은 배열에 우편(0x1ce8)·소셜(0x1cea)이 들어 있다(`worldmap_ui.c:4659`).
+## 그 그룹을 그리는 후기판 프레임(`newCommon/ma_*`)은 우리 덤프에 없지만(§10) 아이콘
+## `scene/worldmap/menu_setting` 은 구판 세트에 실재한다 → 재화 행 아래 오른쪽 가장자리에 놓는다.
+## (하단 돌바는 레퍼런스 각인이 8칸으로 고정이라 칸을 더 못 만든다 — 사용자 확정 2026-07-30)
+##
+## ⚠️ 오른쪽 가장자리 세로줄은 이미 꽉 차 있다 — 재화 행 `y 24~69` · 월드맵 가이드 버튼
+##    `(vis.x−90, 70) 72×34` (`worldmap.gd:1776`) · 카데스 토글 `y≈120~200` · 밤/낮 `y≈226~266`.
+##    그래서 톱니는 **가이드 버튼 왼쪽**(x = vis.x−144)에 놓고 y 는 재화 행 아래로 내린다.
+##    프레임 56×61px → scale 0.7 에서 52×57pt 라 위 넷 어느 것과도 겹치지 않는다.
+const SET_BTN_POS := Vector2(-144.0, 100.0)   # x 는 오른쪽 가장자리 기준 오프셋
+const SET_BTN_SCALE := 0.7
+func _build_setting_button(vis: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var c := Vector2(vis.x + SET_BTN_POS.x, SET_BTN_POS.y)
+	var icon := _spr("worldmap_ui", "scene_worldmap_menu_setting", _man_wm, S * SET_BTN_SCALE)
+	if icon:
+		icon.position = c
+		_root.add_child(icon)
+	var m: Dictionary = _man_wm.get("scene_worldmap_menu_setting", {})
+	var sz := Vector2(float(m.get("w", 56)), float(m.get("h", 61))) * S * SET_BTN_SCALE
+	var hit := _hit(Rect2(c - sz * 0.5, sz), "설정")
+	hit.pressed.connect(func(): _act("setting"))
 	_root.add_child(hit)
 
 # ============================================================ 하단 메뉴바
@@ -419,9 +552,18 @@ func _act(action: String) -> void:
 			ml.changed.connect(refresh)
 		"dex", "bag", "titles":
 			Scenes.goto("cave", {"open": action})
+		"setting":
+			# 원작 tag 0x1ceb `SettingLayer` — 씬 이동 없이 **메인 화면 위에 뜨는 레이어**다.
+			var host := get_parent() if get_parent() != null else self
+			var sl := SettingLayer.open(host)
+			sl.closed.connect(refresh)
 		"cashshop":
 			# 원작 ⊞ = PremiumShopScene 직행(tag 0x2be/0x2bf). 오프라인은 상점의 '환전' 탭.
-			Scenes.goto("shop", {"tab": "cash", "from": "worldmap"})
+			# 원작은 `pushScene` 이라 닫으면 부른 화면으로 돌아온다 → `from` 을 모드로 준다.
+			var p := {"tab": "cash", "from": _mode}
+			if _mode == "town":
+				p["area"] = _town_area()
+			Scenes.goto("shop", p)
 		"overview":
 			# 원작 tag 0x12 `WorldMapFullLayer` = 전체 지역 개요. 우리 월드맵의 overview 모드.
 			var sc := Scenes.current_scene()
@@ -434,6 +576,13 @@ func _act(action: String) -> void:
 # ============================================================ helpers
 func _vis() -> Vector2:
 	return get_viewport().get_visible_rect().size
+
+## 마을 모드에서 돌아올 마을(엘피스/드워프). 부모 씬(`town.gd`)이 들고 있다.
+func _town_area() -> String:
+	var host := get_parent()
+	if host != null and host.has_method("town_area_id"):
+		return String(host.call("town_area_id"))
+	return "elpis"
 
 var _bar_meta_cache: Dictionary = {}
 func _bar_meta() -> Dictionary:

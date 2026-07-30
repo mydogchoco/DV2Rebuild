@@ -80,8 +80,12 @@ const AREAS := {
 				{"frame": "scene_town_elpis_u_village_fortune", "night": "scene_town_elpis_u_village_fortune_night",
 				 "x": 2831.0, "y": 254.0, "anchor": "left", "action": "fortune", "label": "운세"},
 				{"frame": "scene_town_elpis_u_village_fortune_book", "x": 2812.0, "y": 105.0, "anchor": "left"},
-				{"frame": "scene_town_elpis_u_village_order", "x": 619.0, "y": 151.0, "anchor": "bottom",
-				 "action": "quest", "label": "의뢰"},
+				# ⚪ 의뢰 게시판 — **원작에서 클릭해도 아무 일도 일어나지 않는다.**
+				# `makeObjMenu` 가 히트영역(CCLayerColor 130×120, tag 0x11)을 깔긴 하는데
+				# `onClickMenu` 의 `param_2 == 0x11` 분기가 조기 반환한다(`goto LAB_01a83178`).
+				# 마을 퀘스트는 게시판이 아니라 **NPC + HUD 두루마리(tag 0x2c1)** 로 받는다.
+				# ⇒ 종전에 여기 달아 두었던 `action: "quest"` 는 자작이라 뗐다(2026-07-31).
+				{"frame": "scene_town_elpis_u_village_order", "x": 619.0, "y": 151.0, "anchor": "bottom"},
 				{"frame": "scene_town_elpis_u_village_order_book", "x": 608.0, "y": 165.0},
 				{"frame": "scene_town_elpis_town_flower", "x": 2784.0, "y": 189.0},
 			 ],
@@ -187,6 +191,36 @@ var _sc := 1.0                   # 픽셀 스케일(fill_h 또는 scale)
 var _dragging := false
 var _hit_areas: Array = []       # [{rect(world), action, label}] 인터랙티브 건물 히트영역
 var _clouds: Array = []          # [{node, speed, w}] 하늘 흐르는 구름(원작 showCloud)
+var _hud: MainHud                # 원작 TownMainMenuLayer (town 모드)
+
+# ---------- MainHud(town 모드)가 이 씬에 묻는 것 ----------
+## 원작은 `TownManager::getElpisDic()["c_state"]` 6칸 배열에서 완료 수를 세고 `"%d/6"` 로 찍는다.
+## 그 딕셔너리는 서버 테이블이라 유실 ⇒ 우리 로컬 일일퀘스트(`_QUESTS`)로 대신한다.
+func town_quest_progress() -> Vector2i:
+	var done := 0
+	for qd in _QUESTS:
+		if UserDB.quest_claimed(String(qd["key"])):
+			done += 1
+	return Vector2i(done, _QUESTS.size())
+
+## 원작 `common/alert` 뱃지 — 받아갈 보상이 있으면 켠다.
+func town_quest_alert() -> bool:
+	for qd in _QUESTS:
+		if UserDB.quest_count(String(qd["key"])) >= int(qd["goal"]) and not UserDB.quest_claimed(String(qd["key"])):
+			return true
+	return false
+
+## 재화 충전(원작 tag 0x2be/0x2bf → PremiumShopScene)에서 돌아올 마을.
+func town_area_id() -> String:
+	return _area_id
+
+## HUD 를 붙이거나(최초) 다시 그린다. `attach` 가 재사용/갱신을 알아서 한다.
+func _refresh_hud() -> void:
+	_hud = MainHud.attach(self, false, "", "town")
+	if not _hud.town_close.is_connected(_on_worldmap):
+		_hud.town_close.connect(_on_worldmap)
+	if not _hud.town_quest.is_connected(_open_quests):
+		_hud.town_quest.connect(_open_quests)
 
 ## 씬 매니저 진입점. params.area, params.night(디버그 override).
 func enter(params: Dictionary = {}) -> void:
@@ -937,6 +971,9 @@ func _on_object(action: String) -> void:
 		return
 	match action:
 		"cave":
+			# 원작 tag 0x208 둥지 표지판 → `CaveScene::scene(0)` + `pushScene`
+			# (`onClickMenu` 의 람다 vtable 02958f40 → 0x19894f0 을 .so 에서 풀어 확인.
+			#  근거·재현법 = `docs/ref/porting/TownMainMenuLayer.md` §0).
 			Scenes.goto("cave")
 		"worldmap":
 			_on_worldmap()
@@ -949,10 +986,6 @@ func _on_object(action: String) -> void:
 		"fortune":
 			# 점술집(유리아) = 원작 MagicShopScene(문자열 <TitleMagicShop>점술집).
 			Scenes.goto("magicshop", {"area": _area_id})
-		"quest":
-			# 의뢰 게시판(u_village_order, 원작 메뉴 tag 0x10/0x11) → 마을 일일 퀘스트.
-			# HUD '퀘스트' 버튼과 같은 팝업을 연다.
-			_open_quests()
 		"daynight":
 			# 엘피스 시계탑 — 유타칸 대륙의 밤/낮을 바꾼다(원작 확인창 → onClickChangeDayAndNight).
 			_open_daynight_confirm()
@@ -1144,41 +1177,17 @@ func _build_hud(area: Dictionary) -> void:
 	var hud := CanvasLayer.new()
 	hud.layer = 10
 	add_child(hud)
-	var back := Button.new()
-	back.text = "← 둥지"
-	back.position = Vector2(20, 18)
-	back.pressed.connect(func(): Scenes.goto("cave"))
-	hud.add_child(back)
-	# 상단 재화 메뉴바(원작 TownMainMenuLayer: 재화 + 드래곤수. 공용 common 아틀라스 부재→텍스트+RoundedLayer 스타일).
-	_build_menu_bar(hud)
-	var wm := Button.new()
-	wm.text = "월드맵"
-	wm.position = Vector2(_vis().x - 120.0, 18.0)
-	wm.pressed.connect(_on_worldmap)
-	hud.add_child(wm)
-	# 마을 퀘스트(원작 TownQuestLayer): 일일 과제 진행/보상.
-	var q := Button.new()
-	q.text = "퀘스트"; q.position = Vector2(112, 18.0)
-	q.pressed.connect(_open_quests)
-	hud.add_child(q)
-	# 미수령 퀘스트가 있으면 원작 알림 뱃지 `common/alert` 를 버튼 우상단에 얹는다.
-	# 근거: `audit_scene.py TownMainMenuLayer` 리터럴 프레임에 `common/alert.png` 포함
-	#       (`asset_index.py --grep "common/alert"` → 🟠 미사용이었다).
-	var claimable := false
-	for qd in _QUESTS:
-		if UserDB.quest_count(String(qd["key"])) >= int(qd["goal"]) 				and not UserDB.quest_claimed(String(qd["key"])):
-			claimable = true
-			break
-	if claimable:
-		var al := _atlas_sprite("common_ui", "common_alert", _load_manifest("common_ui"),
-			0.55 * Design.ASSET_SCALE)
-		if al:
-			al.position = Vector2(112.0 + 74.0, 20.0)
-			al.z_index = 5
-			hud.add_child(al)
-			var pt := al.create_tween().set_loops()
-			pt.tween_property(al, "scale", al.scale * 1.15, 0.5).set_trans(Tween.TRANS_SINE)
-			pt.tween_property(al, "scale", al.scale, 0.5).set_trans(Tween.TRANS_SINE)
+	# 원작 마을 HUD = `TownMainMenuLayer`(`TownElpisScene::initWidget:510` 이 `setMenu` 호출).
+	# 구성은 **프로필(0x2bd→StatusLayer) · 재화+충전(0x2bf/0x2be) · 닫기(700→popScene) ·
+	# 마을퀘스트(0x2c0/0x2c1→TownWorldPopUp)** 넷뿐이고, 그중 프로필·재화는 `main_hud.gd` 가
+	# 이미 같은 클래스에서 1:1 이식해 두었다 ⇒ `MainHud` 를 **town 모드**로 재사용한다.
+	# 상세 = `docs/ref/porting/TownMainMenuLayer.md`.
+	#
+	# 🔴 종전의 자작 3버튼(`← 둥지`·`월드맵`·`퀘스트`)과 `_build_menu_bar` 는 폐기했다(2026-07-31):
+	#   · `← 둥지` = 원작 HUD 에 없다. 마을→동굴은 **둥지 표지판(tag 0x208)** 이 담당하고 우리도 있다.
+	#   · `월드맵` = 경로는 원작에 있으나 형태가 우상단 `common/close_btn`(tag 700) 이다.
+	#   · `퀘스트` = 원작은 `icon_townquest_scroll`(tag 0x2c1) 아이콘 + 진행도 라벨이다.
+	_refresh_hud()
 	# 🔴 종전의 자작 HUD "밤/낮" 버튼은 폐기했다(2026-07-29) — 원작에 그런 버튼은 없고,
 	#    밤/낮 전환은 **엘피스 시계탑을 누르는 것**이다(원작 문자열 `NightTutorial_talk5`
 	#    "저기 보이는 시계탑을 눌러봐!"). `objects` 의 `town_clockboard` 히트영역이 대신한다.
@@ -1226,57 +1235,6 @@ func _show_tip() -> void:
 	_tip_label.text = _TIPS[_tip_idx]
 	_tip_label.modulate.a = 0.0
 	_tip_label.create_tween().tween_property(_tip_label, "modulate:a", 1.0, 0.4)
-
-## 상단 재화 표시 — 원작 TownMainMenuLayer.
-## 🟠 2026-07-26 정정: 화면 **중앙**에 자작 StyleBoxFlat 라운드 패널을 깔고 그 위에 얹고 있었다.
-##   원작에는 그런 패널이 없다 —
-##     · `audit_scene.py TownMainMenuLayer` 리터럴 프레임 = `common/alert`, `common/coin_big`,
-##       `common/diamond_big`, `common/dragon_cover1` **4개뿐**(패널 프레임 없음)
-##     · `docs/ref/orig_code/decomp/TownMainMenuLayer.c:106` `VisibleRect::rightTop`,
-##       :1192 `common/diamond_big` / :1256 `common/coin_big` 를 화면 **우상단**에 앵커(1,0.5)로 배치
-##       (:1198 `CCPoint(w - 130, ...)`, :1265 `CCPoint(w - fw - 50, ...)`)
-##   → 패널을 없애고 아이콘+수치를 우상단에 오른쪽 정렬로 둔다. 드래곤 수는 좌상단
-##     `dragon_cover1`(:1117, VisibleRect::leftTop) 자리로 옮긴다.
-func _build_menu_bar(hud: CanvasLayer) -> void:
-	var vis := _vis()
-	var cm := _load_manifest("common_ui")
-	var S := Design.ASSET_SCALE
-	# ── 우상단: 다이아 → 골드 순으로 위아래 배치(원작 앵커 (1,0.5), 오른쪽 정렬)
-	var rows := [
-		{"icon": "common_diamond_big", "text": str(UserDB.diamond()), "y": 88.0},
-		{"icon": "common_coin_big", "text": str(UserDB.gold()), "y": 132.0},
-	]
-	for r in rows:
-		var ic := _atlas_sprite("common_ui", String(r["icon"]), cm, 0.6 * S)
-		if ic:
-			ic.position = Vector2(vis.x - 210.0, float(r["y"]))
-			hud.add_child(ic)
-		var l := Label.new()
-		l.text = String(r["text"])
-		l.add_theme_font_size_override("font_size", 20)
-		l.add_theme_color_override("font_color", Color(1, 0.96, 0.82))
-		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		l.add_theme_constant_override("outline_size", 4)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.size = Vector2(150, 34)
-		l.position = Vector2(vis.x - 186.0, float(r["y"]) - 17.0)
-		hud.add_child(l)
-	# ── 좌상단: 원작 `common/dragon_cover1` 프레임 + 보유 드래곤 수(TownMainMenuLayer.c:1105-1117)
-	var cover := _atlas_sprite("common_ui", "common_dragon_cover1", cm, 0.55 * S)
-	if cover:
-		cover.position = Vector2(56.0, 116.0)
-		hud.add_child(cover)
-	var dl := Label.new()
-	dl.text = str((UserDB.dragons() as Array).size())
-	dl.add_theme_font_size_override("font_size", 20)
-	dl.add_theme_color_override("font_color", Color(1, 0.96, 0.82))
-	dl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	dl.add_theme_constant_override("outline_size", 4)
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	dl.size = Vector2(64, 30); dl.position = Vector2(24.0, 140.0)
-	hud.add_child(dl)
 
 ## 마을 일일 퀘스트(원작 TownQuestLayer): 전투 승리/부화 진행도 + 보상. 카운터=UserDB 일일리셋.
 const _QUESTS := [
@@ -1336,7 +1294,8 @@ func _open_quests() -> void:
 		cb.text = "수령 완료" if claimed else ("보상 받기" if done else "진행 중")
 		cb.disabled = claimed or not done
 		var qk: String = qd["key"]; var qg: int = int(qd["gold"])
-		cb.pressed.connect(func(): UserDB.claim_quest(qk); UserDB.add_currency("gold", qg); overlay.queue_free(); _refresh_quest_marks(); _open_town_reward(qg))
+		# 보상 수령 → NPC 퀘스트 마크 + HUD(진행도 `%d/%d`·알림 뱃지·골드)를 함께 갱신.
+		cb.pressed.connect(func(): UserDB.claim_quest(qk); UserDB.add_currency("gold", qg); overlay.queue_free(); _refresh_quest_marks(); _refresh_hud(); _open_town_reward(qg))
 		win.add_child(cb)
 	# 지역 진행도(원작 TownWorldPopUp) 진입.
 	var prog := Button.new(); prog.text = "지역 진행도"; prog.size = Vector2(140, 40)
