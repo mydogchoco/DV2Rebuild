@@ -340,10 +340,22 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
         end = blocks[bi + 1] if bi + 1 < len(blocks) else len(flat)
         seg = flat[start:end]
         cases = list(re.finditer(r"case (0x[0-9a-f]+|\d+):", seg))
+        # ⚠️ `case 5: case 9: case 6:` 처럼 **연속된 라벨은 본문을 공유**한다(원작에서 그 스텝들이
+        #    같은 코드로 간다 — 실측: Scenario8::setNext 의 case 라벨 119개가 서로 다른 주소 63개).
+        #    라벨마다 잘라 버리면 앞쪽 라벨이 빈 본문을 갖게 돼 내레이션 스텝을 놓친다.
         steps: list[tuple[int, str]] = []
-        for ci, cm in enumerate(cases):
-            cend = cases[ci + 1].start() if ci + 1 < len(cases) else len(seg)
-            steps.append((int(cm.group(1), 0), seg[cm.end():cend]))
+        ci = 0
+        while ci < len(cases):
+            run = [ci]
+            while (run[-1] + 1 < len(cases)
+                   and seg[cases[run[-1]].end(): cases[run[-1] + 1].start()].strip() == ""):
+                run.append(run[-1] + 1)
+            last = run[-1]
+            cend = cases[last + 1].start() if last + 1 < len(cases) else len(seg)
+            body_txt = seg[cases[last].end():cend]
+            for k in run:
+                steps.append((int(cases[k].group(1), 0), body_txt))
+            ci = last + 1
         steps.sort(key=lambda t: t[0])
         # 라벨 블록(공유 꼬리) — case 본문이 `goto LAB_x` 로 여기 합류해 값을 대입한다.
         labels: dict[str, str] = {}
@@ -351,6 +363,9 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
             nxt = re.search(r"(?:LAB_\w+:|case (?:0x[0-9a-f]+|\d+):|default:)", seg[lm.end():])
             labels[lm.group(1)] = seg[lm.end(): lm.end() + (nxt.start() if nxt else 400)]
         flow: list[dict] = []
+        # 대부분의 스텝은 화자를 새로 지정하지 않고 **직전 화자가 이어 말한다**
+        # (공유 본문으로 가는 case 가 그렇다). 그래서 값은 스텝 간 유지한다.
+        carry: dict[str, int | None] = {k: None for k in names}
         for _n, chunk in steps:
             # 실행 경로를 펼친다: 본문 + 따라가는 goto 라벨 블록(최대 4단)
             path, seen_lbl = chunk, set()
@@ -369,7 +384,10 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
                     env[dst] = int(srcv, 0)
                 elif srcv in env:
                     env[dst] = env[srcv]
-            cur = {k: env.get(v) for k, v in names.items()}
+            for k, v in names.items():
+                if env.get(v) is not None:
+                    carry[k] = env[v]
+            cur = dict(carry)
             for op, args in (("changeBackGround", ("bg",)), ("drawIllust", ("illust", "kind"))):
                 for om in re.finditer(r"ScenarioSupport::" + op + r"\s*\(([^;]*?)\)", chunk):
                     rec: dict = {"op": op}
@@ -446,7 +464,12 @@ def main():
     scenarios = scen.get("scenarios", {})
     flows: dict[str, list[dict]] = {}
     variants: dict[str, dict[str, list[dict]]] = {}
-    # switch 형(Scenario1~8) — 기본 **사용 안 함**(--switch 로만 켠다). 이유는 아래 주석.
+    # switch 형(Scenario1~8) — 점프 테이블에서 뽑은 산출이 있으면 그걸 쓴다.
+    # (디컴프 C 로 짜맞추는 아래 `--switch` 경로는 신뢰 불가로 판정됐다. 아래 주석 참조.)
+    sw_json = REPO / "data" / "scenario_flow_switch.json"
+    if sw_json.exists():
+        sw = json.loads(sw_json.read_text(encoding="utf-8")).get("flows", {})
+        flows.update(accept_if_exact(sw, scenarios))
     if "--switch" in argv:
         for c in [f"Scenario{i}" for i in range(1, 9)]:
             sw = parse_switch_class(c)

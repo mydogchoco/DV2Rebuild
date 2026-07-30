@@ -17,7 +17,8 @@ extends SceneTree
 ## 실행: godot --headless --path . --script res://scripts/tools/test_scenario_flow.gd --quit-after 3
 
 ## 회차 → 원작 대사 줄 수와 일치해야 하는가(분기 회차는 false).
-const EXACT := {82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
+const EXACT := {79: true, 80: true, 81: true,
+	82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
 	89: true, 90: true, 91: true, 94: true, 96: true, 97: true, 99: true, 100: true}
 
 func _init() -> void:
