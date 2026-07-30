@@ -21,9 +21,19 @@ extends Control
 ##   단 `scenario/main_story/bg/` 는 6장뿐이라(디컴프가 부르는 `bidel.jpg` 조차 없음)
 ##   장면 배경 세트는 우리 덤프에 일부만 있다(CLAUDE.md §10 판본 불일치 표 참조).
 ##
-## ⇒ 그래서 이 화면은 **텍스트 + 삽화 + NPC 초상**까지 원작 레이아웃으로 재생하고,
-##   화자/배경/표정은 `data/scenario_cast.json`(사용자 기입, 없으면 생략)에서만 읽는다.
-##   지어내지 않는다(HARD RULE 6).
+## 🔴 **2026-07-31 정정 — 위 "흐름 전량 유실"은 오진이었다.**
+##   `ScenarioManager::makeScenarioLayer(sn)`(ScenarioManager.c @014ddce4)이 회차를 클래스로 가른다:
+##       sn<10 `Scenario1` · <20 `2` · <30 `3` · <40 `4` · <50 `5` · <59 `6` · <79 `7` · 79~81 `8`
+##       · 82~86 `Scenario_zimon` · 87~91 `_mamorudic` · 92~101 `_Kadeath` · **102+ `ScenarioCommon`**
+##   이 중 `ScenarioCommon` **하나만** `ScenarioManager::getScriptArr`(=서버 script)를 읽는다.
+##   나머지는 `initScenarioData` 가 `vector<std::function<void()>>` 로 연출을 **하드코딩**하고,
+##   각 스텝이 `ScenarioSupport::setNpcTalk(NPC_NAME, Character_State, Character_Pos, TalkEmoticon, …)`
+##   · `changeBackGround(BackGruundName)` · `drawIllust` 를 리터럴 인자로 부른다.
+##   ⇒ **1~101화의 화자·표정·위치·배경·삽화·BGM 은 살아 있다.** 진짜 유실은 102화 이상뿐.
+##   추출 = `scripts/tools/extract_scenario_flow.py` → `parse_scenario_flow.py` → `data/scenario_flow.json`.
+##
+## ⇒ 그래서 이 화면은 흐름이 있는 회차면 **원작 스텝을 그대로 재생**하고(`_play_flow`),
+##   없는 회차(102+)만 종전처럼 텍스트 + 삽화로 넘긴다. 지어내지 않는다(HARD RULE 6).
 ##
 ## ── 원작 레이아웃 (ScenarioTextBox.c:258-352, ScenarioLayer.c) ─────────────────
 ##   · `9patch/dialogue_box.png` Scale9, 앵커(0.5, 0.0) 하단, contentSize(**visW-20, 150**)
@@ -53,6 +63,12 @@ var _no := 0
 var _part := 0
 var _pma: CanvasItemMaterial
 
+## 원작 연출 스텝(`data/scenario_flow.json`). 비어 있으면 102화 이상이거나 미추출 회차다.
+var _flow: Array = []
+var _flow_i := 0
+var _bg_layer: TextureRect       # changeBackGround 가 갈아 끼우는 장면 배경
+var _illust: TextureRect         # drawIllust 가 띄우는 삽화(원작은 배경 위 별도 레이어)
+
 var _label: Label
 var _name_label: Label
 var _arrow: Sprite2D
@@ -78,13 +94,22 @@ func _rebuild() -> void:
 	_idx = 0
 	var sc: Dictionary = Data.scenario_def(str(_no))
 	var parts: Array = sc.get("parts", [])
+	_flow = Data.scenario_flow_of(_no)
+	_flow_i = 0
 	_lines = []
-	if _part >= 0 and _part < parts.size():
-		_lines = (parts[_part] as Dictionary).get("lines", [])
+	if _flow.is_empty():
+		if _part >= 0 and _part < parts.size():
+			_lines = (parts[_part] as Dictionary).get("lines", [])
+	else:
+		# 원작 스텝은 회차의 파트를 순서대로 관통한다(검증: 82화 = 파트0 2줄 → setSubQuest → 파트1 30줄).
+		for p in parts:
+			_lines.append_array((p as Dictionary).get("lines", []))
 	_build_backdrop(sc)
 	_build_textbox()
 	_build_skip()
-	if _lines.is_empty():
+	if not _flow.is_empty():
+		_play_flow()
+	elif _lines.is_empty():
 		_show_line_text("(이 시나리오의 대사가 없습니다 — data/scenario.json 확인)")
 	else:
 		_show_line(0)
@@ -98,6 +123,10 @@ func _build_backdrop(sc: Dictionary) -> void:
 	back.set_anchors_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(back)
+	# 흐름이 있는 회차는 배경·삽화를 **원작 스텝이** 통제한다(changeBackGround/drawIllust).
+	# 여기서 삽화를 배경으로 깔면 그 위를 덮어 버린다.
+	if not _flow.is_empty():
+		return
 	var illust: Array = sc.get("illust", [])
 	if illust.is_empty():
 		return
@@ -191,6 +220,109 @@ func _build_skip() -> void:
 	b.pressed.connect(_finish)
 	lay.add_child(b)
 
+# ── 원작 연출 스텝 재생 ────────────────────────────────────────────────────────
+## `data/scenario_flow.json` 의 스텝을 **대사 하나가 나올 때까지** 소비한다.
+## 원작도 같은 구조다 — `std::function` 벡터를 앞에서부터 실행하고 대사 스텝에서 입력을 기다린다.
+func _play_flow() -> void:
+	while _flow_i < _flow.size():
+		var o: Dictionary = _flow[_flow_i]
+		_flow_i += 1
+		match String(o.get("op", "")):
+			"setNpcTalk":
+				var folder := Data.scenario_npc_folder(int(o.get("npc", 0)))
+				_name_label.text = Data.npc_name(folder) if folder != "" else ""
+				if folder != "":
+					_show_npc(folder)
+				_next_line()
+				return
+			"setUserTalk":
+				# 주인공(=플레이어) 대사·지문. 원작도 이때 NPC 초상을 띄우지 않는다.
+				_name_label.text = ""
+				_next_line()
+				return
+			"changeBackGround", "changeBackGroundPass":
+				_apply_bg(int(o.get("bg", 0)))
+			"drawIllust":
+				_apply_illust(int(o.get("illust", _no)), int(o.get("kind", 1)))
+			"removeIllust":
+				if is_instance_valid(_illust):
+					_illust.visible = false
+			"setOutTalker":
+				_hide_npc()
+			_:
+				pass          # 아직 이식 안 한 연출(전투·미니게임·파티클)은 건너뛴다
+	_finish()
+
+## 다음 대사 한 줄. 흐름이 대사보다 길면(분기 회차) 조용히 끝낸다 — 지어내지 않는다.
+func _next_line() -> void:
+	if _idx >= _lines.size():
+		_show_line_text("")
+		return
+	_show_line_text(String((_lines[_idx] as Dictionary).get("text", "")))
+	_idx += 1
+
+## 배경 = 원작 `changeBackGround` 의 BackGruundName. 경로는 `data/scenario_flow.json`
+## `backgrounds` 에 원작 그대로 들어 있고, 여기서 우리 변환본으로 옮긴다.
+func _apply_bg(bg_no: int) -> void:
+	var paths: Array = Data.scenario_bg_paths(bg_no)
+	if paths.is_empty():
+		return
+	var res := _bg_res(String(paths[0]))
+	if res == "":
+		return
+	if not is_instance_valid(_bg_layer):
+		_bg_layer = TextureRect.new()
+		_bg_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_bg_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_bg_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_bg_layer)
+		move_child(_bg_layer, 1)          # 검은 막 바로 위
+	_bg_layer.texture = load(res)
+	_bg_layer.visible = true
+
+## 원작 경로 → 우리 변환본. 시나리오 전용 배경 6장만 `scenario/bg/` 에 있고
+## 나머지는 **탐험 배경 재사용**이라 `adventure_bg/bg_<필드>.jpg` 로 간다(§10 정정).
+func _bg_res(orig: String) -> String:
+	var cands: Array[String] = []
+	var m := RegEx.create_from_string(r"scene/adventure/bg/(\d+)/")
+	var r := m.search(orig)
+	if r:
+		cands.append("res://assets/converted/adventure_bg/bg_%s.jpg" % r.get_string(1))
+	elif orig.begins_with("scenario/main_story/bg/"):
+		cands.append("%s/bg/%s" % [ART_DIR, orig.get_file()])
+	elif orig.begins_with("scene/magicshop/"):
+		cands.append("res://assets/converted/magicshop_bg/%s" % orig.get_file())
+	for c in cands:
+		if ResourceLoader.exists(c):
+			return c
+	return ""
+
+## 삽화 — 원작 `drawIllust(no, kind, bool)`. 파일명은 `sn_<회차>_<n>_illust.jpg`.
+func _apply_illust(no: int, kind: int) -> void:
+	var sc: Dictionary = Data.scenario_def(str(no))
+	var arr: Array = sc.get("illust", [])
+	if arr.is_empty():
+		return
+	var pick := String(arr[clampi(kind - 1, 0, arr.size() - 1)])
+	var p := "%s/%s" % [ART_DIR, pick]
+	if not ResourceLoader.exists(p):
+		return
+	if not is_instance_valid(_illust):
+		_illust = TextureRect.new()
+		_illust.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_illust.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_illust.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_illust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_illust)
+	_illust.texture = load(p)
+	_illust.visible = true
+
+func _hide_npc() -> void:
+	if is_instance_valid(_npc_node):
+		_npc_node.queue_free()
+		_npc_node = null
+
 func _show_line(i: int) -> void:
 	_idx = i
 	var e: Dictionary = _lines[i]
@@ -231,6 +363,9 @@ func _reveal_all() -> void:
 func _advance() -> void:
 	if _typing:
 		_reveal_all()
+		return
+	if not _flow.is_empty():
+		_play_flow()
 		return
 	if _lines.is_empty() or _idx + 1 >= _lines.size():
 		_finish()

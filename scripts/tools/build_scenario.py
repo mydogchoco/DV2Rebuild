@@ -113,6 +113,18 @@ def main() -> None:
                             shutil.copyfile(f, dst)
                         cuts.setdefault(int(m.group(1)), []).append(name)
 
+    # 장면 배경 6장(주/야 × townsquare·bighouse·townfarm). 원작 `ScenarioSupport::changeBackGround`
+    # 의 BackGruundName 1~6 이 이걸 가리킨다 — 나머지 번호는 탐험 배경 재사용이라
+    # `assets/converted/adventure_bg/` 로 이미 변환돼 있다(story.gd `_bg_res` 가 해석).
+    bg_dir = SN_DIR / "bg"
+    if bg_dir.exists():
+        out = ART_OUT / "bg"
+        out.mkdir(parents=True, exist_ok=True)
+        for f in sorted(bg_dir.glob("*.jpg")):
+            dst = out / f.name
+            if not dst.exists():
+                shutil.copyfile(f, dst)
+
     scenarios: dict[str, dict] = {}
     for (sno, mno, gender), lines in sorted(buckets.items(),
                                            key=lambda kv: (kv[0][0], kv[0][1] or 0, kv[0][2])):

@@ -1,0 +1,470 @@
+"""시나리오 연출 스텝 덤프 → `data/scenario_flow.json`.
+
+`extract_scenario_flow.py` 가 뜬 람다 덤프(`docs/ref/orig_code/decomp/lambda/<Class>.c`)를
+읽어 **회차별 연출 스텝 목록**으로 굽는다. 원작 구조 그대로다:
+
+    회차(sn) → [ {op, args}, … ]      # op = setNpcTalk / changeBackGround / drawIllust …
+
+## 어떻게 회차에 붙이나
+
+`<Class>::initScenarioData` 는 `switch(sn)` 안에서 회차별로 `std::function` 을 순서대로
+push 한다(디컴프에 `&PTR_FUN_xxxx` 나열로 보인다). 람다는 소스 순서대로 `$_0`, `$_1` … 로
+이름이 붙으므로(itanium ABI), **case 별 개수로 인덱스를 잘라** 회차에 배분한다:
+
+    case 82 → $_0..$_39 · case 83 → $_40..$_54 · …
+
+각 `$_N` 태그는 libc++ `__func::target()` 안의 타입명 문자열
+(`ZN7cocos2d14Scenario_zimon16initScenarioDataEvE3$_4`)로 식별하고, **그 바로 앞의
+호출 본문 함수**가 그 스텝의 실체다(같은 `__func` 특수화가 인접 배치된다).
+
+## 인자 복원
+
+원작은 열거형을 **포인터로** 넘긴다 —
+`setNpcTalk(this, (NPC_NAME*)&local_44, (Character_State*)&local_48, …)`.
+그래서 호출 직전까지의 `local_XX = <상수>;` 대입을 추적해 값을 되살린다.
+문자열(BGM 경로)은 바이트 단위 대입(`local_40[3] = 0x73;`)으로 조립되므로 그대로 재조립한다.
+
+사용:
+    python scripts/tools/parse_scenario_flow.py                 # lambda/ 에 있는 것 전부
+    python scripts/tools/parse_scenario_flow.py --classes Scenario_zimon --report
+"""
+from __future__ import annotations
+import json, re, sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+DECOMP = REPO / "docs" / "ref" / "orig_code" / "decomp"
+LAMBDA = DECOMP / "lambda"
+OUT = REPO / "data" / "scenario_flow.json"
+
+## 원작 `ScenarioSupport::getNPCname` 의 NPC_NAME 열거형(회차 클래스가 넘기는 값) →
+## `DV2/480/npc/<이름>` 아틀라스 폴더명 = 문자열 키 `<NPC_이름>` 의 접미사.
+NPC_SRC = DECOMP / "ScenarioSupport.c"
+
+## 스텝으로 인정할 호출. 값은 인자 이름표(this 제외, 원작 시그니처 순서).
+##   근거 = 각 클래스 디컴프의 `/* cocos2d::…::fn(…) */` 원형 주석.
+OPS: dict[str, list[str]] = {
+    # ScenarioSupport
+    "setNpcTalk": ["npc", "state", "pos", "emoticon",
+                   "b1", "b2", "b3", "b4", "b5", "b6", "b7"],
+    "setUserTalk": ["b1"],
+    "changeBackGround": ["bg", "pass_"],
+    "changeBackGroundPass": ["bg"],
+    "drawIllust": ["illust", "kind", "b1"],
+    "removeIllust": [],
+    "showMonster": ["monsters", "delay", "b1"],
+    "deleteMonster": [],
+    "walkAction": ["field"],
+    "delayWalkAction": ["field", "delay"],
+    "scenarioBlackLayer": [],
+    "deleteColorLayer": [],
+    "showColorLayer": [],
+    "playBackGroundFieldMusic": ["field"],
+    "initScenarioTalk": [],
+    "setSubQuest": [],
+    "miniGameText": ["b1", "n"],
+    "passMiniGame": [],
+    "miniGameSucEndAct": [],
+    "scenarioBattle": [],
+    "setChaosFearStart": [],
+    "actionSmoke": [],
+    "shakeAction": [],
+    "shineAction": [],
+    "removeNPCAction": [],
+    "setNPCAction": [],
+    "showScenarioItem": [],
+    "removeScenarioItem": [],
+    "goOutWorldMap": [],
+    "setPassEndingPopup": [],
+    "sound_CryMonster": [],
+    # ScenarioLayer
+    "setOutTalker": ["talker", "n", "b1"],
+    "setTitleScenario": ["title", "b1"],
+    "setHidePassButton": [],
+    "close": [],
+}
+LAYER_OPS = {"setOutTalker", "setTitleScenario", "setHidePassButton", "close"}
+
+## ⚠️ 회차로 등록하지 않는 클래스.
+## `Scenario_raon` 의 `initScenarioData` 는 case 62~66 을 갖지만, **디스패처
+## `makeScenarioLayer` 는 59~78 을 `Scenario7` 로 보낸다.** 게다가 뽑힌 대사 스텝 수가
+## 원작 대사 줄 수와 크게 어긋난다(62화 50 vs 28 · 66화 8 vs 48) ⇒ 그 회차의 본편이 아니라
+## **라온 전용 분기/서브 시퀀스**로 보인다. 근거가 설 때까지 `variants` 에만 보관하고
+## 재생에는 쓰지 않는다(잘못 붙이면 대사가 빈 채로 넘어간다).
+VARIANT_CLASSES = {"Scenario_raon"}
+
+
+def npc_table() -> dict[int, str]:
+    """`getNPCname` 의 case → 폴더명."""
+    src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
+    ms = list(re.finditer(r"/\* ==== getNPCname @ [0-9a-f]+ \(size=(\d+)\)", src))
+    if not ms:
+        return {}
+    m = max(ms, key=lambda x: int(x.group(1)))
+    seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    out = {}
+    for k, v in re.findall(r'case (0x[0-9a-f]+|\d+):.*?append\s*\(\s*in_x8,"([a-z_0-9]+)"', seg, re.S):
+        out[int(k, 0)] = v
+    return out
+
+
+def bg_table() -> dict[int, list[str]]:
+    """`changeBackGround` 의 BackGruundName → 경로들(배경 + 전경 아이템)."""
+    src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
+    ms = list(re.finditer(r"/\* ==== changeBackGround @ [0-9a-f]+ \(size=(\d+)\)", src))
+    if not ms:
+        return {}
+    m = max(ms, key=lambda x: int(x.group(1)))
+    seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    out: dict[int, list[str]] = {}
+    cur: list[int] = []
+    for line in seg.splitlines():
+        cm = re.search(r"^\s*case (0x[0-9a-f]+|\d+):", line)
+        if cm:
+            cur.append(int(cm.group(1), 0))
+            continue
+        for p in re.findall(r'"((?:scenario|scene|addimg)/[^"]+\.(?:jpg|png))"', line):
+            for c in cur:
+                out.setdefault(c, [])
+                if p not in out[c]:
+                    out[c].append(p)
+            cur = cur[-1:] if cur else []
+    return out
+
+
+def split_blocks(text: str):
+    """람다 덤프를 (주소, 본문) 목록으로."""
+    out = []
+    for b in re.split(r"/\* ==== step ", text)[1:]:
+        m = re.match(r"(\S+) @ ([0-9a-f]+) \(size=(\d+)\)", b.split(" ==== ")[0])
+        if m:
+            out.append((int(m.group(2), 16), b))
+    out.sort()
+    return out
+
+
+NUM = r"(0x[0-9a-fA-F]+|-?\d+)"
+
+
+def parse_body(body: str) -> list[dict]:
+    """한 스텝 본문 → 호출 목록(리터럴 인자 복원)."""
+    vals: dict[str, int] = {}
+    bytes_: dict[str, dict[int, int]] = {}
+    ## 구조체 인자(`setNpcTalk(this, NpcData*)` 오버로드)의 필드 — 오프셋→값.
+    sfields: dict[str, dict[int, int]] = {}
+    ops: list[dict] = []
+    # 줄 단위로 훑되, 호출은 여러 줄에 걸치므로 먼저 개행을 정리한다
+    flat = re.sub(r"\s*\n\s*", " ", body)
+    # 대입/호출을 등장 순서대로
+    token = re.compile(
+        # `*(undefined8 *)(pNVar1 + 8) = 0x300000001;` — 구조체 필드 묶음 저장
+        r"\*\(undefined(?P<fw>8|4|2) \*\)\((?P<fvar>\w+) \+ (?P<foff>0x[0-9a-f]+|\d+)\)\s*=\s*(?P<fval>" + NUM + r");"
+        r"|\*\(undefined(?P<gw>8|4|2) \*\)(?P<gvar>\w+)\s*=\s*(?P<gval>" + NUM + r");"
+        r"|\b(?P<bvar>\w+)\[(?P<bidx>0x[0-9a-f]+|\d+)\]\s*=\s*(?P<bval>" + NUM + r");"
+        r"|\b(?P<cvar>\w+)\s*=\s*CONCAT44\(\s*(?P<chi>" + NUM + r")\s*,\s*(?P<clo>" + NUM + r")\s*\);"
+        r"|\b(?P<avar>\w+)\s*=\s*(?P<aval>" + NUM + r");"
+        r"|cocos2d::(?:ScenarioSupport|ScenarioLayer)::(?P<cname>\w+)\s*\((?P<cargs>[^;]*?)\);"
+        r"|SoundManager::playBackground\s*\((?P<sargs>[^;]*?)\);"
+    )
+    for m in token.finditer(flat):
+        if m.group("fvar") or m.group("gvar"):
+            var = m.group("fvar") or m.group("gvar")
+            off = int(m.group("foff"), 0) if m.group("fvar") else 0
+            width = int(m.group("fw") or m.group("gw"))
+            val = int(m.group("fval") if m.group("fvar") else m.group("gval"), 0)
+            f = sfields.setdefault(var, {})
+            if width == 8:      # 8바이트 저장 = 4바이트 필드 두 개
+                f[off] = val & 0xFFFFFFFF
+                f[off + 4] = (val >> 32) & 0xFFFFFFFF
+            else:
+                f[off] = val
+        elif m.group("bvar"):
+            bytes_.setdefault(m.group("bvar"), {})[int(m.group("bidx"), 0)] = int(m.group("bval"), 0)
+        elif m.group("avar"):
+            store(vals, m.group("avar"), int(m.group("aval"), 0))
+        elif m.group("cvar"):
+            # `local_48 = CONCAT44(hi, lo);` — 인접한 두 4바이트 지역변수를 한 번에 쓴 것
+            store(vals, m.group("cvar"),
+                  (int(m.group("chi"), 0) << 32) | (int(m.group("clo"), 0) & 0xFFFFFFFF))
+        elif m.group("cname"):
+            name, argstr = m.group("cname"), m.group("cargs")
+            if name not in OPS:
+                continue
+            args = [a.strip() for a in argstr.split(",")]
+            if args and ("this" in args[0] or "param_1" in args[0]):
+                args = args[1:]
+            rec: dict = {"op": name}
+            # 구조체 한 개로 넘기는 오버로드 — 필드 오프셋이 곧 인자 순서(4바이트씩)
+            solo = args[0].strip().lstrip("&") if args else ""
+            if len(args) == 1 and solo in sfields:
+                # ⚠️ 앞쪽 4바이트 필드(npc/state/pos/emoticon)만 읽는다. 뒤의 bool 들은
+                #    1바이트씩 packed 인데다 구조체가 레이어에 **상주**(this+0x398)해서
+                #    안 쓴 필드는 이전 스텝 값이 남는다 — 복원 근거가 없다.
+                for i, label in enumerate(OPS[name]):
+                    if label.startswith("b"):
+                        break
+                    v = sfields[solo].get(i * 4)
+                    if v is None:
+                        break
+                    rec[label] = v
+            else:
+                for label, raw in zip(OPS[name], args):
+                    rec[label] = resolve(raw, vals)
+            ops.append(rec)
+        elif m.group("sargs"):
+            args = m.group("sargs").split(",")
+            path = None
+            for a in args:
+                v = a.strip()
+                if v in bytes_:
+                    path = rebuild(bytes_[v])
+            if path:
+                ops.append({"op": "playBackground", "path": path})
+    return ops
+
+
+def store(vals: dict[str, int], var: str, val: int) -> None:
+    """지역변수 대입. 8바이트 저장은 **인접한 두 4바이트 변수**를 한꺼번에 쓴 것이다.
+
+    Ghidra 는 `local_48`/`uStack_44` 처럼 **프레임 오프셋**으로 이름을 짓는다(주소가 커질수록
+    숫자가 작아진다). 그래서 `local_48 = 0x100000009` 는 실제로
+    `local_48 = 9` + `local_44 = 1` 이다 — 이걸 안 갈라서 화자 번호가 42억으로 나왔었다.
+    """
+    if 0 <= val <= 0xFFFFFFFF or not re.search(r"_([0-9a-f]+)$", var):
+        vals[var] = val
+        return
+    lo, hi = val & 0xFFFFFFFF, (val >> 32) & 0xFFFFFFFF
+    vals[var] = lo
+    m = re.match(r"(.*_)([0-9a-f]+)$", var)
+    off = int(m.group(2), 16)
+    if off >= 4:
+        # 같은 프레임의 +4 위치. 이름 접두사(local_/uStack_)가 다를 수 있어 둘 다 심어 둔다.
+        for pre in {m.group(1), "local_", "uStack_"}:
+            vals[f"{pre}{off - 4:x}"] = hi
+
+
+def resolve(raw: str, vals: dict[str, int]):
+    """`(NPC_NAME *)&local_44` · `1` · `false` → 값."""
+    raw = raw.strip()
+    if raw in ("true", "false"):
+        return raw == "true"
+    m = re.search(r"&?(\w+)$", raw)
+    if m and m.group(1) in vals:
+        return vals[m.group(1)]
+    m = re.fullmatch(r"\(?" + NUM + r"\)?", raw)
+    if m:
+        return int(m.group(1), 0)
+    return None
+
+
+def rebuild(bmap: dict[int, int]) -> str | None:
+    """바이트 단위 대입으로 조립된 문자열 복원(libc++ SSO 버퍼: [0]=길이*2)."""
+    if 0 not in bmap:
+        return None
+    n = bmap[0] >> 1
+    chars = []
+    for i in range(1, n + 1):
+        c = bmap.get(i)
+        if c is None or not (0x20 <= c < 0x7F):
+            return None
+        chars.append(chr(c))
+    s = "".join(chars)
+    return s if len(s) > 3 else None
+
+
+def case_counts(cls: str) -> list[tuple[int, int]]:
+    """`initScenarioData` 의 case → 그 회차가 쓰는 스텝 수(선언 순서)."""
+    p = DECOMP / f"{cls}.c"
+    if not p.exists():
+        return []
+    src = p.read_text(encoding="utf-8", errors="replace")
+    i = src.find("==== initScenarioData")
+    if i < 0:
+        return []
+    fn = src[i: src.find("/* ==== ", i + 10)]
+    parts = re.split(r"\n\s*case (0x[0-9a-f]+|\d+):", fn)
+    out = []
+    for k in range(1, len(parts), 2):
+        out.append((int(parts[k], 0), len(re.findall(r"PTR_FUN_", parts[k + 1]))))
+    return out
+
+
+## ── switch 형 회차 클래스(`Scenario1`~`Scenario8`) ──────────────────────────────
+## 이쪽은 `initScenarioData` 가 없다. `setNext(CCObject*)` 가 **스텝 번호로 switch** 하고,
+## case 마다 공유 지역변수(npc/state/pos/emoticon)를 세팅한 뒤 **함수 꼬리에서 한 번**
+## `setNpcTalk` 을 부른다(근거: `Scenario8::setNext` @01652880 꼬리 LAB_01653898).
+## 대사만 넘기는 case 는 `setUserTalk` 로 goto 한다.
+##
+## 🔴 **기본 비활성(`--switch` 로만 켠다). 2026-07-31 검수 결과 신뢰할 수 없다.**
+##   대사 수 검증(`accept_if_exact`)은 통과해도 **화자가 어긋난다.** 실측: 81화가 수량은
+##   43/43 로 맞았지만, 내레이션("나는 피노에게 화를 풀라고 말했다")이 `romini` 로 붙었다.
+##   원인 = Ghidra 가 **본문이 같은 case 라벨을 하나로 합쳐** 출력한다
+##   (`case 5: case 9: case 6: case 7: case 8:` 처럼 번호 순서까지 뒤섞인다).
+##   그래서 스텝별 npc/state/pos 값이 소실된다. 제대로 하려면 점프 테이블을 디스어셈블
+##   수준에서 따라가야 한다 — 그 근거가 서기 전에는 붙이지 않는다(HARD RULE 6).
+##   코드는 그때를 위해 남겨 둔다.
+STEP_SWITCH = re.compile(r"switch\s*\(\s*\*\(int \*\)\(\w+ \+ 0x158\)\s*\)\s*\{")
+SN_GUARD = re.compile(r"if \(\w+ != (0x[0-9a-f]+)\)")
+
+
+def parse_switch_class(cls: str) -> dict[str, list[dict]]:
+    p = DECOMP / f"{cls}.c"
+    if not p.exists():
+        return {}
+    src = p.read_text(encoding="utf-8", errors="replace")
+    i = src.find("==== setNext @")
+    if i < 0:
+        return {}
+    body = src[i: src.find("/* ==== ", i + 10)]
+    flat = re.sub(r"\s*\n\s*", " ", body)
+    # 꼬리 호출에서 공유 변수 이름을 알아낸다
+    tail = re.search(
+        r"setNpcTalk\s*\([^;]*?\(NPC_NAME \*\)&(\w+),\s*\(Character_State \*\)&(\w+),"
+        r"\s*\(Character_Pos \*\)&(\w+),\s*\(TalkEmoticon \*\)&(\w+)", flat)
+    if not tail:
+        return {}
+    names = {"npc": tail.group(1), "state": tail.group(2),
+             "pos": tail.group(3), "emoticon": tail.group(4)}
+    # 꼬리 `setNpcTalk` 을 **건너뛰는** 라벨 = 그 호출 바로 뒤에 정의된 라벨.
+    # 이 라벨로 goto 하는 case 는 대사를 내보내지 않는다(연출만 하는 스텝).
+    skip_m = re.search(r"setNpcTalk\s*\([^;]*?\);\s*(LAB_\w+):", flat)
+    skip_label = skip_m.group(1) if skip_m else None
+    # sn 가드는 바깥부터 나오고 switch 는 안쪽부터 나온다 → 가드를 뒤집어 짝짓는다
+    guards = [int(g, 0) for g in SN_GUARD.findall(flat)]
+    blocks = [m.start() for m in STEP_SWITCH.finditer(flat)]
+    if not blocks or len(guards) < len(blocks):
+        return {}
+    sns = list(reversed(guards[:len(blocks)]))
+    out: dict[str, list[dict]] = {}
+    for bi, start in enumerate(blocks):
+        end = blocks[bi + 1] if bi + 1 < len(blocks) else len(flat)
+        seg = flat[start:end]
+        cases = list(re.finditer(r"case (0x[0-9a-f]+|\d+):", seg))
+        steps: list[tuple[int, str]] = []
+        for ci, cm in enumerate(cases):
+            cend = cases[ci + 1].start() if ci + 1 < len(cases) else len(seg)
+            steps.append((int(cm.group(1), 0), seg[cm.end():cend]))
+        steps.sort(key=lambda t: t[0])
+        flow: list[dict] = []
+        cur = {k: None for k in names}
+        for _n, chunk in steps:
+            for label, var in names.items():
+                # `local_110 = (undefined **)CONCAT44(local_110._4_4_, 3);` · `local_15c = 0;`
+                mm = None
+                for mm in re.finditer(
+                        re.escape(var) + r"\s*=\s*(?:\([^)]*\))?\s*(?:CONCAT44\([^,]*,\s*)?(" + NUM + r")",
+                        chunk):
+                    pass
+                if mm:
+                    cur[label] = int(mm.group(1), 0)
+            for op, args in (("changeBackGround", ("bg",)), ("drawIllust", ("illust", "kind"))):
+                for om in re.finditer(r"ScenarioSupport::" + op + r"\s*\(([^;]*?)\)", chunk):
+                    rec: dict = {"op": op}
+                    raw = [a.strip() for a in om.group(1).split(",")][1:]
+                    for lab, r in zip(args, raw):
+                        rec[lab] = resolve(r, {})
+                    flow.append(rec)
+            if "setOutTalker" in chunk:
+                flow.append({"op": "setOutTalker"})
+            if "setUserTalk" in chunk or "caseD_3" in chunk:
+                flow.append({"op": "setUserTalk"})
+            elif skip_label and f"goto {skip_label}" in chunk:
+                pass                      # 연출만 하고 대사는 안 넘기는 스텝
+            else:
+                flow.append({"op": "setNpcTalk", **{k: v for k, v in cur.items() if v is not None}})
+        out[str(sns[bi])] = flow
+    return out
+
+
+def accept_if_exact(flows: dict[str, list[dict]], scenarios: dict) -> dict[str, list[dict]]:
+    """대사 스텝 수가 원작 대사 줄 수와 **정확히 일치**하는 회차만 통과시킨다."""
+    ok = {}
+    for sn, ops in flows.items():
+        talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk"))
+        lines = sum(len(p.get("lines", [])) for p in scenarios.get(sn, {}).get("parts", []))
+        if lines and talk == lines:
+            ok[sn] = ops
+        else:
+            print(f"  (보류) ep{sn}: 흐름 대사 {talk} != 원작 {lines} — 채택 안 함")
+    return ok
+
+
+def parse_class(cls: str) -> dict[str, list[dict]]:
+    text = (LAMBDA / f"{cls}.c").read_text(encoding="utf-8", errors="replace")
+    blocks = split_blocks(text)
+    # $_N 태그 → 바로 앞의 호출 본문
+    # 같은 본문이 두 태그에 붙지 않도록 **한 번 쓰면 소비**한다(중복 대사의 원인이었다).
+    steps: dict[int, list[dict]] = {}
+    pending: tuple[int, list[dict]] | None = None
+    for addr, b in blocks:
+        tag = re.search(r"\$_(\d+)\"", b)
+        ops = parse_body(b)
+        if tag:
+            n = int(tag.group(1))
+            if n not in steps:
+                steps[n] = pending[1] if pending else []
+                pending = None
+        if ops:
+            pending = (addr, ops)
+    counts = case_counts(cls)
+    idx = sorted(steps)
+    out: dict[str, list[dict]] = {}
+    pos = 0
+    for sn, cnt in counts:
+        flow: list[dict] = []
+        for n in idx[pos: pos + cnt]:
+            flow.extend(steps[n])
+        out[str(sn)] = flow
+        pos += cnt
+    return out
+
+
+def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    argv = sys.argv[1:]
+    report = "--report" in argv
+    classes = []
+    if "--classes" in argv:
+        classes = argv[argv.index("--classes") + 1].split(",")
+    if not classes:
+        classes = sorted(p.stem for p in LAMBDA.glob("*.c"))
+    npcs, bgs = npc_table(), bg_table()
+    scen = json.loads((REPO / "data" / "scenario.json").read_text(encoding="utf-8"))
+    scenarios = scen.get("scenarios", {})
+    flows: dict[str, list[dict]] = {}
+    variants: dict[str, dict[str, list[dict]]] = {}
+    # switch 형(Scenario1~8) — 기본 **사용 안 함**(--switch 로만 켠다). 이유는 아래 주석.
+    if "--switch" in argv:
+        for c in [f"Scenario{i}" for i in range(1, 9)]:
+            sw = parse_switch_class(c)
+            if sw:
+                flows.update(accept_if_exact(sw, scenarios))
+    for c in classes:
+        f = parse_class(c)
+        if c in VARIANT_CLASSES:
+            variants[c] = f
+        else:
+            flows.update(f)
+        if report:
+            for sn, ops in f.items():
+                talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk"))
+                who = {npcs.get(o.get("npc"), o.get("npc")) for o in ops if o["op"] == "setNpcTalk"}
+                print(f"  ep{sn}: 스텝 {len(ops):>3} · 대사 {talk:>3} · 화자 {sorted(map(str, who))}")
+    doc = {
+        "_re_basis": (
+            "원작 클라 하드코딩 복원. ScenarioManager::makeScenarioLayer(sn) 이 회차를 "
+            "Scenario1~8/_zimon/_mamorudic/_Kadeath 로 가르고, 각 클래스 initScenarioData 가 "
+            "std::function 스텝을 push 한다. 102화 이상은 ScenarioCommon=서버 script 라 여기 없다. "
+            "추출 = extract_scenario_flow.py → parse_scenario_flow.py"
+        ),
+        "npc_names": {str(k): v for k, v in sorted(npcs.items())},
+        "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
+        "flows": {k: flows[k] for k in sorted(flows, key=int)},
+        "variants": variants,
+    }
+    OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)}")
+
+
+if __name__ == "__main__":
+    main()

@@ -14,8 +14,14 @@ var skills: Dictionary = {}      # str(id) -> 스킬 마스터 정의 (§C, docs
 var worldmap: Dictionary = {}    # 월드맵 지역/노드 정의(자작 ASSUMPTION — 서버데이터 유실)
 var dragon_skills: Dictionary = {}   # 드래곤별 스킬 override(자작 — 유실). 없으면 Loadout 기본배정.
 var stages: Dictionary = {}          # 스테이지 정의(적/배경/보상). 자작 — 유실(사용자 작성).
-## 스토리 대사(원작 stringsData_KR.xml 전량 추출, build_scenario.py). 흐름 데이터만 유실.
+## 스토리 대사(원작 stringsData_KR.xml 전량 추출, build_scenario.py).
 var scenario: Dictionary = {}
+## 스토리 **연출 흐름**(회차별 화자·표정·위치·배경·삽화·BGM).
+## 🔴 2026-07-31 정정: 종전 "흐름 데이터 = ScenarioScript(서버 JSON) 전량 유실" 은 **오진**이었다.
+## `ScenarioManager::makeScenarioLayer(sn)` 이 회차를 `Scenario1~8`/`_zimon`/`_mamorudic`/
+## `_Kadeath` 로 가르고 그 클래스들이 연출을 **하드코딩**한다(102화 이상만 `ScenarioCommon`
+## = 서버 script 라 진짜 유실). 추출 = extract_scenario_flow.py → parse_scenario_flow.py.
+var scenario_flow: Dictionary = {}
 ## 스토리 **목차**(회차 제목·챕터·서브미션·해금레벨). 원작은 로컬 SQLite `info_scenario_v2`
 ## (`min_lv`·`title`·`daynight`)에서 읽었는데 그 .db 가 우리 덤프에 없어 나무위키에서 뽑았다
 ## — scripts/tools/build_story_index.py. (종전 주석의 "서버 유실"은 오진, 2026-07-30 정정)
@@ -33,7 +39,7 @@ var combine_item: Dictionary = {}    # 아이템 조합 레시피(원작 Combine
 var upgrade_egg: Dictionary = {}     # 알 업그레이드 레시피(원작 UpgradeEgg/info_upgrade_egg). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/upgrade_egg_sheet.md.
 var skill_awaken: Dictionary = {}    # 각성 스킬 표시정보(원작 SkillAwaken/info_skill_awaken). 스키마=클라복원, 행값=유실(빈 시작). docs/input/review/skill_awaken_sheet.md.
 var level_curve: Dictionary = {}     # 레벨업 경험치 곡선(req[]/cap). ASSUMPTION — 서버유실, 관측앵커로 복원(build_level_curve.py).
-var dragon_voices: Dictionary = {}   # 드래곤별 보이스 번호(baby/child/adult). 원작=info_dragon_v2 컬럼(Dragon.c:13478) → 유실. build_dragon_voices.py 재구성(앵커 2개).
+var dragon_voices: Dictionary = {}   # 드래곤별 보이스 번호(baby/child/adult). 원작=info_dragon_v2 컬럼(Dragon.c:13478) → 유실. 값=dragons.csv voice_* 열(사용자 검수 2026-07-31), 반영=build_dragon_voice_sheet.py --apply.
 var gems: Dictionary = {}            # 젬 14종×티어(일반/혼성/소울). 위키 전량(build_gems.py), 타입코드=클라복원(Dragon.c).
 var titles: Dictionary = {}          # 칭호 149종(원작 AchieveTitleLayer/info_title_v). 아트=title/<no>_kr.png, 획득조건=자작.
 var icon_map: Dictionary = {}        # 논리키→원본 아이콘 프레임(build_item_icons.py). render 층(Icons)만 사용.
@@ -46,6 +52,9 @@ var promote: Dictionary = {}         # 육성(원작 PromoteScene) 훈련캠프�
 var npc_talk: Dictionary = {}        # NPC 대사(원작 stringsData_KR.xml 전량, build_npc_talk.py). 유실 아님.
 var npc_face: Dictionary = {}        # NPC 얼굴 파츠(눈/입) 몸통 로컬 좌표. libgame.so NpcManager::setTarget 하드코딩 추출.
 var card_game: Dictionary = {}       # 탐험 카드 미니게임(원작 CardMiniGameLayer). 규칙·보상종류=위키 확정, 가중치=자작. 로직=CardGame.
+var imp_shop: Dictionary = {}       # 임프상인(원작 ImpShopScene) 재고·가격. 랭킹은 ⚫CUT. 로직=ImpShop.
+var monster_drops: Dictionary = {}   # 몬스터별 고유 드랍(밤 공용 조우 4종·혼돈의 틈새 보스). 원작 드랍표=서버유실 → 사용자 CSV. 로직=Drops.roll_monster.
+var adventure_events: Dictionary = {}  # 탐험 이벤트 큐(원작은 서버 exe_event 배열 — 클라에 생성 코드 없음). 로직=AdventureRun.
 var awaken: Dictionary = {}          # 드래곤 각성 규칙. 재료수량=위키 item.pdf 확정, 레벨조건·상한=자작.
 var gacha_eggs: Dictionary = {}      # 뽑기 알(의문의 알/빛문알/속성알) 개봉 풀. 성급범위=위키 item.pdf §5, 가중치=자작 노브. 로직=EggGacha.
 var kades: Dictionary = {}           # 카데스의 공간(유타칸 전설 모드) 규칙. BGM=원작 디컴프 확정, 페널티·보스레벨=위키 확정. 로직=Kades.
@@ -97,6 +106,7 @@ func _ready() -> void:
 	icon_map = _load_json("res://data/icon_map.json")
 	titles = _load_json("res://data/titles.json")
 	scenario = _load_json("res://data/scenario.json")
+	scenario_flow = _load_json("res://data/scenario_flow.json")
 	story = _load_json("res://data/story.json")
 	story_subquest = _load_json("res://data/story_subquest.json")
 	shop = _load_json("res://data/shop.json")
@@ -111,6 +121,10 @@ func _ready() -> void:
 	skill_scrolls = _load_json("res://data/skill_scrolls.json")
 	awaken = _load_json("res://data/awaken.json")
 	card_game = _load_json("res://data/card_game.json")
+	adventure_events = _load_json("res://data/adventure_events.json")
+	imp_shop = _load_json("res://data/imp_shop.json")
+	if FileAccess.file_exists("res://data/monster_drops.json"):
+		monster_drops = _load_json("res://data/monster_drops.json")
 	# 선택 파일 — 없으면 조용히 빈 채로 둔다(유실 데이터, 채워지는 만큼만 표시).
 	if FileAccess.file_exists("res://data/dex_comments.json"):
 		dex_comments = _load_json("res://data/dex_comments.json")
@@ -137,9 +151,14 @@ func new_game_def() -> Dictionary:
 func dragon_dex_meta(id: int) -> Dictionary:
 	return dex_meta.get(str(id), {})
 
-## 도감 설명(원작 Dragon::getComment). 유실 → 파일이 채워진 종만 값이 있다. 없으면 "".
+## 도감 설명(원작 Dragon::getComment). 서버 유실 → **사용자가 `dragons.csv` 의 `도감 설명`
+## 열에 복원**한 것이 정본이고(`build_data.py` → dragons.json `desc`), `dex_comments.json`
+## 은 그 위에 얹는 선택적 덮어쓰기다(있으면 우선). 둘 다 없으면 "".
 func dragon_comment(id: int) -> String:
-	return String(dex_comments.get(str(id), ""))
+	var over := String(dex_comments.get(str(id), ""))
+	if over != "":
+		return over
+	return String(get_dragon(id).get("desc", ""))
 
 ## 게임에 노출되는 드래곤 id 목록 — **`dex_hidden` 종은 빠진다.**
 ##
@@ -168,6 +187,28 @@ func dragon_ids_hidden() -> Array:
 ## 이 종이 기본 숨김인가(도감·입수처 제외 대상).
 func dragon_hidden(id: int) -> bool:
 	return bool(dragons.get(id, {}).get("dex_hidden", false))
+
+## **무작위 입수 풀**에 들어가도 되는 드래곤 id 목록.
+##
+## `dragon_ids()`(도감 목록)에서 `acquire_locked` 종을 더 뺀다. 사용자 확정(2026-07-30):
+## 커스텀 세대는 **지정된 방법으로만** 얻는다 —
+##   · 600(수비형)·700(공격형) = 점술집 '드래곤 소환'(`Summon`)
+##   · 666 샛별 · 777 한울      = 점술집 '카드 코드'(`magicshop.gd::_grant_card_reward`)
+## 666·777 은 도감에는 정상 등재되므로 `dex_hidden` 으로는 못 막는다(축이 다르다).
+## ⇒ **랜덤으로 드래곤/알을 주는 코드는 이 함수를 쓴다**(부화·조합·가챠·탐험 보상 등).
+func dragon_ids_random() -> Array:
+	var ids := []
+	for k in dragons:
+		var d: Dictionary = dragons[k]
+		if bool(d.get("dex_hidden", false)) or bool(d.get("acquire_locked", false)):
+			continue
+		ids.append(k)
+	ids.sort()
+	return ids
+
+## 이 종이 지정 획득처 전용인가(무작위 풀 제외 대상).
+func dragon_acquire_locked(id: int) -> bool:
+	return bool(dragons.get(id, {}).get("acquire_locked", false))
 
 # ---- 아이템 마스터 데이터 ----
 func get_item(key: String) -> Dictionary:
@@ -327,9 +368,14 @@ func skill_awaken_for(no: int) -> Dictionary:
 	return {}
 
 ## 도감 id → 그 드래곤이 갖는 각성 스킬 no. 없으면 0.
-## 배정표는 서버 유실분을 사용자가 복원한 것(docs/input/sheets/skill_awaken.csv 의 비고 칸 →
-## build_skill_awaken.py 가 이름을 도감 id 로 변환). 아직 배정이 없는 드래곤이 많다 → 0.
+## 배정표는 서버 유실분을 사용자가 복원한 것이다. **정본 = `dragons.csv` 의 `각성스킬id` 열**
+## (→ dragons.json `awaken_skill`). `skill_awaken.csv` 의 `비고`(스킬→드래곤 이름들)는 같은
+## 사실의 반대 방향 기입이라 `build_skill_awaken.py` 가 둘을 대조하고(`_drift`), 여기서는
+## 드래곤 레코드를 먼저 본 뒤 by_dragon 으로 떨어진다. 아직 배정이 없는 종이 많다 → 0.
 func awaken_skill_of(dragon_id: int) -> int:
+	var own := int(get_dragon(dragon_id).get("awaken_skill", 0))
+	if own > 0:
+		return own
 	var by: Dictionary = skill_awaken.get("by_dragon", {})
 	var lst: Array = by.get(str(dragon_id), [])
 	return int(lst[0]) if not lst.is_empty() else 0
@@ -383,6 +429,18 @@ func items_by(category := "", subcategory := "", offline := "") -> Array:
 ## 상세: scripts/ui/story.gd 헤더 · docs/input/review/scenario_sheet.md.
 func scenario_def(no: String) -> Dictionary:
 	return scenario.get("scenarios", {}).get(no, {})
+
+## 회차 연출 스텝 목록 `[{op, …}]`. 원작 클라 하드코딩분이 있는 회차만(없으면 빈 배열).
+func scenario_flow_of(no: int) -> Array:
+	return scenario_flow.get("flows", {}).get(str(no), [])
+
+## 연출 스텝의 NPC 번호 → `npc/<폴더>` (원작 `ScenarioSupport::getNPCname`).
+func scenario_npc_folder(npc_no: int) -> String:
+	return String(scenario_flow.get("npc_names", {}).get(str(npc_no), ""))
+
+## 연출 스텝의 배경 번호 → 원작 경로들[원경, 전경아이템?] (`ScenarioSupport::changeBackGround`).
+func scenario_bg_paths(bg_no: int) -> Array:
+	return scenario_flow.get("backgrounds", {}).get(str(bg_no), [])
 
 ## NPC 표시 이름(원작 `<NPC_<폴더>>` 62종). 없으면 폴더명 그대로.
 func npc_name(folder: String) -> String:
