@@ -81,6 +81,29 @@ func _ready() -> void:
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_manifest = _load_manifest("worldmap_maps")
 	_rebuild()
+	_launch_scenario_if_available()
+
+## 시나리오 자동 발동 — 원작 `WorldMapScene.c:21999` 가 메인 화면에서
+## `ScenarioManager::launchScenarioIfAvailable()` 를 부르고, 참이면 그 회차를 바로 재생한다.
+## 게이트(원작 `launchScenarioIfAvailable` @014db794):
+##   · sn > 0 이면 **선택 드래곤이 있고 그 레벨 > 0** 이어야 한다
+##   · 회차 자체의 해금(레벨·서브퀘스트)은 `StoryProgress.unlocked` 가 본다
+##   · 이미 본 회차는 다시 열리지 않는다(원작은 sn 이 진행돼 있어 같은 효과)
+## ⚠️ 우리 흐름 데이터(`data/scenario_flow.json`)가 있는 회차만 자동 재생한다 —
+##    흐름이 없으면 화자·배경 없이 텍스트만 나와서 자동으로 띄울 물건이 못 된다.
+func _launch_scenario_if_available() -> void:
+	if _mode != "overview" and _mode != "":
+		return                                   # 지역 안에서는 안 띄운다(원작도 메인 화면)
+	var dr := UserDB.active_dragon()
+	if dr.is_empty() or int(dr.get("level", 0)) <= 0:
+		return
+	var ep := StoryProgress.next_episode()
+	if ep <= 0 or StoryProgress.seen(ep) or not StoryProgress.unlocked(ep):
+		return
+	if Data.scenario_flow_of(ep).is_empty():
+		return
+	Scenes.goto("story", {"no": ep, "part": 0, "back": "worldmap",
+		"back_params": {"region": _mode}})
 
 func _rebuild() -> void:
 	# 원작 worldmap BGM = 지역별(data/worldmap.json bgm). yutakan=bg_yutakan / elf=bg_elysium / dwarf=bg_metal_tower.
@@ -114,6 +137,13 @@ func _rebuild() -> void:
 	_scroll = 0.0
 	_apply_scroll()
 	_build_hud()
+	# 임프상인 스파인은 **지도 빌드가 끝난 뒤** 붙인다.
+	# 🔴 종전엔 `_apply_yutakan_night` 안에서 붙였는데, 그 시점의 `_content` 는 곧 교체되는
+	#   임시 노드라 스파인이 **트리에서 떨어져 나가** 화면에 안 나왔다(2026-07-31 실측:
+	#   parent 가 익명 `@Node2D@…`, global 이 로컬과 같음 = 부모가 이미 분리된 상태).
+	if _imp_pending:
+		_imp_pending = false
+		_add_imp_shop()
 	# 원작 WorldMapDailyReward: 메인 화면 첫 진입 시 하루 1회. 메인 화면이 유타칸 지역뷰로
 	# 바뀌었으므로(main.gd) overview 한정이던 조건을 풀었다 — 하루 1회 가드가 중복을 막는다.
 	_maybe_daily_reward()
@@ -430,7 +460,7 @@ func _build_region_native(region: Dictionary) -> void:
 		if String(p.get("type", "")) != "deco" and tgt != "":
 			var w := float(man.get(frame, {}).get("w", 100)) * S
 			var h := float(man.get(frame, {}).get("h", 100)) * S
-			_add_hit_node(Rect2(d.x - w * 0.5, d.y - h * 0.5, w, h), tgt, Vector2(d.x, d.y))
+			_add_hit_node(Rect2(d.x - w * 0.5, d.y - h * 0.5, w, h), tgt, Vector2(d.x, d.y), spr)
 			if tgt.begins_with("battle:"):
 				# h = 조각 아트 높이. 목표 마커를 **그 조각 위로** 띄우는 데 쓴다.
 				battle_nodes.append({"d": d, "stage": tgt.substr(7), "h": h})
@@ -444,6 +474,8 @@ func _build_region_native(region: Dictionary) -> void:
 	for e in nat.get("field_fx", []):
 		_field_fx[int(e.get("field", -1))] = e
 	_add_facility(nat, bg_design, bg_tex, S)
+	# 소환된 혼돈의 틈새 보스(원작 WorldMapYutakanLayer::showDarknix). 조각 위·라벨 아래.
+	_add_summoned_boss(region, bg_design, bg_tex, S)
 	_mark_objective(battle_nodes, S)   # 원작 setScenarioMark: 다음 목표 던전 마커
 	# 🔴 제거(2026-07-25): 배회 상인(showWonder)·임프(showImp)는 원작에서 서버 이벤트/알림 게이트다 —
 	# WorldMapYutakanLayer.c:5055-5089 showWonder는 getAlarm_wonder/getEventWonder(이벤트 상인)/count 조건,
@@ -774,6 +806,110 @@ func _add_sea_trans(map_w: float, ld: float) -> void:
 ##    y 28.3%~99.8% 로 프레임 아래끝까지 뚫려 있다(실측: alpha<40 최대 연결성분 bbox
 ##    (72,147)-(702,519)/768×520). 아래를 어둡게 하려면 없는 아트를 지어내야 한다.
 const _SKY_LAYER_W := 2328.0   # 원작 setScale 분자 = CCSize(280,0).width + 2048
+## 임프상인 — 원작 `WorldMapLayer::showImp` 축자 이식.
+##
+##   CCSkeletonAnimation::createWithFile("scene/worldmap/worldmap_imp_spine.spine_json",
+##                                       "scene/worldmap/ani_imp_spine.img_plist", 1.0)
+##   setScale(0x3f866666 = 1.05);  CCPoint(1370.0, 615.0);  addChild(..., tag 0x21)
+##
+## 탭하면 `iVar5 == 0x21` 분기로 `ImpShopScene::scene()` 이 열린다(WorldMapLayer.c:914).
+## **밤에만** 선다 — `<NightTutorial_talk12>` "낮에는 방랑상인이 가끔 서 있던 곳에 밤에는
+## 임프상인이 항상 서 있어." (낮의 그 자리는 `WonderShopScene` = 방랑상인, tag 0xc.)
+##
+## 좌표는 원작 **레이어 포인트**라 `_layer_to_design` 어파인으로 옮긴다. `worldmap.json`
+## `coord.layer._note` 대로 원작의 +(140,0) 은 tx 에 흡수돼 있으므로 원좌표를 그대로 넣는다.
+## 임프상인 아이콘 — 원작 `WorldMapLayer::showImp`.
+##   크기 = `setScale(0x3f866666)` = **1.05**. 다른 월드맵 스파인과 같은 규칙으로
+##   지역 축척(`coord.layer.s`)과 디자인 배율 S 를 함께 곱한다 → 화면에서 약 34px.
+##   🔴 2026-07-31: 한때 150px 로 키웠는데 **오판이었다.** 안 보이던 진짜 원인은 크기가 아니라
+##      부모 유실(아래 `_rebuild` 꼬리 주석)이었고, 사용자 확인으로도 "지금의 20% 정도"
+##      = 원작 1.05 계산값과 일치한다.
+##   위치 = 엘피스 마을 조각 근처(사용자 확인 2026-07-31). 원작 리터럴 `CCPoint(1370,615)` 는
+##      레이어 공간 값인데 우리 어파인으로 옮기면 바다 위로 떨어져 그대로 못 쓴다.
+const _IMP_DESIGN_POS := Vector2(600.0, 300.0)
+const _IMP_SCALE := 1.05
+var _imp_spine: Node2D
+var _imp_pending := false
+
+func _add_imp_shop() -> void:
+	var sp := "res://scenes/worldmap_fx/worldmap_imp_spine.tscn"
+	if not ResourceLoader.exists(sp) or not is_instance_valid(_content):
+		return
+	var inst := (load(sp) as PackedScene).instantiate() as Node2D
+	if inst == null:
+		return
+	inst.position = _IMP_DESIGN_POS
+	# 원작 setScale(1.05) × 지역 축척 × 디자인 배율(다른 월드맵 스파인과 같은 규칙).
+	var co: Dictionary = _region_native().get("coord", {})
+	var lay_s := float((co.get("layer", {}) as Dictionary).get("s", 0.75))
+	var k := float(co.get("scale", 0.72)) * lay_s * _IMP_SCALE
+	inst.scale = Vector2(k, k)
+	inst.z_index = 30
+	_content.add_child(inst)
+	_imp_spine = inst
+	var ap := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if ap and ap.has_animation("normal"):
+		ap.get_animation("normal").loop_mode = Animation.LOOP_LINEAR
+		ap.play("normal")
+	# 클릭 판정 — 스파인엔 히트박스가 없으므로 화면 좌표에 버튼을 얹는다.
+	var btn := Button.new()
+	btn.flat = true
+	btn.size = Vector2(56.0, 56.0)   # 작은 아이콘이라 히트박스는 넉넉히
+	btn.tooltip_text = "임프상인"
+	btn.pressed.connect(_open_imp_shop)
+	_imp_hit = btn
+	_imp_hit_target = inst
+	add_child(btn)
+	_sync_imp_hit()
+
+var _imp_hit: Button
+var _imp_hit_target: Node2D
+
+## 지도가 줌/이동하면 히트박스도 따라가야 한다 — 스파인의 **화면 좌표**로 매 프레임 맞춘다.
+func _sync_imp_hit() -> void:
+	if not is_instance_valid(_imp_hit) or not is_instance_valid(_imp_hit_target):
+		return
+	var sc := _imp_hit_target.get_global_transform_with_canvas().origin
+	_imp_hit.position = sc - _imp_hit.size * 0.5
+
+## 임프상점을 **월드맵 위 오버레이**로 연다(사용자 확정 2026-07-31).
+##
+## 원작은 `ImpShopScene::scene()` 으로 씬을 갈아 끼우지만, `initWidget` 첫 줄이
+## `CCLayerColor(0x64000000)` = **검정 알파 100/255(≈39%)** 딤이다 — 뒤에 아무것도 없다면
+## 반투명 딤을 깔 이유가 없다. 사용자 기억("유타칸 월드맵 위에 팝업 형식")과도 맞아
+## 오프라인에서는 월드맵을 그대로 두고 그 위에 얹는다. 회색 허공이던 것을 고친다.
+func _open_imp_shop() -> void:
+	if is_instance_valid(_imp_layer):
+		return
+	Bgm.sfx("effect_button")
+	var lay := CanvasLayer.new()
+	lay.layer = 40
+	add_child(lay)
+	_imp_layer = lay
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 100.0 / 255.0)   # 원작 CCLayerColor(0x64000000)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP   # 뒤 지도 클릭 차단
+	lay.add_child(dim)
+	var scn := load("res://scenes/imp_shop.tscn") as PackedScene
+	if scn == null:
+		lay.queue_free()
+		_imp_layer = null
+		return
+	var ui := scn.instantiate()
+	lay.add_child(ui)
+	if ui.has_method("enter"):
+		ui.call("enter", {"region": _mode, "night": true, "overlay": true,
+			"on_close": Callable(self, "_close_imp_shop")})
+
+func _close_imp_shop() -> void:
+	if is_instance_valid(_imp_layer):
+		_imp_layer.queue_free()
+	_imp_layer = null
+	Bgm.play(_region_bgm(_mode))   # 상점 BGM → 지역 BGM 복귀
+
+var _imp_layer: CanvasLayer
+
 func _add_variant_sky(key: String, coord: Dictionary, dir: String, man: Dictionary,
 		bg_design: Vector2, S: float, map_w: float) -> void:
 	var sky := _sprite_native(key, dir, man, S)
@@ -845,6 +981,7 @@ func _apply_yutakan_night(nat: Dictionary, coord: Dictionary, dir: String, man: 
 	# tag 0x1773: night_light2 발광점. 원작은 `pos − ½boundingBox + (140,0)` 로 놓는데
 	# 앞의 −½bbox 는 cocos 기본앵커(0.5,0.5) 를 좌하단 기준으로 되돌리는 관용구이므로
 	# 중심앵커인 우리 스프라이트에는 pos 를 그대로 준다. (+140,0) 은 어파인 tx 에 흡수돼 있다.
+	_imp_pending = true   # 실제 배치는 지도 빌드가 끝난 뒤(_rebuild 꼬리)
 	var lc: Dictionary = nat.get("night_fx", {}).get("light2", {})
 	var lp: Array = lc.get("layer_pos", [1566.0, 994.0])
 	var lo: Array = lc.get("design_offset", [0.0, 0.0])
@@ -913,6 +1050,119 @@ func _add_facility(nat: Dictionary, bg_design: Vector2, bg_tex: Vector2, S: floa
 		# 조각 라벨과 같은 모양. frame 을 안 주면 높이 폴백(100)으로 조금 위에 앉는다 →
 		# 스파인 히트박스 높이를 넘겨 그 위로 올린다.
 		_map_label(lbl, d.x, d.y - hh * 0.5 + 50.0, "", 1.0, {})
+
+## 소환된 보스 스파인 — 원작 `WorldMapYutakanLayer::showDarknix(bool)`(:6263).
+##
+## 원작은 `getDarkNixStatus()` 1/2/3 으로 **같은 스켈레톤의 다른 변형**을 튼다
+## (appear/breath/touch · appear2/… · appear3/…). 변형마다 켜지는 리그가 다르다
+## (`dragon_darknix_adult_*` / `dragon_gri_*` / `ba_*`) — 즉 소환된 보스가 그대로 그려진다.
+## 자산 `scene/worldmap/w_darknix.spine_json` + `ani_darknix_spine.img_plist` 는 둘 다 보유.
+##
+## 안무도 원작대로: 갓 소환됐으면 `appear`(논루프) → 끝나면 `breath` 루프, 아니면 곧바로
+## `breath` 루프. 탭하면 `touch` 1회 후 다시 `breath`.
+##
+## # ASSUMPTION(좌표): 원작 절대좌표 (665.5,360)+(140,0) 등을 우리 bg-아틀라스 공간으로 옮기는
+##   검증된 어파인이 없다 — yutakan `pieces[].pos` 는 원작 A점이 아니라 아틀라스 슬롯 실측이고,
+##   A/B점 19쌍으로 적합하면 rms 82px 로 맞지 않는다(자기참조 함정). 그래서 다른 유타칸
+##   스파인과 같은 규칙으로 **대응 조각(map020, field 8)의 검증된 슬롯 위치에 앵커**하고
+##   `summon.design_offset` 으로 미세조정한다. 상세 = docs/ref/porting/ChaosRiftDarknix.md §3.
+var _boss_spine: Node2D = null
+var _boss_cfg: Dictionary = {}
+func _add_summoned_boss(region: Dictionary, bg_design: Vector2, bg_tex: Vector2, S: float) -> void:
+	_boss_spine = null
+	_boss_cfg = {}
+	var now := int(Time.get_unix_time_from_system())
+	var state := UserDB.darknix()
+	if not Darknix.is_active(state, now):
+		return
+	# 이 지역에 소환형 던전이 있나(= 그 스테이지의 summon 블록).
+	var cfg: Dictionary = {}
+	var anchor := -1
+	for p in region.get("pieces", []):
+		var tgt := String(p.get("target", ""))
+		if not tgt.begins_with("battle:"):
+			continue
+		var stg := Data.stage(tgt.substr(7))
+		if Darknix.is_summon_stage(stg):
+			cfg = stg["summon"]
+			anchor = int(p.get("field", -1))
+			break
+	if cfg.is_empty():
+		return
+	var sp := "res://scenes/worldmap_fx/%s.tscn" % String(cfg.get("spine", ""))
+	if not ResourceLoader.exists(sp):
+		return
+	# 앵커 조각의 좌표를 그대로 다시 계산한다(조각 루프와 같은 식).
+	var d := Vector2.ZERO
+	for p in region.get("pieces", []):
+		if int(p.get("field", -2)) != int(cfg.get("anchor_piece", anchor)):
+			continue
+		var pos: Array = p["pos"]
+		d = bg_design + (Vector2(float(pos[0]), float(pos[1])) - bg_tex) * S
+		if p.has("design_offset"):
+			var pd: Array = p["design_offset"]
+			d += Vector2(float(pd[0]), float(pd[1]))
+		break
+	if cfg.has("design_offset"):
+		var od: Array = cfg["design_offset"]
+		d += Vector2(float(od[0]), float(od[1])) * S
+	var inst := (load(sp) as PackedScene).instantiate() as Node2D
+	if inst == null:
+		return
+	inst.position = d
+	# 다른 유타칸 스파인과 같은 이유로 지역 레이어 축척을 함께 곱한다(원작 레이어 공간 저작).
+	var lay_s := float((region.get("native", {}) as Dictionary).get("coord", {}).get("layer", {}).get("s", 1.0))
+	inst.scale = Vector2(S * lay_s, S * lay_s)
+	_content.add_child(inst)
+	_boss_spine = inst
+	_boss_cfg = cfg
+	var status := int(state.get("status", 1))
+	var ap := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if ap == null:
+		return
+	# 갓 소환됐으면(등장 연출을 아직 안 봤으면) appear 부터. 원작 showDarknix(param_1=true) 대응.
+	# 🔴 2026-07-31: "이미 봤나"를 **씬 지역변수로** 들고 있어서 월드맵을 떠났다 오면 초기화됐다
+	#    → 매번 5.2초짜리 appear 가 다시 돌고, 그동안 드래곤 슬롯이 꺼져 있어 사용자에게는
+	#    "보스가 사라지고 이펙트만 뜬다"로 보였다. 원작처럼 **계정 상태에 기억**한다
+	#    (`AccountManager::getAlarm_darknix()==2`).
+	var seen := UserDB.darknix_seen()
+	var breath := Darknix.anim_of(cfg, status, 1)
+	var appear := Darknix.anim_of(cfg, status, 0)
+	if not seen and ap.has_animation(appear):
+		UserDB.darknix_mark_seen()
+		var a := ap.get_animation(appear)
+		if a: a.loop_mode = Animation.LOOP_NONE
+		ap.play(appear)
+		ap.animation_finished.connect(func(_n): _boss_loop_breath(ap, breath), CONNECT_ONE_SHOT)
+	else:
+		_boss_loop_breath(ap, breath)
+	# 탭 반응(원작 onClickIconMenu case 8: touch 1회 → 끝나면 breath 복귀).
+	var touch := Darknix.anim_of(cfg, status, 2)
+	var hit := Button.new(); hit.flat = true
+	var hw := 150.0 * S
+	var hh := 170.0 * S
+	hit.size = Vector2(hw, hh)
+	hit.position = d - Vector2(hw * 0.5, hh * 0.75)
+	hit.pressed.connect(func(): _boss_touch(ap, touch, breath))
+	_content.add_child(hit)
+
+func _boss_loop_breath(ap: AnimationPlayer, breath: String) -> void:
+	if not is_instance_valid(ap) or breath == "" or not ap.has_animation(breath):
+		return
+	var a := ap.get_animation(breath)
+	if a: a.loop_mode = Animation.LOOP_LINEAR
+	ap.play(breath)
+
+## 원작 `onClickIconMenu` case 8 의 **보스 있음** 가지. 효과음
+## (`music/effect_yutakan_8_chaos.mp3`)은 반대 가지 — 보스가 **없을 때** 나는 소리라
+## 여기서는 울리지 않는다(원작 :5602 `spine == NULL || limitTime <= now` 조건).
+func _boss_touch(ap: AnimationPlayer, touch: String, breath: String) -> void:
+	if not is_instance_valid(ap) or touch == "" or not ap.has_animation(touch):
+		return
+	var a := ap.get_animation(touch)
+	if a: a.loop_mode = Animation.LOOP_NONE
+	ap.play(touch)
+	ap.animation_finished.connect(func(_n): _boss_loop_breath(ap, breath), CONNECT_ONE_SHOT)
 
 ## 앰비언트 애니(원작 WorldMapYutakanLayer::initAnimation 재현). 프레임딜레이 0.2s.
 ## kind: flip(플립북 n프레임) / spin(연속회전) / pulse(스케일맥동) / bob(부유) / sway(좌우흔들) / spine.
@@ -1664,17 +1914,102 @@ func _build_clouds(coord: Dictionary, bg_design: Vector2, bg_tex: Vector2, S: fl
 		_clouds.append({"node": spr, "speed": rng.randf_range(7.0, 18.0),
 			"w": float(man.get(nm, {}).get("w", 120)) * S, "wrap": map_w})
 
+## 🔴 2026-07-31 (사용자 지적: "눈에 보이는 조각을 눌러도 무반응이거나 해골 요새로 간다").
+##
+## 원인은 이번 기능이 아니라 **히트 판정 방식 자체**였다. 조각 히트박스가 프레임의 통짜
+## 바운딩박스(투명 여백 포함)라 유타칸에서만 **19쌍이 겹치고**, 겹치면 `_hits` 배열에서
+## 먼저 나오는 것이 무조건 이겼다 — 혼돈의 틈새(8)는 해골 요새(6)가 18%, 수중동굴(9)이 15%를
+## 덮고 둘 다 배열에서 앞이라 그쪽으로 끌려갔다. 반대로 여백을 누르면 아무 데도 안 맞았다.
+##
+## 원작은 이렇게 하지 않는다 — `WorldMapBG::create(fieldNo, frame, A, B)` 가 조각마다
+## **명시적 터치 사각형(A=좌하, B=우상)** 을 들고 있고, 그 14개는 서로 **거의 안 겹친다**
+## (실측: 91조합 중 2건, 그나마 17×75 / 158×28px). 우리는 그 좌표계를 우리 배경 아틀라스
+## 공간으로 옮길 검증된 어파인이 없어(자기참조 함정) 사각형을 그대로 못 쓴다.
+##
+## ⇒ 같은 결과를 **더 튼튼하게** 얻는 방식으로 바꿨다:
+##   1. 사각형은 후보를 추리는 데만 쓴다(값싼 프리필터).
+##   2. 후보 중 **그 지점에 실제로 불투명 픽셀이 있는** 조각을 고른다 = "보이는 것을 누른다".
+##      여러 개면 **나중에 그려진 것**(위에 있는 것)이 이긴다.
+##   3. 불투명한 게 하나도 없으면(여백을 눌렀다) 중심이 **가장 가까운** 후보로 폴백한다 —
+##      무반응보다 낫고, 겹침 순서와 무관하게 결정적이다.
+## 드래그 보정은 원래부터 정상이다(`content = screen + _scroll`, `_content.position.x = -_scroll`).
 func _try_click(screen_pos: Vector2) -> void:
 	var content_pos := (Vector2(screen_pos.x + _scroll, screen_pos.y) if _horizontal
 		else Vector2(screen_pos.x, screen_pos.y + _scroll))
+	var pick := _resolve_click(content_pos)
+	if pick.is_empty():
+		return
+	# 지역맵 던전은 입장 전 클로즈업 연출. 그 외(개요 지역 선택 등)는 즉시.
+	if _horizontal and pick.has("center"):
+		_closeup_then_goto(String(pick["arg"]), pick["center"])
+	else:
+		_on_hit(String(pick["kind"]), String(pick["arg"]))
+
+## content 좌표 → 어느 히트 항목인가. **부작용 없음**(검수 도구가 이 함수만 부른다).
+func _resolve_click(content_pos: Vector2) -> Dictionary:
+	var cands: Array = []
 	for h in _hits:
 		if (h["rect"] as Rect2).has_point(content_pos):
-			# 지역맵 던전은 입장 전 클로즈업 연출. 그 외(개요 지역 선택 등)는 즉시.
-			if _horizontal and h.has("center"):
-				_closeup_then_goto(String(h["arg"]), h["center"])
-			else:
-				_on_hit(h["kind"], h["arg"])
-			return
+			cands.append(h)
+	if cands.is_empty():
+		return {}
+	var pick: Dictionary = {}
+	if cands.size() > 1:
+		# (2) 불투명 픽셀이 있는 것 중 **마지막**(= 가장 위에 그려진 것).
+		for h in cands:
+			if _opaque_at(h, content_pos):
+				pick = h
+		if pick.is_empty():
+			# (3) 폴백 — 중심이 가장 가까운 것.
+			var best := INF
+			for h in cands:
+				var c: Vector2 = h.get("center", (h["rect"] as Rect2).get_center())
+				var dd := c.distance_squared_to(content_pos)
+				if dd < best:
+					best = dd; pick = h
+	else:
+		pick = cands[0]
+	return pick
+
+## 그 히트 항목의 조각 스프라이트가 `content_pos` 에서 불투명한가.
+## 스프라이트를 안 들고 있는 항목(리스트 뷰·시설 등)은 판정 대상이 아니므로 false.
+const _ALPHA_HIT := 0.35
+var _img_cache: Dictionary = {}      # 텍스처 RID → Image (조각마다 매번 굽지 않게)
+func _opaque_at(h: Dictionary, content_pos: Vector2) -> bool:
+	var spr = h.get("spr")
+	if not (spr is Sprite2D) or not is_instance_valid(spr):
+		return false
+	var s := spr as Sprite2D
+	var tex := s.texture
+	if tex == null:
+		return false
+	# content → 스프라이트 로컬 → 텍스처 픽셀(중앙 정렬 + 균일 스케일 전제).
+	var sc: float = maxf(0.0001, s.scale.x)
+	var local := (content_pos - s.position) / sc
+	var size := tex.get_size()
+	var px := local + size * 0.5
+	if px.x < 0.0 or px.y < 0.0 or px.x >= size.x or px.y >= size.y:
+		return false
+	var at := tex as AtlasTexture
+	var base: Texture2D = at.atlas if at != null else tex
+	if base == null:
+		return false
+	var key := base.get_rid()
+	if not _img_cache.has(key):
+		var im := base.get_image()
+		if im == null:
+			return false
+		if im.is_compressed():
+			im.decompress()
+		_img_cache[key] = im
+	var img: Image = _img_cache[key]
+	if at != null:
+		px += at.region.position
+	var ix := int(px.x)
+	var iy := int(px.y)
+	if ix < 0 or iy < 0 or ix >= img.get_width() or iy >= img.get_height():
+		return false
+	return img.get_pixel(ix, iy).a >= _ALPHA_HIT
 
 func _on_hit(kind: String, arg: String) -> void:
 	if kind == "region":
@@ -1775,6 +2110,8 @@ func _build_hud() -> void:
 	var gd := Button.new(); gd.text = "가이드"; gd.size = Vector2(72, 34)
 	gd.position = Vector2(_vis().x - 90, 70)
 	gd.pressed.connect(_open_guide); hud.add_child(gd)
+	# (임프상인 진입은 HUD 버튼이 아니라 **지도 위 스파인**이다 — `_add_imp_shop`,
+	#  원작 `WorldMapLayer::showImp` tag 0x21.)
 
 # ---------- helpers ----------
 ## 현재 지역의 native 배치 dict(밤/카데스 판정용). 개요 화면이면 {}.
@@ -1853,6 +2190,106 @@ func _confirm_daily_extra(enter: Callable, hero: bool) -> void:
 	var no := Button.new(); no.text = "취소"; no.size = Vector2(140, 42)
 	no.position = Vector2(BW * 0.5 + 10, BH - 60)
 	no.pressed.connect(func(): lay.queue_free()); win.add_child(no)
+
+## ── 혼돈의 틈새 소환 게이트 ────────────────────────────────────────────────────
+## 원작 `WorldMapPopupLayer::getIsExistSomething()`(:1866) 축자 이식.
+## 보스가 상주 중이면 true(입장), 아니면 **소환 팝업만 띄우고 false**(원작 return false —
+## 소환에 성공해도 그 클릭으로는 들어가지 않는다. 다시 눌러야 입장한다).
+## 소환형이 아닌 던전은 항상 true.
+## 판정 = `Darknix`(logic). 여기는 팝업·소모·토스트만 한다(§8.2).
+func _darknix_gate(st: Dictionary, layer: CanvasLayer) -> bool:
+	if not Darknix.is_summon_stage(st):
+		return true
+	var cfg: Dictionary = st["summon"]
+	var now := int(Time.get_unix_time_from_system())
+	var g := Darknix.gate(cfg, UserDB.darknix(), now,
+		UserDB.item_count(String(cfg.get("item", ""))), UserDB.diamond())
+	if String(g.get("action", "")) == Darknix.ENTER:
+		return true
+	_popup_darknix_summon(cfg, g, layer)
+	return false
+
+## 소환 확인 팝업. 원작이 쓰는 문자열 키를 그대로 옮긴다:
+##   포탈 보유 → `AdventurePopupUseItem` "{아이템} 아이템을 사용하시겠습니까?" (+ 아이템 아이콘)
+##   미보유   → `AdventureChaosDungeonDia` "다이아 N개를 사용해서 혼돈의 틈새를 여시겠습니까?"
+##   부족     → `AdventureChaosDungeonNoDia` + 환전(캐시) 탭 안내
+## 성공 토스트도 원작 `CaveToastMsg10` 그대로.
+func _popup_darknix_summon(cfg: Dictionary, g: Dictionary, src_layer: CanvasLayer) -> void:
+	var act := String(g.get("action", ""))
+	var vis := _vis()
+	var lay := CanvasLayer.new(); lay.layer = 43; add_child(lay)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT); lay.add_child(dim)
+	const BW := 500.0
+	const BH := 280.0
+	var win := NinePatchRect.new()
+	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	win.patch_margin_left = 130; win.patch_margin_top = 190
+	win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(BW, BH)
+	win.position = Vector2(round((vis.x - BW) * 0.5), round((vis.y - BH) * 0.5))
+	lay.add_child(win)
+	var item_key := String(cfg.get("item", ""))
+	var price := int(g.get("cash", 0))
+	# (match 는 못 쓴다 — GDScript 의 match 패턴은 다른 클래스의 const 를 상수식으로 받지 않는다.)
+	var msg := ""
+	if act == Darknix.USE_ITEM:
+		msg = "%s 아이템을 사용하시겠습니까?" % Data.item_name(item_key)
+	elif act == Darknix.USE_CASH:
+		msg = "다이아 %d 개를 사용해서\n혼돈의 틈새를 여시겠습니까?" % price
+	else:
+		msg = "혼돈의 틈새를 소환하는데\n%d 개의 다이아가 필요합니다.\n환전소로 가시겠습니까?" % price
+	var l := Label.new()
+	l.text = msg
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_color", Color(0.3, 0.2, 0.06))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(BW - 60, 90); l.position = Vector2(30, 108)
+	win.add_child(l)
+	# 원작 `PopupTypeLayer::setItem` 자리 — 아이템 경로엔 아이콘, 다이아 경로엔 다이아 프레임.
+	var icon: Node2D = null
+	if act == Darknix.USE_ITEM:
+		icon = _item_icon(item_key, 56.0)
+	else:
+		icon = AtlasUI.spr("common_ui", "common_diamond_small1", 1.0)
+	if icon != null:
+		icon.position = Vector2(BW * 0.5, 84.0)
+		win.add_child(icon)
+	var confirm := Button.new(); confirm.size = Vector2(150, 44)
+	confirm.text = "소환" if act != Darknix.NO_CASH else "환전소"
+	confirm.position = Vector2(BW * 0.5 - 160, BH - 62)
+	confirm.pressed.connect(func():
+		lay.queue_free()
+		if act == Darknix.USE_ITEM:
+			if not UserDB.use_item(item_key, int(g.get("item_count", 1))):
+				_notice("고대 포탈이 부족합니다.")
+				return
+			_do_darknix_summon(cfg, src_layer)
+		elif act == Darknix.USE_CASH:
+			if not UserDB.spend("diamond", price):
+				_notice("다이아가 부족합니다.")
+				return
+			_do_darknix_summon(cfg, src_layer)
+		else:
+			Scenes.goto("shop", {"tab": "cash", "from": "worldmap"}))
+	win.add_child(confirm)
+	var no := Button.new(); no.text = "취소"; no.size = Vector2(150, 44)
+	no.position = Vector2(BW * 0.5 + 10, BH - 62)
+	no.pressed.connect(func(): lay.queue_free()); win.add_child(no)
+
+## 소환 확정 — 추첨(logic) → 세이브 → 팝업 닫고 맵을 다시 그려 스파인을 띄운다.
+## 원작도 `ResponseItemUse`(:732)가 소모 직후 맵 레이어를 갱신해 `showDarknix` 로 들어간다.
+func _do_darknix_summon(cfg: Dictionary, src_layer: CanvasLayer) -> void:
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	var v := Darknix.roll(cfg, int(Time.get_unix_time_from_system()), rng)
+	if v.is_empty():
+		_notice("소환에 실패했습니다.")
+		return
+	UserDB.darknix_summon(v)
+	if is_instance_valid(src_layer):
+		src_layer.queue_free()          # 던전 팝업을 닫아 스파인이 보이게 한다
+	_notice("고대포탈을 사용하여 혼돈의 틈새를 열었습니다.")   # 원작 CaveToastMsg10
+	_rebuild()
 
 ## 출전할 드래곤 = **동굴에서 선택 중인 그 한 마리**(원작 `AccountManager::getDragonSelected`).
 ## 다른 드래곤으로 대체하지 않는다 — 원작도 그렇다(아래 `_selected_gate` 근거 참조).
@@ -1957,17 +2394,33 @@ func _is_starving(d: Dictionary) -> bool:
 	return ItemEffect.is_starving(Data.item_effects,
 		int(d.get("food", ItemEffect.food_max(Data.item_effects))))
 
+## 지금 들어가려는 곳이 **유타칸 밤 변형**인가. 던전 팝업의 입장 버튼이 이 값을 런에 실어
+## 보낸다(`Scenes.goto("adventure", {... "night": _night()})`) — 드랍 풀이 난이도마다 다르다.
+## 유타칸이 아닌 지역엔 밤 변형이 없으므로 항상 false(`_variant_stage_id`·`_night_level_ok` 와
+## 같은 판정식이다 — 세 곳이 갈라지지 않게 여기 한 곳으로 모은다).
+func _night() -> bool:
+	return _mode == "yutakan" and _is_yutakan_night(_region_native())
+
 ## 유타칸 밤이면 **선택한 드래곤**이 최소 레벨(50)을 만족하는가. 밤이 아니면 항상 참.
 ## 근거·값 = `data/stages.json` `_variant_rules.night_min_level`(위키 §1.2 + 사용자 확정).
 ## 대상이 선택 드래곤인 근거 = 원작 문구 `<AdventureNightMinLv>` "**선택한 드래곤의** 레벨이
 ## 부족하여 진입할 수 없습니다."(보유 전체가 아니다).
-## ⚠️ 일반 레벨상한이 45(각성 50)이므로 이 게이트는 실질적으로 **각성 드래곤 요구**다.
+##
+## 🔴 2026-07-31 (사용자 지적): 요구치 50 을 그대로 쓰면 **밤 던전 12곳이 영구 진입 불가**였다.
+##   드래곤 만렙이 45 이기 때문이다(`data/level_curve.json` `cap`). 위키가 적은 "50레벨"은
+##   원작 후기판(각성 확장으로 상한이 올라간 뒤)의 값이라 우리 상한과 어긋난다.
+##   ⇒ **입장 요구 레벨은 만렙을 넘지 못하게 잘라 쓴다**(사용자 확정: "45레벨 이상의 레벨
+##   제한을 가진 던전은 45레벨 이상만 충족하면 입장 가능"). 데이터의 50 은 원작 근거라
+##   그대로 두고 여기서만 clamp 한다 — 상한이 올라가면 자동으로 원래 요구치로 돌아간다.
+##   각성 상한(50)이 아니라 **기본 상한(45)** 으로 자르는 이유도 같다: 각성 여부와 무관하게
+##   45 면 들어갈 수 있어야 한다.
 func _night_level_ok() -> bool:
-	if _mode != "yutakan" or not _is_yutakan_night(_region_native()):
+	if not _night():
 		return true
 	var need := int((Data.stages.get("_variant_rules", {}) as Dictionary).get("night_min_level", 0))
 	if need <= 0:
 		return true
+	need = mini(need, LevelSystem.cap_for(Data.level_curve, false))
 	var d := _selected_dragon()
 	if d.is_empty():
 		return false
@@ -1988,8 +2441,9 @@ func _add_hit(rect: Rect2, kind: String, arg: String) -> void:
 	_hits.append({"rect": rect, "kind": kind, "arg": arg})
 
 ## 지역맵 던전 히트(클로즈업용 조각 중심 저장).
-func _add_hit_node(rect: Rect2, target: String, center: Vector2) -> void:
-	_hits.append({"rect": rect, "kind": "node", "arg": target, "center": center})
+## `spr` = 그 조각의 스프라이트. 겹친 후보를 가릴 때 **알파로** 판정하는 데 쓴다(`_opaque_at`).
+func _add_hit_node(rect: Rect2, target: String, center: Vector2, spr: Sprite2D = null) -> void:
+	_hits.append({"rect": rect, "kind": "node", "arg": target, "center": center, "spr": spr})
 
 func _vis() -> Vector2:
 	return get_viewport_rect().size
@@ -2028,7 +2482,12 @@ func _sprite(name: String, scale := 1.0) -> Sprite2D:
 var _popup_side := "right"   # 던전 노드가 화면 왼쪽이면 팝업은 오른쪽(원작 getDirection/show)
 
 func _open_dungeon_popup(stage_id: String) -> void:
-	var st: Dictionary = Data.stage(stage_id)
+	# 밤 위상이면 **밤 필드 레코드**를 보여준다 — 등장 드래곤·설명문·레벨이 낮과 다르다
+	# (`stages.json` 의 `night` 블록, 원작에선 no=500+기본필드인 별도 레코드).
+	# ⚠️ 이게 맞아야 "팝업에 등재된 드래곤만 알이 드랍된다"(사용자 확정 2026-07-30)가 성립한다 —
+	#   런은 같은 `Field.apply_variant` 결과를 쓴다(adventure.gd/battle.gd).
+	var st: Dictionary = Field.apply_variant(Data.stage(stage_id),
+		Drops.MODE_NIGHT if _night() else Drops.MODE_NORMAL)
 	var wman := _load_manifest("worldmap_ui")
 	var vis := _vis()
 	var layer := CanvasLayer.new(); layer.layer = 26
@@ -2459,8 +2918,20 @@ func _build_popup_buttons(root: Node2D, layer: CanvasLayer, st: Dictionary, stag
 			_daily_stamp(stage_id)
 		if is_instance_valid(layer):
 			layer.queue_free()
-		Scenes.goto("adventure", {"stage": stage_id, "region": region, "hero": hero})
+		# `night` = 유타칸 밤 변형인가. 드랍 풀이 난이도(일반/영웅/밤)마다 다르므로
+		# 런에 실어 보낸다(사용자 확정 2026-07-31, `Drops.mode_of`).
+		# ⚠️ 아직 **드랍 판정에만** 쓴다 — 밤 블록의 적/등장드래곤 교체는 미배선(별도 갭).
+		# `run_seed` = **이번 진입** 고유 난수. 이벤트 큐 시드에 섞는다 —
+		# 없으면 (지역, 조우번호)만으로 시드가 정해져 **같은 지역에 다시 들어가도 결과가 똑같다**.
+		# 밤은 1회 조우로 끝나므로 이게 없으면 그 지역의 밤 결과가 영영 고정된다(2026-07-31 발견).
+		Scenes.goto("adventure", {"stage": stage_id, "region": region, "hero": hero,
+			"night": _night(), "run_seed": randi()})
 	var go := func(hero: bool):
+		# 🔒 소환형 던전(혼돈의 틈새) — 원작 `WorldMapPopupLayer::getIsExistSomething()` 이
+		#    출전 검사보다 **먼저** 막는다(:1866 은 `setAdventure` 경로 진입 전에 호출된다).
+		#    보스가 상주 중이 아니면 소환 팝업만 띄우고 이번 클릭은 입장하지 않는다.
+		if not _darknix_gate(st, layer):
+			return
 		# 출전 검사(원작 `getDragonStatus`) — **선택 중인 드래곤 한 마리만** 본다.
 		# 불능이면 다른 드래곤으로 대체하지 않고 입장을 막고, 원작 팝업(즉시부활/먹이)을 띄운다.
 		if not _selected_gate():
