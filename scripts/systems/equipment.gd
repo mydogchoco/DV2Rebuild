@@ -92,6 +92,24 @@ static func catalog(table: Dictionary) -> Dictionary:
 				"stat_main": _int_dict(it.get("main", {})),
 				"bonus": String(it.get("bonus", "")),
 			}
+	# 전용 장비 — 🟦 사용자 확정 2026-07-31: **주 능력치가 없는 것이 원작 사양**이다.
+	# 대응하는 드래곤에게만 장착되고 조건부 효과(effect)만 갖는다.
+	#   · `stat_main` 은 빈 dict → aggregate 가 더할 것이 없다(스탯 0 기여)
+	#   · `dragon_id` = 그 장비를 낄 수 있는 유일한 종. can_equip 이 아니라 **belong_species_ok**
+	#     로 따로 판정한다(슬롯 규칙과 종족 규칙은 다른 축이다)
+	#   · 슬롯은 위키 §2 "전용장비를 포함한 말 그대로 모든 장비" → `all` 칸
+	for x in (table.get("exclusive", {}).get("list", []) as Array):
+		var xd := x as Dictionary
+		if not bool(xd.get("implemented", false)):
+			continue
+		var key5 := "exclusive:%s" % String(xd.get("name", ""))
+		out[key5] = {
+			"key": key5, "name": String(xd.get("name", "")), "group": "exclusive",
+			"slot_class": "all", "stat_main": {},
+			"dragon_id": int(xd.get("dragon_id", 0)),
+			"dragon": String(xd.get("dragon", "")),
+			"bonus": String(xd.get("effect", "")),
+		}
 	var art: Dictionary = table.get("artifacts", {})
 	for a in (art.get("types", []) as Array):
 		for gi in (art.get("grades", []) as Array).size():
@@ -131,6 +149,15 @@ static func can_equip(item: Dictionary, slot_id: String) -> bool:
 	if slot_id == "all":
 		return cls != "artifact"      # 아티팩트는 전용 칸에만(위키 §2 '아티팩트 장비=모든 아티팩트')
 	return cls == slot_id
+
+## 그 **종**이 이 장비를 낄 수 있는가. 전용 장비만 제한이 있고 나머지는 전부 통과한다.
+## 🟦 사용자 확정 2026-07-31: 전용 장비는 대응하는 드래곤에게만 장착된다.
+## 근거는 위키 전용 장비 표의 **드래곤 열**이다 — 원작 클라에는 종족 제한 훅이 없다
+## (`Equip` 메서드 전수에서 `getDragonTag` 는 개체 귀속 uid 이고 종족이 아니다). 서버 소유였다.
+## ⚠️ 개체 귀속(belong, uid)과는 **다른 축**이다 — 그쪽은 belong_allows 가 본다.
+static func species_allows(item: Dictionary, dragon_id: int) -> bool:
+	var need := int(item.get("dragon_id", 0))
+	return need <= 0 or need == dragon_id
 
 ## 칸 순서(표시·저장 공통). `all` 은 처음부터 열려 있다.
 const SLOT_ORDER := ["all", "battle", "support", "artifact"]
@@ -452,12 +479,16 @@ static func enhance(equip_field: Dictionary, slot_id: String, rng: RandomNumberG
 ## meta = 가방 키에서 읽은 개체 정보(`item_key_meta`) — 귀속·희귀도·옵션·강화가 그대로 옮겨온다.
 ##   ⚠️ 획득 시 정해진 희귀도/옵션을 장착이 덮어쓰지 않는다. 예전엔 슬롯에서 옵션을 굴렸는데,
 ##      그러면 **뺐다 끼우기만 해도 옵션이 새로 굴러** 기누의 동전이 무의미해진다.
+## `dragon_id` = 끼우려는 드래곤의 **종 id**. 0이면 종족 검사를 건너뛴다(구 호출부 호환).
+## 전용 장비는 대응 종에만 들어간다(species_allows).
 static func equip(equip_field: Dictionary, slot_id: String, key: String, table: Dictionary,
-		meta: Dictionary = {}) -> Dictionary:
+		meta: Dictionary = {}, dragon_id: int = 0) -> Dictionary:
 	var cat := catalog(table)
 	if not cat.has(key):
 		return {}
 	if not can_equip(cat[key], slot_id):
+		return {}
+	if dragon_id > 0 and not species_allows(cat[key], dragon_id):
 		return {}
 	var slots: Array = []
 	for s in (equip_field.get("slots", []) as Array):

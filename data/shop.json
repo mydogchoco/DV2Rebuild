@@ -16,7 +16,6 @@
   },
   "_sell_ratio": 0.1,
   "_sell_ratio_note": "SELL 탭 가격 / 구매가 = 25/250 = 10% (docs/ref/orig_image/shop/상점_판매.webp 대 상점_음식.webp 실측).",
-
   "tabs": [
     {
       "id": "hot",
@@ -29,12 +28,38 @@
       "_line_source": "docs/ref/orig_image/shop/상점_hot.webp 하단 텍스트박스 그대로",
       "_stock_note": "원작 HOT 는 후기판 이벤트 상품(초월의 마석 등)이라 대부분 우리 아이템 DB에 없다. '추천(osusume)' 탭의 성격대로 다른 탭의 대표 상품을 모아 구성했다. (2026-07-29: 기누의 동전은 실재해서 ITEM 탭에 넣었다 — 이 주석의 예시에서 뺀다.)",
       "stock": [
-        {"item": "jem_random", "price": 15, "cur": "diamond"},
-        {"item": "mix_book", "price": 15, "cur": "diamond"},
-        {"item": "gemslot_change", "price": 5, "cur": "diamond"},
-        {"item": "skillslot_change", "price": 5, "cur": "diamond"},
-        {"item": "hero_auto1", "price": 8, "cur": "diamond"},
-        {"item": "portal", "price": 1, "cur": "diamond"}
+        {
+          "item": "jem_random",
+          "price": 15,
+          "cur": "diamond"
+        },
+        {
+          "item": "mix_book",
+          "price": 15,
+          "cur": "diamond"
+        },
+        {
+          "item": "gemslot_change",
+          "price": 5,
+          "cur": "diamond"
+        },
+        {
+          "item": "skillslot_change",
+          "price": 5,
+          "cur": "diamond"
+        },
+        {
+          "item": "hero_auto1",
+          "price": 8,
+          "cur": "diamond"
+        },
+        {
+          "item": "portal",
+          "price": 3,
+          "cur": "diamond",
+          "bundle": 5,
+          "label": "고대 포탈 x5"
+        }
       ]
     },
     {
@@ -47,24 +72,99 @@
       "line": "어서 와! 여긴 드래곤 먹이 상점!",
       "_line_source": "docs/ref/orig_image/shop/상점_음식.webp",
       "stock": [
-        {"item": "food_ground_paopao_half", "price": 250, "cur": "gold"},
-        {"item": "food_water_fly_pirania", "price": 250, "cur": "gold"},
-        {"item": "food_fire_chickenleg", "price": 250, "cur": "gold"},
-        {"item": "food_wind_branch_yggdrasil", "price": 250, "cur": "gold"},
-        {"item": "food_light_lightmelon_piece", "price": 250, "cur": "gold"},
-        {"item": "food_dark_darkmelon_piece", "price": 250, "cur": "gold", "sale": 125},
-        {"item": "food_holy_small_ginseng", "price": 250, "cur": "gold"},
-        {"item": "food_shadow_chocolate_piece", "price": 250, "cur": "gold", "_assumed": "화면 밖 칸 — 같은 조각류라 250G 로 맞춤"},
-        {"item": "food_chaos_tadpole", "price": 250, "cur": "gold", "_assumed": "화면 밖 칸"},
-        {"item": "att_drink3", "price": 30, "cur": "ele_fire"},
-        {"item": "hp_drink3", "price": 30, "cur": "ele_water"},
-        {"item": "def_drink3", "price": 30, "cur": "ele_ground"},
-        {"item": "cri_drink3", "price": 30, "cur": "ele_dark"},
-        {"item": "miss_drink3", "price": 30, "cur": "ele_light"},
-        {"item": "prodef_drink3", "price": 30, "cur": "ele_wind"},
-        {"item": "heal_potion1", "price": 100, "cur": "gold"},
-        {"item": "heal_potion2", "price": 2500, "cur": "gold"},
-        {"item": "heal_potion3", "price": 5000, "cur": "gold"}
+        {
+          "item": "food_ground_paopao_half",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_water_fly_pirania",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_fire_chickenleg",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_wind_branch_yggdrasil",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_light_lightmelon_piece",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_dark_darkmelon_piece",
+          "price": 250,
+          "cur": "gold",
+          "sale": 125
+        },
+        {
+          "item": "food_holy_small_ginseng",
+          "price": 250,
+          "cur": "gold"
+        },
+        {
+          "item": "food_shadow_chocolate_piece",
+          "price": 250,
+          "cur": "gold",
+          "_assumed": "화면 밖 칸 — 같은 조각류라 250G 로 맞춤"
+        },
+        {
+          "item": "food_chaos_tadpole",
+          "price": 250,
+          "cur": "gold",
+          "_assumed": "화면 밖 칸"
+        },
+        {
+          "item": "att_drink3",
+          "price": 30,
+          "cur": "ele_fire"
+        },
+        {
+          "item": "hp_drink3",
+          "price": 30,
+          "cur": "ele_water"
+        },
+        {
+          "item": "def_drink3",
+          "price": 30,
+          "cur": "ele_ground"
+        },
+        {
+          "item": "cri_drink3",
+          "price": 30,
+          "cur": "ele_dark"
+        },
+        {
+          "item": "miss_drink3",
+          "price": 30,
+          "cur": "ele_light"
+        },
+        {
+          "item": "prodef_drink3",
+          "price": 30,
+          "cur": "ele_wind"
+        },
+        {
+          "item": "heal_potion1",
+          "price": 100,
+          "cur": "gold"
+        },
+        {
+          "item": "heal_potion2",
+          "price": 2500,
+          "cur": "gold"
+        },
+        {
+          "item": "heal_potion3",
+          "price": 5000,
+          "cur": "gold"
+        }
       ],
       "_price_note": "물약 3단계 = 속성 정기 30(상점_음식.webp 아이콘 색 대조). 회복물약 3종은 판매가(10/250/500)×10 으로 환산(_sell_ratio)."
     },
@@ -79,23 +179,89 @@
       "_line_source": "docs/ref/orig_image/shop/상점_장비.webp",
       "extra": ["gem_gacha", "gem_shop", "equip_shop"],
       "_extra_note": "오프라인 재설계분(사용자 확정 2026-07-27)을 원작 탭 자리에 접어 넣었다. 원작 ITEM 탭이 이미 '장신구 뽑기'를 파는 자리라 여기 모은다: 낮은 성능 젬·장비는 골드 판매, 좋은 젬은 다이아 뽑기.",
+      "_gacha_source": "상품명·가격·아이콘은 docs/ref/orig_image/shop/상점_장비.webp 실측. 등급별 결과 풀은 data/drops.json `gacha.equip.grades`(위키 item.pdf §3 서술 기준).",
+      "_gacha_cut": "~~전용 장신구 뽑기 컷~~ **2026-07-31 복구.** 컷 사유였던 아이콘 부재가 해소됐다 — 위키 PDF 표에서 전용 장비 95종 아이콘을 복원해(`extract_equip_icons.py`) 카탈로그에 올렸고, 가격은 위키 §3.1 확정치(30다이아 · x10 300다이아) 그대로다. 결과 풀 = drops.json `gacha.equip.grades.only`.",
       "gacha": [
-        {"id": "acc_normal", "label": "일반 장신구 뽑기", "price": 5000, "cur": "gold", "n": 1, "grade": "normal"},
-        {"id": "acc_high", "label": "고급 장신구 뽑기", "price": 15, "cur": "diamond", "n": 1, "grade": "high"},
-        {"id": "acc_only", "label": "전용 장신구 뽑기", "price": 30, "cur": "diamond", "n": 1, "grade": "only"},
-        {"id": "acc_normal10", "label": "일반 장신구 뽑기 x10", "price": 45000, "cur": "gold", "n": 10, "grade": "normal"},
-        {"id": "acc_high10", "label": "고급 장신구 뽑기 x10", "price": 150, "cur": "diamond", "n": 10, "grade": "high"},
-        {"id": "acc_only10", "label": "전용 장신구 뽑기 x10", "price": 300, "cur": "diamond", "n": 10, "grade": "only"}
+        {
+          "id": "acc_normal",
+          "label": "일반 장신구 뽑기",
+          "price": 5000,
+          "cur": "gold",
+          "n": 1,
+          "grade": "normal"
+        },
+        {
+          "id": "acc_high",
+          "label": "고급 장신구 뽑기",
+          "price": 15,
+          "cur": "diamond",
+          "n": 1,
+          "grade": "high"
+        },
+        {
+          "id": "acc_normal10",
+          "label": "일반 장신구 뽑기 x10",
+          "price": 45000,
+          "cur": "gold",
+          "n": 10,
+          "grade": "normal"
+        },
+        {
+          "id": "acc_high10",
+          "label": "고급 장신구 뽑기 x10",
+          "price": 150,
+          "cur": "diamond",
+          "n": 10,
+          "grade": "high"
+        },
+        {
+          "id": "acc_only",
+          "label": "전용 장신구 뽑기",
+          "price": 30,
+          "cur": "diamond",
+          "n": 1,
+          "grade": "only"
+        },
+        {
+          "id": "acc_only10",
+          "label": "전용 장신구 뽑기 x10",
+          "price": 300,
+          "cur": "diamond",
+          "n": 10,
+          "grade": "only"
+        }
       ],
       "_stock_note": "장비 옵션·귀속 소모품을 여기 둔다. 원작도 ITEM 탭이 장신구 자리다. 위키 item.pdf: 구드라의 지혜 = 상점 20다이아(확정값) / 기누의 동전 = '상점에서 다이아로 구매할 수도 있지만 개수 제한이 있다'(가격은 유실 → 등급 차등 자작).",
       "stock": [
-        {"item": "mix_book", "price": 15, "cur": "diamond"},
-        {"item": "item_disconnect", "price": 20, "cur": "diamond",
-         "_source": "위키 item.pdf '상점에서 20다이아에 구매할 수 있다' — 확정값"},
-        {"item": "ginu_coin_green", "price": 10, "cur": "diamond",
-         "_assumed": "레어 옵션 재설정. 위키는 판매 사실만 적고 가격은 유실 → 등급 차등 자작"},
-        {"item": "ginu_coin_yellow", "price": 20, "cur": "diamond", "_assumed": "유니크 — 자작"},
-        {"item": "ginu_coin_red", "price": 40, "cur": "diamond", "_assumed": "에픽 — 자작"}
+        {
+          "item": "mix_book",
+          "price": 15,
+          "cur": "diamond"
+        },
+        {
+          "item": "item_disconnect",
+          "price": 20,
+          "cur": "diamond",
+          "_source": "위키 item.pdf '상점에서 20다이아에 구매할 수 있다' — 확정값"
+        },
+        {
+          "item": "ginu_coin_green",
+          "price": 10,
+          "cur": "diamond",
+          "_assumed": "레어 옵션 재설정. 위키는 판매 사실만 적고 가격은 유실 → 등급 차등 자작"
+        },
+        {
+          "item": "ginu_coin_yellow",
+          "price": 20,
+          "cur": "diamond",
+          "_assumed": "유니크 — 자작"
+        },
+        {
+          "item": "ginu_coin_red",
+          "price": 40,
+          "cur": "diamond",
+          "_assumed": "에픽 — 자작"
+        }
       ]
     },
     {
@@ -108,22 +274,90 @@
       "line": "정기를 다 모으지도 않고 교환해달라고 하는 건 도둑놈 심보나 다름없다고요.\n설마, 그러시진 않겠죠?",
       "_line_source": "docs/ref/orig_image/shop/상점_알.webp",
       "stock": [
-        {"item": "mall_ground_egg", "price": 20, "cur": "ele_ground"},
-        {"item": "mall_water_egg", "price": 20, "cur": "ele_water"},
-        {"item": "mall_fire_egg", "price": 20, "cur": "ele_fire"},
-        {"item": "mall_wind_egg", "price": 20, "cur": "ele_wind"},
-        {"item": "mall_light_egg", "price": 20, "cur": "ele_light"},
-        {"item": "mall_dark_egg", "price": 20, "cur": "ele_dark"},
-        {"item": "mall_holy_egg", "price": 20, "cur": "ele_holy", "_assumed": "화면 밖 칸 — 같은 속성알 규칙 적용"},
-        {"item": "mall_chaos_egg", "price": 20, "cur": "ele_chaos", "_assumed": "화면 밖 칸"},
-        {"item": "mall_black_egg", "price": 30, "cur": "diamond"},
-        {"item": "mall_back_egg", "price": 30, "cur": "diamond"},
-        {"item": "mall_zephyros_egg", "price": 30, "cur": "diamond"},
-        {"item": "mall_tropheus_egg", "price": 30, "cur": "diamond"},
-        {"item": "mall_bagma_egg", "price": 150, "cur": "diamond"},
-        {"item": "mall_jin_egg", "price": 150, "cur": "diamond"},
-        {"item": "mall_gaoron_egg", "price": 150, "cur": "diamond", "_assumed": "가격 숫자가 화면에서 잘림(15?)"},
-        {"item": "mall_question_egg2", "price": 30, "cur": "diamond", "_assumed": "원작은 e-point(POINT 탭 재화) 1개. 해당 재화를 컷했으므로 다이아로 대체"}
+        {
+          "item": "mall_ground_egg",
+          "price": 20,
+          "cur": "ele_ground"
+        },
+        {
+          "item": "mall_water_egg",
+          "price": 20,
+          "cur": "ele_water"
+        },
+        {
+          "item": "mall_fire_egg",
+          "price": 20,
+          "cur": "ele_fire"
+        },
+        {
+          "item": "mall_wind_egg",
+          "price": 20,
+          "cur": "ele_wind"
+        },
+        {
+          "item": "mall_light_egg",
+          "price": 20,
+          "cur": "ele_light"
+        },
+        {
+          "item": "mall_dark_egg",
+          "price": 20,
+          "cur": "ele_dark"
+        },
+        {
+          "item": "mall_holy_egg",
+          "price": 20,
+          "cur": "ele_holy",
+          "_assumed": "화면 밖 칸 — 같은 속성알 규칙 적용"
+        },
+        {
+          "item": "mall_chaos_egg",
+          "price": 20,
+          "cur": "ele_chaos",
+          "_assumed": "화면 밖 칸"
+        },
+        {
+          "item": "mall_black_egg",
+          "price": 30,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_back_egg",
+          "price": 30,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_zephyros_egg",
+          "price": 30,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_tropheus_egg",
+          "price": 30,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_bagma_egg",
+          "price": 150,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_jin_egg",
+          "price": 150,
+          "cur": "diamond"
+        },
+        {
+          "item": "mall_gaoron_egg",
+          "price": 150,
+          "cur": "diamond",
+          "_assumed": "가격 숫자가 화면에서 잘림(15?)"
+        },
+        {
+          "item": "mall_question_egg2",
+          "price": 30,
+          "cur": "diamond",
+          "_assumed": "원작은 e-point(POINT 탭 재화) 1개. 해당 재화를 컷했으므로 다이아로 대체"
+        }
       ]
     },
     {
@@ -138,17 +372,74 @@
       "extra": ["cash"],
       "_extra_note": "원작 `PremiumShopScene`(실제 결제)은 CLAUDE.md §2-1 로 삭제하고 **골드↔다이아 환전소**로 재설계했다(사용자 확정 2026-07-27). 만물상 탭이 다이아 상품 자리라 여기 붙인다. 환율·보너스는 data/drops.json 의 `cash` 블록. 메인 HUD 의 ⊞ 버튼은 `{\"tab\":\"cash\"}` 로 이 탭을 연다.",
       "stock": [
-        {"item": "jem_random", "price": 15, "cur": "diamond"},
-        {"item": "jem_random", "price": 125, "cur": "diamond", "bundle": 10, "label": "진귀한 보석 상자 x10"},
-        {"item": "level_down", "price": 1000, "cur": "gold"},
-        {"item": "gem_init", "price": 1500, "cur": "gold"},
-        {"item": "namechange", "price": 33, "cur": "diamond"},
-        {"item": "portal", "price": 1, "cur": "diamond"},
-        {"item": "gemslot_change", "price": 5, "cur": "diamond"},
-        {"item": "skillslot_change", "price": 5, "cur": "diamond"},
-        {"item": "hero_auto1", "price": 8, "cur": "diamond"},
-        {"item": "key_all", "price": 7500, "cur": "gold", "_assumed": "판매가 750G ×10"},
-        {"item": "slot_reset", "price": 2500, "cur": "gold", "_assumed": "판매가 250G ×10"}
+        {
+          "item": "jem_random",
+          "price": 15,
+          "cur": "diamond"
+        },
+        {
+          "item": "jem_random",
+          "price": 125,
+          "cur": "diamond",
+          "bundle": 10,
+          "label": "진귀한 보석 상자 x10"
+        },
+        {
+          "item": "level_down",
+          "price": 1000,
+          "cur": "gold"
+        },
+        {
+          "item": "gem_init",
+          "price": 1500,
+          "cur": "gold"
+        },
+        {
+          "item": "namechange",
+          "price": 33,
+          "cur": "diamond"
+        },
+        {
+          "item": "dragon_namechange",
+          "price": 10,
+          "cur": "diamond",
+          "_assumed": "🟦 사용자 확정 2026-07-31. 원작 가격은 서버 소실 — 상점표·위키 어디에도 드래곤 포스가 없다. 깃펜(상태창 이름판) 구매 팝업도 이 값을 읽는다."
+        },
+        {
+          "item": "portal",
+          "price": 3,
+          "cur": "diamond",
+          "bundle": 5,
+          "label": "고대 포탈 x5",
+          "_assumed": "🟦 사용자 확정 2026-07-31 — 5개 묶음 3다이아. 원작 판매가는 서버 소실. 낱개를 안 파는 이유: 포탈 1개 = 소환 1회이고 다이아 직접 소환도 1다이아라(stages.json 8 `summon.cash`) 낱개 1다이아는 같은 상품을 두 줄로 늘어놓는 것뿐이다. 묶음이 회당 0.6다이아로 싸지는 것이 유일한 차이."
+        },
+        {
+          "item": "gemslot_change",
+          "price": 5,
+          "cur": "diamond"
+        },
+        {
+          "item": "skillslot_change",
+          "price": 5,
+          "cur": "diamond"
+        },
+        {
+          "item": "hero_auto1",
+          "price": 8,
+          "cur": "diamond"
+        },
+        {
+          "item": "key_all",
+          "price": 7500,
+          "cur": "gold",
+          "_assumed": "판매가 750G ×10"
+        },
+        {
+          "item": "slot_reset",
+          "price": 2500,
+          "cur": "gold",
+          "_assumed": "판매가 250G ×10"
+        }
       ],
       "_cut_note": "원작 ETC 의 '빛나는 초월의 마석[특수장비/전용장비/아티팩트]' 3종은 후기판 초월 시스템 아이템이라 우리 아이템 DB(items.json 257종)에 없다."
     },

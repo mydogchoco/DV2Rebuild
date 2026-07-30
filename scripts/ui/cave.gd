@@ -615,10 +615,8 @@ func _dragon_label(uid: int) -> String:
 	var d: Dictionary = UserDB.get_dragon(uid)
 	if d.is_empty():
 		return "다른 드래곤"
-	var nick := String(d.get("nickname", ""))
-	if nick != "":
-		return nick
-	return String(Data.get_dragon(int(d.get("id", 0))).get("name", "드래곤"))
+	# 커스텀 종(600·700)은 종 이름이 세이브에 있다(소환 재료를 따름) → Icons 가 푼다.
+	return Icons.name_of(d)
 
 ## slot_id 칸의 저장 슬롯 dict(옵션·등급·강화횟수 보관). 없으면 {}.
 func _equip_slot_data(eqf: Dictionary, slot_id: String) -> Dictionary:
@@ -718,7 +716,11 @@ func _open_equip_select(slot_id: String) -> void:
 	col.custom_minimum_size.x = BW - 100; scroll.add_child(col)
 	var cat: Dictionary = Equipment.catalog(Data.equipment)
 	var group_kr := {"basic": "일반 장비", "event": "이벤트 장비", "artifact": "아티팩트",
-		"special:skull": "해골요새 장비", "special:balrog": "발록 장비", "special:fiod": "피오드 장비"}
+		"special:skull": "해골요새 장비", "special:balrog": "발록 장비", "special:fiod": "피오드 장비",
+		"exclusive": "전용 장비"}
+	# 전용 장비는 **대응 종에게만** 들어간다(사용자 확정 2026-07-31) — 다른 드래곤의 목록에는
+	# 아예 띄우지 않는다. 판정은 로직 계층(Equipment.species_allows)이 하고 여기선 거르기만.
+	var species_id := int(UserDB.get_dragon(uid).get("id", 0))
 	# 보유 장비만 후보다. ⚠️ 이제 **개체 단위**로 나열한다 — 같은 깃털이라도 희귀도·옵션·귀속이
 	# 다르면 인벤 키가 다르고 성능도 다르기 때문이다(§Equipment 인벤 키 규약).
 	var rows_all: Array = []        # [{ik, n, cat_item, meta}]
@@ -729,6 +731,8 @@ func _open_equip_select(slot_id: String) -> void:
 			continue
 		var it0: Dictionary = cat[ck]
 		if not Equipment.can_equip(it0, slot_id):
+			continue
+		if not Equipment.species_allows(it0, species_id):
 			continue
 		rows_all.append({"ik": String(ik), "n": n, "it": it0,
 			"meta": Equipment.item_key_meta(String(ik))})
@@ -741,7 +745,8 @@ func _open_equip_select(slot_id: String) -> void:
 		return String((a["it"] as Dictionary)["name"]) < String((b["it"] as Dictionary)["name"]))
 	var grades: Array = Data.equipment.get("option", {}).get("grades", [])
 	var listed := 0
-	for grp: String in ["basic", "special:balrog", "special:fiod", "special:skull", "event", "artifact"]:
+	for grp: String in ["basic", "special:balrog", "special:fiod", "special:skull", "event",
+			"exclusive", "artifact"]:
 		var rows: Array = []
 		for r in rows_all:
 			if String(((r as Dictionary)["it"] as Dictionary).get("group", "")) == grp:
@@ -789,7 +794,7 @@ func _open_equip_select(slot_id: String) -> void:
 				var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
 				var prev := _equip_slot_data(cur, slot_id)
 				var next: Dictionary = Equipment.equip(
-					cur, slot_id, k, Data.equipment, Equipment.item_key_meta(use_key))
+					cur, slot_id, k, Data.equipment, Equipment.item_key_meta(use_key), species_id)
 				if next.is_empty():
 					_toast("이 칸에는 낄 수 없는 장비입니다")
 					return
@@ -845,7 +850,7 @@ func _open_dragon_detail() -> void:
 ## 상태창의 슬롯/버튼 → 동굴이 이미 가진 팝업으로 연결(원작 `setClickInfo` 자리).
 func _on_status_action(action: String, arg: int) -> void:
 	match action:
-		"rename": _open_rename()
+		"rename": _rename_gate()
 		"equip": _open_equipment()
 		"gem":
 			# 빈 칸이면 가방 '젬' 탭, 찬 칸이면 해제 확인(원작 onClickGemDelete).
@@ -979,7 +984,7 @@ func _dragon_select_cell(d: Dictionary, cm: Dictionary, on_select: Callable, dis
 	for si in mini(slots, 4):
 		var sh := _atlas_sprite("common_ui", shapes[si], cm, 0.5)
 		if sh: sh.position = Vector2(40 + si * 24, 122); cell.add_child(sh)
-	var nm := Label.new(); nm.text = "%s Lv.%d" % [String(Data.get_dragon(int(d["id"])).get("name", d["id"])), int(d["level"])]
+	var nm := Label.new(); nm.text = "%s Lv.%d" % [Icons.species_name(int(d["id"])), int(d["level"])]
 	nm.add_theme_font_size_override("font_size", 14); nm.add_theme_color_override("font_color", Color(0.3, 0.2, 0.05))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; nm.position = Vector2(0, 138); nm.size = Vector2(150, 22)
 	cell.add_child(nm)
@@ -1348,7 +1353,7 @@ func _awaken_cell(d: Dictionary, cm: Dictionary) -> Control:
 	if awk:
 		var star := _atlas_sprite("common_ui", "common_btn_star", cm, 0.7)
 		if star: star.position = Vector2(114, 30); cell.add_child(star)
-	var nm := Label.new(); nm.text = "%s  Lv.%d" % [String(Data.get_dragon(int(d["id"])).get("name", d["id"])), int(d["level"])]
+	var nm := Label.new(); nm.text = "%s  Lv.%d" % [Icons.species_name(int(d["id"])), int(d["level"])]
 	nm.add_theme_font_size_override("font_size", 14)
 	nm.add_theme_color_override("font_color", Color(0.3, 0.2, 0.05) if awk else Color(0.5, 0.44, 0.34))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; nm.position = Vector2(0, 126); nm.size = Vector2(140, 22)
@@ -1401,7 +1406,7 @@ func _open_skills() -> void:
 	win.size = Vector2(BW, BH); win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
 	overlay.add_child(win)
 	# 타이틀(상단중앙 cocos(bgW*0.5,bgH-45)) + info(우측 +60)
-	var t := Label.new(); t.text = "%s의 스킬" % String(Data.get_dragon(int(a["id"])).get("name", "드래곤"))
+	var t := Label.new(); t.text = "%s의 스킬" % Icons.species_name(int(a["id"]))
 	t.add_theme_font_size_override("font_size", 24); t.add_theme_color_override("font_color", Color(1, 0.95, 0.7))
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.position = Vector2(BW * 0.5 - 90, BH - 435 - 16); t.size = Vector2(180, 32); win.add_child(t)
@@ -2065,7 +2070,7 @@ func _refresh_name_balloon() -> void:
 	var a := _active()
 	if a.is_empty(): return
 	var nick := String(a.get("nick", ""))
-	var species := str(Data.get_dragon(int(a["id"])).get("name", "드래곤"))
+	var species := Icons.species_name(int(a["id"]))
 	var txt := nick if nick != "" else species
 	var vis := _vis()
 	var font := ThemeDB.fallback_font
@@ -2203,6 +2208,7 @@ func _on_feed() -> void:
 	var a := _active()
 	if a.is_empty(): return
 	UserDB.add_exp(int(a["uid"]), 30)
+	UserDB.bump_quest("feeds")   # 마을 미션: 먹이 주기 카운트
 	if is_instance_valid(_dragon_ap) and _dragon_ap.has_animation("love"):
 		_dragon_ap.play("love")
 	_toast("냠냠!  +EXP 30")
@@ -2771,50 +2777,35 @@ func _open_quests() -> void:
 func _open_party() -> void:
 	PartySelect.open(self)
 
-## 원작 레벨업 화면 — **전체화면 오버레이**(팝업 아님). 랜덤롤 §K-1.
-## 참조: docs/ref/orig_image/levelup/Screenshot_2016-06-23-12-18-13.png(배치) ·
-##       docs/ref/orig_image/levelup/Screenshot_2017-02-27-11-12-03-1.png(리롤 블록: 회전화살표+"능력치 다시뽑기"+💎x2)
-##
-## ⚠️ 소유 클래스 미특정(2026-07-27). libgame.so 심볼 1,181개를 훑었으나 이 화면을 만드는 클래스가
-##    디컴파일된 397개 안에 없다 — StatusLayer=먹이/치료/피로, ResetLayer=젬·스킬 리셋,
-##    DragonEnchantResultLayer=마석 인챈트(MasicStoneGaugeText + dragon_enchant.spine_json)로 전부 다르다.
-##    CLAUDE.md §3 "자산 이름으로 담당 클래스를 추측하는 것 금지"에 따라 **클래스를 지목하지 않는다.**
-##    ⇒ 배치 근거 = 참조 스크린샷의 비율(ASSUMPTION, 원작 좌표 리터럴 아님)
-##      자산 근거 = asset_index.py 조회(아래 프레임은 전부 원본 — 자작 도형 없음)
-##
-## 사용 원본 프레임: common/backlight3 · common/item_box · common/lock · common/refresh ·
-##   common/refresh_bg1 · common/bt_levelupauto_off|on · common/diamond_small1 · common/check_btn ·
-##   common/btn_arrow2 · scene/cave/enchant_bar_bg2 · scene/cave/enchant_bar2 · scene/cave/gear ·
-##   scene/cave/gear_inside · scene/cave/gear_shadow · item/item_small/{level_up,level_down,bless_of_*}
-##
-## 문자열은 원작 stringsData_KR.xml 그대로:
-##   DragonReset "능력치 다시뽑기" · DragonResetMax1+2 "(MAX 확률 %s%%)" ·
-##   DragonResetConfirm "다이아를 소모하여 능력치를 다시 뽑으시겠습니까?" · DragonResetAuto "다시뽑기 자동"
+# ---------- 레벨업 화면과 함께 옮겼지만 동굴에도 남는 것 ----------
+# 드래곤 음성은 동굴 받침대 클릭(onClickDragon)도 쓰고, 보장 롤 표는 가방 아이템 사용 경로가 쓴다.
+
 const _LVUP_GUARANTEE := {
 	"bless_of_dragon": "max1", "bless_of_maia": "max2",
 	"bless_of_dersa": "triple", "bless_of_amor": "amor",
 }
-const _STAT_KR := {"hp": "생명력", "att": "공격력", "def": "방어력"}
-## 아이템 슬롯 순서. 원작 참조 스크린샷엔 슬롯이 2칸뿐이지만 우리 레벨 아이템은 6종이라
-## **보유한 종류를 모두** 노출하고 빈 칸만 lock 으로 채운다(ASSUMPTION: 슬롯 해금 규칙은 유실).
-const _LVUP_ITEMS := ["level_up", "bless_of_dragon", "bless_of_maia", "bless_of_dersa",
-	"bless_of_amor", "level_down"]
-const _LVUP_MIN_SLOTS := 2
-# (종전 _LVUP_AUTO_DELAY 는 폐기 — 자동 다시뽑기는 이제 연출 완료를 기다린다. 원작 timeScale 2.0 = sp 0.5)
-## UI 레이어 z. 드래곤 스파인은 슬롯마다 z_index 를 갖고 있어 기본 0 이면 UI 를 덮는다.
-const _LVUP_UI_Z := 40
 
-## 레벨업 화면 상태(한 번에 하나만 열린다).
-## 🔴 2026-07-27 회귀방지: 예전엔 `var redraw: Callable` 자기참조 람다로 갱신했다. GDScript 람다는
-##    **생성 시점의 값**을 캡처하므로 바깥 람다가 캡처한 `redraw` 는 대입 전의 *빈 Callable* 이었고,
-##    리롤·Lv±1·축복을 눌러도 화면이 전혀 갱신되지 않았다(골드와 gain_log 는 실제로 바뀌는데 표시만 그대로
-##    → "버튼이 안 먹는다"로 보였다). 재현: `shot_helper --shot=lvreroll`.
-##    **다시 람다로 되돌리지 말 것** — 갱신은 메서드(`_lvup_redraw`)로 둔다.
-var _lvup_ctx: Dictionary = {}
-## 레벨업 화면 좌측 드래곤의 holder — 진화(성장 단계 변경) 때 통째로 다시 세운다.
-var _lvup_dragon_holder: Node2D
-## 레벨업 연출(원작 ExpLayer 안무) 재생 중 플래그 — 재생 중 입력 차단·자동 루프 대기.
-var _lvup_fx_busy := false
+## 드래곤 보이스 — 성장 단계(baby/child/adult)에 맞는 번호를 `data/dragon_voices.json` 에서 찾는다.
+## 원작 표는 유실됐고(`info_dragon_v2` 의 voice 컬럼, Dragon.c:13478-13526),
+## **2026-07-31 부터 값은 사용자가 `docs/input/dragons/dragons.csv` 의 voice_해치/해츨링/성체
+## 열에 직접 적은 검수분**이다(종전의 블록순차+시드난수 임시배정은 대체됨).
+## 반영 도구 = `scripts/tools/build_dragon_voice_sheet.py --apply`. 빈 칸 = 그 단계 소리 없음.
+func _dragon_voice_no(dragon_id: int, level: int) -> int:
+	var tbl: Dictionary = Data.dragon_voices.get("voices", {})
+	var e: Dictionary = tbl.get(str(dragon_id), {})
+	if e.is_empty():
+		return 0
+	return int(e.get(Growth.stage_for_level(level), 0))
+
+
+func _play_dragon_voice(dragon_id: int, level: int) -> void:
+	var n := _dragon_voice_no(dragon_id, level)
+	if n > 0:
+		Bgm.sfx("voice%d" % n)
+
+
+# ---------- 원작 BMFont 라벨(레벨업 화면에서 함께 옮겨온 뒤 동굴에도 남긴 공용 서식) ----------
+# LevelUpScreen 으로 본체를 뽑아냈지만 이 두 헬퍼는 동굴 카드·목록·이름표도 쓴다.
 
 ## 원작 BMFont 로더(레벨업 화면용). `fixed_size` 가 박혀 있어 기본값으로는 font_size 를 무시
 ## → `fixed_size_scale_mode = ENABLED` 복제본을 캐시(main_hud.gd 와 같은 패턴).
@@ -2852,1054 +2843,30 @@ func _lvup_bm_style(l: Label, size: int, col: Color, font := "font_subtitle") ->
 	l.add_theme_color_override("font_color", col)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func _open_levelup() -> void:
+
+## 원작 레벨업 화면 — **전체화면 오버레이**(팝업 아님). 랜덤롤 §K-1.
+##
+## 🔀 2026-07-31: 이 화면의 본체(1,127줄, `_open_levelup` + `_lvup_*` 전부)를
+##   `scripts/ui/levelup_screen.gd`(`LevelUpScreen`)로 **뽑아냈다.**
+##   이유 = 사용자 지시 "탐험 레벨업 팝업이 여전히 자작 기반이야. 축복류 아이템과 똑같은
+##   레벨업 팝업을 공유해야 해." 종전엔 탐험/전투가 자작 모달(`LevelUpResult`)을 따로 썼다.
+##   원작 근거(ExpLayer 안무·프레임·문자열)는 전부 그 파일로 옮겨 갔다 —
+##   docs/ref/porting/LevelUpScreen.md.
+## 화면 인스턴스를 돌려준다 — 아이템 사용 경로가 곧바로 연출을 태울 수 있게(`play_fx`).
+func _open_levelup() -> LevelUpScreen:
 	var a := _active()
-	if a.is_empty(): return
-	var uid := int(a["uid"])
-	var ddef: Dictionary = Data.get_dragon(int(a["id"]))
-	var vis := _vis()
-	# 레이어를 둘로 나눈다 — 드래곤 **스파인은 슬롯마다 z_index 를 갖고** 있어서 같은 레이어에 두면
-	# z_index 를 아무리 올려도 UI 를 덮는 경우가 생긴다. CanvasLayer 순서는 z_index 를 항상 이긴다.
-	var overlay := CanvasLayer.new(); overlay.layer = 30; add_child(overlay)   # 딤 + 드래곤
-	var uilay := CanvasLayer.new(); uilay.layer = 31; add_child(uilay)         # 그 위의 모든 UI
-	# 원작도 뒤 동굴이 어둡게 깔린다(참조: 좌측 드래곤 슬롯 스트립이 어둡게 비침).
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.45); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(dim)
-	var win := Control.new()
-	win.size = vis
-	win.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	uilay.add_child(win)
-
-	# ── 좌측: 드래곤(스파인) — 딤 위에 밝게 선다. 원작 참조에서 화면 좌측 1/5 지점.
-	# 동굴 본체의 받침대(_stage)는 숨긴다 — 안 그러면 가운데 드래곤과 좌측 드래곤이 **둘 다** 보인다.
-	# 복구는 오버레이가 트리에서 빠질 때 무조건 걸어 둔다(✔ 말고 다른 경로로 닫혀도 동굴이 안 비게).
-	# ⚠️ 이 처리는 `_lvup_build_dragon` 이 아니라 **여기**에 있어야 한다 — 진화 때 좌측 드래곤만
-	#    다시 세우므로(_lvup_refresh_dragon) 빌더는 화면당 여러 번 불린다.
-	if is_instance_valid(_stage): _stage.visible = false
-	overlay.tree_exited.connect(func():
-		if is_instance_valid(_stage): _stage.visible = true)
-	var dragon_ap := _lvup_build_dragon(overlay, a, vis)
-
-	# ── LEVEL UP 아트(좌상단)
-	# ⚠️ `assets/converted/lvup_ui/level_up.png` 는 추출 아틀라스에 없는 자작본이다(CLAUDE.md §10 표 참조).
-	#    원본 워드아트를 확보하면 여기만 교체하면 된다.
-	var lup := TextureRect.new()
-	lup.texture = load("res://assets/converted/lvup_ui/level_up.png")
-	lup.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	lup.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	lup.size = Vector2(vis.x * 0.30, vis.y * 0.20)
-	lup.position = Vector2(vis.x * 0.03, vis.y * 0.03)
-	lup.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lup.z_index = _LVUP_UI_Z        # 드래곤 스파인(슬롯별 z_index)이 UI 를 덮지 않게
-	win.add_child(lup)
-
-	# ── 하단 전폭 텍스트박스(원작 BattleTextBox 사양)
-	# 프레임 자체가 반투명이라 동굴 하단 메뉴(아이템/젬/스킬)가 비친다 → 뒤에 불투명 판을 깐다.
-	# 원작 참조에서도 이 박스는 불투명하다.
-	var tback := ColorRect.new()
-	tback.color = Color(0.05, 0.04, 0.03, 1.0)
-	tback.size = Vector2(vis.x, 120.0)
-	tback.position = Vector2(0.0, vis.y - 120.0)
-	tback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tback.z_index = _LVUP_UI_Z
-	win.add_child(tback)
-	var tbox := NinePatchRect.new()
-	tbox.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
-	tbox.patch_margin_left = 10; tbox.patch_margin_right = 10
-	tbox.patch_margin_top = 4; tbox.patch_margin_bottom = 4
-	tbox.size = Vector2(vis.x - 10.0, 120.0)
-	tbox.position = Vector2(5.0, vis.y - 120.0)
-	tbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tbox.z_index = _LVUP_UI_Z
-	win.add_child(tbox)
-	var tlabel := Label.new()
-	tlabel.add_theme_font_size_override("font_size", 28)
-	tlabel.add_theme_color_override("font_color", Color.WHITE)
-	tlabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tlabel.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tlabel.size = Vector2(tbox.size.x - 20.0, 112.0); tlabel.position = Vector2(10.0, 4.0)
-	tbox.add_child(tlabel)
-
-	# ── 우상단 빨간 ✔ — 원작 `common/check_btn`(닫기 X 가 아니라 확인 체크다).
-	var okb := TextureButton.new()
-	var okt := "res://assets/converted/common_ui/common_check_btn.tres"
-	if ResourceLoader.exists(okt):
-		okb.texture_normal = load(okt)
-		okb.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
-		okb.position = Vector2(vis.x - 30.0 - 44.0 * Design.ASSET_SCALE, 20.0)
-	else:
-		okb.position = Vector2(vis.x - 60.0, 20.0)
-	okb.pressed.connect(func():
-		Bgm.sfx("effect_button")
-		_lvup_ctx = {}
-		_lvup_dragon_holder = null
-		if is_instance_valid(_stage): _stage.visible = true   # 숨겼던 동굴 받침대 복구
-		if is_instance_valid(overlay): overlay.queue_free()
-		if is_instance_valid(uilay): uilay.queue_free())
-	uilay.add_child(okb)
-
-	var body := Control.new()
-	body.size = vis
-	body.position = Vector2.ZERO
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 배경이 클릭을 먹지 않게(자식 버튼만 받는다)
-	body.z_index = _LVUP_UI_Z
-	win.add_child(body)
-
-	_lvup_ctx = {"uid": uid, "ddef": ddef, "vis": vis, "body": body, "tlabel": tlabel,
-		"overlay": overlay, "reroll": 0, "art": lup, "win": win, "dragon_ap": dragon_ap}
-	_lvup_redraw()
-
-## 상단 워드아트를 잠시 다른 문구로 바꾼다 — 리롤 = "LEVEL RESET"(참조 스크린샷).
-## ⚠️ RESET/DOWN 워드아트는 추출 에셋에 없다(CLAUDE.md §10) → **TTF 문구**로 낸다.
-##    LEVEL UP 아트조차 스크린샷에서 잘라낸 자작본이라, 원본 확보 시 둘 다 여기서 교체한다.
-func _lvup_word_banner(text: String, secs := 1.6, col := Color(0.72, 0.94, 1.0),
-		outline := Color(0.06, 0.24, 0.42, 1.0)) -> void:
-	if _lvup_ctx.is_empty(): return
-	var win: Control = _lvup_ctx.get("win")
-	var art: TextureRect = _lvup_ctx.get("art")
-	if not is_instance_valid(win) or not is_instance_valid(art): return
-	if is_instance_valid(_lvup_ctx.get("word")):
-		(_lvup_ctx["word"] as Node).queue_free()
-	art.visible = false
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 52)
-	l.add_theme_color_override("font_color", col)
-	l.add_theme_color_override("font_outline_color", outline)
-	l.add_theme_constant_override("outline_size", 12)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.size = art.size
-	l.position = art.position
-	l.pivot_offset = l.size * 0.5
-	l.scale = Vector2(0.7, 0.7)
-	l.z_index = _LVUP_UI_Z
-	win.add_child(l)
-	_lvup_ctx["word"] = l
-	var t := l.create_tween()
-	t.tween_property(l, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_interval(secs)
-	t.tween_callback(func():
-		if is_instance_valid(art): art.visible = true
-		if is_instance_valid(l): l.queue_free())
-
-## 좌측 드래곤 — 원작 참조에선 딤 위에 드래곤이 밝게 서 있고 뒤에서 후광이 돈다.
-## 동굴 받침대의 드래곤은 딤 아래로 어두워지므로 오버레이에 같은 스파인 씬을 한 번 더 세운다.
-## 후광 = `common/backlight3` + 6초 1회전(원작 DragonEnchantResultLayer.c:640 `CCRotateBy::create(6.0, 360.0)`
-##   — 다른 화면이지만 같은 프레임을 쓰는 원작 회전 파라미터라 그대로 따른다).
-## (딤/받침대 숨김은 `_open_levelup` 담당 — 이 함수는 진화 때 다시 불린다.)
-func _lvup_build_dragon(parent: Node, a: Dictionary, vis: Vector2) -> AnimationPlayer:
-	# 내부는 동굴과 같은 1080 공간을 그대로 쓴다(받침대/드래곤 좌표를 재계산하지 않게).
-	var holder := Node2D.new()
-	_lvup_dragon_holder = holder   # 진화 시 통째로 갈아끼우기 위해 보관
-	holder.scale = Vector2(S1080, S1080)
-	# 동굴 받침대(_stage)는 `vis.y/2 - 8` 인데, 여기선 **love 모션이 크게 일어서서** 머리가
-	# 화면 위로 잘린다 → 그만큼 아래로 내린다(받침대는 하단 텍스트박스 위에 그대로 들어간다).
-	holder.position = Vector2(vis.x * 0.22, vis.y / 2.0 + 34.0)
-	parent.add_child(holder)
-	var bl := _atlas_sprite("common_ui", "common_backlight3", _man_common(), 1.35)
-	if bl and bl.texture:
-		bl.position = Vector2(0, 40)
-		bl.modulate = Color(1, 1, 1, 0.5)
-		holder.add_child(bl)
-		bl.create_tween().set_loops().tween_property(bl, "rotation", TAU, 6.0).from(0.0)
-	# 받침대 = 동굴과 같은 stand 스킨/정규화 규칙(_refresh_dragon 과 동일).
-	var si: int = UserDB.get_skin("stand_skin") % STAND_COUNT
-	var info = _stand_manifest.get("stand_stand%d" % (si + 1), {})
-	var pw: float = maxf(1.0, float(info.get("w", 305)))
-	var ph: float = maxf(1.0, float(info.get("h", 120)))
-	var psc := 620.0 / pw
-	var ped := _atlas_sprite("stand_ui", "stand_stand%d" % (si + 1), _stand_manifest, psc)
-	if ped:
-		ped.position = Vector2(0, 357.0 - ph * psc / 2.0)
-		holder.add_child(ped)
-	var stage_name := Growth.stage_for_level(int(a["level"]))
-	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
-	if ResourceLoader.exists(path):
-		var d2 := Node2D.new()
-		d2.scale = Vector2(1.9, 1.9)      # 동굴 받침대와 동일(1080 공간 기준)
-		d2.position = Vector2(0, -7)
-		holder.add_child(d2)
-		var inst = load(path).instantiate()
-		d2.add_child(inst)
-		# 원작은 **대기(wait)가 아니라 상호작용(love) 모션**을 반복한다(사용자 확인 2026-07-27) —
-		# 동굴에서 드래곤을 눌렀을 때와 같은 모션이다(CaveScene::onClickDragon 이 "love" 재생).
-		# 보이스도 함께 반복한다(원작 `Dragon::getDragonVoiceDelay` 만큼 늦춰 재생).
-		# ⚠️ Animation 리소스는 동굴 받침대 인스턴스와 **공유**될 수 있다 → `loop_mode` 를 건드리면
-		#    동굴 쪽 love 까지 무한루프가 된다. 리소스를 고치지 말고 끝날 때마다 다시 재생한다.
-		var dap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
-		if dap:
-			if dap.has_animation("love"):
-				dap.animation_finished.connect(_lvup_loop_love.bind(dap))
-				_lvup_play_love(dap)
-			elif dap.has_animation("wait"):
-				dap.play("wait")
-			return dap
-	else:
-		# 스파인 미빌드 종은 초상 폴백(동굴 받침대와 같은 규칙 — 어떤 드래곤도 안 보이지 않게).
-		var por := _portrait_sprite(int(a["id"]), stage_name, 2.6, int(a.get("skin", 0)))
-		if por:
-			por.position = Vector2(0, -30)
-			holder.add_child(por)
-	return null
-
-## 진화(성장 단계 변경)로 다른 스파인을 세워야 할 때 좌측 드래곤만 갈아끼운다.
-## 🔴 2026-07-28 회귀방지: 예전엔 레벨업 화면이 열릴 때 세운 스파인을 그대로 뒀다 →
-##    레벨 10/20 을 넘겨도 해치 모습 그대로였고, **동굴을 나갔다 들어와야**(=_refresh) 바뀌었다.
-func _lvup_refresh_dragon() -> void:
-	if _lvup_ctx.is_empty(): return
-	var overlay = _lvup_ctx.get("overlay")
-	if not is_instance_valid(overlay): return
-	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-	if d.is_empty(): return
-	if is_instance_valid(_lvup_dragon_holder):
-		# remove_child 를 함께 해야 같은 프레임에 옛 드래곤이 남아 겹치지 않는다(queue_free 는 프레임 끝).
-		var old := _lvup_dragon_holder
-		if old.get_parent(): old.get_parent().remove_child(old)
-		old.queue_free()
-	_lvup_dragon_holder = null
-	_lvup_ctx["dragon_ap"] = _lvup_build_dragon(overlay, d, _lvup_ctx["vis"])
-
-## 레벨업 화면의 드래곤 상호작용 모션 — love 를 **보이스와 함께 반복**한다.
-## 원작: `CaveScene::onClickDragon` 이 love 재생 + `Dragon::getDragonVoiceDelay` 만큼 늦춰 보이스.
-func _lvup_play_love(dap: AnimationPlayer) -> void:
-	if not is_instance_valid(dap): return
-	dap.play("love")
-	_lvup_dragon_voice()
-
-## love 1회가 끝나면 다시 재생(리소스 loop_mode 를 건드리지 않는 반복 방식).
-func _lvup_loop_love(anim: StringName, dap: AnimationPlayer) -> void:
-	if _lvup_ctx.is_empty() or not is_instance_valid(dap): return
-	if anim != &"love": return
-	_lvup_play_love(dap)
-
-## 드래곤 보이스 — 성장 단계(baby/child/adult)에 맞는 번호를 `data/dragon_voices.json` 에서 찾는다.
-## ⚠️ 그 표는 **유실 데이터의 재구성**이다(원작 `info_dragon_v2` 의 voice 컬럼, Dragon.c:13478-13526).
-##    성체는 사용자 앵커 2개(라 솔라=voice4 · 루시퍼=voice2)로 맞춘 블록 순차,
-##    해치/해츨링은 시드 난수 = **추후 수정 대상**. 규칙은 `scripts/tools/build_dragon_voices.py` 참조.
-func _dragon_voice_no(dragon_id: int, level: int) -> int:
-	var tbl: Dictionary = Data.dragon_voices.get("voices", {})
-	var e: Dictionary = tbl.get(str(dragon_id), {})
-	if e.is_empty():
-		return 0
-	return int(e.get(Growth.stage_for_level(level), 0))
-
-func _play_dragon_voice(dragon_id: int, level: int) -> void:
-	var n := _dragon_voice_no(dragon_id, level)
-	if n > 0:
-		Bgm.sfx("voice%d" % n)
-
-func _lvup_dragon_voice() -> void:
-	if _lvup_ctx.is_empty(): return
-	var ddef: Dictionary = _lvup_ctx.get("ddef", {})
-	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-	_play_dragon_voice(int(ddef.get("id", 0)), int(d.get("level", 1)))
-
-## 아틀라스 프레임을 지정 크기로 늘려 그리는 TextureRect(게이지처럼 가로로 늘리는 프레임용).
-func _lvup_stretch(name: String, dir: String, size: Vector2) -> TextureRect:
-	var t := TextureRect.new()
-	var p := "res://assets/converted/%s/%s.tres" % [dir, name]
-	if ResourceLoader.exists(p): t.texture = load(p)
-	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_SCALE
-	t.material = _pma
-	t.size = size
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return t
-
-## 리롤 비용(원작 관찰: 다이아 x2). data 노브 = level_curve.json roll.reroll_cost.
-func _lvup_reroll_cost() -> Dictionary:
-	var rc: Dictionary = (Data.level_curve.get("roll", {}) as Dictionary).get("reroll_cost", {})
-	return {"kind": String(rc.get("kind", "diamond")), "amount": int(rc.get("amount", 2))}
-
-## 화면 갱신(레벨/스탯/아이템/리롤 확률). 람다가 아니라 **메서드**다 — 위 _lvup_ctx 주석 참조.
-## fx 를 주면(레벨업/리롤 직후) 우측 열(▶·새 값·(+n/m)·MAX 뱃지)을 숨긴 채 그려 두고
-## `_lvup_fx_timeline` 이 원작 ExpLayer 안무로 순차 공개한다(docs/ref/porting/LevelUpScreen.md).
-func _lvup_redraw(fx: Dictionary = {}) -> void:
-	if _lvup_ctx.is_empty(): return
-	var body: Control = _lvup_ctx.get("body")
-	var tlabel: Label = _lvup_ctx.get("tlabel")
-	if not is_instance_valid(body) or not is_instance_valid(tlabel):
-		_lvup_ctx = {}
-		return
-	# remove_child 를 함께 해야 같은 프레임에 옛 노드가 남아 겹치지 않는다(queue_free 는 프레임 끝에 처리).
-	for c in body.get_children():
-		body.remove_child(c)
-		c.queue_free()
-
-	var uid := int(_lvup_ctx["uid"])
-	var ddef: Dictionary = _lvup_ctx["ddef"]
-	var vis: Vector2 = _lvup_ctx["vis"]
-	var d := UserDB.get_dragon(uid)
-	if d.is_empty(): return
-	var level := int(d.get("level", 1))
-	var awakened := bool(d.get("awakened", false))
-	var cap := Growth.level_cap(awakened)
-	var max_stats := Growth.tier_growth(ddef, Data.stat_table)
-	var gain_log: Array = d.get("gain_log", [])
-	var roll_cfg: Dictionary = Data.level_curve.get("roll", {})
-	var COL_X := vis.x * 0.45      # 우측 스탯 열 시작(참조 405/900 = 0.45)
-
-	# ── 헤더: 이름 + 등급(원작 "말근달님은혜♡    7.1")
-	var nick := String(d.get("nickname", ""))
-	if nick == "": nick = String(d.get("nick", ""))
-	var t := Label.new()
-	t.text = nick if nick != "" else String(ddef.get("name", "드래곤"))
-	_lvup_style(t, 26, Color.WHITE)
-	t.position = Vector2(COL_X, vis.y * 0.13); body.add_child(t)
-	var gr := Label.new()
-	gr.text = "%.1f" % _grade_of(d, ddef)      # 🔴 레벨업 롤(gain_log) 포함 — §K-10
-	# 등급 숫자 = 원작 `font/font_rating.fnt`(ExpLayer::setExpStart, 22pt 숫자 전용)
-	_lvup_bm_style(gr, 30, Color(1.0, 0.62, 0.12), "font_rating")
-	gr.position = Vector2(COL_X + 250, vis.y * 0.13); body.add_child(gr)
-
-	# ── EXP 게이지 — 원작 EXP 게이지 3종 세트 `common/bar_bg2` + `common/bar_exp` + `common/bar_cover`.
-	#    근거: EvolLayer.c:1232/1251/1277 이 세 프레임을 그대로 겹쳐 쓴다(DragonAwaken·LaboratoryScene 도 bg2+exp).
-	#    (예전엔 9patch/bar1+bar_bg1 자작 조합이었다. `scene/cave/enchant_bar2` 는 마석 인챈트 게이지라 다른 것)
-	var ey := vis.y * 0.21
-	var expw := _atlas_sprite("adventure_ui", "scene_adventure_bonus_exp_mini",
-		_man_adventure(), 0.8 * Design.ASSET_SCALE)
-	if expw: expw.position = Vector2(COL_X + 26, ey + 12); body.add_child(expw)
-	var bar_size := Vector2(300.0, 18.0)
-	var bar_pos := Vector2(COL_X + 60, ey + 3)
-	var ebg := _lvup_stretch("common_bar_bg2", "common_ui", bar_size)
-	ebg.position = bar_pos; body.add_child(ebg)
-	var need := LevelSystem.exp_to_next(Data.level_curve, level)
-	var cur := int(d.get("exp", 0))
-	var pct := clampf(float(cur) / maxf(1.0, float(need)), 0.0, 1.0)
-	var clip := Control.new()                       # 채움은 클리핑으로(프레임을 늘리지 않고 그대로 쓰기 위해)
-	clip.position = bar_pos
-	clip.size = Vector2(bar_size.x * pct, bar_size.y)
-	clip.clip_contents = true
-	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(clip)
-	var efill := _lvup_stretch("common_bar_exp", "common_ui", bar_size)
-	clip.add_child(efill)
-	var ecov := _lvup_stretch("common_bar_cover", "common_ui", bar_size)   # 광택 오버레이
-	ecov.position = bar_pos; body.add_child(ecov)
-	var etx := Label.new()
-	etx.text = "%d / %d" % [cur, need]
-	# EXP 카운터 = 원작 font_common(ExpLayer::setExpGageUpShow → NumberingNoneActLabel)
-	_lvup_bm_style(etx, 18, Color.WHITE, "font_common")
-	etx.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	etx.size = bar_size; etx.position = bar_pos
-	body.add_child(etx)
-
-	# ── 스탯표: `이름  before ▶ after (+d/m)` — 원작 형식 그대로.
-	# 실 스탯 = base + 영구base보정 + Σgain_log (Growth.main_stats). 🔴 예전엔 결정론 compute_stats 를
-	# 썼는데 그건 gain_log 를 안 봐서 **리롤해도 좌우 수치가 안 바뀌었다**(캐릭터 시트와도 불일치).
-	var sb2: Dictionary = d.get("stat_bonus", {})
-	var base_bonus: Dictionary = sb2.get("base", {})
-	var last: Dictionary = gain_log[gain_log.size() - 1] if not gain_log.is_empty() else {}
-	var now_st := Growth.main_stats(ddef, Data.stat_table, gain_log, base_bonus)
-	var prev_log := gain_log.slice(0, maxi(0, gain_log.size() - 1))
-	var prev_st := Growth.main_stats(ddef, Data.stat_table, prev_log, base_bonus)
-	var prev_lv := maxi(1, level - 1)
-	var rows := [["레벨", Color(1.0, 0.83, 0.25), str(prev_lv), str(level), "", false, false]]
-	var maxed_n := 0
-	for spec in [["hp", "생명력", Color(0.55, 1.0, 0.55)], ["att", "공격력", Color(1.0, 0.5, 0.45)],
-			["def", "방어력", Color(0.5, 0.75, 1.0)]]:
-		var k: String = spec[0]
-		var mx := int(max_stats.get(k, 1))
-		var gain := int(last.get(k, int(now_st[k]) - int(prev_st[k])))
-		var trans := gain > mx
-		var maxed := gain >= mx
-		if maxed: maxed_n += 1
-		rows.append([String(spec[1]), spec[2], str(int(prev_st[k])), str(int(now_st[k])),
-			"(+%d/%d)" % [gain, mx], maxed, trans])
-	var yy := vis.y * 0.29
-	# MAX 배지는 **최대치에 도달한 그 스탯 줄**에 붙인다(사용자 지적 2026-07-27).
-	# 예전엔 배지를 위에서부터 순서대로 쌓아서, 공격이 미달인데 두 번째 배지가 공격 줄에 떠 헷갈렸다.
-	# 서체 = 원작 font_subtitle(ExpLayer 전반), MAX 뱃지 글자 = 흰색·초월만 #EE33FF(ExplayerMaxBonus).
-	var fx_on := not fx.is_empty()
-	var fx_rows: Array = []
-	var badge_no := 0
-	for i in rows.size():
-		var ry := yy + i * 44.0
-		var nm2 := Label.new(); nm2.text = String(rows[i][0])
-		_lvup_bm_style(nm2, 26, rows[i][1])
-		nm2.position = Vector2(COL_X, ry); body.add_child(nm2)
-		var bv := Label.new(); bv.text = String(rows[i][2])
-		_lvup_bm_style(bv, 26, Color.WHITE)
-		bv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		bv.size = Vector2(96, 32); bv.position = Vector2(COL_X + 100, ry); body.add_child(bv)
-		var ar := _atlas_sprite("common_ui", "common_btn_arrow2", _man_common(), 0.75)   # ▶
-		if ar: ar.position = Vector2(COL_X + 224, ry + 16); body.add_child(ar)
-		var av := Label.new(); av.text = String(rows[i][3])
-		_lvup_bm_style(av, 26, Color.WHITE)
-		av.position = Vector2(COL_X + 252, ry); body.add_child(av)
-		av.pivot_offset = Vector2(0.0, 20.0)    # 롤 확정 팝의 축 = 왼쪽 세로중앙(원작 anchor(0,0.5))
-		var dl: Label = null
-		if String(rows[i][4]) != "":
-			dl = Label.new(); dl.text = String(rows[i][4])
-			# 원작 ExplayerValuesUp 계열: 기본 흰색, 초월(Bonus)만 #EE33FF
-			_lvup_bm_style(dl, 20, Color("EE33FF") if bool(rows[i][6]) else Color.WHITE)
-			dl.position = Vector2(COL_X + 340, ry + 5); body.add_child(dl)
-			dl.pivot_offset = Vector2(0.0, 15.0)
-		# ── MAX 배지 — 원작 `common/max_bg` + `%dMAX(+)`(ExpLayer::setFullStatus).
-		#    맥스를 찍은 **그 스탯 줄**에 붙고, 번호는 찍은 순서(1MAX/2MAX/3MAX). 초월이면 `+`.
-		#    스프라이트+라벨을 Node2D 로 묶는다 — 연출(중앙 10배 → 줄로 비행)이 통째로 움직이게.
-		var bd: Node2D = null
-		if bool(rows[i][5]):
-			badge_no += 1
-			bd = Node2D.new()
-			bd.position = Vector2(COL_X + 470.0, ry + 16.0)
-			body.add_child(bd)
-			var gbg := _atlas_sprite("common_ui", "common_max_bg", _man_common(), Design.ASSET_SCALE * 0.8)
-			if gbg: bd.add_child(gbg)
-			var mb := Label.new()
-			mb.text = "%dMAX%s" % [badge_no, "+" if bool(rows[i][6]) else ""]
-			_lvup_bm_style(mb, 17, Color("EE33FF") if bool(rows[i][6]) else Color.WHITE)
-			mb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			mb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			mb.size = Vector2(110, 28); mb.position = Vector2(-55, -14)
-			bd.add_child(mb)
-		if fx_on:
-			# 우측 열은 숨긴 채 시작 — 타임라인이 원작 순서(레벨→0.4s→생명→공격→방어)로 공개
-			if ar: ar.modulate.a = 0.0
-			av.modulate.a = 0.0
-			if dl: dl.modulate.a = 0.0
-			if bd: bd.visible = false
-			fx_rows.append({"is_level": i == 0, "arrow": ar, "av": av,
-				"final": String(rows[i][3]), "dl": dl, "maxed": bool(rows[i][5]),
-				"trans": bool(rows[i][6]), "badge": bd,
-				"badge_pos": Vector2(COL_X + 470.0, ry + 16.0), "ry": ry})
-
-	# ── 스탯표 아래 아이템 슬롯(원작: 아이콘 슬롯 + 잠긴 칸은 자물쇠)
-	var can_up := level < cap
-	var slot_y := vis.y * 0.575
-	var slots := 0
-	for key in _LVUP_ITEMS:
-		if UserDB.item_count(key) <= 0:
-			continue
-		_lvup_item_slot(body, key, Vector2(COL_X + 6 + slots * 86.0, slot_y), can_up, level)
-		slots += 1
-	for i in maxi(0, _LVUP_MIN_SLOTS - slots):
-		_lvup_locked_slot(body, Vector2(COL_X + 6 + (slots + i) * 86.0, slot_y))
-
-	# ── 하단 안내 문장
-	if gain_log.is_empty():
-		tlabel.text = "레벨업 이력이 없습니다.  레벨 아이템으로 레벨을 올리세요."
-	else:
-		var dn2 := String(ddef.get("name", "드래곤"))
-		tlabel.text = "%s%s 레벨 %d%s 되었습니다.  (MAX %d)" % [dn2,
-			_josa_c(dn2, "은", "는"), level, _josa_c(str(level), "이", "가"), maxed_n]
-
-	# ── 우하단: AUTO + 능력치 다시뽑기(원작 참조 11-12-03-1)
-	_lvup_build_reroll(body, vis, roll_cfg, gain_log.is_empty())
-
-	# ── 연출 모드면 타임라인 시작(원작 ExpLayer 안무 — 포팅 카드 "연출 안무" 절)
-	if fx_on:
-		fx["rows"] = fx_rows
-		_lvup_fx_timeline(fx)
-
-## 라벨 공통 서식(원작처럼 굵은 외곽선). 원작 BMFont 는 숫자 전용이라 한글은 TTF(CLAUDE.md §10).
-func _lvup_style(l: Label, size: int, col: Color, outline := Color(0, 0, 0, 0.9)) -> void:
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", col)
-	l.add_theme_color_override("font_outline_color", outline)
-	l.add_theme_constant_override("outline_size", 5 if size >= 24 else 4)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-# ═════════ 레벨업 연출 타임라인 — 원작 ExpLayer 안무 이식 ═════════
-# 근거: docs/ref/porting/LevelUpScreen.md "연출 안무"(ExpLayer.c 디컴프 리터럴, 2026-07-29).
-# 대조 영상: docs/ref/LVupEffect/1~22.png(트리플맥스 1회). 시간·배율은 원작 값 그대로,
-# sp = 시간 배율(자동 다시뽑기 = 0.5 — 원작은 CCDirector timeScale 2.0).
-
-func _lvt(secs: float) -> void:
-	await get_tree().create_timer(maxf(0.01, secs)).timeout
-
-func _lvup_fx_timeline(fx: Dictionary) -> void:
-	_lvup_fx_busy = true
-	var sp := float(fx.get("sp", 1.0))
-	var win: Control = _lvup_ctx.get("win")
-	var vis: Vector2 = _lvup_ctx["vis"]
-	# 원작도 연출 중 터치를 막는다(ExpLayer 는 TouchController 로 전체 차단).
-	# ✔ 닫기 버튼은 win 이 아니라 uilay 소속이라 차단막도 uilay(맨 위)에 얹는다.
-	var blocker := Control.new()
-	blocker.set_anchors_preset(Control.PRESET_FULL_RECT)
-	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
-	blocker.z_index = _LVUP_UI_Z + 20
-	if is_instance_valid(win) and win.get_parent() != null:
-		win.get_parent().add_child(blocker)
-	fx["blocker"] = blocker
-	fx["maxn"] = 0
-	match String(fx.get("kind", "up")):
-		"up":
-			# 사운드는 워드아트 등장과 동시(setExpOrLevelUpValueLabel)
-			Bgm.sfx("effect_level_updown")
-			await _lvup_wordart_flight(sp)
-		"reset":
-			# 원작 effect_reset_spine "reset" 워드아트 — 스파인 미보유 → TTF 배너(CLAUDE.md §10)
-			Bgm.sfx("effect_level_updown")
-			_lvup_word_banner("LEVEL RESET", 1.4)
-			await _lvt(0.6 * sp)
-		_:
-			await _lvt(0.1 * sp)
-	if _lvup_ctx.is_empty(): return
-	# 성장 단계 경계(10/25) 통과 — 원작 setLevelWithRevolution: upeffect 스파인(미보유) 대신
-	# pt_rev_up 파티클 → 1.0s 후 드래곤 교체 → 1.0s 대기. (종전 "원작에 연출 없음" 주석은 오판)
-	if bool(fx.get("stage_changed", false)):
-		CocosParticle.spawn(self, "pt_rev_up", Vector2(vis.x * 0.20, vis.y * 0.55), 135, 0.6)
-		await _lvt(1.0 * sp)
-		if _lvup_ctx.is_empty(): return
-		_lvup_refresh_dragon()
-		_refresh_dragon()   # 동굴 받침대(숨김 상태)도 새 단계로
-		_refresh_list()
-		await _lvt(1.0 * sp)
-	if _lvup_ctx.is_empty(): return
-	# 행 공개(setShowStatus): 레벨 → 0.4s → 생명력 → 0.4s → 공격력 → 0.4s → 방어력
-	var rows: Array = fx.get("rows", [])
-	fx["pending"] = rows.size()
-	for i in rows.size():
-		if i > 0:
-			await _lvt(0.4 * sp)
-			if _lvup_ctx.is_empty(): return
-		_lvup_fx_row(fx, i)
-	# 행들은 병렬 코루틴 — 전부 확정(배지·컷인 포함)될 때까지 대기
-	while int(fx.get("pending", 0)) > 0:
-		if _lvup_ctx.is_empty(): return
-		await _lvt(0.1)
-	# 마지막 행 확정 +2.0s → 슬롯 개방 체크 → +0.3s → 마무리(setSkillSlotCheck/FullStatusFinish)
-	await _lvt(2.0 * sp)
-	if _lvup_ctx.is_empty():
-		_lvup_fx_busy = false
-		return
-	_lvup_fx_slot_open(fx)
-	await _lvt(0.3 * sp)
-	# 마무리 — 재-redraw 는 하지 않는다: 연출이 남긴 상태(맥동 ▶/뱃지, 부유 워드아트)가
-	# 곧 원작의 잔류 상태다(setArrowForever/setMaxForever/setFeatherForever 전부 무한 루프).
-	_lvup_fx_busy = false
-	var blk = fx.get("blocker")
-	if is_instance_valid(blk): blk.queue_free()
-
-## LEVEL UP 워드아트 비행 — 원작 effect_levelupdown_spine "up"(스파인 미보유 → 자작 크롭).
-## 경로 = setExpOrLevelUpValueLabel 리터럴. 원작 정착 scale 0.27 = 우리 정적 크기 1.0 ⇒ ×1/0.27.
-func _lvup_wordart_flight(sp: float) -> void:
-	var art: TextureRect = _lvup_ctx.get("art")
-	var vis: Vector2 = _lvup_ctx["vis"]
-	if not is_instance_valid(art):
-		await _lvt(0.5 * sp)
-		return
-	# 직전 비행/부유 트윈 정리(중첩 방지)
-	if _lvup_ctx.get("art_tweens") is Array:
-		for t in _lvup_ctx["art_tweens"]:
-			if t is Tween and t.is_valid(): t.kill()
-	var tws: Array = []
-	_lvup_ctx["art_tweens"] = tws
-	art.pivot_offset = art.size * 0.5
-	var home: Vector2 = Vector2(vis.x * 0.03, vis.y * 0.03)   # _open_levelup 의 정위치
-	var K := 1.0 / 0.27
-	art.position = Vector2(vis.x * 0.5 - art.size.x * 0.5, vis.y + 60.0)   # 원작 y=-160(화면 밖 아래)
-	art.scale = Vector2.ONE * (0.5 * K)
-	var y1 := art.position.y - (vis.y / 3.0 + 200.0)
-	var y2 := y1 - vis.y / 3.0
-	var tw := art.create_tween()
-	tws.append(tw)
-	tw.tween_property(art, "position:y", y1, 0.5 * sp)              # ① 상승
-	tw.parallel().tween_property(art, "scale", Vector2.ONE * (0.45 * K), 0.5 * sp)
-	tw.tween_property(art, "scale", Vector2.ONE * (0.4 * K), 0.5 * sp)   # ② 숨고르기
-	# ③ 정점 확대 — 원작은 이 시점 CCCallFuncN 로 FeatherLayer(깃털 12장)를 얹는다
-	tw.tween_callback(func():
-		if not _lvup_ctx.is_empty() and is_instance_valid(art):
-			_lvup_feather_burst(art.position + art.size * 0.5))
-	tw.tween_property(art, "position:y", y2, 0.5 * sp)
-	tw.parallel().tween_property(art, "scale", Vector2.ONE * (0.85 * K), 0.5 * sp)
-	tw.tween_property(art, "scale", Vector2.ONE * (0.7 * K), 0.25 * sp)  # ④ 수축
-	tw.tween_interval(0.25 * sp)
-	await tw.finished
-	if not is_instance_valid(art) or _lvup_ctx.is_empty(): return
-	# ⑤ 좌상단 정위치로 점프(원작 JumpTo 높이 100) + 원래 크기 → ⑥ 바운스
-	var from := art.position
-	var jump := func(t: float):
-		if is_instance_valid(art):
-			var p := from.lerp(home, t)
-			p.y -= 100.0 * sin(PI * t)
-			art.position = p
-	var jt := art.create_tween()
-	tws.append(jt)
-	jt.tween_method(jump, 0.0, 1.0, 0.5 * sp)
-	jt.parallel().tween_property(art, "scale", Vector2.ONE, 0.5 * sp)
-	jt.tween_property(art, "position:y", home.y + 10.0, sp / 6.0)
-	jt.parallel().tween_property(art, "scale", Vector2.ONE * 0.93, sp / 6.0)
-	jt.tween_property(art, "position:y", home.y, sp / 6.0)
-	jt.parallel().tween_property(art, "scale", Vector2.ONE, sp / 6.0)
-	await jt.finished
-	if not is_instance_valid(art) or _lvup_ctx.is_empty(): return
-	# ⑦ 부유 루프(setFeatherForever: 1s +20px·+0.03 ↔ 1s 복귀)
-	var fl := art.create_tween().set_loops()
-	tws.append(fl)
-	fl.tween_property(art, "position:y", home.y - 20.0, 1.0)
-	fl.parallel().tween_property(art, "scale", Vector2.ONE * 1.03, 1.0)
-	fl.tween_property(art, "position:y", home.y, 1.0)
-	fl.parallel().tween_property(art, "scale", Vector2.ONE, 1.0)
-
-## 깃털 버스트 — 원작 FeatherLayer::initWiget 1:1(완전 디컴프): 컬러 깃털 feather1~3 ×4 = 12장.
-## 각: Spawn(MoveBy 0.25 Δ, RotateBy Δx°, ScaleTo 1.7) → Spawn(EaseExpOut(MoveBy 0.5 2Δ),
-## RotateBy, ScaleTo 1.5) → FadeOut 0.5 → 제거. 파티클 = particle/scenario/pt_feature_c.
-## Δ 쌍의 정확한 배정은 디컴프 지역변수 압축으로 불확실 → 계수(±20~±120)만 살린 산포.
-## # ASSUMPTION: Δ 12쌍의 x·y 짝짓기(원작 FeatherLayer.c:346-375 재구성 불확실)
-func _lvup_feather_burst(center: Vector2) -> void:
-	if _lvup_ctx.is_empty(): return
-	var win: Control = _lvup_ctx.get("win")
-	if not is_instance_valid(win): return
-	CocosParticle.spawn(win, "pt_feature_c", center + Vector2(0, 30), _LVUP_UI_Z + 6, 0.8)
-	var offs := [Vector2(-70, -30), Vector2(-100, 20), Vector2(-120, 50), Vector2(-20, 5),
-		Vector2(70, 25), Vector2(50, 100), Vector2(90, 60), Vector2(100, 20),
-		Vector2(60, -25), Vector2(-50, 80), Vector2(30, -60), Vector2(110, -45)]
-	var cman := _man_common()
-	for i in offs.size():
-		var s := _atlas_sprite("common_ui", "common_feather%d" % (1 + (i % 3)), cman, Design.ASSET_SCALE)
-		if s == null: continue
-		s.position = center
-		s.z_index = _LVUP_UI_Z + 6
-		win.add_child(s)
-		var d: Vector2 = offs[i] * Design.ASSET_SCALE
-		d.y = -d.y                     # cocos y-up → godot y-down
-		var base: Vector2 = s.scale
-		var tw := s.create_tween()
-		tw.tween_property(s, "position", center + d, 0.25)
-		tw.parallel().tween_property(s, "rotation_degrees", offs[i].x, 0.25)
-		tw.parallel().tween_property(s, "scale", base * 1.7, 0.25)
-		tw.tween_property(s, "position", center + d * 3.0, 0.5)\
-			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-		tw.parallel().tween_property(s, "rotation_degrees", offs[i].x * 2.0, 0.5)
-		tw.parallel().tween_property(s, "scale", base * 1.5, 0.5)
-		tw.tween_property(s, "modulate:a", 0.0, 0.5)
-		tw.tween_callback(s.queue_free)
-
-## 행 하나의 공개+롤+확정 코루틴(fire-and-forget — 타임라인이 pending 으로 합류).
-func _lvup_fx_row(fx: Dictionary, idx: int) -> void:
-	var sp := float(fx.get("sp", 1.0))
-	var rows: Array = fx["rows"]
-	var row: Dictionary = rows[idx]
-	# ▶ FadeIn 0.15 + setArrowForever(0.5s 단계 ±0.035 맥동 루프)
-	var ar: Node2D = row.get("arrow")
-	if is_instance_valid(ar):
-		ar.create_tween().tween_property(ar, "modulate:a", 1.0, 0.15 * sp)
-		var abase: Vector2 = ar.scale
-		var al := ar.create_tween().set_loops()
-		al.tween_property(ar, "scale", abase * 1.047, 0.5)
-		al.tween_property(ar, "scale", abase, 0.5)
-		al.tween_property(ar, "scale", abase * 0.953, 0.5)
-		al.tween_property(ar, "scale", abase, 0.5)
-	var av: Label = row.get("av")
-	if not is_instance_valid(av):
-		fx["pending"] = int(fx["pending"]) - 1
-		return
-	if bool(row.get("is_level", false)):
-		# 레벨 값 팝(setUpLabelValues 0x6a): FadeIn 0.1 + ScaleTo(0.15, 2.0) → ScaleTo(0.1, 1.1)
-		av.scale = Vector2.ONE * 0.5
-		var lt := av.create_tween()
-		lt.tween_property(av, "modulate:a", 1.0, 0.1 * sp)
-		lt.parallel().tween_property(av, "scale", Vector2.ONE * 2.0, 0.15 * sp)
-		lt.tween_property(av, "scale", Vector2.ONE * 1.1, 0.1 * sp)
-		fx["pending"] = int(fx["pending"]) - 1
-		return
-	await _lvup_digit_roll(av, String(row.get("final", "")), sp)
-	if _lvup_ctx.is_empty(): return
-	# (+n/m) 팝(FinishNumbering: 0.15s +0.1 → 0.1s 복귀)
-	var dl: Label = row.get("dl")
-	if is_instance_valid(dl):
-		dl.modulate.a = 1.0
-		dl.scale = Vector2.ONE * 0.8
-		var dt := dl.create_tween()
-		dt.tween_property(dl, "scale", Vector2.ONE * 1.1, 0.15 * sp)
-		dt.tween_property(dl, "scale", Vector2.ONE, 0.1 * sp)
-	# 확정 반짝이 — # ASSUMPTION: 영상의 금색 별의 소유 이펙트 미특정 → pt_levelup_light 근사
-	var body: Control = _lvup_ctx.get("body")
-	if is_instance_valid(body):
-		CocosParticle.spawn(body, "pt_levelup_light", av.position + Vector2(50, 16), 8, 0.9, 60)
-	await _lvt(0.3 * sp)         # confirm 지연(원작 scheduleOnce 0.3)
-	if _lvup_ctx.is_empty(): return
-	if bool(row.get("maxed", false)):
-		await _lvup_fx_badge(fx, row)
-	fx["pending"] = int(fx["pending"]) - 1
-
-## 슬롯머신 숫자 롤 — 원작 NumberingLabel: 자릿수별 순환(tick 0.07s), 좌→우 0.2s 간격 확정,
-## 확정 팝(0.1s −0.25 → 0.2s +0.25 → 0.1s 복귀). 확정 시작 시점(0.8s)은 # ASSUMPTION
-## (원작은 외부 스케줄이 ShowNumber 를 쏜다 — 영상 체감 길이에 맞춤).
-func _lvup_digit_roll(av: Label, final_text: String, sp: float) -> void:
-	av.modulate.a = 1.0
-	var n := final_text.length()
-	if n == 0: return
-	var counters: Array = []
-	for i in n:
-		counters.append((i * 3) % 10)     # 자리마다 다른 시작값(원작 0.1s 시차의 근사)
-	var t := 0.0
-	var lock_start := 0.8
-	while true:
-		if not is_instance_valid(av) or _lvup_ctx.is_empty(): return
-		var locked := 0
-		if t >= lock_start:
-			locked = clampi(1 + int(floor((t - lock_start) / 0.2)), 0, n)
-		if locked >= n: break
-		var s := ""
-		for i in n:
-			s += final_text[i] if i < locked else str(counters[i])
-			if i >= locked:
-				counters[i] = (int(counters[i]) + 1) % 10
-		av.text = s
-		await _lvt(0.07 * sp)
-		t += 0.07
-	av.text = final_text
-	var tw := av.create_tween()
-	tw.tween_property(av, "scale", Vector2.ONE * 0.75, 0.1 * sp)
-	tw.tween_property(av, "scale", Vector2.ONE * 1.25, 0.2 * sp)
-	tw.tween_property(av, "scale", Vector2.ONE, 0.1 * sp)
-	await tw.finished
-
-## MAX 뱃지 플라이인 — 원작 setFullStatus. 착지 scale 0.5 = 우리 정적 1.0 ⇒ 환산 ×2.
-## 1·2MAX: 중앙 scale 10(=20) 투명 → 0.2s 비행·0.3(=0.6) 착지 → 0.2s 팝 0.5(=1.0) → 맥동.
-## 3MAX: FadeIn 0.1·2.0(=4) → 0.2s 3.0(=6) → 0.5s 유지 → 비행 + 트리플맥스 연출.
-func _lvup_fx_badge(fx: Dictionary, row: Dictionary) -> void:
-	var sp := float(fx.get("sp", 1.0))
-	var bd: Node2D = row.get("badge")
-	if not is_instance_valid(bd) or _lvup_ctx.is_empty(): return
-	var vis: Vector2 = _lvup_ctx["vis"]
-	var n := int(fx.get("maxn", 0)) + 1
-	fx["maxn"] = n
-	var target: Vector2 = row["badge_pos"]
-	bd.visible = true
-	bd.z_index = 10
-	bd.position = vis * 0.5
-	bd.modulate.a = 0.0
-	if n < 3:
-		bd.scale = Vector2.ONE * 20.0
-		var tw := bd.create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(bd, "modulate:a", 1.0, 0.2 * sp)
-		tw.tween_property(bd, "position", target, 0.2 * sp)
-		tw.tween_property(bd, "scale", Vector2.ONE * 0.6, 0.2 * sp)
-		await tw.finished
-		if not is_instance_valid(bd): return
-		_lvup_shake()          # 원작 +0.3s setShakeView — 착지 직후로 근사
-		var tw2 := bd.create_tween()
-		tw2.tween_property(bd, "scale", Vector2.ONE, 0.2 * sp)
-		await tw2.finished
-	else:
-		bd.scale = Vector2.ONE * 2.0
-		var tw := bd.create_tween()
-		tw.tween_property(bd, "modulate:a", 1.0, 0.1 * sp)
-		tw.parallel().tween_property(bd, "scale", Vector2.ONE * 4.0, 0.2 * sp)
-		tw.tween_property(bd, "scale", Vector2.ONE * 6.0, 0.2 * sp)
-		tw.tween_interval(0.5 * sp)
-		tw.tween_property(bd, "position", target, 0.2 * sp)\
-			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
-		tw.parallel().tween_property(bd, "scale", Vector2.ONE * 0.6, 0.2 * sp)
-		await tw.finished
-		if not is_instance_valid(bd) or _lvup_ctx.is_empty(): return
-		_lvup_fx_triple()
-		_lvup_shake()
-		var tw2 := bd.create_tween()
-		tw2.tween_property(bd, "scale", Vector2.ONE, 0.2 * sp)
-		await tw2.finished
-	if not is_instance_valid(bd): return
-	# setMaxForever: 0.2s +0.05(=+0.1) ↔ 0.2s 복귀, 0.3s 쉼 — 무한 맥동
-	var ml := bd.create_tween().set_loops()
-	ml.tween_property(bd, "scale", Vector2.ONE * 1.1, 0.2)
-	ml.tween_property(bd, "scale", Vector2.ONE, 0.2)
-	ml.tween_interval(0.3)
-
-## 트리플맥스 — 원작 set3MaxParticle: 컷인(Cutin::show speed=3.0 슬로우) + 크리티컬 보이스 +
-## "트리플 맥스"(font_title — cutin.gd 배너) + pt_3max1/2 아치 스윕(JumpBy 0.5s, 높이 H×0.4).
-## 사운드 effect_max_fun 은 사용자 확정(2026-07-27) — 원작 뱃지 사운드명은 람다에 묻혀 미특정.
-func _lvup_fx_triple() -> void:
-	if _lvup_ctx.is_empty(): return
-	var ddef: Dictionary = _lvup_ctx.get("ddef", {})
-	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-	Bgm.sfx("effect_max_fun")
-	_lvup_dragon_voice()      # 원작은 크리티컬 보이스 — 보이스표 유실로 단계 보이스 근사
-	DragonCutin.show(self, {
-		"id": int(ddef.get("id", 0)),
-		"element": String(ddef.get("element", "")),
-		"awakened": bool(d.get("awakened", false)),
-	}, 1.0 / 3.0, "트리플 맥스", 60)          # speed 1/3 = 원작 param_2 3.0 슬로우
-	var vis: Vector2 = _lvup_ctx["vis"]
-	var lay := CanvasLayer.new(); lay.layer = 61   # 컷인(60) 위
-	add_child(lay)
-	for pname in ["pt_3max1", "pt_3max2"]:
-		var p := CocosParticle.spawn(lay, pname, Vector2(-60.0, vis.y * 0.5), 1, 0.3)
-		if p:
-			var base_y := vis.y * 0.5
-			var arc := func(t: float):
-				if is_instance_valid(p):
-					p.position = Vector2(-60.0 + (vis.x + 120.0) * t,
-						base_y - vis.y * 0.4 * sin(PI * t))
-			p.create_tween().tween_method(arc, 0.0, 1.0, 0.5 * 3.0)
-	get_tree().create_timer(3.5).timeout.connect(func():
-		if is_instance_valid(lay): lay.queue_free())
-
-## 화면 셰이크 — 원작 setShakeView. win 을 ±수 px 흔들고 복귀.
-func _lvup_shake() -> void:
-	var win: Control = _lvup_ctx.get("win")
-	if not is_instance_valid(win): return
-	var orig: Vector2 = win.position
-	var tw := win.create_tween()
-	for off in [Vector2(6, 4), Vector2(-5, -3), Vector2(4, 2), Vector2(-2, -2)]:
-		tw.tween_property(win, "position", orig + off, 0.04)
-	tw.tween_property(win, "position", orig, 0.04)
-
-## Lv10/35 도달 → "추가 슬롯 개방!!"(원작 <NewSlotOpen>, setChangeNewSlot):
-## 스킬 슬롯 모양 bg FadeIn 0.7 + ScaleTo(1.0, +0.1) → ScaleTo(0.3, 복귀) + 라벨 FadeIn 0.5
-## + pt_take_skill. 위치는 스탯표와 아이템 슬롯 사이(# ASSUMPTION: 원작은 패널 내 슬롯 자리).
-func _lvup_fx_slot_open(fx: Dictionary) -> void:
-	var slot := int(fx.get("slot_new", -1))
-	if slot < 0 or _lvup_ctx.is_empty(): return
-	var vis: Vector2 = _lvup_ctx["vis"]
-	var win: Control = _lvup_ctx.get("win")
-	if not is_instance_valid(win): return
-	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-	var types: Array = d.get("skill_slots", [])
-	var shape := String(types[slot]) if slot < types.size() else "star"
-	var holder := Node2D.new()
-	holder.position = Vector2(vis.x * 0.47, vis.y * 0.52)
-	holder.z_index = _LVUP_UI_Z + 10
-	win.add_child(holder)
-	var bg := _atlas_sprite("common_ui", "common_skill_%s_bg" % shape, _man_common(), Design.ASSET_SCALE)
-	if bg:
-		bg.modulate.a = 0.0
-		holder.add_child(bg)
-		var bbase: Vector2 = bg.scale
-		var tw := bg.create_tween()
-		tw.tween_property(bg, "modulate:a", 1.0, 0.7)
-		tw.parallel().tween_property(bg, "scale", bbase * 1.2, 1.0)
-		tw.tween_property(bg, "scale", bbase, 0.3)
-	var l := Label.new()
-	l.text = "추가 슬롯 개방!!"
-	_lvup_bm_style(l, 24, Color.WHITE)
-	l.position = Vector2(42, -16)
-	l.modulate.a = 0.0
-	holder.add_child(l)
-	l.create_tween().tween_property(l, "modulate:a", 1.0, 0.5)
-	CocosParticle.spawn(holder, "pt_take_skill", Vector2.ZERO, 1, 0.8, 80)
-	get_tree().create_timer(3.0).timeout.connect(func():
-		if is_instance_valid(holder): holder.queue_free())
-
-## 레벨 아이템 슬롯 1칸 — `common/item_box` 틀 + `item/item_small/<key>` 아이콘 + 보유수 배지.
-func _lvup_item_slot(body: Control, key: String, pos: Vector2, can_up: bool, level: int) -> void:
-	var cman := _man_common()
-	var bx := _atlas_sprite("common_ui", "common_item_box", cman, Design.ASSET_SCALE)
-	if bx: bx.position = pos + Vector2(38, 38); body.add_child(bx)
-	var icon := _atlas_sprite("item_small_ui", "item_item_small_%s" % key, _item_small_manifest, 0.86)
-	if icon: icon.position = pos + Vector2(38, 38); body.add_child(icon)
-	var cnt := UserDB.item_count(key)
-	var badge := Label.new()
-	badge.text = "%d" % cnt
-	_lvup_style(badge, 18, Color(1, 1, 1))
-	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	badge.size = Vector2(66, 22); badge.position = pos + Vector2(4, 52)
-	body.add_child(badge)
-	# 투명 버튼을 슬롯 위에 덮는다(원작도 슬롯 자체가 버튼).
-	var b := Button.new()
-	b.flat = true
-	b.size = Vector2(76, 76); b.position = pos
-	b.tooltip_text = "%s%s" % [Data.item_name(key),
-		{"": "", "max1": " (맥스 1 보장)", "max2": " (맥스 2 보장)",
-		 "triple": " (트리플맥스)", "amor": " (전 스탯 초월맥스)"}.get(String(_LVUP_GUARANTEE.get(key, "")), "")]
-	var usable := (key != "level_down" and can_up) or (key == "level_down" and level > 1)
-	b.disabled = not usable
-	b.pressed.connect(_lvup_use_item.bind(key))
-	body.add_child(b)
-
-## 잠긴 슬롯 — 원작 `common/lock`.
-func _lvup_locked_slot(body: Control, pos: Vector2) -> void:
-	var bx := _atlas_sprite("common_ui", "common_item_box", _man_common(), Design.ASSET_SCALE)
-	if bx:
-		bx.position = pos + Vector2(38, 38); bx.modulate = Color(0.6, 0.6, 0.6, 1.0)
-		body.add_child(bx)
-	var lk := _atlas_sprite("common_ui", "common_lock", _man_common(), Design.ASSET_SCALE * 0.8)
-	if lk: lk.position = pos + Vector2(38, 38); body.add_child(lk)
-
-## 레벨 아이템 사용. 축복=맥스 보장 롤, Lv+1=일반 롤, Lv-1=직전 롤 무효.
-## 레벨업/축복은 원작 ExpLayer 안무(_lvup_fx_timeline)를 태운다 — 사운드·컷인·진화 반영 전부
-## 타임라인 소관. 레벨다운만 종전 즉시 갱신(원작 "down" 워드아트 스파인 미보유 → TTF 배너).
-func _lvup_use_item(key: String) -> void:
-	if _lvup_ctx.is_empty() or _lvup_fx_busy: return
-	var uid := int(_lvup_ctx["uid"])
-	var ddef: Dictionary = _lvup_ctx["ddef"]
-	if UserDB.item_count(key) <= 0: return
-	var d := UserDB.get_dragon(uid)
-	var level := int(d.get("level", 1))
-	var old_stage := Growth.stage_for_level(level)
-	if key == "level_down":
-		if level <= 1 or not UserDB.level_down(uid): return
-		UserDB.add_item("level_down", -1)
-		Bgm.sfx("effect_level_updown")
-		_lvup_word_banner("LEVEL DOWN", 1.4, Color(0.86, 0.66, 1.0), Color(0.24, 0.05, 0.34, 1.0))
-		_lvup_ctx["reroll"] = 0
-		_refresh_stats()
-		_lvup_redraw()
-		var down_stage := Growth.stage_for_level(int(UserDB.get_dragon(uid).get("level", 1)))
-		if down_stage != old_stage:
-			_lvup_refresh_dragon()
+	if a.is_empty(): return null
+	return LevelUpScreen.open(self, int(a["uid"]), {
+		# 열려 있는 동안 동굴 받침대를 숨긴다 — 안 그러면 가운데 드래곤과 화면 좌측 드래곤이
+		# **둘 다** 보인다(복구도 LevelUpScreen 이 트리에서 빠질 때 스스로 한다).
+		"stage_node": _stage,
+		# 성장 단계가 바뀌면(진화) 동굴 받침대와 목록도 새 단계로 다시 그린다.
+		"on_evolved": func():
 			_refresh_dragon()
-			_refresh_list()
-		return
-	if level >= Growth.level_cap(bool(d.get("awakened", false))): return
-	var max_stats := Growth.tier_growth(ddef, Data.stat_table)
-	var rng := RandomNumberGenerator.new(); rng.randomize()
-	var roll := LevelSystem.roll_level(Data.level_curve.get("roll", {}), max_stats, rng,
-		0.0, String(_LVUP_GUARANTEE.get(key, "")))
-	# level_up_with 안에서 레벨 10·25·45 자동 습득(sync_skill_grants)이 함께 돈다 → 증분을 알린다.
-	var sk_before := UserDB.dragon_skills(uid).size()
-	UserDB.level_up_with(uid, roll)
-	var sk_new := _skills_learned_since(uid, sk_before)
-	if not sk_new.is_empty():
-		_toast("새 스킬 습득 — %s" % ", ".join(sk_new))
-	UserDB.add_item(key, -1)
-	_lvup_ctx["reroll"] = 0        # 새 레벨 → 리롤 천장 리셋
-	var new_level := int(UserDB.get_dragon(uid).get("level", 1))
-	# Lv10/35 스킬 슬롯 해금 경계 통과 감지(원작 setSkillSlotCheck → "추가 슬롯 개방!!")
-	var slot_new := -1
-	for si in Loadout.SLOT_UNLOCK_LEVEL.size():
-		var lreq := int(Loadout.SLOT_UNLOCK_LEVEL[si])
-		if level < lreq and new_level >= lreq:
-			slot_new = si
-	_refresh_stats()
-	_lvup_redraw({"kind": "up", "sp": 1.0,
-		"stage_changed": Growth.stage_for_level(new_level) != old_stage,
-		"slot_new": slot_new, "triple": bool(roll.get("triple", false))})
-
-## 우하단 리롤 블록 — AUTO 버튼 + 회전화살표 + "능력치 다시뽑기" + 다이아 비용.
-## 참조: docs/ref/orig_image/levelup/Screenshot_2017-02-27-11-12-03-1.png
-func _lvup_build_reroll(body: Control, vis: Vector2, roll_cfg: Dictionary, no_history: bool) -> void:
-	var cman := _man_common()
-	var cost := _lvup_reroll_cost()
-	var have := UserDB.currency(String(cost["kind"]))
-	var affordable := have >= int(cost["amount"])
-	var bx := vis.x * 0.60
-	var by := vis.y * 0.70   # 블록 전체가 하단 텍스트박스(위쪽 경계 = vis.y-120) 위에 오도록
-
-	# AUTO(원작 common/bt_levelupauto_on|off, 문자열 DragonResetAuto "다시뽑기 자동").
-	# ⚠️ 자동 반복은 다이아를 크게 소모한다(원작 DragonResetAutoConfirm 경고) → 확인 후 트리플맥스까지 반복.
-	var auto_on := bool(_lvup_ctx.get("auto", false))
-	var ab := TextureButton.new()
-	var ap := "res://assets/converted/common_ui/common_bt_levelupauto_%s.tres" % ("on" if auto_on else "off")
-	if ResourceLoader.exists(ap):
-		ab.texture_normal = load(ap)
-		ab.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
-	ab.position = Vector2(bx, by + 6)
-	ab.disabled = no_history
-	ab.tooltip_text = "다시뽑기 자동"
-	ab.pressed.connect(_lvup_toggle_auto)
-	body.add_child(ab)
-
-	# 회전화살표 아이콘 = 원작 `common/stat_reflash`("stat refresh" — 능력치 다시뽑기 전용 아이콘).
-	# ⚠️ `common/refresh` 는 돋보기다(BookPopup/SkinPopup 의 목록 갱신용) — 혼동 금지.
-	var ix := bx + 110.0
-	var iy := by + 34.0
-	var ric := _atlas_sprite("common_ui", "common_stat_reflash", cman, Design.ASSET_SCALE * 0.72)
-	if ric:
-		ric.position = Vector2(ix, iy)
-		if not affordable or no_history: ric.modulate = Color(0.55, 0.55, 0.55)
-		body.add_child(ric)
-
-	# "(MAX 확률 x% ▲)" — 원작 DragonResetMax1 + `common/maxpercent_arrow` + DragonResetMax2
-	var pity := LevelSystem.pity_prob(roll_cfg, int(_lvup_ctx.get("reroll", 0)))
-	var mp := Label.new()
-	mp.text = "(MAX 확률 %.1f%%" % (pity * 100.0)
-	_lvup_style(mp, 17, Color(1, 0.78, 0.2))
-	mp.position = Vector2(ix + 46, by - 2); body.add_child(mp)
-	var mpa := _atlas_sprite("common_ui", "common_maxpercent_arrow", cman, Design.ASSET_SCALE)
-	var mpw: float = ThemeDB.fallback_font.get_string_size(mp.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
-	if mpa: mpa.position = Vector2(ix + 56 + mpw, by + 10); body.add_child(mpa)
-	var mpc := Label.new()
-	mpc.text = ")"
-	_lvup_style(mpc, 17, Color(1, 0.78, 0.2))
-	mpc.position = Vector2(ix + 66 + mpw, by - 2); body.add_child(mpc)
-
-	# "능력치 다시뽑기" — 원작 DragonReset
-	var lb := Label.new()
-	lb.text = "능력치 다시뽑기"
-	_lvup_style(lb, 23, Color.WHITE if affordable else Color(0.65, 0.65, 0.65))
-	lb.position = Vector2(ix + 46, by + 20); body.add_child(lb)
-
-	# 비용: 다이아 아이콘 + "x N"
-	var di := _atlas_sprite("common_ui", "common_diamond_small1", cman, Design.ASSET_SCALE * 0.9)
-	if di: di.position = Vector2(ix + 62, by + 66); body.add_child(di)
-	var cl := Label.new()
-	cl.text = "x %d" % int(cost["amount"])
-	_lvup_style(cl, 22, Color.WHITE if affordable else Color(1.0, 0.45, 0.45))
-	cl.position = Vector2(ix + 84, by + 52); body.add_child(cl)
-
-	# 클릭 영역(아이콘+문구 전체)
-	var hit := Button.new()
-	hit.flat = true
-	hit.name = "RerollButton"        # 스모크 테스트(shot_helper --shot=lvreroll)가 이름으로 찾는다
-	hit.size = Vector2(240, 96); hit.position = Vector2(ix - 34, by - 6)
-	hit.disabled = no_history or not affordable
-	hit.tooltip_text = ("보유 %s %d" % [String(cost["kind"]), have]) if not affordable else ""
-	hit.pressed.connect(_lvup_ask_reroll)
-	body.add_child(hit)
-
-## 원작 DragonResetConfirm — "다이아를 소모하여 능력치를 다시 뽑으시겠습니까?"
-func _lvup_ask_reroll() -> void:
-	_open_popup_type("능력치 다시뽑기", "다이아를 소모하여 능력치를 다시 뽑으시겠습니까?",
-		func(): _lvup_do_reroll_once())
-
-## 원작 DragonResetAutoConfirm — 자동은 다이아를 크게 소모하므로 확인을 받는다.
-func _lvup_toggle_auto() -> void:
-	if _lvup_ctx.is_empty(): return
-	if bool(_lvup_ctx.get("auto", false)):
-		_lvup_ctx["auto"] = false
-		_lvup_redraw()
-		return
-	_open_popup_type("다시뽑기 자동", "다시뽑기를 자동으로 하시겠습니까?\n이 경우, 다이아가 많이 소모될 수 있습니다.",
-		func():
-			if _lvup_ctx.is_empty(): return
-			_lvup_ctx["auto"] = true
-			_lvup_redraw()
-			_lvup_auto_loop())
-
-## 자동 다시뽑기: 트리플맥스가 나오거나 다이아가 떨어질 때까지 반복(오프라인 재구성).
-func _lvup_auto_loop() -> void:
-	while not _lvup_ctx.is_empty() and bool(_lvup_ctx.get("auto", false)):
-		if not _lvup_do_reroll_once():
-			break
-		# 연출(원작 안무, 자동은 2배속 = sp 0.5)이 끝날 때까지 대기 — 원작도 연출 완료 후 반복.
-		while _lvup_fx_busy:
-			await get_tree().create_timer(0.1).timeout
-			if _lvup_ctx.is_empty(): return
-		var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-		var gl: Array = d.get("gain_log", [])
-		var mx := Growth.tier_growth(_lvup_ctx["ddef"], Data.stat_table)
-		if not gl.is_empty():
-			var lastg: Dictionary = gl[gl.size() - 1]
-			var all_max := true
-			for k in ["hp", "att", "def"]:
-				if int(lastg.get(k, 0)) < int(mx.get(k, 1)): all_max = false
-			if all_max: break
-		await get_tree().create_timer(0.3).timeout
-	if not _lvup_ctx.is_empty():
-		_lvup_ctx["auto"] = false
-		_lvup_redraw()
-
-## 능력치 다시뽑기 1회: 다이아 소비 → 직전 레벨 롤 교체(리롤 천장 pity 반영). 반환=성공.
-## 트리플맥스가 나오면 천장 리셋. 비용은 data 노브(원작 관찰: 다이아 2).
-## 연출은 원작 ExpLayer 리셋 안무(_lvup_fx_timeline kind="reset") — 배너·사운드·컷인 전부 타임라인.
-func _lvup_do_reroll_once() -> bool:
-	if _lvup_ctx.is_empty() or _lvup_fx_busy: return false
-	var uid := int(_lvup_ctx["uid"])
-	var ddef: Dictionary = _lvup_ctx["ddef"]
-	var cost := _lvup_reroll_cost()
-	var kind := String(cost["kind"])
-	var amount := int(cost["amount"])
-	if UserDB.currency(kind) < amount: return false
-	if (UserDB.get_dragon(uid).get("gain_log", []) as Array).is_empty(): return false
-	var roll_cfg: Dictionary = Data.level_curve.get("roll", {})
-	var max_stats := Growth.tier_growth(ddef, Data.stat_table)
-	var pity := LevelSystem.pity_prob(roll_cfg, int(_lvup_ctx.get("reroll", 0)))
-	var rng := RandomNumberGenerator.new(); rng.randomize()
-	var roll := LevelSystem.roll_level(roll_cfg, max_stats, rng, pity, "")
-	if not UserDB.spend(kind, amount): return false
-	if not UserDB.replace_last_gain(uid, roll): return false
-	_lvup_ctx["reroll"] = 0 if bool(roll.get("triple", false)) else int(_lvup_ctx.get("reroll", 0)) + 1
-	_refresh_stats()
-	_lvup_redraw({"kind": "reset", "sp": 0.5 if bool(_lvup_ctx.get("auto", false)) else 1.0,
-		"stage_changed": false, "slot_new": -1, "triple": bool(roll.get("triple", false))})
-	return true
+			_refresh_list(),
+		# 스탯이 바뀌면 동굴 스탯 표시를 갱신한다.
+		"on_changed": _refresh_stats,
+	})
 
 ## 원작 드래곤 스킨(makeAllSkinMenu/requestDragonSkin): 기본/스킨 변형 선택 → 초상 교체.
 ## ⚠️ 현 에셋: skin1 초상만(소수 드래곤), 스킨 스파인 변형 미변환 → 받침대 드래곤(spine)은 기본 유지, 초상만 스킨 반영.
@@ -3958,12 +2925,82 @@ func _open_dragon_skin() -> void:
 ## ⇒ 우리 에셋 스냅샷 이후의 후기 업데이트분이고, 원작 팝업의 실제 내용은 복원 불가다.
 ## 우리가 붙였던 D~S 등급 리롤은 원작과 무관한 자작이라 기능째 걷어냈다(사용자 확정).
 ## 세이브의 `potential` 필드는 남아 있어도 이제 어디서도 읽지 않는다.
+## 이름 바꾸기 **관문** — 상태창 이름판의 깃펜(`common/namepen` → `StatusLayer` 의 "rename")이
+## 여기로 온다. 이름 변경은 **드래곤 포스 1개를 소비**한다(사용자 확정 2026-07-31).
+##
+## 원작 근거 — 이름 변경은 원작에도 있었고, **아이템으로 여는 것**이 원작 방식이다:
+##   `BagPopup::onClickDragonNickNameBtn @00e0cc6c` → `DragonNickNamePopup`  = 드래곤 별명
+##   `BagPopup::onClickNickNameBtn      @00e0c9f4` → `NickNameLayer`        = 유저 닉네임
+##   `BagPopup.c:7243` `case 0x195` 은 **아이템 번호 분기**로 그 레이어를 띄운다(= 아이템 소비 경로).
+## 우리 `dragon_namechange`("드래곤 포스", `items.json`)가 그 아이템이다.
+##
+## ⚠️ 소비는 **여기서만** 한다. 가방에서 드래곤 포스를 쓰는 경로(`_use_item` 의 "rename")는
+##    이미 자기가 `use_item` 하고 `_open_rename()` 을 직접 부른다 — 이 관문을 거치지 않으므로
+##    이중 차감이 없다. 두 경로 모두 최종 화면은 같은 `_open_rename()`(원작 팝업 이식본)이다.
+func _rename_gate() -> void:
+	if _active().is_empty():
+		return
+	var have := UserDB.item_count(RENAME_ITEM)
+	var nm := Data.item_name(RENAME_ITEM)
+	if have > 0:
+		_open_popup_type("이름 바꾸기",
+			"%s 1개를 사용하여 이름을 바꿉니다.\n(보유 %d개)" % [nm, have],
+			func():
+				UserDB.use_item(RENAME_ITEM, 1)
+				_refresh()
+				_open_rename())
+		return
+	# 미보유 → 구매 팝업. 가격의 단일 출처는 상점표(`data/shop.json` 만물상 탭)다.
+	var price := _shop_price(RENAME_ITEM)
+	if price.is_empty():
+		_toast("%s 이(가) 필요합니다" % nm)
+		return
+	var cost := int(price["price"])
+	var cur := String(price["cur"])
+	var cur_kr := "다이아" if cur == "diamond" else "골드"
+	_open_popup_type("%s 구매" % nm,
+		"%s%s 없습니다.\n%d %s로 1개를 사시겠습니까?"
+			% [nm, _josa_iga(nm), cost, cur_kr],
+		func():
+			if not UserDB.spend(cur, cost):
+				_toast("%s 가 부족합니다" % cur_kr)
+				return
+			UserDB.add_item(RENAME_ITEM, 1)
+			_refresh()
+			# 산 김에 바로 이어서 진행한다 — 관문을 다시 타므로 확인 팝업이 한 번 더 뜬다.
+			_rename_gate(),
+		"구매")
+
+
+## 이름 변경에 쓰는 아이템(원작 `dragon_namechange` = "드래곤 포스").
+const RENAME_ITEM := "dragon_namechange"
+
+## 받침 유무로 이/가. (`adventure.gd::_josa` 와 같은 규칙 — 아이템 이름이 들어가는 문구용)
+func _josa_iga(word: String) -> String:
+	if word.is_empty():
+		return "가"
+	var c := word.unicode_at(word.length() - 1)
+	if c < 0xAC00 or c > 0xD7A3:
+		return "가"
+	return "이" if ((c - 0xAC00) % 28) != 0 else "가"
+
+## 상점표에서 아이템 1개 가격을 찾는다 → {price, cur}. 없으면 빈 사전.
+## 가격을 코드에 박지 않기 위한 조회다(§8.1 — 수치는 data 소유).
+func _shop_price(key: String) -> Dictionary:
+	for t in Data.shop.get("tabs", []):
+		for it in (t as Dictionary).get("stock", []):
+			var e: Dictionary = it
+			if String(e.get("item", "")) == key and int(e.get("bundle", 1)) <= 1:
+				return {"price": int(e.get("price", 0)), "cur": String(e.get("cur", "gold"))}
+	return {}
+
+
 ## 원작 이름표(onClickNicName): 활성 드래곤 별명 설정 팝업. 별명=UserDB에 영속(dragon.nick).
 func _open_rename() -> void:
 	var a := _active()
 	if a.is_empty(): return
 	var uid := int(a["uid"])
-	var species := str(Data.get_dragon(int(a["id"])).get("name", "드래곤"))
+	var species := Icons.species_name(int(a["id"]))
 	# 원작 DragonNickNamePopup 1:1: docs/ref/orig_code/decomp/DragonNickNamePopup.c init@00e84ab8/initWidget@00e84f54.
 	# popup4 650×480(capInsets130,190,40,58) + pop_title_bg 타이틀바 + 9patch/text_box 입력(400×53)
 	# + 버튼2(220×56 @ cocos(bgW*0.5±120,75)). 좌표 cocos y-up→Godot y'=BH-y. 서버제출(NetworkManager)=오프라인 로컬 대체.
@@ -5418,13 +4455,57 @@ const INV_TABS := [
 # 6열이었던 것을 7열로 맞추고 칸 폭을 그만큼 줄인다(168×6/7 = 144).
 const INV_SLOT_W := 144
 const INV_SLOT_H := 150
-const INV_COLS := 7
+## **행 수 고정 + 넘치면 가로 스크롤**이 원작 CCTableView 방식이다
+## (셀 하나 = 세로 N칸짜리 한 열, `_inventory_refresh_grid` 주석의 근거 3줄).
+## 🟦사용자 확정 2026-07-31: **행 수는 4** — 원작 리터럴은 3이지만(`슬롯수/3+1`) 우리 팝업이
+##   PC용으로 커서(1780×930) 3행이면 그리드 아래가 휑하다. 3으로 되돌리려면 이 상수만 바꾸면 된다
+##   (배경 높이 `INV_GRID_H` 도 같이 = 12 + 행수×150 + 24).
+## 7열은 "한 번에 보이는 열 수"일 뿐이라 상수로 두지 않는다(뷰포트 폭 ÷ 칸 폭).
+const INV_ROWS := 4
+## 그리드 배경(`9patch/scroll_box`) 크기. 세로는 4행이 딱 들어가는 값(12 + 4×150 + 24).
+## 바닥 88+636=724 < 탭 스트립 y=760.
+const INV_GRID_W := 1050.0
+const INV_GRID_H := 636.0
 
 var _inv_tab := "etc"
 var _inv_selected := ""
 var _item_manifests: Dictionary = {}
 var _inv_detail_box: Control
 var _inv_grid_box: Control
+var _inv_grid_sc: ScrollContainer          # 가로 스크롤(원작 CCTableView 자리)
+var _inv_cells: Dictionary = {}            # 인벤키 → 칸 테두리 NinePatch(선택 표시만 바꿔 끼우려고)
+
+# ---------- 상세창(우측) 공통 상수 — 원작 BagPopup 상세 레이어 ----------
+## 원작 상세 레이어 크기(`initWidget` BagPopup.c:1794 `CCSize(350, 420)`). 전 탭 공통.
+const INV_DETAIL_PANEL := Vector2(350, 420)
+## 설명 상자 세로. **원작은 125**(BagPopup.c:1854 = 도감과 같은 340×125)인데, 원작 상세 레이어가
+## 우리 상세 상자(560×650)보다 작아 아래가 휑하다 → 🟦사용자 확정(2026-07-31) **2배(250)**.
+## 상자 윗변(y=237.5)은 원작 그대로 두고 아래로만 늘린다 — 바닥 487.5 < 실행 버튼 y=520.
+## 원작 치수로 되돌리려면 이 상수만 125 로 바꾸면 된다.
+const INV_DETAIL_DESC_H := 250.0
+## 본문 라벨 색 — 원작 `initWidget` :1916 `setColor(0x1d4381)` = ccColor3B(0x81,0x43,0x1d).
+const INV_DESC_COLOR := Color8(129, 67, 29)
+## 스킬 모양 → 마크 프레임(원작 `Skill::getSkillType()` 0△ 1□ 2○). ☆(3)는 표에 없어
+## `common/element_bg` 로 떨어진다 — 원작이 그렇다(BagPopup.c:12296~12301).
+const INV_SKILL_MARK := {
+	"tri": "common_skill_triangle_mark",
+	"sq": "common_skill_square_mark",
+	"cir": "common_skill_circle_mark",
+}
+## 장비 **주 능력** → 원작 부가효과 문구. 원작은 `Item::getTypeDetail()` 로 `CaveItemEquipComentN`
+## (stringsData_KR.xml)을 고르는데, 그 typeDetail 9종이 우리 `equipment.json` stat_keys 와
+## 그대로 겹친다. 문구는 원작 문자열 원문 그대로다(`%1$d` → `%d`).
+## 표·근거 = docs/ref/porting/BagPopupItemDetail.md §5-1.
+const EQUIP_MAIN_COMMENT := {
+	"cri": "크리티컬 공격 확률 +%d%%",             # CaveItemEquipComent1
+	"evd": "상대공격 회피 확률 +%d%%",             # Coment2
+	"cure": "행동불능 치유 확률 +%d%%",            # Coment3
+	"cri_pow": "크리티컬 파워 증가 +%d%%",         # Coment4
+	"pure": "방어 관통 대미지 +%d",                # Coment5
+	"awaken_rate": "각성기 게이지 상승률 +%d%%",   # Coment6
+	"depure": "방어 관통 대미지 감소 +%d",         # Coment14
+	"accuracy": "명중률 +%d%%",                    # Coment15
+}
 
 func _open_inventory() -> void:
 	_open_backdrop(0.55)
@@ -5485,36 +4566,66 @@ func _inventory_total_count() -> int:
 		total += int(amount)
 	return total
 
+## 그리드 = **3행 고정 · 가로 스크롤**. 원작 그대로다(BagPopup.c):
+##   `numberOfCellsInTableView` :2926 → `슬롯수 / 3 + 1`   ⇒ **셀 하나 = 세로 3칸짜리 한 열**
+##   `cellSizeForTable`         :1312 → `CCSize(120, 표높이)` ⇒ 셀은 세로로 긴 열
+##   `initWidget`               :1774 → `setVerticalFillOrder(0)` + `(vt+0x3d8)(0)` = 가로 방향
+## 그래서 아이템이 아래로 무한히 쌓이지 않고 **옆으로 넘어간다**(도감 `_dex_build_grid` 와 같은 꼴).
+## 배경도 원작 프레임으로 — `9patch/scroll_box` cap(65,65,6,6) @ (40,40) 크기 (팝업폭−430)×420
+## (BagPopup.c:1659~1672). 종전엔 자작 `_panel(ColorRect)` 이었다.
 func _inventory_refresh_grid() -> void:
 	if _inv_grid_box == null:
 		return
+	# 다시 그려도 보던 열을 잃지 않게 가로 스크롤 위치를 물려준다.
+	var keep_x := int(_inv_grid_sc.scroll_horizontal) if is_instance_valid(_inv_grid_sc) else 0
 	for ch in _inv_grid_box.get_children():
 		ch.queue_free()
+	_inv_cells = {}
 	var items := _inventory_items_for_tab(_inv_tab)
 	if (_inv_selected == "" or not _inventory_has_item(_inv_selected)) and not items.is_empty():
 		_inv_selected = String(items[0])
 
-	var back := _panel(Color(0.47, 0.39, 0.28, 0.94))
-	back.position = Vector2(0, 0)
-	back.size = Vector2(1050, 560)
-	_inv_grid_box.add_child(back)
+	var back := AtlasUI.nine("ninepatch_ui", "9patch_scroll_box",
+		Vector2(INV_GRID_W, INV_GRID_H), Rect2(65, 65, 6, 6))
+	if back:
+		back.position = Vector2.ZERO
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_inv_grid_box.add_child(back)
 
 	if items.is_empty():
 		var empty := Label.new()
 		empty.text = "비어 있음"
-		empty.position = Vector2(0, 220)
-		empty.size = Vector2(1050, 40)
+		empty.position = Vector2(0, INV_GRID_H * 0.5 - 20.0)
+		empty.size = Vector2(INV_GRID_W, 40)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.add_theme_font_size_override("font_size", 30)
 		empty.add_theme_color_override("font_color", Color(0.95, 0.89, 0.76))
 		_inv_grid_box.add_child(empty)
 		return
 
+	# 원작 CCTableView 자리 — 배경 안쪽 (10, 5) · 크기 (배경−20, 배경−10)(BagPopup.c:1763~1773).
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(10, 12)
+	sc.custom_minimum_size = Vector2(INV_GRID_W - 20.0, INV_ROWS * INV_SLOT_H)
+	sc.size = sc.custom_minimum_size
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_inv_grid_box.add_child(sc)
+	_inv_grid_sc = sc
+	sc.get_h_scroll_bar().modulate.a = 0.0   # 원작 CCTableView 는 스크롤바가 없다(드래그 스크롤)
+
+	var grid := Control.new()
+	var cols: int = int(ceil(items.size() / float(INV_ROWS)))
+	grid.custom_minimum_size = Vector2(cols * INV_SLOT_W, INV_ROWS * INV_SLOT_H)
+	sc.add_child(grid)
+
+	# i번째 아이템 → 열 i/3, 행 i%3 (원작 셀 = 한 열, 그 안에서 위→아래).
 	for i in items.size():
 		var key := String(items[i])
 		var cell := _inventory_cell(key)
-		cell.position = Vector2(18 + (i % INV_COLS) * INV_SLOT_W, 18 + (i / INV_COLS) * INV_SLOT_H)
-		_inv_grid_box.add_child(cell)
+		cell.position = Vector2((i / INV_ROWS) * INV_SLOT_W, (i % INV_ROWS) * INV_SLOT_H)
+		grid.add_child(cell)
+	sc.scroll_horizontal = keep_x
 
 func _inventory_cell(key: String) -> Control:
 	var cell := Control.new()
@@ -5526,19 +4637,23 @@ func _inventory_cell(key: String) -> Control:
 	#   `9patch/train_box4`(어두운 라운드)가 일치하고, `bt_itembox_off`는 크림색이라 맞지 않았다.
 	#   선택 칸은 `9patch/bt_itembox_on`(노란 하이라이트, 🟠 미사용이던 원본).
 	var frame := NinePatchRect.new()
-	frame.texture = load("res://assets/converted/ninepatch_ui/%s.tres"
-		% ("9patch_bt_itembox_on" if key == _inv_selected else "9patch_train_box4"))
+	frame.texture = _inv_slot_frame(key == _inv_selected)
 	frame.patch_margin_left = 22; frame.patch_margin_right = 22
 	frame.patch_margin_top = 16; frame.patch_margin_bottom = 16
 	frame.position = Vector2(4, 4)
 	frame.size = Vector2(INV_SLOT_W - 18, 128)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(frame)
+	_inv_cells[key] = frame
 
 	var icon := _inventory_item_icon(key, 84.0)
 	if icon:
 		icon.position = Vector2((INV_SLOT_W - 18) * 0.5 + 4, 58)
 		cell.add_child(icon)
+		# 강화된 알은 **셀에서부터** 구분된다 — 원작 `BagTableViewCell` 이 같은 `ani_egg_up1` 애니를
+		# 셀에 붙인다(BagTableViewCell.c:760~793). 등급별로 칸이 갈리므로(EggItem) 한눈에 보인다.
+		_inv_egg_grade_fx(key, icon)
+		_inventory_grade_badge(cell, key)
 
 	_inventory_master_badge(cell, key)
 
@@ -5560,6 +4675,29 @@ func _inventory_cell(key: String) -> Control:
 	b.pressed.connect(func(): _inventory_select(key))
 	cell.add_child(b)
 	return cell
+
+## 강화된 알 칸의 `+N` 배지(좌상단).
+##
+## ⚠️ 원작에 없다 — 원작은 `ani_egg_up1` 애니와 grade 2/3 **색 틴트**만으로 구분한다
+##   (BagTableViewCell.c:786~793). 우리는 그 틴트 상수를 못 구했고(.rodata, `_inv_egg_grade_fx` 주석)
+##   애니만으로는 1강/2강/3강이 같아 보인다 → 등급 숫자를 글자로 보탠다.
+##   틴트 값을 확보하면 이 함수를 지우고 원작대로 색만 입히면 된다.
+## 표기는 둥지 배지·연구소 목록과 같은 `+N`(hatchery.gd / laboratory.gd `_owned_egg_grade_entries`).
+func _inventory_grade_badge(cell: Control, key: String) -> void:
+	var g := EggItem.grade_of(key)
+	if g <= 0:
+		return
+	var l := Label.new()
+	l.text = "+%d" % g
+	l.size = Vector2(INV_SLOT_W - 18 - 12, 30)
+	l.position = Vector2(4 + 6, 4 + 3)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_color_override("font_color", Color8(255, 176, 40))
+	l.add_theme_color_override("font_outline_color", Color(0.1, 0.07, 0.0))
+	l.add_theme_constant_override("outline_size", 6)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(l)
 
 ## 가방 알 칸 우상단의 노란 `M` 배지.
 ##   의미 = **같은 종을 오라성체까지 키운 전적이 있어 도감에 등록된 알**(사용자 확인, lost_text_sheet.md §3).
@@ -5608,107 +4746,455 @@ func _inventory_refresh_detail() -> void:
 		return
 
 	var item := _inventory_item_def(_inv_selected)
-	var name := Label.new()
-	name.text = _inventory_item_name(_inv_selected)
-	name.position = Vector2(0, 0)
-	name.size = Vector2(560, 44)
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", 30)
-	name.add_theme_color_override("font_color", Color(0.19, 0.11, 0.04))
-	_inv_detail_box.add_child(name)
+	# ── 상세창은 **원작 레시피 그대로** 그린다(`BagPopup::onClickItem` 의 탭 switch).
+	#    원작 상세 레이어는 도감(`BookPopup` 350×430)과 같은 부품으로 짠 350×420 이고,
+	#    **그릇(레이어·이름·그림자·text_box+스크롤)은 전 탭 공통**이다. 그 위에 무엇을 얹는지만
+	#    탭마다 갈리며, 갈래는 원작 case 구성과 1:1이다:
+	#      case 0 FOOD · case 1 EQUIP · case 2·5·6·7 GEM/DOC/MTR/ETC(원작도 한 덩어리)
+	#      case 3 EGG · default(=case 4) SKILL
+	#    상세 = docs/ref/porting/BagPopupItemDetail.md (알 탭만 BagPopupEggDetail.md)
+	#    🔴 2026-07-31 정정: 알 탭 말고는 전부 자작이었다 — 210px 아이콘·"보유 X n" 배지·
+	#      원형 속성판·★ tier·배경 없는 스크롤. 원작엔 어느 탭에도 없는 것들이다.
+	var panel := _inv_detail_panel()
+	var lines: Array = []
+	match _inventory_tab_for_item(_inv_selected):
+		"egg":   lines = _inv_detail_egg(panel, _inv_selected, item)
+		"food":  lines = _inv_detail_food(panel, _inv_selected, item)
+		"skill": lines = _inv_detail_skill(panel, _inv_selected, item)
+		"gear":  lines = _inv_detail_equip(panel, _inv_selected, item)
+		_:       lines = _inv_detail_plain(panel, _inv_selected, item)
+	_inv_detail_desc(panel, lines)
+	_inv_detail_actions(item)
 
-	var icon := _inventory_item_icon(_inv_selected, 210.0)
+
+## 상세 레이어 = **전 탭 공통 그릇**(원작 `BagPopup::initWidget`, BagPopup.c:1792~1892).
+## 원작은 `CCLayer` 350×420 anchor(1,0) @ (팝업우변−30, 40) 이고, 그 안 좌표를 리터럴로 쓴다
+## (아래 `(x, y)c` = cocos 좌표, 코드값은 `godot y = 420 − cocos y`).
+## 우리 상세 상자(`_inv_detail_box`)는 560×650 이라 그 안에 가로 중앙 정렬해 얹는다
+## (하단 실행 버튼 y=520 과 겹치지 않는다 — 패널 바닥은 20+420=440).
+func _inv_detail_panel() -> Control:
+	var panel := Control.new()
+	panel.name = "item_detail"
+	panel.size = INV_DETAIL_PANEL
+	panel.position = Vector2((_inv_detail_box.size.x - INV_DETAIL_PANEL.x) * 0.5, 20)
+	_inv_detail_box.add_child(panel)
+	# 그림자 — `common/shadow` @ (175, 210)c, z=0 tag=7 (아이템 그림보다 뒤)
+	var sh := AtlasUI.spr("common_ui", "common_shadow", Design.ASSET_SCALE)
+	if sh:
+		sh.position = Vector2(175, 210)
+		panel.add_child(sh)
+	return panel
+
+
+## 이름 라벨 — 원작 `this+0x300` CCLabelBMFontEx(font_subtitle) ×0.8 @ (175, 410)c.
+## 색은 기본 흰색이고 **EQUIP 탭만** 희귀도 색으로 물들인다(BagPopup.c:11446).
+func _inv_detail_name(panel: Control, text: String, col := Color.WHITE) -> void:
+	var nm := _book_label(text, 0.8, col)
+	_book_center(nm, Vector2(175, 10), 340)
+	panel.add_child(nm)
+
+
+## 아이템 그림 — 원작 `CCSprite::createWithSpriteFrameName(Item::getImage())`.
+## 아틀라스 프레임은 디자인 공간에서 **원래 크기**(×`Design.ASSET_SCALE`, §9)로 그려야 하고,
+## `mult` 는 그 위에 곱하는 원작 `setScale`(EQUIP·SKILL 은 1.3).
+func _inv_detail_art(key: String, mult := 1.0) -> Sprite2D:
+	var spr := _inventory_item_icon(key, 100.0)   # 폭은 아래에서 덮어쓴다
+	if spr == null:
+		return null
+	var s := Design.ASSET_SCALE * mult
+	spr.scale = Vector2(s, s)
+	return spr
+
+
+## 설명 상자 — 원작 `9patch/text_box` cap(25,25,3,3) **340×125** @ (175, 120)c +
+## 그 안 `ScrollViewEx` 320×105 (BagPopup.c:1850~1906). 본문 라벨은 `this+0x310`
+## CCLabelBMFontEx ×0.8 · 색 `#81431D`(:1916 `0x1d4381` = R81 G43 B1D).
+##
+## `lines` 항목은 세 가지다:
+##   String                      → 본문 스타일 한 줄
+##   {"text":…, "color":…}       → 색 지정 한 줄(희귀도 라벨 등)
+##   [{"text":…,"color":…}, …]   → 한 줄에 나란히(원작 등급 라벨 옆 귀속 라벨)
+func _inv_detail_desc(panel: Control, lines: Array) -> void:
+	var tb := AtlasUI.nine("ninepatch_ui", "9patch_text_box",
+		Vector2(340, INV_DETAIL_DESC_H), Rect2(25, 25, 3, 3))
+	if tb:
+		tb.position = Vector2(5, 237.5)
+		panel.add_child(tb)
+	var tsc := ScrollContainer.new()
+	tsc.position = Vector2(15, 247.5)
+	tsc.size = Vector2(320, INV_DETAIL_DESC_H - 20.0)
+	tsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(tsc)
+	var tbox := VBoxContainer.new()
+	tbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tbox.add_theme_constant_override("separation", 6)
+	tsc.add_child(tbox)
+	for line in lines:
+		if typeof(line) == TYPE_ARRAY:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 10)
+			row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			for part in (line as Array):
+				var pl := _inv_desc_label(String((part as Dictionary).get("text", "")),
+					(part as Dictionary).get("color", INV_DESC_COLOR), 0.0)
+				row.add_child(pl)
+			tbox.add_child(row)
+			continue
+		var txt := String(line.get("text", "")) if typeof(line) == TYPE_DICTIONARY else String(line)
+		if txt == "":
+			continue
+		var col: Color = line.get("color", INV_DESC_COLOR) if typeof(line) == TYPE_DICTIONARY \
+			else INV_DESC_COLOR
+		tbox.add_child(_inv_desc_label(txt, col, 300.0))
+
+
+## 본문 서체·색은 도감 설명과 같게 맞춘다(`_dex_refresh_panel` 참조 — subtitle 로 그리면
+## 원작보다 획이 두껍다는 사용자 보고 2026-07-30 이후 `font_common`).
+func _inv_desc_label(txt: String, col: Color, wrap_w: float) -> Label:
+	var l := Label.new()
+	l.text = txt
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if wrap_w > 0.0:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(wrap_w, 0)
+	_lvup_bm_style(l, int(round(17.0 * Design.ASSET_SCALE * 0.8)), col, "font_common")
+	return l
+
+
+## 본문 기본 줄 — [우리 요약(`_inventory_item_desc`)] → [`Item::getComment()` = items.json `desc`].
+## 원작은 comment 한 줄만 넣지만, 우리 요약(젬 효과·장비 주능력·용도·미구현 표시)은
+## **원작 그릇 안에 유지**한다(🟦사용자 확정 2026-07-31).
+func _inv_detail_lines(key: String, item: Dictionary) -> Array:
+	return [_inventory_item_desc(key, item), String(item.get("desc", ""))]
+
+
+## 원작 `onClickItem` **case 2·5·6·7**(젬 / 문서 / 재료 / 기타) — BagPopup.c:11556~11710.
+## 원작에서도 네 탭이 **같은 case 블록**이고, 그리는 것은 **그림 + 이름 + 설명뿐**이다.
+## 속성 아이콘·★ 등급·유형 명찰은 이 탭들에 **없다**(그건 알 탭 전용). 🟦사용자 확정 2026-07-31.
+func _inv_detail_plain(panel: Control, key: String, item: Dictionary) -> Array:
+	_inv_detail_name(panel, _inventory_item_name(key))
+	var icon := _inv_detail_art(key)
 	if icon:
-		icon.position = Vector2(280, 170)
-		_inv_detail_box.add_child(icon)
+		icon.position = Vector2(175, 130)      # cocos (w/2, h/2+80) = (175, 290)
+		panel.add_child(icon)
+	# ⚪ 조합서 뱃지(원작: `getTypeDetail()=="RECIPE"` 면 대상 알의 `getImageSmall()` 을
+	#   아이템 그림의 자식으로 ×0.8, BagPopup.c:11624~11645)는 미구현 —
+	#   `Item::getTypeParam()` = 서버 `info_item` 이라 조합서 5종이 어느 알인지 모른다.
+	return _inv_detail_lines(key, item)
 
-	var owned := _inventory_badge("보유", "X %d" % int(UserDB.inventory().get(_inv_selected, 0)))
-	owned.position = Vector2(174, 300)
-	_inv_detail_box.add_child(owned)
 
-	# ── 원작 가방 상세(docs/ref/orig_image/cave/inven/Cave_inventory.jpg): 이름 아래에
-	#    ① 원형 속성 아이콘 + 그 밑 유형 라벨,  ② 금색 ★ 등급
-	#    원본 프레임: `common/element_bg`(원형 판) + `item/item_small/ele_*`(속성) + `common/eggclass`(별)
-	#    (`asset_index.py --grep eggclass` → 🟠 미사용이었다)
-	var cman3 := _man_common()
-	# items.json 은 element/subcategory 가 명시적 null 인 항목이 있다 → String(null) 방지.
+## 원작 `onClickItem` **case 0(FOOD)** — BagPopup.c:9966~10370.
+## 그림 + **속성 아이콘** + 이름 + 설명. 별·유형 명찰·등급 라벨은 없다.
+func _inv_detail_food(panel: Control, key: String, item: Dictionary) -> Array:
+	_inv_detail_name(panel, _inventory_item_name(key))
+	var icon := _inv_detail_art(key)
+	if icon:
+		icon.position = Vector2(175, 130)
+		panel.add_child(icon)
+	# 속성 아이콘 @ (60, h−50)c = (60, 50) · ×0.55 · z=1 tag=4.
+	# 원작 조건 = `Item::getTypeDetail()` 이 `RECOVER_<속성>`(9자)이거나 속성 한 글자일 때만
+	# (BagPopup.c:10004~10295). 우리 대응은 items.json `element` 유무(= 속성 먹이 18종).
 	var ev = item.get("element")
-	var elem: String = String(ev) if typeof(ev) == TYPE_STRING else ""
-	if elem != "":
-		var ebg2 := _atlas_sprite("common_ui", "common_element_bg", cman3, 0.62)
-		if ebg2: ebg2.position = Vector2(70, 300); _inv_detail_box.add_child(ebg2)
-		var eic := _atlas_sprite("item_small", "item_item_small_ele_%s" % elem,
-			_item_manifest("item_small"), 0.62)
-		if eic: eic.position = Vector2(70, 300); _inv_detail_box.add_child(eic)
-	var sv = item.get("subcategory")
-	var tkind: String = String(sv) if typeof(sv) == TYPE_STRING else ""
-	if tkind != "":
-		var tp := Label.new(); tp.text = String(_SUBCAT_KR.get(tkind, tkind))   # 영문 코드 그대로 찍지 않는다
-		tp.add_theme_font_size_override("font_size", 18)
-		tp.add_theme_color_override("font_color", Color(0.31, 0.22, 0.12))
-		tp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tp.size = Vector2(120, 24); tp.position = Vector2(10, 330)
-		_inv_detail_box.add_child(tp)
-	# ★ 등급 — data 의 tier(1~3)가 있으면 그만큼, 없으면 표시하지 않는다(지어내지 않음).
-	var tier := int(item.get("tier", 0))
-	for si in tier:
-		var star := _atlas_sprite("common_ui", "common_eggclass", cman3, 0.9)
-		if star:
-			star.position = Vector2(170 + si * 26, 300)
-			_inv_detail_box.add_child(star)
-	# ── 상세 텍스트 — 원작 `BagPopup::resetString`(BagPopup.c:11254) 그대로의 순서:
-	#    [분류·효과 줄들] → [아이템 설명(`Item::getComment()`)].
-	#    원작은 이 문자열을 **CCScrollView(높이 105)** 안 라벨에 넣어 길면 스크롤시킨다
-	#    (BagPopup.c:11360 `CCScrollView::getContainer` + `setContentSize`) → 우리도 스크롤 박스로.
-	#    ⚠️ 아래 '선택' 버튼이 y=520 이라 라벨을 그냥 늘리면 겹친다 — 스크롤이 원작 해법이다.
-	var dscroll := ScrollContainer.new()
-	dscroll.position = Vector2(40, 352)
-	dscroll.size = Vector2(480, 158)      # 아래 '선택/사용' 버튼(y=520) 바로 위까지
-	dscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_inv_detail_box.add_child(dscroll)
-	var dbox := VBoxContainer.new()
-	dbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dbox.add_theme_constant_override("separation", 8)
-	dscroll.add_child(dbox)
-	var desc := Label.new()
-	desc.text = _inventory_item_desc(_inv_selected, item)
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc.custom_minimum_size = Vector2(462, 0)
-	desc.add_theme_font_size_override("font_size", 22)
-	desc.add_theme_color_override("font_color", Color(0.31, 0.22, 0.12))
-	dbox.add_child(desc)
-	# 연구소에서 강화해 둔 알이 있으면 등급별 개수를 적는다(원작은 알 개체마다 grade 가 붙어
-	# 셀에 배지가 보였다 — 우리 알은 스택이라 곁 테이블을 문장으로 보여 준다, EggUpgrade 참조).
-	if String(item.get("category", "")) == "egg":
-		var ecnt := UserDB.egg_grade_counts(_inv_selected)
-		if not ecnt.is_empty():
-			var parts: PackedStringArray = []
-			var gs: Array = ecnt.keys(); gs.sort()
-			for g in gs:
-				parts.append("+%d강 %d개" % [int(g), int(ecnt[g])])
-			var gl := Label.new()
-			gl.text = "강화: %s  (부화 시 높은 등급부터 사용)" % ", ".join(parts)
-			gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			gl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			gl.custom_minimum_size = Vector2(462, 0)
-			gl.add_theme_font_size_override("font_size", 20)
-			gl.add_theme_color_override("font_color", Color(0.72, 0.45, 0.10))
-			dbox.add_child(gl)
-	# 원작 아이템 설명문(`Item::getComment()` = 서버 info_item.comment). 우리 출처는
-	# data/items.json `desc` — docs/input/items/items.csv `설명` 열(사용자 복원)에서 온다.
-	# 원작은 comment 를 한 단계 작은 크기로 붙인다(ItemDetailLayer 도 240자 초과 시 0.8배).
-	var comment := String(item.get("desc", ""))
-	if comment != "":
-		var cl := Label.new()
-		cl.text = comment
-		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cl.custom_minimum_size = Vector2(462, 0)
-		cl.add_theme_font_size_override("font_size", 19)
-		cl.add_theme_color_override("font_color", Color(0.42, 0.31, 0.18))
-		dbox.add_child(cl)
+	var ekey := String(DEX_ELE_ICON.get(String(ev) if typeof(ev) == TYPE_STRING else "", ""))
+	if ekey != "":
+		var ei := AtlasUI.spr("item_small_ui", ekey, Design.ASSET_SCALE * 0.55)
+		if ei:
+			ei.position = Vector2(60, 50)
+			panel.add_child(ei)
+	return _inv_detail_lines(key, item)
 
+
+## 원작 `onClickItem` **default(= case 4 SKILL)** — BagPopup.c:12253~12436.
+## 스킬 그림 ×1.3 + **모양 마크** + 이름 + 설명.
+func _inv_detail_skill(panel: Control, key: String, item: Dictionary) -> Array:
+	_inv_detail_name(panel, _inventory_item_name(key))
+	var icon := _inv_detail_art(key, 1.3)      # 원작 setScale(1.3)
+	if icon:
+		icon.position = Vector2(175, 130)
+		panel.add_child(icon)
+	# 모양 마크 @ (60, h−50)c · z=1 tag=5. 원작은 ○□△만 전용 프레임을 쓰고
+	# **☆(type 3)는 `common/element_bg`** 로 떨어진다 — `common/skill_star_mark` 를
+	# 보유하고 있는데도 그렇다(BagPopup.c:12286~12303). 원작 그대로 둔다.
+	var mark := String(INV_SKILL_MARK.get(String(item.get("subcategory", "")), "common_element_bg"))
+	var mk := AtlasUI.spr("common_ui", mark, Design.ASSET_SCALE)
+	if mk:
+		mk.position = Vector2(60, 50)
+		panel.add_child(mk)
+	# ⚪ 속성 아이콘(원작: `Skill::getAttribute()` 첫 글자 → `ele_*` ×0.55 @ (60, h−110)c)은
+	#   미구현 — data/skills.json 39종에 속성 열이 없다(전부 null).
+	return _inv_detail_lines(key, item)
+
+
+## 원작 `onClickItem` **case 1(EQUIP)** — BagPopup.c:10371~11555.
+## 희귀도 실루엣 + 장비 그림(둘 다 ×1.3) + 이름(+강화) + [등급] · 귀속 · 부가효과 줄.
+## 개체 정보(귀속·희귀도·강화·옵션)는 인벤 키에 실려 있다(`Equipment.item_key_meta`).
+func _inv_detail_equip(panel: Control, key: String, item: Dictionary) -> Array:
+	var S := Design.ASSET_SCALE
+	var meta: Dictionary = Equipment.item_key_meta(key)
+	var rar := int(meta.get("rarity", 0))
+	var col: Color = Icons.rarity_color(rar)
+	# 희귀도 실루엣 — 원작 `Equip::getGradeImageSprite(0)` = `<아이콘>_bg.png` + 희귀도 색
+	# (Equip.c:2653~2732). ×1.3 · z=0 **tag=3**(장비 그림보다 뒤). 일반(1)은 안 그린다.
+	var bgt := Icons.equip_bg_texture(item)
+	if bgt != null and col.a > 0.0:
+		var bs := Sprite2D.new()
+		bs.texture = bgt
+		bs.material = _pma
+		bs.scale = Vector2(S * 1.3, S * 1.3)
+		bs.modulate = col
+		bs.position = Vector2(175, 130)
+		panel.add_child(bs)
+	var icon := _inv_detail_art(key, 1.3)
+	if icon:
+		icon.position = Vector2(175, 130)
+		panel.add_child(icon)
+	# 이름 = `Item::getName()` + 강화 횟수 `" +%d"`(`Equip::getUpGrade`, BagPopup.c:10454~10464),
+	# 라벨 색은 희귀도 색(:11446).
+	var nm := _inventory_item_name(key)
+	var enh := int(meta.get("enhance", 0))
+	if enh > 0:
+		nm += " +%d" % enh
+	_inv_detail_name(panel, nm, col if col.a > 0.0 else Color.WHITE)
+
+	var lines: Array = []
+	# 등급 라벨(`this+0x308` "[  ]")과 귀속 라벨(`this+0x2f8` TTF, 색 #FF431D)은 원작에서
+	# 스크롤 안 **본문 위 같은 줄**에 나란히 놓인다(BagPopup.c:1936~1967) → HBox 한 줄로.
+	var head: Array = []
+	var grades: Array = Data.equipment.get("option", {}).get("grades", [])
+	if rar > 0 and rar < grades.size():
+		head.append({"text": "[%s]" % String((grades[rar] as Dictionary).get("name", "")),
+			"color": col if col.a > 0.0 else INV_DESC_COLOR})
+	# 귀속 문구는 원작 문자열 그대로 — `CaveItemEquipBeing` = "~의 귀속 아이템".
+	var bel := int(meta.get("belong", 0))
+	if bel > 0:
+		head.append({"text": "-%s의 귀속 아이템" % _dragon_label(bel), "color": Color8(255, 67, 29)})
+	if not head.is_empty():
+		lines.append(head)
+	# 부가효과 줄 — 원작은 `Item::getTypeDetail()` 로 `CaveItemEquipComentN` 을 고른다.
+	# 우리 대응 키는 **주 능력 스탯**이다(equipment.json stat_keys 가 원작 typeDetail 과 겹친다).
+	for st: String in (item.get("stat_main", {}) as Dictionary):
+		var fmt := String(EQUIP_MAIN_COMMENT.get(st, ""))
+		lines.append(fmt % int(item["stat_main"][st]) if fmt != "" \
+			else "%s +%d" % [_equip_stat_kr(st), int(item["stat_main"][st])])
+	# 부가옵션 줄 — 원작 `Equip::getOption()` 요약(BagPopup.c:11130~11196).
+	var opts: Array = meta.get("options", [])
+	if not opts.is_empty():
+		var op: PackedStringArray = []
+		for o in opts:
+			op.append("%s+%d" % [_equip_stat_kr(String((o as Dictionary).get("stat", ""))),
+				int((o as Dictionary).get("value", 0))])
+		lines.append("부가옵션: %s" % " ".join(op))
+	if String(item.get("artifact_effect", "")) != "":
+		lines.append(String(item["artifact_effect"]))
+	if String(item.get("bonus", "")) != "":
+		lines.append(String(item["bonus"]))
+	lines.append(String(item.get("desc", "")))
+	return lines
+
+
+## 원작 `StarclassLayer` 1:1(StarclassLayer.c 전문 해독) — 성급 별 나열 + 등장 연출.
+##
+## 원작: 레이어 **175×25** anchor(0.5,0.5) 에 7행(성급 1~7)을 전부 만들어 두고 `on(n,…)` 이
+##   n−1 행만 켠다. r행 i번째 별 = `common/eggclass`, `x = w/2 − starW/2·r + starW·i` · `y = h/2`
+##   ⇒ 레이어 중심 기준 `x_i = starW·(i − r/2)`. 우리는 필요한 행만 만든다(보이는 결과는 동치).
+## 등장(`on(n, true)`): 별마다 `Delay(0.1·i)` → `[RotateBy 180° 0.25s + ScaleTo(0.25, 1.0)]`
+##   → `ScaleTo(0.1, 0.9/1.1)` → `(0.1, 1.1/0.9)` → `(0.1, 1.0)`.
+##
+## 반환 노드의 원점 = 레이어 **중심**(원작 anchor 0.5,0.5 와 같게 두려고).
+func _starclass_layer(star: int, animate := true) -> Node2D:
+	var root := Node2D.new()
+	root.name = "starclass"
+	if star <= 0:
+		return root
+	var S := Design.ASSET_SCALE
+	var sw := AtlasUI.size_pt("common_ui", "common_eggclass").x
+	for i in star:
+		var st := AtlasUI.spr("common_ui", "common_eggclass", S)
+		if st == null:
+			break
+		st.position = Vector2(sw * (i - (star - 1) * 0.5), 0)
+		root.add_child(st)
+		if not animate:
+			continue
+		st.scale = Vector2.ZERO
+		var tw := st.create_tween()
+		tw.tween_interval(0.1 * i)
+		tw.tween_property(st, "rotation_degrees", 180.0, 0.25).as_relative()
+		tw.parallel().tween_property(st, "scale", Vector2(S, S), 0.25)
+		tw.tween_property(st, "scale", Vector2(S * 0.9, S * 1.1), 0.1)
+		tw.tween_property(st, "scale", Vector2(S * 1.1, S * 0.9), 0.1)
+		tw.tween_property(st, "scale", Vector2(S, S), 0.1)
+	return root
+
+
+## 원작 `BagPopup::onClickItem` **case 3(EGG 탭)** 이식 — 가방 알 상세창.
+##
+## 원작 상세 레이어는 **350×420**(`initWidget` BagPopup.c:1793~1890)이고, 도감 `BookPopup`
+## (350×430, BookPopup.c:1197)과 **같은 부품**(StarclassLayer · common/shadow · 9patch/text_box
+## 340×125 · item_small/ele_* · 9patch/recall_del)으로 짜여 있다. 그래서 좌표 리터럴을 원작
+## 그대로 쓴다 — 아래 주석의 `(x, y)c` 는 cocos 좌표, 코드값은 `godot y = 420 − cocos y`.
+## 근거·좌표표 전문 = `docs/ref/porting/BagPopupEggDetail.md`.
+##
+## 그릇(레이어 350×420 · 이름 · 그림자 · 설명 상자)은 `_inv_detail_panel`/`_inv_detail_desc` 가
+## 전 탭 공통으로 만든다 — 이 함수는 **알 전용 표시물**(별·알 그림·강화 이펙트·속성·유형 명찰)만 얹고
+## 설명 줄을 돌려준다. 다른 탭 갈래는 `docs/ref/porting/BagPopupItemDetail.md`.
+func _inv_detail_egg(panel: Control, key: String, item: Dictionary) -> Array:
+	var S := Design.ASSET_SCALE
+
+	# 원작은 `Egg::create(itemNo)` 로 알 객체를, 성급·유형은 `Dragon::create(itemNo)` 로 얻는다.
+	# 우리 알은 가상 키 `egg:<드래곤id>`(EggGacha) 또는 items.json 알 아이템이다.
+	var did := int(item.get("dragon_id", 0))
+	var d: Dictionary = Data.get_dragon(did) if did > 0 else {}
+
+	# ① 이름 — `Egg::getName()` → this+0x300 라벨 @ (175, 410)c · font_subtitle ×0.8
+	_inv_detail_name(panel, _inventory_item_name(key))
+
+	# ② 별 — `Dragon::getDragonStarClass()` → `StarclassLayer::on(n, true)`, 이름 −(0,35).
+	#    ⚠️ 원작은 드래곤이 정해지지 않은 특수 알(itemNo 1001·1008·1020 = 의문의 알 계열)에서
+	#    `StarclassLayer::off(0)` 로 **별을 끈다**(BagPopup.c:11894/11950/12005). 우리도 같다 —
+	#    뽑기 알은 `dragon_id` 가 없어 자연히 이 분기로 떨어진다.
+	var star := int(d.get("star", 0))
+	if star > 0:
+		var sc := _starclass_layer(star)
+		sc.position = Vector2(175, 45)
+		panel.add_child(sc)
+
+	# ④ 알 그림 — `Egg::getImage()` = `dragon/dragon_<id>/egg.png` @ (175, 290)c, z=0 tag=2
+	var egg: Sprite2D = null
+	var etex: Texture2D = Icons.dragon_egg_texture(did) if did > 0 else null
+	if etex != null:
+		egg = Sprite2D.new()
+		egg.texture = etex
+		egg.material = _pma
+		egg.scale = Vector2(S, S)
+	else:
+		# 드래곤이 정해지지 않은 알(의문의 알·속성알) — 원작도 Item 아이콘을 그린다.
+		# 원작과 같이 **원래 크기**(×ASSET_SCALE)로 그리려고 프레임 폭을 매니페스트에서 읽는다
+		# (`_inventory_item_icon` 은 목표 폭을 받는다 → 폭×S 를 넘기면 배율이 정확히 S 가 된다).
+		var ipath := String(item.get("icon", ""))
+		var islash := ipath.find("/")
+		var iw := 0.0
+		if islash > 0:
+			iw = float(_item_manifest(ipath.substr(0, islash))
+				.get(ipath.substr(islash + 1), {}).get("w", 0))
+		egg = _inventory_item_icon(key, (iw if iw > 0.0 else 110.0) * S)
+	if egg:
+		egg.position = Vector2(175, 130)
+		panel.add_child(egg)
+		_inv_egg_grade_fx(key, egg)
+
+	# ⑥ 속성 아이콘 — `Egg::getGroup()` 첫 글자 → `item/item_small/ele_*` ×0.55 @ (60, h−50)c.
+	#    ⚠️ 원작에는 `common/element_bg` 원판이 **없다**(종전 자작). 아이콘 단독이다.
+	var el := String(item.get("element", "")) if typeof(item.get("element")) == TYPE_STRING else ""
+	var ekey := String(DEX_ELE_ICON.get(el, ""))
+	var eih := 0.0
+	if ekey != "":
+		var ei := AtlasUI.spr("item_small_ui", ekey, S * 0.55)
+		if ei:
+			ei.position = Vector2(60, 50)
+			panel.add_child(ei)
+			eih = AtlasUI.size_pt("item_small_ui", ekey).y * 0.55
+
+	# ⑦ 유형 명찰 — `9patch/recall_del` 70×30 anchor(0.5,1) 아이콘 바로 아래 + 라벨 ×0.7.
+	#    원작 조건: **속성 아이콘을 실제로 그렸고** `Dragon::getType() != -1` 일 때만(BagPopup.c:12106).
+	var tname := String(DEX_TYPE_KR.get(String(d.get("type", "")), ""))
+	if eih > 0.0 and tname != "":
+		var fs := int(round(19.0 * S * 0.7))
+		var tw := maxf(70.0, _lvup_bmfont("font_subtitle").get_string_size(
+			tname, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 10.0)
+		var tag := AtlasUI.nine("ninepatch_ui", "9patch_recall_del", Vector2(tw, 30))
+		if tag:
+			tag.position = Vector2(60 - tw * 0.5, 50 + eih * 0.5 + 3.0)
+			panel.add_child(tag)
+		var tl := _book_label(tname, 0.7)
+		_book_center(tl, Vector2(60, 50 + eih * 0.5 + 3.0 + 15.0), 120)
+		panel.add_child(tl)
+
+	# ⑧ 설명 — 상자·스크롤은 `_inv_detail_desc`(전 탭 공통)가 그린다. 원작은 여기에
+	#    `Item::getComment()`(서버 info_item.comment) 한 줄을 넣는데 우리 알은 두 갈래다:
+	#   · 가상 키 `egg:<드래곤id>` — items.json 항목이 아니라 comment 자체가 없다 →
+	#     **도감과 같은 종 설명**(`Data.dragon_comment`)을 쓴다. 도감도 같은 text_box 에 이걸 넣는다.
+	#     (종전엔 `_inventory_item_desc` 가 "드래곤 ID: 1" 을 찍었다 — 이름·그림·별로 이미 아는 것이다.)
+	#   · items.json 알 아이템(의문의 알 등) — `desc`(= 원작 comment)와 용도 요약을 그대로.
+	var lines: Array = []
+	if did > 0:
+		lines.append(Data.dragon_comment(did))
+	else:
+		lines.append_array(_inv_detail_lines(key, item))
+	lines.append(_inv_egg_grade_text(key))
+
+	# 보유 수량 — 원작 상세 레이어에는 없다(원작은 셀 우하단 배지로 보여 준다). 우리 가방 셀에도
+	# 같은 배지가 있으므로 상세엔 두지 않는다(종전의 "보유 X n" 배지 제거).
+	return lines
+
+
+## 알 강화 이펙트 — 원작 `BagPopup::onClickItem` case 3 (BagPopup.c:11772~11818):
+##   `Egg::getGrade() > 0` 이면 `common/ani_egg_up1_1~6` 6프레임을 **0.15s 간격 무한 반복**하고
+##   알 스프라이트의 **자식**(z=1)으로 anchor(0.5, 0) · scale 1.2 · `(eggW/2, 5)` 에 붙인다.
+##
+## 같은 애니를 **가방 그리드 셀**도 쓴다(원작 `BagTableViewCell` — 거기서도 grade 2/3 에 색을 입힌다,
+## BagTableViewCell.c:760~793). 그래서 이 함수는 상세창·셀 양쪽에서 호출한다.
+##
+## ⚠️ 원작과 다른 1건(근거 있음): grade 2 → `setColor(DAT_029ec234)`, 3 → `DAT_029ec228` 색 틴트가
+##    붙는데 **.rodata 상수라 디컴프에 값이 없다** → 틴트 없이 애니만 재생한다(HARD RULE 6).
+## (종전의 "우리 알은 스택이라 최고 등급으로 켠다"는 ASSUMPTION 은 v15 에서 사라졌다 —
+##  등급이 인벤 키에 실려 **칸마다 등급이 하나**다, `EggItem`.)
+const EGG_GRADE_FX_FRAMES := 6
+const EGG_GRADE_FX_DELAY := 0.15
+
+func _inv_egg_grade_fx(key: String, egg: Sprite2D) -> void:
+	if EggItem.grade_of(key) <= 0 or egg.texture == null:
+		return
+	var fx := Sprite2D.new()
+	fx.material = _pma
+	# ⚠️ **알 스프라이트의 자식**이라 부모 배율을 물려받는다 → 여기에 ASSET_SCALE 을 또 곱하면 안 된다
+	#    (원작 `setScale(1.2)` 도 알과 같은 좌표계에서의 1.2 다). 이 규칙 덕에 같은 함수가
+	#    상세창(알 ×4/3)과 그리드 셀(알을 84px 로 축소)에서 **둘 다 비율이 맞는다**.
+	fx.scale = Vector2(1.2, 1.2)
+	fx.z_index = 1
+	# 원작 anchor(0.5, 0) = 밑변 기준 → Godot 은 offset.y = −h/2 로 밑변을 position 에 맞춘다.
+	# 프레임마다 높이가 달라(62·62·66·68·66·62) 텍스처를 갈아끼울 때 offset 도 같이 고친다.
+	# 위치도 부모 로컬(텍스처 픽셀)이다 → 원작의 5pt 를 픽셀로 환산(5 ÷ ASSET_SCALE = 3.75px).
+	fx.position = Vector2(0, egg.texture.get_height() * 0.5 - 5.0 / Design.ASSET_SCALE)
+	egg.add_child(fx)
+	var frames: Array = []
+	for i in EGG_GRADE_FX_FRAMES:
+		var t := AtlasUI.tex("common_ui", "common_ani_egg_up1_%d" % (i + 1))
+		if t != null:
+			frames.append(t)
+	if frames.is_empty():
+		fx.queue_free()
+		return
+	var idx := {"i": 0}
+	var apply := func() -> void:
+		var t: Texture2D = frames[int(idx["i"]) % frames.size()]
+		fx.texture = t
+		fx.offset = Vector2(0, -t.get_height() * 0.5)
+		idx["i"] = int(idx["i"]) + 1
+	apply.call()
+	var tm := Timer.new()
+	tm.wait_time = EGG_GRADE_FX_DELAY
+	tm.autostart = true
+	tm.timeout.connect(apply)
+	fx.add_child(tm)
+
+
+## 강화 등급 한 줄. v15 부터 **칸이 곧 등급**이라 목록이 아니라 이 칸의 등급 하나만 적는다.
+## 확정 부화 등급은 자작이 아니라 위키 확정치다(labwiki.pdf §2.1 → data/laboratory.json).
+func _inv_egg_grade_text(key: String) -> String:
+	var g := EggItem.grade_of(key)
+	if g <= 0:
+		return ""
+	var hg := EggUpgrade.hatch_grade(g, Data.laboratory.get("egg_upgrade", {}))
+	if hg <= 0.0:
+		return "+%d강" % g
+	return "+%d강 — 부화 등급 %.1f 확정" % [g, hg]
+
+
+## 상세창 하단 실행 버튼(선택/부화/개봉/장착/제련/사용 + 10회 사용).
+## 원작 `BagPopup::onClickSelect` → `onClickSelect_Confirm` 대응. 표시부와 분리해 둔 이유는
+## 알 탭이 **원작 레시피의 다른 표시부**(`_inv_detail_egg`)를 쓰면서 이 버튼들은 공유하기 때문.
+func _inv_detail_actions(item: Dictionary) -> void:
 	# 에자녹 스크롤 = "사용" → 스킬 아이템 획득(대상 드래곤을 고르지 않는다).
 	# 스킬 아이템 = "사용" → **현재 선택 중인 드래곤**이 습득. 상세 = docs/ref/porting/SkillScroll.md
 	var is_scroll := Loadout.is_skill_scroll(String(item.get("subcategory", "")))
@@ -5951,7 +5437,7 @@ func _open_consumable_target(key: String, kind: String) -> void:
 		if UserDB.is_egg(d):
 			continue                     # 알에는 쓸 수 없다
 		var ddef := Data.get_dragon(int(d["id"]))
-		var txt := "Lv.%d %s" % [int(d["level"]), ddef.get("name", "드래곤")]
+		var txt := "Lv.%d %s" % [int(d["level"]), Icons.name_of(d)]
 		if kind == "ascension":
 			txt += "   → 다이아 %d개" % _ascension_diamond(int(d["level"]))
 		elif kind in ["gemslot", "geminit"]:
@@ -6010,7 +5496,7 @@ func _open_dragon_storage() -> void:
 		return
 	for d in st:
 		var uid := int(d["uid"])
-		var nm := String(Data.get_dragon(int(d["id"])).get("name", "드래곤"))
+		var nm := Icons.name_of(d)
 		body.add_child(_skill_list_button("Lv.%d %s   → 동굴로 꺼내기" % [int(d["level"]), nm],
 			func():
 				if UserDB.unstore_dragon(uid):
@@ -6033,7 +5519,7 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			UserDB.use_item(key, 1)
 			UserDB.set_cure_time(uid, 0)
 			_close_skill_modal(); _close_overlay(); _refresh()
-			_toast("%s 이(가) 회복했습니다" % String(Data.get_dragon(int(d["id"])).get("name", "드래곤")))
+			_toast("%s 이(가) 회복했습니다" % Icons.name_of(d))
 		"levelup":
 			var ddef := Data.get_dragon(int(d["id"]))
 			var cap := Growth.level_cap(bool(d.get("awakened", false)))
@@ -6048,21 +5534,23 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			var old_lv := int(d.get("level", 1))
 			var sk_before := UserDB.dragon_skills(uid).size()   # 레벨 10·25·45 자동 습득 감지
 			UserDB.level_up_with(uid, roll)
+			UserDB.bump_quest("levelups")   # 마을 미션: 레벨업 카운트
 			var sk_got := _skills_learned_since(uid, sk_before)
 			UserDB.use_item(key, 1)
 			UserDB.set_active(uid)
 			# 성장 단계 교체는 아래 `_refresh()` 가 이미 처리(새 단계 스파인이 서 있다).
 			_close_skill_modal(); _close_overlay(); _refresh_stats(); _refresh()
-			_open_levelup()          # 원작 흐름: 적용 → 레벨업 화면(ExpLayer 대응) 위에서 연출
+			var scr := _open_levelup()   # 원작 흐름: 적용 → 레벨업 화면(ExpLayer 대응) 위에서 연출
 			# 🔴 2026-07-27: 이 경로(가방 → 대상 선택)는 연출을 안 태웠던 사고가 있었다.
-			#   2026-07-29: 원작 안무 타임라인으로 통합 — `_lvup_ctx` 를 읽으므로 `_open_levelup()` 뒤.
+			#   2026-07-29: 원작 안무 타임라인으로 통합 — 컨텍스트가 필요하므로 화면을 연 **뒤**.
 			var new_lv := int(UserDB.get_dragon(uid).get("level", 1))
 			var slot_new := -1
 			for si in Loadout.SLOT_UNLOCK_LEVEL.size():
 				if old_lv < int(Loadout.SLOT_UNLOCK_LEVEL[si]) and new_lv >= int(Loadout.SLOT_UNLOCK_LEVEL[si]):
 					slot_new = si
-			_lvup_redraw({"kind": "up", "sp": 1.0, "stage_changed": false,
-				"slot_new": slot_new, "triple": bool(roll.get("triple", false))})
+			if scr:
+				scr.play_fx({"kind": "up", "sp": 1.0, "stage_changed": false,
+					"slot_new": slot_new, "triple": bool(roll.get("triple", false))})
 			if not sk_got.is_empty():
 				_toast("새 스킬 습득 — %s" % ", ".join(sk_got))
 		"leveldown":
@@ -6073,9 +5561,10 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			UserDB.use_item(key, 1)
 			UserDB.set_active(uid)
 			_close_skill_modal(); _close_overlay(); _refresh_stats(); _refresh()
-			_open_levelup()
+			var dscr := _open_levelup()
 			Bgm.sfx("effect_level_updown")
-			_lvup_word_banner("LEVEL DOWN", 1.4, Color(0.86, 0.66, 1.0), Color(0.24, 0.05, 0.34, 1.0))
+			if dscr:
+				dscr.word_banner("LEVEL DOWN", 1.4, Color(0.86, 0.66, 1.0), Color(0.24, 0.05, 0.34, 1.0))
 		"ascension":
 			# 사용자 확정: 동굴 슬롯의 드래곤을 삭제하고 다이아를 지급한다.
 			if bool(d.get("locked", false)):
@@ -6083,7 +5572,7 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			if UserDB.dragon_count() <= 1:
 				_toast("마지막 드래곤은 승천시킬 수 없습니다"); return
 			var dia := _ascension_diamond(int(d.get("level", 1)))
-			var nm := String(Data.get_dragon(int(d["id"])).get("name", "드래곤"))
+			var nm := Icons.name_of(d)
 			if not UserDB.release_dragon(uid):
 				_toast("승천시킬 수 없습니다"); return
 			UserDB.use_item(key, 1)
@@ -6152,16 +5641,12 @@ func _start_hatch(item_key: String) -> void:
 		_toast("이 알의 부화 대상이 정해지지 않았습니다"); return
 	var blessed := bool(UserDB.get_pmeta("blessed_nest", false))
 	var ecfg: Dictionary = Data.laboratory.get("egg_upgrade", {})
-	# 강화된 알이 있으면 **높은 등급부터** 쓴다(원작은 알 개체를 골랐지만 우리 알은 스택 아이템 —
-	# ASSUMPTION: 플레이어가 애써 올린 등급을 먼저 쓰는 것이 의도에 가깝다).
-	var counts := UserDB.egg_grade_counts(item_key)
-	var owned := EggUpgrade.owned_grades(UserDB.item_count(item_key), counts)
-	var step := int(owned[-1]) if not owned.is_empty() else 0
+	# v15: 강화 등급은 **고른 칸이 곧 등급**이다(`egg:17#2`) — 원작이 알 개체를 고르는 것과 같다.
+	# 종전엔 한 칸에 등급이 섞여 있어 "높은 등급부터"라는 자작 규칙이 필요했다(EggItem 참조).
+	var step := EggItem.grade_of(item_key)
 	var grade := Hatchery.grade_for(step, ecfg, RNG.randf(), blessed)
 	var secs := Hatchery.hatch_seconds(grade)
 	UserDB.use_item(item_key, 1)
-	if step > 0:
-		UserDB.set_egg_grade_counts(item_key, EggUpgrade.after_consume(step, counts))
 	if blessed:
 		UserDB.set_pmeta("blessed_nest", false)   # 축복받은 둥지는 1회성 — 이 부화에 썼다
 	var egg := UserDB.add_egg(did, grade, secs, step)
@@ -6341,24 +5826,8 @@ func _show_egg_result(did: int, used_key := "") -> void:
 		_open_inventory())
 
 
-func _inventory_badge(left: String, right: String) -> Control:
-	var box := _panel(Color(0.95, 0.86, 0.65, 0.96))
-	box.size = Vector2(220, 48)
-	var l := Label.new()
-	l.text = left
-	l.position = Vector2(12, 8)
-	l.add_theme_font_size_override("font_size", 22)
-	l.add_theme_color_override("font_color", Color(0.32, 0.22, 0.12))
-	box.add_child(l)
-	var r := Label.new()
-	r.text = right
-	r.position = Vector2(80, 8)
-	r.size = Vector2(128, 28)
-	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	r.add_theme_font_size_override("font_size", 22)
-	r.add_theme_color_override("font_color", Color(0.32, 0.22, 0.12))
-	box.add_child(r)
-	return box
+## (`_inventory_badge` 는 자작 "보유 X n" 배지 전용이었다 — 원작 상세 레이어에 없어서
+##  2026-07-31 상세창을 원작 레시피로 되돌리며 함께 삭제했다.)
 
 func _inventory_tabs(win: Control) -> void:
 	# 🟠 정정: 하단 탭 스트립 배경이 자작 `_panel(파란 ColorRect)` 이었다.
@@ -6407,10 +5876,24 @@ func _inventory_set_tab(tab_id: String) -> void:
 	_inv_selected = String(items[0]) if not items.is_empty() else ""
 	_open_inventory()
 
+## 칸 클릭 = 선택만 바뀐다. **그리드를 다시 만들지 않는다** — 다시 만들면 가로 스크롤이
+## 튀고(3행 고정·가로 스크롤로 바뀐 뒤로는 눈에 띈다) 매번 수백 노드를 새로 짓는다.
+## 바뀌는 것은 이전/새 칸의 테두리 프레임 두 장뿐이다.
 func _inventory_select(key: String) -> void:
+	var prev := _inv_selected
 	_inv_selected = key
-	_inventory_refresh_grid()
+	for k in [prev, key]:
+		var f = _inv_cells.get(String(k))
+		if f is NinePatchRect and is_instance_valid(f):
+			(f as NinePatchRect).texture = _inv_slot_frame(String(k) == key)
 	_inventory_refresh_detail()
+
+
+## 칸 테두리 — 선택 칸은 `9patch/bt_itembox_on`(노란 하이라이트), 그 외는 `9patch/train_box4`.
+## 근거는 `_inventory_cell` 주석(레퍼런스 슬롯 픽셀 실측).
+func _inv_slot_frame(selected: bool) -> Texture2D:
+	return load("res://assets/converted/ninepatch_ui/%s.tres"
+		% ("9patch_bt_itembox_on" if selected else "9patch_train_box4"))
 
 func _inventory_items_for_tab(tab_id: String) -> Array:
 	var out := []
@@ -6495,6 +5978,13 @@ func _inventory_item_def(key: String) -> Dictionary:
 		return out
 	if Data.items.has(key):
 		return Data.get_item(key)
+	# 강화된 알(`mall_back_egg#1`) — 등급 접미사를 떼고 기본 정의를 찾아 등급만 실어 준다.
+	# (가상 알 키 `egg:17#2` 는 위 `EggGacha.item_def` 가 이미 처리한다.)
+	var eb := EggItem.base_of(key)
+	if eb != key and Data.items.has(eb):
+		var bi := Data.get_item(eb).duplicate(true)
+		bi["egg_grade"] = EggItem.grade_of(key)
+		return bi
 	var found := _inventory_key_from_display_name(key)
 	return Data.get_item(found) if found != "" else {}
 
@@ -6573,10 +6063,16 @@ func _grant_skill_item(scroll_key: String, sid: int, level: int) -> void:
 	_skill_learn_result("%s Lv.%d 스크롤을 얻었습니다\n\n(가방 '스킬' 탭에서 사용하면\n지금 선택 중인 드래곤이 배웁니다)"
 		% [nm, level], true)
 
-## 스킬 아이템 사용 — 원작 `BagPopup::onClickSelect_Confirm` case 4 → `serverResult` case 4.
-## 대상은 언제나 **현재 선택 중인 드래곤**이고, 같은 스킬을 이미 배웠으면 그 레벨로 **교체**된다.
-## 원작 게이트: `if (9 < Dragon::getLevel(선택드래곤))` — **Lv.10 미만이면 토스트만 띄우고 끝**
-## (BagPopup.c:15410). 0번 스킬 칸 해금 레벨과 같은 값이다.
+## 스킬 아이템 사용 — 원작 `BagPopup::onClickSelect_Confirm` case 4 → `onClickConfirm` → `serverResult` case 4.
+## 대상은 언제나 **현재 선택 중인 드래곤**. 게이트가 둘이다:
+##   ① 레벨 — `if (9 < Dragon::getLevel(선택드래곤))`(BagPopup.c:15410). Lv.10 미만이면 토스트만.
+##   ② 순차 학습 — `Dragon::checkSkillList(no, level)`(onClickConfirm 0xdf5650). Lv.1 은 미보유일 때만,
+##      Lv.N 은 그 스킬을 **Lv.N-1** 로 갖고 있을 때만. 막히면 `CaveSkillUseMsg1` 문구만 띄운다.
+##      (원작은 확인 팝업을 **누른 뒤** 이 문구를 띄우지만, 우리는 헛클릭을 줄이려고 확인 전에 막는다.
+##       판정·문구는 동일 — 통과 여부가 달라지는 곳은 없다.)
+## 원작에는 셋째 게이트 **속성 제한**(`Skill::getAttribute()` 1글자 ↔ `Dragon::getRace()`)도 있으나
+## 🟦 **컷**(사용자 확정 2026-07-31) — 슬롯 변경 아이템 이전의 구 시스템 잔재로 보고 구현하지 않는다.
+## 지금의 습득 제약은 슬롯 타입(△□○☆)이 담당한다. 상세 = `docs/ref/porting/SkillScroll.md` §1-4.
 func _use_skill_item(item_key: String) -> void:
 	var parsed := Loadout.parse_item_key(item_key)
 	if parsed.is_empty():
@@ -6589,11 +6085,15 @@ func _use_skill_item(item_key: String) -> void:
 		_toast("Lv.10 부터 스킬을 배울 수 있습니다")
 		return
 	# 원작도 여기서 확인 팝업을 한 번 받는다(setCancelListener + setConfirmListener → onClickConfirm).
-	var dname := String(Data.get_dragon(int(a["id"])).get("name", "드래곤"))
+	var dname := Icons.species_name(int(a["id"]))
+	var pool: Array = UserDB.dragon_skills(int(a["uid"]))
+	# 순차 학습 게이트 — 원작 `Dragon::checkSkillList`. 막히면 원작 문구(`CaveSkillUseMsg1`)만 띄운다.
+	if not Loadout.can_learn(pool, int(parsed["id"]), int(parsed["level"])):
+		_toast(Loadout.LEARN_BLOCKED_MSG)
+		return
 	var already := ""
-	for s in UserDB.dragon_skills(int(a["uid"])):
-		if int((s as Dictionary).get("id", 0)) == int(parsed["id"]):
-			already = "\n\n(이미 배운 스킬입니다 — Lv.%d 로 바뀝니다)" % int(parsed["level"])
+	if int(parsed["level"]) > 1:
+		already = "\n\n(Lv.%d → Lv.%d 강화)" % [int(parsed["level"]) - 1, int(parsed["level"])]
 	_open_popup_type("스킬 습득", "%s 이(가) %s 을(를) 배웁니다.%s" % [
 		dname, _inventory_item_name(item_key), already],
 		func(): _do_learn_skill_item(item_key, parsed))
@@ -6719,7 +6219,8 @@ func _inventory_item_desc(key: String, item: Dictionary) -> String:
 	if String(item.get("category", "")) == "gem":
 		var gn2 := String(item.get("gem_name", ""))
 		var gt2 := int(item.get("gem_tier", 0))
-		parts.append("강화 단계: %s" % Gem.shape_label(gn2, gt2, Data.gems))
+		# ⚠️ '강화 단계' 줄은 빼 두었다(🟦사용자 확정 2026-07-31) — 이름이 이미 `… +3` 이라
+		#   같은 말을 두 번 하는 자작 줄이었다. 원작 상세창엔 comment 한 줄뿐이다.
 		# 위키 gems.pdf 툴팁 그대로. 전 티어 수치가 data/gems.json 에 들어 있다.
 		parts.append("효과: %s" % Gem.effect_text(gn2, gt2, Data.gems))
 	elif String(item.get("category", "")) == "equipment":
@@ -6734,12 +6235,9 @@ func _inventory_item_desc(key: String, item: Dictionary) -> String:
 			parts.append("부가: %s" % String(item["bonus"]))
 	if item.has("dragon_id"):
 		parts.append("드래곤 ID: %d" % int(item["dragon_id"]))
-	# 용도 — 사용자 시트(docs/input/items/groups.csv 39분류)에서 온 한 줄 설명.
-	# 종전에는 미구현 아이템이면 무조건 "용도 확인 필요"만 찍었다. 이제 **용도는 알고**
-	# 기능만 없는 경우를 구분해서 보여준다(2026-07-29).
-	var use := String(item.get("use", ""))
-	if use != "":
-		parts.append("용도: %s" % use)
+	# ⚠️ `use`(용도) 는 **표시하지 않는다** — 원작 상세창엔 `Item::getComment()` 한 줄뿐이고,
+	#   items.json 의 `use` 열은 사용자가 우리에게 구현 대상을 알려주려고 적은 작업용 메모다
+	#   (🟦사용자 확정 2026-07-31). 데이터는 그대로 두고 화면에만 안 낸다.
 	match String(item.get("offline", "")):
 		"dummy":
 			# 우리가 못 만든 게 아니라 **원작에도 사용처가 없던** 아이템.
@@ -6747,7 +6245,8 @@ func _inventory_item_desc(key: String, item: Dictionary) -> String:
 		"cut":
 			parts.append("(오프라인 재구현에서 빠진 기능의 아이템입니다)")
 		"todo", "stub":
-			parts.append("(해당 기능이 아직 구현되지 않았습니다)" if use != "" else "용도 확인 필요")
+			# 종전엔 `use` 가 비면 "용도 확인 필요"를 찍었다 — 그것도 우리 작업 메모라 뺀다.
+			parts.append("(해당 기능이 아직 구현되지 않았습니다)")
 	return "\n".join(parts)
 
 func _inventory_item_icon(key: String, target: float) -> Sprite2D:

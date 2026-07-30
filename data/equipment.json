@@ -1002,455 +1002,859 @@
     "_icons": "아이콘 95장은 위키에서 복원해 icon_map `exclusive` 에 **행 번호 키**로 실려 있다(`extract_equip_icons.py`). 이 배열의 인덱스와 같은 순서다 — 깨끗한 이름은 icon_map 쪽 `name` 필드에 있다.",
     "list": [
       {
-        "name_raw": "고대신룡의 금 관 고대신룡",
+        "name": "고대신룡의 금관",
+        "dragon": "고대신룡",
+        "dragon_id": 1,
         "effect": "자신이 받는 방어관통 대미지 50 무시",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "다크닉스의 구 슬 다크닉스",
+        "name": "다크닉스의 구슬",
+        "dragon": "다크닉스",
+        "dragon_id": 53,
         "effect": "자신의 방어 관통 대미지 50 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "번개고룡의 팬 던트 번개고룡",
+        "name": "번개고룡의 팬던트",
+        "dragon": "번개고룡",
+        "dragon_id": 6,
         "effect": "자신이 [심판의 날개] 사용 시 대미지 200% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "빙하고룡의 칼 날 빙하고룡",
+        "name": "빙하고룡의 칼날",
+        "dragon": "빙하고룡",
+        "dragon_id": 9,
         "effect": "자신이 불 속성 드래곤에게 주는 대미지 50% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "파워드래곤의 장갑 파워 드 래곤",
+        "name": "파워드래곤의장갑",
+        "dragon": "파워 드래곤",
+        "dragon_id": 14,
         "effect": "자신이 물속성 드래곤에게 주는 대미지 50% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "엔젤 드래곤의 티아라 엔젤 드 래곤",
+        "name": "엔젤 드래곤의티아라",
+        "dragon": "엔젤 드래곤",
+        "dragon_id": 21,
         "effect": "자신의 방어 관통을 0으로 감소, 나머지 아군 드래곤에게 공통분배",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "백룡의 보주 백룡",
+        "name": "백룡의 보주",
+        "dragon": "백룡",
+        "dragon_id": 54,
         "effect": "자신의 회피 발동 시, 자신의 스킬 사용 횟수 1회 회복",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "흑룡의 보주 흑룡",
+        "name": "흑룡의 보주",
+        "dragon": "흑룡",
+        "dragon_id": 34,
         "effect": "자신의 크리티컬 발동 시, 자신의 스킬 사용 횟수 1회 회복",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "트로페우스의 얼음결정 트로페우 스",
+        "name": "트로페우스의얼음결정",
+        "dragon": "트로페우스",
+        "dragon_id": 4012,
         "effect": "자신의 크리티컬 확률만큼 체력% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "제피로스의 보 석 제피로스",
+        "name": "제피로스의 보석",
+        "dragon": "제피로스",
+        "dragon_id": 4005,
         "effect": "자신의 잠재력 발동 확률 +15%",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "번네스의 화염 신발 번네스",
+        "name": "번네스의 화염신발",
+        "dragon": "번네스",
+        "dragon_id": 180,
         "effect": "자신의 선제공격으로 발동되는 모든 적의 방어율, 회피 무시",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "루미네스의 빙 결신발 루미네스",
+        "name": "루미네스의 빙결신발",
+        "dragon": "루미네스",
+        "dragon_id": 179,
         "effect": "자신이 입히는 대미지 30% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "저네르의 정기 저네르 크리티컬 발동 시, 상대 최대 체력의 10%만큼의 추가 피해(최대 300)",
-        "implemented": false
+        "name": "저네르의 정기",
+        "dragon": "저네르",
+        "dragon_id": 4036,
+        "effect": "크리티컬 발동 시, 상대 최대 체력의 10%만큼의 추가 피해(최대 300)",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "노웨마의 갈기 노웨마",
+        "name": "노웨마의 갈기",
+        "dragon": "노웨마",
+        "dragon_id": 4035,
         "effect": "장착한 드래곤이 받는 피해가 최대 체력의 30%까지로 제한, 아군 드래 곤이 주는 대미지 10% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "라 솔라의 불 꽃 라 솔라",
+        "name": "라 솔라의 불꽃",
+        "dragon": "라 솔라",
+        "dragon_id": 3020,
         "effect": "자신의 스킬 발동 횟수 +2",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "홀리의 빛나는 양뿔 홀리",
+        "name": "홀리의 빛나는양뿔",
+        "dragon": "홀리",
+        "dragon_id": 3002,
         "effect": "장착한 홀리의 크리티컬 공격이 상대 드래곤의 회피를 무시",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "발레포르의 고 리 발레포르",
+        "name": "발레포르의 고리",
+        "dragon": "발레포르",
+        "dragon_id": 3034,
         "effect": "장착한 발레포르의 [공격의 날개] 효과 +20%",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "루시퍼의 날개 장식 루시퍼",
+        "name": "루시퍼의 날개장식",
+        "dragon": "루시퍼",
+        "dragon_id": 3001,
         "effect": "장착한 루시퍼의 [매의눈]으로 인한 방어무시 대미지가 100으로 증 가(묘안석과 중첩불가)",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "프로스티의 무 늬 프로스티",
+        "name": "프로스티의 무늬",
+        "dragon": "프로스티",
+        "dragon_id": 65,
         "effect": "장착한 프로스티의 [보호의 날개] 효과 +10%",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "다크프로스티 의 무늬 다크프로 스티 탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가[19]",
-        "implemented": false
+        "name": "다크프로스티의 무늬",
+        "dragon": "다크프로스티",
+        "dragon_id": 66,
+        "effect": "탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "청룡의 여의주 청룡",
+        "name": "청룡의 여의주",
+        "dragon": "청룡",
+        "dragon_id": 4,
         "effect": "[몬스터헌터] 효과가 토벌전 몬스터에게도 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "네시의 머리장 식 네시",
+        "name": "네시의 머리장식",
+        "dragon": "네시",
+        "dragon_id": 10,
         "effect": "자신의 회피 발동시, 자신의 스킬 횟수 1회 회복",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "미니드래곤 고 리 미니 드 래곤",
+        "name": "미니드래곤 고리",
+        "dragon": "미니 드래곤",
+        "dragon_id": 23,
         "effect": "자신의 [선제 공격] 발동시 아군 드래곤의 합으로 공격",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "샤크곤의 물안 경 샤크곤",
+        "name": "샤크곤의 물안경",
+        "dragon": "샤크곤",
+        "dragon_id": 58,
         "effect": "[구드라의 가호] 효과가 100%로 변경",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "라이오스의 바 람방패 라이오스",
+        "name": "라이오스의 바람방패",
+        "dragon": "라이오스",
+        "dragon_id": 125,
         "effect": "자신의 [고요한 바람] 효과가 방어력 100당 3씩 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "발로드의 갈기 발로드",
+        "name": "발로드의 갈기",
+        "dragon": "발로드",
+        "dragon_id": 145,
         "effect": "자신의 각성기 피해량 30%증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "투탕카의 도리 깨 투탕카",
+        "name": "투탕카의 도리깨",
+        "dragon": "투탕카",
+        "dragon_id": 184,
         "effect": "자신의 [선제 공격] 발동 시 공격력이 가장 높은 드래곤이 공격하며, 크리 티컬이 발동된다",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "익시아의 왕관 익시아",
+        "name": "익시아의 왕관",
+        "dragon": "익시아",
+        "dragon_id": 3017,
         "effect": "자신의 [각성된 바람의 힘]효과가 바람속성 필드에서 PvP전투에도 P vP에도 적용되고 효과가 30% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "다크나이트의 투구 다크나이 트",
+        "name": "다크나이트의투구",
+        "dragon": "다크나이트",
+        "dragon_id": 3029,
         "effect": "자신이 1회 피격시 마다 방어율 2% 증가(누적 최대 20%)",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "데스퍼라티오 의 용암신발 데스퍼라 티오",
+        "name": "데스퍼라티오의 용암신발",
+        "dragon": "데스퍼라티오",
+        "dragon_id": 4008,
         "effect": "자신의 [잠재력]이 100% 확률로 발동되며, 스킬 레벨 증가 효과가 + 2로 변경",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "포세이돈의 삼 지창 포세이돈",
+        "name": "포세이돈의 삼지창",
+        "dragon": "포세이돈",
+        "dragon_id": 3014,
         "effect": "자신의 [대양의 분노] 효과가 2배 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "프리스트의 빛 나는 날개 프리스트",
+        "name": "프리스트의 빛나는 날개",
+        "dragon": "프리스트",
+        "dragon_id": 3005,
         "effect": "자신의 [순백의 빛] 스킬이 아군 신성/빛 드래곤에게도 적용되고, 효 과가 +15% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "파이썬의 갑옷 파이썬",
+        "name": "파이썬의 갑옷",
+        "dragon": "파이썬",
+        "dragon_id": 92,
         "effect": "[대지의 시초]효과가 각성기에도 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "타로스의 용암 구슬 타로스",
+        "name": "타로스의 용암구슬",
+        "dragon": "타로스",
+        "dragon_id": 4139,
         "effect": "전투 시작 시 자신의 크리티컬 확률만큼, 스킬 피해량 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "레드와이번의 뿔 레드와이 번",
+        "name": "레드와이번의뿔",
+        "dragon": "레드와이번",
+        "dragon_id": 74,
         "effect": "장착한 레드와이번이 죽음에 이르는 피해를 입으면 죽지 않고 1회 생존",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "솔라의 불꽃구 슬 솔라",
+        "name": "솔라의 불꽃구슬",
+        "dragon": "솔라",
+        "dragon_id": 3024,
         "effect": "자신의 '각성된 빛의 힘'의 효과가 PvP에서도 적용+효과 30%증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "수라드래곤의 고대 장식 수라 드 래곤",
+        "name": "수라드래곤의고대 장식",
+        "dragon": "수라 드래곤",
+        "dragon_id": 4041,
         "effect": "자신의 '각성된 불꽃의 힘'의 효과가 PvP에서도 적용+효과 30%증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "사이커드래곤 의 초록 번개 사이커 드래곤",
+        "name": "사이커드래곤의 초록 번개",
+        "dragon": "사이커드래곤",
+        "dragon_id": 4059,
         "effect": "각성스킬인 [그림자 수호신]으로 받는 데미지 절반,아군이 주는 데미 지 30%상승",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "오르페우스의 비석 오르페우 스",
+        "name": "오르페우스의비석",
+        "dragon": "오르페우스",
+        "dragon_id": 178,
         "effect": "각성스킬 [구드라의 가호]인한 아펙 획득 확률이 100%로 변경",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "에메랄드 드래 곤의 보석 왕 관 에메랄드 드래곤",
+        "name": "에메랄드 드래곤의 보석 왕관",
+        "dragon": "에메랄드드래곤",
+        "dragon_id": 35,
         "effect": "자신이 받는 방어관통 데미지 40 감소",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "발칸의 푸른 불꽃 발칸",
+        "name": "발칸의 푸른불꽃",
+        "dragon": "발칸",
+        "dragon_id": 137,
         "effect": "[지옥의 악귀]효과에 크리티컬 파워 30% 추가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "운디네의 물방 울 운디네",
+        "name": "운디네의 물방울",
+        "dragon": "운디네",
+        "dragon_id": 3013,
         "effect": "자신의 방어율만큼 아군 물속성 드래곤의 체력 증가 ( 최대 30% )",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "엔투라스의 불 꽃 주먹 엔투라스 크리티컬 발동 시 상대의 현재 방어력 절반 무시",
-        "implemented": false
+        "name": "엔투라스의 불꽃 주먹",
+        "dragon": "엔투라스",
+        "dragon_id": 4142,
+        "effect": "크리티컬 발동 시 상대의 현재 방어력 절반 무시",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "설리반의 가면 설리반 아군 중 신성 속성 드래곤이 있으면 , 한 번에 입는 피해가 최대 체력의 3 0% 까지 제한",
-        "implemented": false
+        "name": "설리반의 가면",
+        "dragon": "설리반",
+        "dragon_id": 4140,
+        "effect": "아군 중 신성 속성 드래곤이 있으면 , 한 번에 입는 피해가 최대 체력의 3 0% 까지 제한",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "금오드래곤의 고대목걸이 금오 드 래곤",
+        "name": "금오드래곤의고대목걸이",
+        "dragon": "금오 드래곤",
+        "dragon_id": 51,
         "effect": "자신의 [삼족오의 후예] 효과가 2배가 됨.",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "블랙홀의 암흑 결정체 블랙홀",
+        "name": "블랙홀의 암흑결정체",
+        "dragon": "블랙홀",
+        "dragon_id": 3030,
         "effect": "[블랙홀의 마력]으로 인한 체력 회복량이 100%로 증가, 자신의 공격 력 증가량이 20%로 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "시타엘의 신성 한 뿔 시타엘",
+        "name": "시타엘의 신성한 뿔",
+        "dragon": "시타엘",
+        "dragon_id": 3032,
         "effect": "자신이 회피 발동시 , 아군의 스킬 사용횟수 1회 회복",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "쿠르파의 푸른 갑주 쿠르파 아군 그림자 속성 드래곤이 체력이 0이 되면, 5턴간 공격력 50% 상승",
-        "implemented": false
+        "name": "쿠르파의 푸른갑주",
+        "dragon": "쿠르파",
+        "dragon_id": 4015,
+        "effect": "아군 그림자 속성 드래곤이 체력이 0이 되면, 5턴간 공격력 50% 상승",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "헤네스의 지성 의 왕관 헤네스",
+        "name": "헤네스의 지성의 왕관",
+        "dragon": "헤네스",
+        "dragon_id": 4151,
         "effect": "[자격을 갖춘 자] 효과 3회 추가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "현무드래곤의 동방갑옷 현무 드 래곤 아군 물속성 드래곤의 피해량 10% 증가",
-        "implemented": false
+        "name": "현무드래곤의동방갑옷",
+        "dragon": "현무 드래곤",
+        "dragon_id": 67,
+        "effect": "아군 물속성 드래곤의 피해량 10% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "발록의 전투 갑주 발록 해당 드래곤의 공격을 회피한 경우, 회피한 상대 드래곤이 자신에 턴에",
-        "effect": "자신을 공격 ( 전투당 최대 2회 )",
-        "implemented": false
+        "name": "발록의 전투갑주",
+        "dragon": "발록",
+        "dragon_id": 4018,
+        "effect": "해당 드래곤의 공격을 회피한 경우, 회피한 상대 드래곤이 자신에 턴에 자신을 공격 ( 전투당 최대 2회 )",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "가오론의 뿔갑 옷 가오론 가오론과 다르고스가 받는 피해량 20 고정감소",
-        "implemented": false
+        "name": "가오론의 뿔갑옷",
+        "dragon": "가오론",
+        "dragon_id": 4024,
+        "effect": "가오론과 다르고스가 받는 피해량 20 고정감소",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "아루루가의 물 갈퀴 아루루가",
+        "name": "아루루가의 물갈퀴",
+        "dragon": "아루루가",
+        "dragon_id": 4136,
         "effect": "[물의보호막] 효과 2회 추가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "일란의 영예의 관 일란 연속공격 피해량 50% 증가",
-        "implemented": false
+        "name": "일란의 영예의관",
+        "dragon": "일란",
+        "dragon_id": 4166,
+        "effect": "연속공격 피해량 50% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "아틀라스의 마 력 수정 아틀라스",
+        "name": "아틀라스의 마력 수정",
+        "dragon": "아틀라스",
+        "dragon_id": 4162,
         "effect": "[대지의 기둥] 효과로 증가하는 각성기 게이지 회복량이 30% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "바리안의 백색 갑옷 바리안",
+        "name": "바리안의 백색갑옷",
+        "dragon": "바리안",
+        "dragon_id": 129,
         "effect": "[순위쟁탈전]에서 아군 드래곤이 공격력과 피해량이 20% 증가.",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "진의 나무비늘 진 아군 땅 속성 드래곤 수만큼 진의 각성기 데미지 20%증가(최대 60%)",
-        "implemented": false
+        "name": "진의 나무비늘",
+        "dragon": "진",
+        "dragon_id": 4022,
+        "effect": "아군 땅 속성 드래곤 수만큼 진의 각성기 데미지 20%증가(최대 60%)",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "다르고스의 파 괴의 힘 다르고스",
+        "name": "다르고스의 파괴의 힘",
+        "dragon": "다르고스",
+        "dragon_id": 4023,
         "effect": "[파괴의 힘]발동 시 받는 데미지를 2회 1로 고정",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "커스리퍼의 뼈 투구 커스 리 퍼",
+        "name": "커스리퍼의 뼈투구",
+        "dragon": "커스 리퍼",
+        "dragon_id": 4120,
         "effect": "[뼈갑옷]효과가 2배로 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "살라의 화염창",
-        "effect": "살라 자신의 [푸른화염]으로 인해 상대방에게 주는 상성 대미지 피해량 5 0% 증가",
-        "implemented": false
+        "name": "살라의 화염창",
+        "dragon": "살라",
+        "dragon_id": 4175,
+        "effect": "자신의 [푸른화염]으로 인해 상대방에게 주는 상성 대미지 피해량 5 0% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "팔라곤의 권위 의 투구 팔라곤",
+        "name": "팔라곤의 권위의 투구",
+        "dragon": "팔라곤",
+        "dragon_id": 3026,
         "effect": "[권위의 팔라곤]으로 인한 공격력 증가량이 150%로 변경",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "루키르의 바람 의 날개 루키르",
+        "name": "루키르의 바람의 날개",
+        "dragon": "루키르",
+        "dragon_id": 4138,
         "effect": "[신뢰의 힘]에 인한 공격력 증가효과가 아군에게도 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "루너스의 달빛 불꽃 루너스",
+        "name": "루너스의 달빛불꽃",
+        "dragon": "루너스",
+        "dragon_id": 4115,
         "effect": "자신의 크리티컬 파워 150%증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "글라시아의 왕 관 글라시아 상대의 회피율이 0%가 되면 공격이 반드시 크리티컬로 적중한다.[63]",
-        "implemented": false
+        "name": "글라시아의 왕관",
+        "dragon": "글라시아",
+        "dragon_id": 4111,
+        "effect": "상대의 회피율이 0%가 되면 공격이 반드시 크리티컬로 적중한다.",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "레지아나의 빛 나는 깃털 레지아나 해당 드래곤 사망시,아군 각성기 피해량 50%증가",
-        "implemented": false
+        "name": "레지아나의 빛나는 깃털",
+        "dragon": "레지아나",
+        "dragon_id": 4135,
+        "effect": "해당 드래곤 사망시,아군 각성기 피해량 50%증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "프로스트랩터 의 얼음수정 프로스트 랩터",
+        "name": "프로스트랩터의 얼음수정",
+        "dragon": "프로스트랩터",
+        "dragon_id": 4052,
         "effect": "각성스킬 [각성된 어둠의 힘]효과가 PvP에서도 적용되고 효과 +30%",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "나이트 드래곤 의 기사 투구 나이트 드래곤 빛의 기사[66]로 인한 체력 획득량 2배",
-        "implemented": false
+        "name": "나이트 드래곤의 기사 투구",
+        "dragon": "나이트드래곤",
+        "dragon_id": 77,
+        "effect": "빛의 기사로 인한 체력 획득량 2배",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "말덱의 흡수의 서 말덱 흡수하는 능력치의 양이, 대상의 기본 능력치가 아니라 대상의 최대 능력 치로 변경 (아이템/스킬로 인한 변화량 포함)",
-        "implemented": false
+        "name": "말덱의 흡수의서",
+        "dragon": "말덱",
+        "dragon_id": 4143,
+        "effect": "흡수하는 능력치의 양이, 대상의 기본 능력치가 아니라 대상의 최대 능력 치로 변경 (아이템/스킬로 인한 변화량 포함)",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "스트라의 방출 의 서 스트라",
+        "name": "스트라의 방출의 서",
+        "dragon": "스트라",
+        "dragon_id": 4144,
         "effect": "[방출의 힘]으로 증가하는 각성 게이지가 2배로 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "푸르푸르의 혼 돈의 번개 푸르푸르",
+        "name": "푸르푸르의 혼돈의 번개",
+        "dragon": "푸르푸르",
+        "dragon_id": 3036,
         "effect": "[절망의 번개] 효과의 발동 횟수 2회 추가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "즈믄의 빛나는 갑주 즈믄 즈믄이 신성 , 빛속성 드래곤 대상 피해량 100% 증가",
-        "implemented": false
+        "name": "즈믄의 빛나는갑주",
+        "dragon": "즈믄",
+        "dragon_id": 4191,
+        "effect": "즈믄이 신성 , 빛속성 드래곤 대상 피해량 100% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "팡팡드래곤의 풍선 팡팡 드 래곤",
+        "name": "팡팡드래곤의풍선",
+        "dragon": "팡팡 드래곤",
+        "dragon_id": 4019,
         "effect": "자신의 스킬 발동 횟수 +2",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "섬머샤인의 선 글라스 섬머샤인 해당 드래곤의 스킬 발동 횟수 +2",
-        "implemented": false
+        "name": "섬머샤인의 선글라스",
+        "dragon": "섬머샤인",
+        "dragon_id": 4049,
+        "effect": "해당 드래곤의 스킬 발동 횟수 +2",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "실러캔스의 물 빛 투구 실러캔스 착용한 실러캔스의 기본 방어력의 50% 만큼 추가 방어력 증가, 각성 스 킬의 효과를 두배로 변경",
-        "implemented": false
+        "name": "실러캔스의 물빛 투구",
+        "dragon": "실러캔스",
+        "dragon_id": 4002,
+        "effect": "착용한 실러캔스의 기본 방어력의 50% 만큼 추가 방어력 증가, 각성 스 킬의 효과를 두배로 변경",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "카일루스의 신 성 방패 카일루스 각성 스킬이[71] 합계 방어력 10% 누적",
-        "implemented": false
+        "name": "카일루스의 신성 방패",
+        "dragon": "카일루스",
+        "dragon_id": 4197,
+        "effect": "각성 스킬이 합계 방어력 10% 누적",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "세로님의 전쟁 보닛 세로님 팀버프 [흑풍[72]]을 활성화한 경우 자신은 공격하지 않음",
-        "implemented": false
+        "name": "세로님의 전쟁보닛",
+        "dragon": "세로님",
+        "dragon_id": 4198,
+        "effect": "팀버프 [흑풍]을 활성화한 경우 자신은 공격하지 않음",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "디기의 금빛 장식 디기 각성 스킬[74]의 최대 추가 대미지 제한이 250으로 증가 000 과거 디기를 패왕으로 반들어준 장본인. 최강의 추가대미지를 주며 1vs1 3vs3 모든곳에서 잘 쓰이는 강한 드래곤이 었으나 다크닉스ll 추가 후 몰락했다. 그래도 좋은 장비임은 변함이 없다. 장비 페이스리스의 사슬 페이스리 스",
+        "name": "디기의 금빛장식",
+        "dragon": "디기",
+        "dragon_id": 4199,
+        "effect": "각성 스킬의 최대 추가 대미지 제한이 250으로 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
+      },
+      {
+        "name": "페이스리스의사슬",
+        "dragon": "페이스리스",
+        "dragon_id": 4200,
         "effect": "장착한 드래곤의 등급이 6.0 이상일 때 적용, 바피드의 각인과 중첩이 불 가능, 한번에 입는 대미지가 최대 체력의 100% - 6% 드래곤 등급의 값 으로 제한, 제한 비율은 최소 30%",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "페이스리스의 사슬 페이스리 스",
-        "effect": "장착한 드래곤의 등급이 6.0 이상일 때 적용, 바피드의 각인과 중첩이 불 가능, 한번에 입는 대미지가 최대 체력의 100% - 6% 드래곤 등급의 값 으로 제한, 제한 비율은 최소 30%",
-        "implemented": false
-      },
-      {
-        "name_raw": "아가레스의 투 구[75] 아가레스",
+        "name": "아가레스의 투구",
+        "dragon": "아가레스",
+        "dragon_id": 3035,
         "effect": "장착한 자신의 체력이 -10% 감소하는 대신, 장착한 자신의 공격력과 방 어력이 +30% 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "콜테일의 헛된 희망 콜테일",
+        "name": "콜테일의 헛된희망",
+        "dragon": "콜테일",
+        "dragon_id": 4189,
         "effect": "자신의 스킬 [타락한 드래곤]에 의한 증가량만큼 자신의 공격력 방어 력이 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "미르의 별빛 방울 미르 상대 팀 현재 체력의 10%를 자신의 공격력에 추가(최대 1000)",
-        "implemented": false
+        "name": "미르의 별빛방울",
+        "dragon": "미르",
+        "dragon_id": 4201,
+        "effect": "상대 팀 현재 체력의 10%를 자신의 공격력에 추가(최대 1000)",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "루페스의 결정 화된 분노 루페스",
+        "name": "루페스의 결정화된 분노",
+        "dragon": "루페스",
+        "dragon_id": 4099,
         "effect": "장착한 루페스가 복수의 거울로 대미지를 반사할 때 상대 드래곤은 현재 체력의 5%에 해당하는 추가 대미지 (최대 300)",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "모노케로스의 붉은 보주 모노케로 스 착용한 모노케로스가 현재 체력 50%를 넘어서는 대미지를 받는 대신 누 적 , 최대 자신의 공격력이 1/3 , 공격 시 누적 값 만큼 기본대미지를 강 화하여 공격 , 전투 중 1회 적용",
-        "implemented": false
+        "name": "모노케로스의붉은 보주",
+        "dragon": "모노케로스",
+        "dragon_id": 4204,
+        "effect": "착용한 모노케로스가 현재 체력 50%를 넘어서는 대미지를 받는 대신 누 적 , 최대 자신의 공격력이 1/3 , 공격 시 누적 값 만큼 기본대미지를 강 화하여 공격 , 전투 중 1회 적용",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "크로우 드래곤 의 해골투구 크로우 드래곤",
+        "name": "크로우 드래곤의 해골투구",
+        "dragon": "크로우드래곤",
+        "dragon_id": 4205,
         "effect": "장착한 크로우 드래곤이 막기 혹은 회피에 성공하면 각성스킬 [복수의 까 마귀] 횟수를 1회 회복 (최대 4회)",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "워든의 부유검 워든 상처파악을 제외한 모든 디버프의 영향을 받는 동안 자신이 일반공격 시 타겟 최대 체력의 10% 만큼 공격력 강화 (최대 1000)",
-        "implemented": false
+        "name": "워든의 부유검",
+        "dragon": "워든",
+        "dragon_id": 4206,
+        "effect": "상처파악을 제외한 모든 디버프의 영향을 받는 동안 자신이 일반공격 시 타겟 최대 체력의 10% 만큼 공격력 강화 (최대 1000)",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "쏜 네일의 가 시갑옷 쏜 네일",
+        "name": "쏜 네일의 가시갑옷",
+        "dragon": "쏜 네일",
+        "dragon_id": 4125,
         "effect": "각성스킬 [가시와 못]의 받는 대미지 감소율과 주는 대미지 증가율을 모두 2% 변경",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "  아카이아의 성 물 아카이아",
+        "name": "아카이아의 성물",
+        "dragon": "아카이아",
+        "dragon_id": 3033,
         "effect": "각성스킬 [신성한 유대]의 효과가 아군 전체에 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "샤마쉬의 흉갑 샤마쉬",
+        "name": "샤마쉬의 흉갑",
+        "dragon": "샤마쉬",
+        "dragon_id": 4207,
         "effect": "각성스킬 [정의집행]의 추가대미지 효과가 아군 전체에 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "불나래의 불꽃 구슬 불나래 스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소 , 철갑방패와 중첩 가능 , 각인[에자녹의 권능]으로 인한 스킬레벨 증가도 포함",
-        "implemented": false
+        "name": "불나래의 불꽃구슬",
+        "dragon": "불나래",
+        "dragon_id": 4180,
+        "effect": ", 철갑방패와 중첩 가능 , 각인[에자녹의 권능]으로 인한 스킬레벨 증가도 스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소 포함",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "레이어스의 반 석 방패 레이어스",
+        "name": "레이어스의 반석 방패",
+        "dragon": "레이어스",
+        "dragon_id": 3008,
         "effect": "각성스킬의 효과를 다음과 같이 변경, 드래곤 등급 × 4% 자신이 주 는 대미지 증가, 드래곤 등급 × 2% 자신의 받는 대미지 증가",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "오울드라의 어 둠갑옷 오울드라",
+        "name": "오울드라의 어둠갑옷",
+        "dragon": "오울드라",
+        "dragon_id": 4209,
         "effect": "전투시작 시 모든 대미지를 1로 막아주는 보호막 1회 전체 적용",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "세크라포의 어 깨보호대 세크라포 연속 공격 시 자신이 준 대미지만큼 자신의 체력 회복, 전투 중 3회 한정, 피의 갈증과 중첩불가",
-        "implemented": false
+        "name": "세크라포의 어깨보호대",
+        "dragon": "세크라포",
+        "dragon_id": 4211,
+        "effect": "연속 공격 시 자신이 준 대미지만큼 자신의 체력 회복, 전투 중 3회 한정, 피의 갈증과 중첩불가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "raw": "멜로우 드래곤 의 부메랑 멜로우 드래곤 아군에 자신을 제외한 바람속성 드래곤이 있는 경우 멜로우는 공격하지 않는다.",
-        "implemented": false
+        "name": "멜로우 드래곤의 부메랑",
+        "dragon": "멜로우드래곤",
+        "dragon_id": 4044,
+        "effect": "아군에 자신을 제외한 바람속성 드래곤이 있는 경우 멜로우는 공격하지 않는다.",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "소라게 드래곤 의 마법의 소 라 소라게 드래곤",
+        "name": "소라게 드래곤의 마법의 소라",
+        "dragon": "소라게드래곤",
+        "dragon_id": 4212,
         "effect": "자신의 스킬 사용 횟수 +2",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       },
       {
-        "name_raw": "완숙이의 후라 이팬 완숙이",
+        "name": "완숙이의 후라이팬",
+        "dragon": "완숙이",
+        "dragon_id": 4159,
         "effect": "자신의 체력 20% 이하일 때 공격 시, 체력 1% 회복 + 자신이 주는 대미 지 25% 증가(피의 갈증과 중첩 불가)",
-        "implemented": false
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null
       }
     ]
   }

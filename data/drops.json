@@ -7,7 +7,10 @@
   "상점에서 **비교적 낮은 성능**의 젬·장비를 **골드**로 판다.",
   "**다이아 가챠**로 좋은 젬·장비를 얻는다.",
   "**이벤트 장비는 기본적으로 가챠로만** 얻는다.",
-  "**아티팩트는 '유타칸 – 카데스의 공간' 탐험 드롭으로만** 얻는다."
+  "**아티팩트는 '유타칸 – 카데스의 공간' 탐험 드롭으로만** 얻는다.",
+  "**먹이**는 각 탐험 지역 **속성에 맞는 것만** 드롭한다(2026-07-30).",
+  "**드래곤 알**은 그 탐험지 팝업에 **등재된 드래곤만** 드롭하고, **H(영웅) 표시는 영웅 난이도에서만 희귀 드롭**이다(2026-07-30).",
+  "탐험에서는 **드래곤 알 · 일반 젬 · 먹이 · 그 지역 속성의 정기 · CSV로 지정한 특수 드랍**만 나온다. 그 밖의 아이템은 드랍되지 않는다(2026-07-31). 장비·아티팩트는 젬과 같이 전 지역 공통으로 유지."
  ],
  "_wiki_basis": [
   "아티팩트 획득처: etc.pdf §2.2 '유타 칸 카데스와 베르나에서 얻을 수 있는 아이템으로 스킬을 더 강하게 해주는 아티팩트'. 베르나는 에셋 부재로 CUT(CLAUDE.md) → 카데스의 공간만.",
@@ -65,6 +68,44 @@
    "흑요석",
    "백금석"
   ]
+ },
+ "food": {
+  "_note": "먹이 드롭 = 지역 속성 일치분만(사용자 확정 2026-07-30, 엄격 기준). 후보 산출은 Drops.food_pool 이 data/items.json 에서 category=food + element 일치로 뽑는다 — 이 파일에 품목을 복제하지 않는다(§8.1 정의 단일 출처). stages.json 의 지역 element 는 ground/water 표기, items.json 의 먹이 element 는 earth/aqua 표기라 Drops.normalize_element 가 눕힌다.",
+  "_coverage_note": "지역 속성은 6종(ground/water/fire/wind/light/dark)뿐이라 chaos·holy·shadow 먹이는 탐험에서 나오지 않는다. 상점의 작은 변형(food_chaos_tadpole/food_holy_small_ginseng/food_shadow_chocolate_piece)만 입수 가능하고 큰 변형은 현재 경로 없음. 지역 배정이 생기면 stages.json 의 element 만 채우면 따라온다.",
+  "chance": {
+   "normal": 0.1,
+   "chest": 0.3,
+   "boss": 0.45
+  },
+  "count": {
+   "min": 1,
+   "max": 2
+  }
+ },
+ "egg": {
+  "_note": "드래곤 알 드롭. 원작 근거 = stringsData_KR <AdventureResultEgg> '%1$s의 알' + AdventureRewardLayer 의 EGG 셀 타입(포팅 카드 docs/ref/porting/AdventureEventFlow.md §5). 확률표는 서버 유실(initJsonReward 가 파싱하던 키에 확률이 없다) → 아래는 자작 튜닝 노브.",
+  "_pool_note": "후보는 stages.json 의 dragons[] — 월드맵 팝업(WorldMapPopupLayer::setDragonImage)이 그리는 바로 그 목록이다. 여기에 id 를 복제하지 않는다(§8.1).",
+  "_hero_note": "hero:true = 팝업의 H 뱃지(info_hero_dragon_frame). 영웅 난이도에서만, 그것도 hero_chance 로 희귀하게. 일반 난이도에서는 후보에서 아예 빠진다.",
+  "chance": {
+   "normal": 0.012,
+   "boss": 0.06
+  },
+  "hero_chance": {
+   "normal": 0.004,
+   "boss": 0.02
+  }
+ },
+ "essence": {
+  "_note": "속성 정기(items.json `currency/essence` 9종 — ele_fire '불의 정기' 등). 그 탐험지역 속성에 맞는 것만 나온다(사용자 확정 2026-07-31). 먹이와 같은 element 필드라 Drops.normalize_element 로 지역 표기(ground/water)와 맞춘다. 확률은 서버 유실 → 자작 노브.",
+  "chance": {
+   "normal": 0.18,
+   "chest": 0.35,
+   "boss": 0.5
+  },
+  "count": {
+   "min": 1,
+   "max": 3
+  }
  },
  "kades": {
   "_note": "카데스의 공간(유타칸 전설 모드) 전용. 아티팩트는 **여기서만** 나온다. 모드 진입 자체는 아직 미구현(⚠️ docs/input/review/equipment_sheet.md §2-3 참조) — 드롭표는 준비돼 있고 모드가 켜지면 즉시 동작한다.",
@@ -238,29 +279,80 @@
    "_tier_note": "tier_max = -1 은 '그 젬의 최대 티어'(혼성 19단계 / 소울 10단계)."
   },
   "equip": {
-   "_source": "이벤트 장비는 가챠 전용(사용자 확정) + equipment_0.pdf §2.1.1 '이벤트 장신구 선택권으로만'. 가격=자작.",
-   "price_single": 20,
-   "price_ten": 170,
+   "_source": "이벤트 장비는 가챠 전용(사용자 확정) + equipment_0.pdf §2.1.1 '이벤트 장신구 선택권으로만'.",
+   "_grade_source": "위키 item.pdf §3 — 원작 상품이 **3종**이다. '일반 장신구 뽑기: 골드를 사용하여 하나의 장착 아이템을 무작위로 획득 … 갈수록 일반 장비들은 중요하지 않기 때문에 사용할 장비를 뽑는 게 아닌 장비 강화에 갈아버릴 장비들을 뽑는 용도' / '고급 장신구 뽑기: 다이아를 사용하여 무작위로 하나의 **고급** 장착 아이템 … 상위급 장비들이 나온다' / '전용 장신구 뽑기: 강력한 드래곤 전용장신구'. 가격·상품명·아이콘은 docs/ref/orig_image/shop/상점_장비.webp 실측(5000골드 / 15다이아 / 30다이아, x10 = 45000 / 150 / 300).",
+   "_grade_fix": "🔴 2026-07-30 이전 버그: shop.json 이 상품마다 `grade`(normal/high/only)를 달고 있는데 shop.gd 가 그 값을 읽지 않아 **세 상품이 전부 같은 풀**로 굴렀다(값이 두 배인 상품이 5000골드 상품과 결과가 같았다). 아래 `grades` 로 분리하고 `Drops.roll_equip_gacha(..., grade)` 가 받는다.",
    "ten_count": 10,
-   "_pool_note": "이벤트 장비 25종 + 일반 장비 상위 등급(5~6). 특수/전용 장비는 원작 획득처가 길드·원정·레이드라 여기 없다(CUT/이월).",
-   "event_weight": 55,
-   "basic_weight": 45,
-   "basic_grades": [
-    5,
-    6
-   ]
+   "_ten_note": "위키는 10연을 '10+1'(11개)로 적지만 우리는 10개다 — 상품명·가격만 원작을 따르고 보너스 1개는 별도 확인 전까지 붙이지 않는다.",
+   "grades": {
+    "normal": {
+     "_note": "일반 장신구 뽑기(5000골드). 위키 '갈아버릴 장비' = 하위 등급 일반 장비만. 이벤트 장비는 다이아 상품 몫이라 여기 없다. 희귀도는 골드 구매와 같은 `shop_gold`(일반 100%) — 골드 상점 직판(4000·8000골드, 등급 0~1)보다 등급 폭이 넓은 것이 이 상품의 값어치다.",
+     "rarity_source": "shop_gold",
+     "event_weight": 0,
+     "basic_weight": 100,
+     "basic_grades": [
+      0,
+      1,
+      2,
+      3
+     ]
+    },
+    "high": {
+     "_note": "고급 장신구 뽑기(15다이아). 위키 '상위급 장비' = 일반 장비 상위 등급(4~최고, 종류별 최고등급으로 클램프) + 이벤트 장비. 이벤트 장비는 **여기가 유일한 획득처**(사용자 확정).",
+     "rarity_source": "shop_gacha",
+     "event_weight": 55,
+     "basic_weight": 45,
+     "basic_grades": [
+      4,
+      5,
+      6
+     ]
+    },
+    "only": {
+     "_note": "전용 장신구 뽑기(30다이아 · x10 300다이아). 위키 §3.1 이 결과를 '드래곤 전용장신구'로 못 박는다. 🟢 2026-07-31 복구 — 아이콘 부재로 2026-07-30 에 뺐던 상품이다(`_cut_only`). 전용 장비는 주 능력치가 없고 **대응 드래곤에게만** 장착되므로(사용자 확정), 무작위로 나온 장비가 그 드래곤을 갖고 있어야 쓸모가 있다 — 원작 가챠와 같다.",
+     "rarity_source": "shop_gacha",
+     "exclusive_weight": 100,
+     "event_weight": 0,
+     "basic_weight": 0
+    }
+   },
+   "_cut_only": "~~전용 장신구 뽑기 컷~~ **2026-07-31 복구.** 컷 사유였던 아이콘 부재가 해소됐다 — 위키 PDF 표에서 전용 장비 95종 아이콘을 복원해(`extract_equip_icons.py`) equipment.json 의 `implemented` 가 전부 켜졌고, 상품(shop.json)과 이 `grades.only` 블록을 예고대로 되살렸다.",
+   "_price_dead": "종전의 price_single 20 / price_ten 170 은 **아무 데서도 읽지 않는 죽은 값**이었다(가격은 shop.json 상품이 갖는다) → 삭제."
   }
  },
  "slot": {
   "_source": "원작 <MagicTitleSlot>뽑기 · <MagicWelcomeSlot> '뽑기는 골드를 사용하여 여러 가지 아이템을 획득하는 요긴한 방법 입니다.'",
-  "_user_rule": "사용자 확정(2026-07-27): 골드 뽑기는 **공격/방어/체력 젬의 최소~최대 티어**가 뜬다.",
-  "_re_basis": "가격은 서버 유실 → ASSUMPTION. 일반젬 최고티어 강화비(200+18×150=2900골드)보다 비싸게 잡아 뽑기가 지름길이 되지 않게 했다.",
-  "price_gold": 5000,
-  "categories": [
-   "normal"
+  "_mechanic": "원작은 **잭팟**이다 — SlotLayer::ResponseSlot(decomp :897) 이 서버가 보낸 릴 3개(r1/r2/r3)를 받아 `r1==r2==r3` 일 때만 그 아이템을 cnt 개 지급하고(addItem/addEgg), 아니면 결과=0(꽝: effect_item_failed.mp3 + <MagicSlotFail>). 10연속(requestSlotTen → game_fortune/generate_reels_v2.hb)도 같은 판정을 10번 돌려 당첨분만 ShowGetItemDetailLayer 로 공개한다.",
+  "_user_rule": "사용자 확정(2026-07-30): 잭팟 성공률 **20%**, 1회 **1,000골드**. 릴 품목 = 혼성젬 · 소울젬 · LV+1 · LV-1 · 고대 포탈 · 의문의 알 · 빛나는 의문의 알.",
+  "_re_basis": "성공률·가격·품목 가중치는 서버 유실 → ASSUMPTION. 기대비용 = 1,000 ÷ 0.2 = **5,000골드/당첨** 으로 종전(5,000골드에 젬 1개 확정)과 같은 골드 경제를 유지한다.",
+  "_tier_note": "gem.tier_min/tier_max 는 당첨 젬의 강화 티어 범위(-1 = 그 젬의 최대). 기본 0 = 맨 젬 — 혼성 19단계/소울 10단계를 뽑기로 주면 강화 시스템이 무의미해진다.",
+  "price_gold": 1000,
+  "win_rate": 0.2,
+  "gem": {
+   "categories": [
+    "hybrid",
+    "soul"
+   ],
+   "tier_min": 0,
+   "tier_max": 0
+  },
+  "items": [
+   "level_up",
+   "level_down",
+   "portal",
+   "mall_question_egg",
+   "mall_question_egg2"
   ],
-  "tier_min": 0,
-  "tier_max": -1
+  "weights": {
+   "_note": "당첨됐을 때 무엇이 나오는가. 젬은 분류 가중치를 그 분류의 종 수로 나눠 쓴다(혼성 7종 → 40/7 씩). 릴이 굴러갈 때 보이는 빈도도 같은 가중치를 쓴다.",
+   "hybrid": 40,
+   "soul": 10,
+   "level_up": 15,
+   "level_down": 10,
+   "portal": 15,
+   "mall_question_egg": 8,
+   "mall_question_egg2": 2
+  }
  },
  "box": {
   "_source": "item.pdf §9.3 '진귀한 보석 상자 … 높은 등급의 일반 젬'.",

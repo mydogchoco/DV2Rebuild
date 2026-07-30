@@ -410,37 +410,72 @@ def parse_event_equipment(lines: list[str]) -> list[dict]:
     return uniq
 
 
-def parse_exclusive(lines: list[str]) -> list[dict]:
-    """전용 장비 목록: '장비' 헤더 … '평가' 사이 블록에서 이름/사용자/효과를 복원.
+# ── 전용 장비 (위키 equipment_1.pdf) ───────────────────────────────────────
+#
+# 표 구조 = [사진 | 장비 이름 | 대상 드래곤 | 효과]. 종전에는 본문 줄을 순서대로 훑어
+# 이름/사용자/효과를 갈랐는데, 셀 안에서 줄바꿈이 일어나 `name_raw` 가 "고대신룡의 금 관
+# 고대신룡" 처럼 섞이고 24행은 아예 파싱에 실패했다(`raw` 만 남았다).
+#
+# 🟢 2026-07-31: **행 파서를 아이콘 추출기와 공유**한다(`extract_equip_icons.read_rows`).
+# 사진 열 이미지의 y 범위로 행을 확정하고 x 로 열을 가르면 이름·드래곤·효과가 깨끗하게 갈린다.
+# 아이콘과 데이터가 같은 행 판정을 쓰므로 둘이 어긋날 수 없다.
+#
+# 🟦 사용자 확정 2026-07-31: **전용 장비는 원래 주 능력치가 없다.** 대응하는 드래곤에게만
+# 장착되고 조건부 효과만 갖는다 — 그대로 구현한다(`stat_main` 빈 dict + `dragon_id` 제한).
+# 원작 클라에 종족 제한 훅은 없다(`Equip` 메서드 전수: `getDragonTag` 는 귀속 uid 다) —
+# 서버 `info_item` 소유였고, 우리 근거는 위키 표의 **드래곤 열**이다.
+NAME_X = 160            # 이름 열 오른쪽 경계(pt)
+DRAGON_X = 240          # 드래곤 열 오른쪽 경계 — 그 오른쪽은 전부 효과문
 
-    표가 줄바꿈으로 잘게 쪼개져 있어 완벽 분리는 불가능하다. 블록 원문을 raw 로 보존하고,
-    효과문(마지막 문장군)만 best-effort 로 뽑는다. ⇒ 전용장비는 데이터로만 보관하고
-    전투 반영은 하지 않는다(effect 별 개별 로직 필요, implemented=false).
+
+def parse_exclusive(dragons: dict) -> list[dict]:
+    """전용 장비 95종 → [{name, dragon, dragon_id, effect, implemented}].
+
+    dragons = 정규화 이름 → id 목록(`dragon_name_index`).
     """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from extract_equip_icons import read_rows
+
     out: list[dict] = []
-    idx = [i for i, ln in enumerate(lines) if ln == "장비"]
-    for i in idx:
-        j = next((k for k in range(i + 1, len(lines)) if lines[k] == "평가"), None)
-        if j is None:
-            continue
-        block = [ln for ln in lines[i + 1:j] if ln and ln != "분류:드래곤빌리지2"]
-        if len(block) < 3:
-            continue
-        # 효과문 = '자신' / '장착' / '[' 로 시작하는 첫 줄부터 끝까지.
-        s = next((k for k, ln in enumerate(block)
-                  if ln.startswith(("자신", "장착", "[", "전투", "각성스킬"))), None)
-        if s is None or s == 0:
-            out.append({"raw": " ".join(block), "implemented": False})
-            continue
-        head = block[:s]
-        effect = " ".join(block[s:])
-        # head = [이름조각…, 사용자조각…] — 사용자는 보통 마지막 1~2조각.
+    for r in read_rows("equipment_1.pdf", None, want_images=False):
+        cells = r["cells"]
+        name = "".join(t for x, t in cells if x < NAME_X).strip()
+        dragon = "".join(t for x, t in cells if NAME_X <= x < DRAGON_X).strip()
+        effect = " ".join(t for x, t in cells if x >= DRAGON_X).strip()
+        dn = _norm(dragon)
+        ids = dragons.get(dn, [])
         out.append({
-            "name_raw": " ".join(head),
+            "name": re.sub(r"\[\d+\]", "", name).strip(),
+            "dragon": re.sub(r"\[\d+\]", "", dragon).strip(),
+            "dragon_id": ids[0] if len(ids) == 1 else None,
             "effect": re.sub(r"\[\d+\]", "", effect).strip(),
-            "implemented": False,
+            # 주 능력치가 없는 것이 원작 사양이다(사용자 확정) — 빈 dict 로 명시한다.
+            "stat_main": {},
+            "implemented": True,
+            "_dragon_ids": ids if len(ids) != 1 else None,
         })
     return out
+
+
+def _norm(s: str) -> str:
+    """이름 대조용 정규화 — 공백·각주 표시·PDF 사유 글리프 제거.
+
+    PDF 텍스트에는 폰트 사설 글리프(U+E000~U+F8FF)가 섞여 나온다. 드래곤 이름을
+    `dragons.json` 과 대조할 때 조용히 어긋나지 않도록 함께 지운다
+    (`re` 모듈이 패턴 안의 유니코드 이스케이프를 해석하므로 문자 클래스에 범위로 넣는다).
+    """
+    return re.sub(r"[\[\]\d\s\ue000-\uf8ff-]", "", s)
+
+
+def dragon_name_index() -> dict[str, list[int]]:
+    """`data/dragons.json` 의 이름 → id 목록(정규화 키)."""
+    ds = json.loads((REPO / "data" / "dragons.json").read_text(encoding="utf-8"))
+    idx: dict[str, list[int]] = {}
+    for d in ds:
+        nm = str(d.get("name", ""))
+        if nm:
+            idx.setdefault(_norm(nm), []).append(int(d["id"]))
+    return idx
 
 
 def icon_names(section: str) -> set[str]:
@@ -480,7 +515,8 @@ PIECES_IMPL_NOTE = (
     "원본 6장이 실려 있으므로 `extract_equip_icons.py` 를 돌리면 다시 켜진다.")
 
 
-def mark_implemented(events: list[dict], special: dict, pieces: dict) -> tuple[int, int]:
+def mark_implemented(events: list[dict], special: dict, pieces: dict,
+                     exclusive: list[dict]) -> tuple[int, int]:
     """아이콘 보유 여부로 `implemented` 플래그를 박는다. 반환 = (켠 이벤트 수, 끈 이벤트 수)."""
     have = icon_names("event")
     on = off = 0
@@ -513,22 +549,33 @@ def mark_implemented(events: list[dict], special: dict, pieces: dict) -> tuple[i
             "세트 효과는 Equipment._add_piece_sets 가 그대로 합산한다.")
     else:
         pieces["_impl_basis"] = PIECES_IMPL_NOTE
+    # 전용 장비 — icon_map `exclusive` 는 장비 이름 키. 주 능력치가 없는 것이 원작 사양이므로
+    # (사용자 확정 2026-07-31) 아이콘만 있으면 구현 대상이다.
+    ex_have = icon_names("exclusive")
+    for x in exclusive:
+        ok = x["name"] in ex_have and x.get("dragon_id")
+        x["implemented"] = bool(ok)
+        if not ok:
+            x["_impl_basis"] = IMPL_NOTE if x["name"] not in ex_have else (
+                "대상 드래곤을 data/dragons.json 에서 특정하지 못했다 — 장착 제한을 걸 수 없다.")
+        else:
+            x.pop("_impl_basis", None)
     return on, off
 
 
 def build() -> dict:
     eq0 = read_pdf("equipment_0")
-    eq1 = read_pdf("equipment_1")
     events = parse_event_equipment(eq0)
-    exclusive = parse_exclusive(eq1)
+    exclusive = parse_exclusive(dragon_name_index())
     print(f"  이벤트 장비 {len(events)}종 / 전용 장비 {len(exclusive)}종 파싱")
     special = json.loads(json.dumps(SPECIAL, ensure_ascii=False))   # 상수 원본을 건드리지 않는다
     pieces = json.loads(json.dumps(PIECES, ensure_ascii=False))
-    on, off = mark_implemented(events, special, pieces)
+    on, off = mark_implemented(events, special, pieces, exclusive)
     sp_on = sum(1 for v in special.values() if v.get("implemented"))
+    ex_on = sum(1 for x in exclusive if x.get("implemented"))
     print(f"  아이콘 판정 — 이벤트 {on}구현/{off}제외 · 특수 계열 {sp_on}/{len(special)} 구현"
           f" · 편린 {'구현' if pieces.get('implemented') else '제외'}"
-          f" · 전용 {len(exclusive)}종은 수치 부재로 제외(아이콘은 보유)")
+          f" · 전용 {ex_on}/{len(exclusive)} 구현")
 
     basic = {}
     for name, spec in BASIC.items():

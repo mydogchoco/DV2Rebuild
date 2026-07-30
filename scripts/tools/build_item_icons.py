@@ -242,11 +242,12 @@ def build_map(subs: list[str]) -> dict:
     for r in rows.get("piece", []):
         out["piece"][str(r["ours"])] = {"dir": "equip_wiki", "frame": r["frame"],
                                         "from_wiki": True}
-    # 전용 장비는 우리 데이터의 이름(name_raw)이 PDF 줄바꿈으로 깨져 있어 **행 번호**로 건다.
-    # 위키에서 읽은 깔끔한 이름을 함께 실어 둔다(표시·검수용).
+    # 전용 장비 — 키는 **장비 이름**. `build_equipment.py` 가 같은 행 파서로 이름을 뽑으므로
+    # (`extract_equip_icons.read_rows` 공유) equipment.json `exclusive.list[].name` 과 일치한다.
+    # ⚠️ 위키 이름에는 각주 표시가 붙기도 한다("살라의 화염창[57]") — 양쪽 다 떼야 만난다.
     for r in rows.get("exclusive", []):
-        out["exclusive"][str(r["index"])] = {"dir": "equip_wiki", "frame": r["frame"],
-                                             "name": r["wiki_name"], "from_wiki": True}
+        key = re.sub(r"\[\d+\]", "", str(r["wiki_name"])).strip()
+        out["exclusive"][key] = {"dir": "equip_wiki", "frame": r["frame"], "from_wiki": True}
 
     # 상점 장비 가챠 버튼 아이콘 — 사용자 확정 2026-07-29(몽타주 '정체 미상' 2건의 정답):
     #   gooddeco = 다이아 가챠 / olddeco = 골드 가챠. `item/accessory` 아틀라스에 실재한다.

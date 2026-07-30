@@ -65,8 +65,17 @@ GROUPS = {
 }
 
 
-def read_rows(pdf: str, pages) -> list[dict]:
-    """사진 열 이미지를 읽기 순서로 → [{img, name, page}]."""
+def read_rows(pdf: str, pages, want_images: bool = True) -> list[dict]:
+    """사진 열 이미지를 읽기 순서로 → [{img, name, cells, page}].
+
+    `cells` = 그 행에서 사진 오른쪽에 있는 텍스트 줄 전부를 x 순으로 [(x, 문자열)] 로.
+    표마다 열 구성이 다르므로(이벤트=이름/효과/이벤트, 전용=이름/드래곤/효과) **열 해석은
+    호출측이** 한다 — 여기서는 "어느 줄이 어느 행인지"만 확정한다.
+
+    ⚠️ `build_equipment.py` 가 전용 장비 표를 읽을 때 이 함수를 **그대로 재사용**한다
+    (`want_images=False`). 행 판정 규칙이 두 벌로 갈라지면 아이콘과 데이터가 조용히
+    어긋나므로 한 곳에만 둔다.
+    """
     import fitz
     from PIL import Image
     doc = fitz.open(WIKI / pdf)
@@ -95,14 +104,18 @@ def read_rows(pdf: str, pages) -> list[dict]:
                     continue
                 same = sorted([(x, y, s) for x, y, s in lines
                                if r.y0 <= y <= r.y1 and x > r.x1 - 2])
-                name = "".join(s for x, y, s in same if x < NAME_X)
-                rgb = Image.open(io.BytesIO(info["image"])).convert("RGB")
-                a = Image.open(io.BytesIO(doc.extract_image(smask)["image"])).convert("L")
-                if a.size != rgb.size:
-                    a = a.resize(rgb.size)
-                img = rgb.copy()
-                img.putalpha(a)
-                items.append((r.y0, r.x0, {"img": img, "name": name, "page": pno}))
+                cells = [(x, s) for x, _y, s in same]
+                name = "".join(s for x, s in cells if x < NAME_X)
+                img = None
+                if want_images:
+                    rgb = Image.open(io.BytesIO(info["image"])).convert("RGB")
+                    a = Image.open(io.BytesIO(doc.extract_image(smask)["image"])).convert("L")
+                    if a.size != rgb.size:
+                        a = a.resize(rgb.size)
+                    img = rgb.copy()
+                    img.putalpha(a)
+                items.append((r.y0, r.x0,
+                              {"img": img, "name": name, "cells": cells, "page": pno}))
         items.sort(key=lambda t: (t[0], t[1]))
         out += [it[2] for it in items]
     return out

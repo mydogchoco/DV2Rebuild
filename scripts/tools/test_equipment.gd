@@ -16,7 +16,21 @@ func _init() -> void:
 	#    🟢 2026-07-31: 이벤트 6→25 · 특수 0→12 로 복구. 2026-07-30 에 아이콘 미보유로 껐던
 	#    19+12 종의 원본 아이콘을 커뮤니티 위키 PDF 표에서 복원해 배선했다
 	#    (`extract_equip_icons.py` → icon_map event/special). 판정은 여전히 icon_map 조회 자동.
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36)
+	# 🟦 2026-07-31 사용자 확정: 전용 장비 95종은 **주 능력치가 없는 것이 원작 사양**이다.
+	#    대응 드래곤에게만 장착되고 조건부 효과만 갖는다 ⇒ 그대로 카탈로그에 넣는다.
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 95)
+	fails += _true("전용 장비가 카탈로그에 있다", cat.has("exclusive:고대신룡의 금관"))
+	var exc: Dictionary = cat["exclusive:고대신룡의 금관"]
+	fails += _eq("전용 장비는 주 능력치가 없다", (exc["stat_main"] as Dictionary).size(), 0)
+	fails += _eq("전용 장비 대상 드래곤", int(exc["dragon_id"]), 1)
+	fails += _true("대상 드래곤이면 허용", E.species_allows(exc, 1))
+	fails += _true("다른 종이면 거부", not E.species_allows(exc, 53))
+	fails += _true("일반 장비는 종 제한 없음", E.species_allows(cat["basic:깃털:0"], 999))
+	# 장착도 종을 본다(0을 넘기면 구 호출부 호환으로 검사 생략).
+	fails += _true("다른 종에 전용 장비 장착 거부",
+		E.equip({}, "all", "exclusive:고대신룡의 금관", table, {}, 53).is_empty())
+	fails += _true("대상 종에는 장착 성공",
+		not E.equip({}, "all", "exclusive:고대신룡의 금관", table, {}, 1).is_empty())
 	fails += _true("특수 장비가 카탈로그에 있다", cat.has("special:balrog:카이저 발록의 보주"))
 	fails += _true("아이콘 복원 이벤트 장비가 카탈로그에 있다", cat.has("event:마룡의 보옥"))
 	fails += _eq("부적 등급 수(아만타 없음)", (table["basic"]["부적"]["grades"] as Array).size(), 6)

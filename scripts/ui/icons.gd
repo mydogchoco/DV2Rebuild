@@ -140,6 +140,10 @@ static func equip_texture(item: Dictionary) -> Texture2D:
 	# 원본 아틀라스(`item/newaccessory*`)는 덤프에 없지만 위키에서 복원해 배선했다(2026-07-31).
 	if grp.begins_with("special") and parts.size() >= 3:
 		return texture("special", "%s:%s" % [parts[1], parts[2]])
+	# 전용 장비 — 키 "exclusive:<장비 이름>". icon_map 도 같은 이름 키다
+	# (`build_equipment.py` 와 `extract_equip_icons.py` 가 같은 행 파서를 쓴다).
+	if grp == "exclusive":
+		return texture("exclusive", String(item.get("name", "")))
 	return null
 
 ## 레이드 편린 아이콘. 편린은 장비 카탈로그가 아니라 **이름**으로만 식별된다
@@ -147,15 +151,9 @@ static func equip_texture(item: Dictionary) -> Texture2D:
 static func piece_texture(name: String) -> Texture2D:
 	return texture("piece", name)
 
-## 전용 장비 아이콘. `data/equipment.json` `exclusive.list` 의 **행 번호**로 건다 —
-## 우리 데이터의 `name_raw` 가 PDF 줄바꿈으로 깨져 있어 이름을 키로 쓸 수 없다
-## (icon_map `exclusive` 항목의 `name` 필드에 위키에서 읽은 깨끗한 이름이 있다).
-static func exclusive_texture(index: int) -> Texture2D:
-	return texture("exclusive", str(index))
-
-## 전용 장비의 표시용 이름(위키 원문). 없으면 "".
-static func exclusive_name(index: int) -> String:
-	return String(entry("exclusive", str(index)).get("name", ""))
+## 전용 장비 아이콘(이름 키). 카탈로그 항목이 있으면 `equip_texture` 를 그냥 쓰면 된다.
+static func exclusive_texture(name: String) -> Texture2D:
+	return texture("exclusive", name)
 
 ## 장비 아이콘 **뒤**에 까는 희귀도 실루엣. 원작 `Equip::getGradeImageSmallSprite` 대응 —
 ## `<이름>_bg.png` 흰 실루엣을 만들고 희귀도 색을 입힌다(일반=안 그림).

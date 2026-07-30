@@ -31,13 +31,15 @@ func _init() -> void:
 				sec = "event"; key = parts[1]
 			"special":
 				sec = "special"; key = "%s:%s" % [parts[1], parts[2]]
+			"exclusive":
+				sec = "exclusive"; key = String(cat[k].get("name", ""))
 		var e: Dictionary = (im.get(sec, {}) as Dictionary).get(key, {})
 		if e.is_empty():
 			fails += _fail("카탈로그 %s → icon_map %s/%s 없음" % [k, sec, key]); miss += 1
 		else:
 			fails += _load_ok(e, k)
 	print("카탈로그 %d종 · 아이콘 누락 %d" % [cat.size(), miss])
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36)
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 95)
 
 	# ② 편린 6 · 전용 95
 	for p in (eq["pieces"]["list"] as Array):
@@ -48,13 +50,18 @@ func _init() -> void:
 			fails += _load_ok(pe, String(p["name"]))
 	var exl: Array = eq["exclusive"]["list"]
 	var ex_ok := 0
-	for i in exl.size():
-		var xe: Dictionary = (im.get("exclusive", {}) as Dictionary).get(str(i), {})
+	for x in exl:
+		var xd := x as Dictionary
+		var nm := String(xd.get("name", ""))
+		var xe: Dictionary = (im.get("exclusive", {}) as Dictionary).get(nm, {})
 		if xe.is_empty():
-			fails += _fail("전용 장비 아이콘 없음: index %d" % i)
+			fails += _fail("전용 장비 아이콘 없음: %s" % nm)
 		else:
-			fails += _load_ok(xe, "exclusive:%d" % i)
+			fails += _load_ok(xe, "exclusive:" + nm)
 			ex_ok += 1
+		# 사용자 확정: 주 능력치는 없고 대상 드래곤 제한만 있다.
+		if int(xd.get("dragon_id", 0)) <= 0:
+			fails += _fail("전용 장비 대상 드래곤 미확정: %s" % nm)
 	print("편린 %d · 전용 %d/%d 아이콘 보유" % [(eq["pieces"]["list"] as Array).size(), ex_ok, exl.size()])
 
 	print("=== %s ===" % ("PASS" if fails == 0 else "FAIL %d건" % fails))
