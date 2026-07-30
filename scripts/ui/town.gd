@@ -87,18 +87,31 @@ const AREAS := {
 				# ⇒ 종전에 여기 달아 두었던 `action: "quest"` 는 자작이라 뗐다(2026-07-31).
 				{"frame": "scene_town_elpis_u_village_order", "x": 619.0, "y": 151.0, "anchor": "bottom"},
 				{"frame": "scene_town_elpis_u_village_order_book", "x": 608.0, "y": 165.0},
-				{"frame": "scene_town_elpis_town_flower", "x": 2784.0, "y": 189.0},
+				# 🔴 문·꽃은 원작이 **마을띠(섹션3)** 에 z=3 으로, **anchor(0,1)**(좌상단) 로 붙인다
+				#    (`makeObjMenu` 섹션3 분기 끝: town_door@(251,256) · town_flower@(2784,189)).
+				#    종전엔 둘 다 중앙앵커였고 문은 **지면(섹션2)** 에 있었다 → 꽃은 공중에 뜨고
+				#    문은 길드 건물 위에 흰 판때기로 떠 있었다(사용자 지적 2026-07-31). 꽃은 이 수정으로 해결.
+				#
+				# ⚪ `town_door` 는 **뺀다**(사용자 확정 2026-07-31). 원작 좌표·앵커를 그대로 줘도
+				#    마을띠 아트(`u_village_bg_b01`)에 **이미 그려져 있는 길드 문**과 겹쳐 문이 두 개로
+				#    보인다. 원작에서는 오버레이가 아트의 문 구멍에 정확히 포개졌을 텐데, 우리 밴드
+				#    정렬(bottom=120·좌측정렬·유도 motion)에서는 오른쪽·아래로 어긋난다.
+				#    ⇒ 밴드 y 테이블(`DAT_022bba58`, §7 ASSUMPTION 잔존)을 실제로 읽어내면 이 줄부터
+				#      되살릴 것. 프레임은 보유분이므로 좌표만 맞추면 된다.
+				# {"frame": "scene_town_elpis_town_door", "x": 251.0, "y": 256.0, "anchor": "topleft"},
+				{"frame": "scene_town_elpis_town_flower", "x": 2784.0, "y": 189.0, "anchor": "topleft"},
 			 ],
 			 "ambient": [
 				# 사용자 검수 조정: 원작 (959,567) → 누적 왼쪽 26 · 위 50 = (933, 617).
 				# 🔴 밤은 따로 잡는다 — 낮 프레임의 원본 캔버스가 498×255 인데 밤은 201×176 이라
 				#    같은 좌표를 줘도 굴뚝에서 어긋난다(트림 오프셋 기준이 다르다).
 				#    night_x/night_y = 사용자 검수(2026-07-29): 낮 기준에서 오른쪽 20 · 아래 40.
+				#    2026-07-31 사용자 재검수: 밤 연기만 오른쪽으로 6 더(953 → 959).
 				# ⚠️ **연구소보다 앞에 배치**해 연구소 건물 **뒤**로 그려지게 한다(같은 레이어·같은 z 에서는
 				#    나중에 추가된 것이 위). z 를 음수로 주면 마을띠 밴드(z=0)보다도 뒤로 가 아예 안 보인다.
 				{"flip": "scene_town_elpis_lab_smog_lab_smog_%s0%d", "n": 10, "day_key": "a", "night_key": "n",
 				 "dir": "town_elpis_smog", "x": 933.0, "y": 617.0,
-				 "night_x": 953.0, "night_y": 577.0},
+				 "night_x": 959.0, "night_y": 577.0},
 				{"spine": "u_village_lab", "anim": "nomal", "x": 903.0, "y": 330.0,
 				 "action": "lab", "label": "연구소"},
 				{"spine": "duck", "anim": "animation", "x": 2628.0, "y": 153.0},
@@ -142,7 +155,6 @@ const AREAS := {
 				 "hit_size": [200.0, 350.0], "hit_offset": [0.0, -70.0],
 				 "action": "daynight", "label": "시계탑"},
 				{"frame": "scene_town_elpis_town_clockpoint", "x": 1441.0, "y": 535.0},
-				{"frame": "scene_town_elpis_town_door", "x": 251.0, "y": 256.0},
 				{"frame": "scene_town_elpis_town_mailbox", "x": 1983.0, "y": 8.0, "anchor": "bottom"},
 				{"frame": "scene_town_elpis_u_village_cave", "x": 3526.0, "y": 8.0, "anchor": "bottom",
 				 "action": "cave", "label": "둥지"},
@@ -156,17 +168,17 @@ const AREAS := {
 			 # 최초 배치는 그 기준점에서 `roam`(rangeX,rangeY) 범위 안 난수다. z=300.
 			 # 이름·대사는 data/npc_lines.json(원작 stringsData_KR.xml, build_npc_lines.py).
 			 "npcs": [
-				{"id": "randolph", "qslot": 0,  "tag": 0x65, "x": 3093.0, "y": 70.0,  "roam": [200.0, 70.0],  "scale": 0.533},
-				{"id": "yuria",    "qslot": 1,  "tag": 0x66, "x": 3363.0, "y": 115.0, "roam": [75.0, 20.0],   "scale": 0.533},
-				{"id": "kanggalo", "qslot": 2,  "tag": 0x67, "x": 353.0,  "y": 70.0,  "roam": [180.0, 25.0],  "scale": 0.533},
-				{"id": "popo",     "qslot": 3,  "tag": 0x68, "x": 2293.0, "y": 55.0,  "roam": [200.0, 35.0],  "scale": 0.533},
-				{"id": "dilis",    "qslot": 4,  "tag": 0x69, "x": 1449.0, "y": 90.0,  "roam": [150.0, 25.0],  "scale": 0.533},
-				{"id": "pino",     "qslot": 5,  "tag": 0x6a, "x": 713.0,  "y": 120.0, "roam": [270.0, 20.0],  "scale": 0.533},
-				{"id": "romini",   "qslot": 6,  "tag": 0x6b, "x": 2663.0, "y": 65.0,  "roam": [250.0, 100.0], "scale": 0.533},
-				{"id": "baruseu",  "qslot": 7,  "tag": 0x6c, "x": 1013.0, "y": 75.0,  "roam": [260.0, 55.0],  "scale": 0.533},
-				{"id": "zumon",    "qslot": 8,  "tag": 0x6d, "x": 1613.0, "y": 45.0,  "roam": [300.0, 50.0],  "scale": 0.556},
-				{"id": "nuri",     "qslot": 9,  "tag": 0x6e, "x": 2083.0, "y": 107.0, "roam": [250.0, 25.0],  "scale": 0.667},
-				{"id": "raon",     "qslot": 10, "tag": 0x6f, "x": 1813.0, "y": 25.0,  "roam": [3000.0, 10.0], "scale": 0.533},
+				{"id": "randolph", "tag": 0x65, "x": 3093.0, "y": 70.0,  "roam": [200.0, 70.0],  "scale": 0.533},
+				{"id": "yuria",    "qslot": 0,  "tag": 0x66, "x": 3363.0, "y": 115.0, "roam": [75.0, 20.0],   "scale": 0.533},
+				{"id": "kanggalo", "qslot": 1,  "tag": 0x67, "x": 353.0,  "y": 70.0,  "roam": [180.0, 25.0],  "scale": 0.533},
+				{"id": "popo",     "tag": 0x68, "x": 2293.0, "y": 55.0,  "roam": [200.0, 35.0],  "scale": 0.533},
+				{"id": "dilis",    "tag": 0x69, "x": 1449.0, "y": 90.0,  "roam": [150.0, 25.0],  "scale": 0.533},
+				{"id": "pino",     "qslot": 2,  "tag": 0x6a, "x": 713.0,  "y": 120.0, "roam": [270.0, 20.0],  "scale": 0.533},
+				{"id": "romini",   "qslot": 3,  "tag": 0x6b, "x": 2663.0, "y": 65.0,  "roam": [250.0, 100.0], "scale": 0.533},
+				{"id": "baruseu",  "tag": 0x6c, "x": 1013.0, "y": 75.0,  "roam": [260.0, 55.0],  "scale": 0.533},
+				{"id": "zumon",    "tag": 0x6d, "x": 1613.0, "y": 45.0,  "roam": [300.0, 50.0],  "scale": 0.556},
+				{"id": "nuri",     "qslot": 4,  "tag": 0x6e, "x": 2083.0, "y": 107.0, "roam": [250.0, 25.0],  "scale": 0.667},
+				{"id": "raon",     "qslot": 5,  "tag": 0x6f, "x": 1813.0, "y": 25.0,  "roam": [3000.0, 10.0], "scale": 0.533},
 				{"id": "nelson",   "tag": 0x70, "x": 613.0,  "y": 135.0, "roam": [800.0, 15.0],  "scale": 0.533},
 				{"id": "aria",     "tag": 0x71, "x": 3013.0, "y": 85.0,  "roam": [550.0, 30.0],  "scale": 0.533},
 				{"id": "guy",      "tag": 0x72, "x": 2913.0, "y": 30.0,  "roam": [1500.0, 10.0], "scale": 0.533},
@@ -398,6 +410,9 @@ func _obj_center(ob: Dictionary, area: Dictionary, w: float, h: float) -> Vector
 	match String(ob.get("anchor", "center")):
 		"left":   return Vector2(x + w * 0.5, FLOOR - y)
 		"bottom": return Vector2(x, FLOOR - y - h * 0.5)
+		# 원작이 `setAnchorPoint(0,1)` 을 준 것(문·꽃) — cocos 기준 **좌상단**이라
+		# 스프라이트는 좌표에서 오른쪽·아래로 뻗는다.
+		"topleft": return Vector2(x + w * 0.5, FLOOR - y + h * 0.5)
 		_:        return Vector2(x, FLOOR - y)
 
 ## 앰비언트 1개. spine(scenes/town_fx/*.tscn) 또는 flip(프레임 시퀀스, 0.2s — 원작 getMapAnimation 관례).
@@ -552,12 +567,14 @@ func _sort_npc_z() -> void:
 ##   진행중  = `scene/town/elpis/txt_balloon.png`, scale 0.8
 ##   보상대기 = `common/alert3.png`, scale 1.3
 ##   위치 = holder 기준 `(width*0.5, height + 23)` · 태그 0x66 · MoveBy ±10 → ±7 → ±3, 각 0.8초 RepeatForever
-## ⚠️ **어느 NPC가 어느 퀘스트를 주는지**는 원작이 `TownManager::getElpisDic` 의 서버 테이블에서
-##    읽어 유실됐다. 다만 `makeNpcMenu` 가 NPC마다 넘기는 **퀘스트 슬롯 인덱스**는 남아 있어
-##    (objectAtIndex(N) == makeQuestMark(…, N)) 그 순서를 그대로 쓴다:
-##    0 randolph · 1 yuria · 2 kanggalo · 3 popo · 4 dilis · 5 pino · 6 romini · 7 baruseu
-##    · 8 zumon · 9 nuri · 10 raon  (11~15 = nelson/aria/guy/grandma/annie 는 퀘스트 없음)
-##    ⇒ 우리 로컬 일일퀘스트 `_QUESTS[i]` 를 슬롯 i 의 NPC 에 붙인다(내용 매칭은 ASSUMPTION).
+## 🔬 **어느 NPC가 미션을 주는지 확정**(2026-07-31, 종전 ASSUMPTION 철회):
+##    `TownWorldPopUp::initWidgetTotal` 의 아이콘 테이블(.so @0x2856d78)과
+##    `onClickMenu` case 0xe 의 `getNpcNo()` 분기가 똑같이 **6명**을 가리킨다 —
+##    **yulia(2) · kanggalo(3) · pino(6) · romini(7) · nuri(10) · raon(11)**
+##    (숫자 = NPC no = 우리 tag − 0x64). 나머지 NPC 는 미션을 주지 않는다.
+##    ⇒ `qslot` 은 그 6명에게만 0~5(= `_QUESTS` 인덱스)로 붙는다.
+##    종전엔 11명에게 순번 0~10 을 그대로 붙이고 있었다.
+##    ⚠️ 미션 **내용**은 여전히 유실(서버 `getElpisDic`) — `_QUESTS` 참조.
 const QMARK_TAG := 0x66
 func _npc_quest_state(qslot: int) -> String:
 	if qslot < 0 or qslot >= _QUESTS.size():
@@ -692,6 +709,23 @@ func _on_npc_click(npc_id: String) -> void:
 	var who := String(info.get("name", ""))
 	if lines.is_empty():
 		return    # 대사가 없는 행인(aria/guy/grandma/nelson)은 무반응 — 원작도 쌍이 없다
+	# 원작 `TownQuestManager::requestTalkCountUp(no)` → `game_quest/request_quest_counter.hb`.
+	# 마을 주민과의 대화가 미션 카운터로 올라간다(오프라인은 로컬 카운터).
+	UserDB.bump_quest("talks")
+	# 개별 미션 보상은 이 창(전체 현황판)이 아니라 **NPC 에게서** 받는다 —
+	# 원작도 `TownQuestManager::setQuestReward` 가 NPC 대화 흐름에 있다.
+	for qi in _QUESTS.size():
+		var q: Dictionary = _QUESTS[qi]
+		if String(q["npc"]) != npc_id:
+			continue
+		if _npc_quest_state(qi) == "reward":
+			UserDB.claim_quest(String(q["key"]))
+			UserDB.add_currency("gold", int(q["gold"]))
+			_refresh_quest_marks()
+			_refresh_hud()
+			_open_town_reward(int(q["gold"]))
+			return
+		break
 	# 원작 showNpcText: 대사 번호 = `(arc4random() & 7) + 1` → 8줄 중 **무작위**.
 	var i := randi() % lines.size()
 	var rec := {}
@@ -1236,74 +1270,246 @@ func _show_tip() -> void:
 	_tip_label.modulate.a = 0.0
 	_tip_label.create_tween().tween_property(_tip_label, "modulate:a", 1.0, 0.4)
 
-## 마을 일일 퀘스트(원작 TownQuestLayer): 전투 승리/부화 진행도 + 보상. 카운터=UserDB 일일리셋.
+## 마을 미션 — 원작 `TownWorldPopUp`(HUD tag 0x2c0/0x2c1) + `TownQuestManager`.
+## 포팅 카드 = `docs/ref/porting/TownMainMenuLayer.md`.
+##
+## 🔬 복원한 원작 구조(2026-07-31):
+##   · 미션은 **하루 6개**이고 주는 NPC 가 정해져 있다 — `initWidgetTotal` 이
+##     `npc/icon/icon_{yulia,kanggalo,pino,romini,nuri,raon}.png` 6장을 이 순서로 그린다
+##     (.so 문자열 테이블 @0x2856d78). 완료 여부는 `getElpisDic()["c_state"]` 의
+##     인덱스 `[2,3,6,7,10,11] − 1`(= NPC no − 1, `DAT_022b79f8`)을 본다.
+##     같은 6명이 `onClickMenu` case 0xe 의 `getNpcNo()` 분기(2·3·6·7·10·11)와 일치한다.
+##   · 그 no 는 우리 NPC 태그와도 맞는다(tag − 0x64): yuria 0x66 · kanggalo 0x67 ·
+##     pino 0x6a · romini 0x6b · nuri 0x6e · raon 0x6f.
+##   · 진행도 문자열 `ElpisQuestTotalCount` = "해결한 미션 : %1$d/%2$d".
+##   · 전체 보상 버튼은 **6/6 일 때만 활성**(`RaidMsg1`="보상 받기" → `requestTownQuestTotal`),
+##     옆은 `cancel`="취소". 개별 미션 수령은 이 창이 아니라 **NPC 대화**에서 한다.
+##
+## 🔴 종전엔 퀘스트가 2개였고 `qslot` 을 NPC 순번 0~10 에 그대로 붙였다(ASSUMPTION) —
+##    원작은 위 6명뿐이다. 지금은 그 6명에 고정한다.
+##
+## ⚠️ **미션 내용·보상 수치는 서버 소유라 유실**됐다(`getElpisDic` / `readJson_*`).
+##    아래 목표·골드는 우리 오프라인 자작이고 튜닝은 여기 한 곳만 고치면 된다.
+##    근거가 있는 것은 **구조**(6개·담당 NPC 6명)와 "오늘 하루"(`ElpisQuestTotalComment`)라는
+##    **일일 리셋** 성격뿐이다. 단 `talks`(주민과 대화)는 원작에도 카운터가 있다 —
+##    `TownQuestManager::requestTalkCountUp` → `game_quest/request_quest_counter.hb`.
 const _QUESTS := [
-	{"key": "battles", "label": "전투 승리", "goal": 3, "gold": 300},
-	{"key": "hatches", "label": "부화하기", "goal": 1, "gold": 200},
+	{"npc": "yuria",    "icon": "yulia",    "key": "battles",  "label": "전투 승리",   "goal": 3, "gold": 300},
+	{"npc": "kanggalo", "icon": "kanggalo", "key": "hatches",  "label": "알 부화",     "goal": 1, "gold": 200},
+	{"npc": "pino",     "icon": "pino",     "key": "feeds",    "label": "먹이 주기", "goal": 3, "gold": 150},
+	{"npc": "romini",   "icon": "romini",   "key": "levelups", "label": "레벨업", "goal": 1, "gold": 250},
+	{"npc": "nuri",     "icon": "nuri",     "key": "buys",     "label": "상점 구매", "goal": 1, "gold": 150},
+	{"npc": "raon",     "icon": "raon",     "key": "talks",    "label": "주민과 대화", "goal": 3, "gold": 150},
 ]
+## 6/6 전체 보상(원작 `requestTownQuestTotal` = 서버 유실 → 자작).
+const _QUEST_TOTAL_GOLD := 1000
+const _QUEST_TOTAL_KEY := "town_total"
+
+## 원작 문자열(`DV2/string/stringsData_KR.xml`) 그대로.
+const _Q_TITLE := "엘피스 마을 전체 미션"                                      # ElpisQuestTotalTitle
+const _Q_COMMENT := "오늘 하루!! 당신이 진정한 테이머라면\n도움이 필요한 엘피스 마을 주민들을 도와주세요!!"  # ElpisQuestTotalComment
+const _Q_COUNT := "해결한 미션 : %d/%d"                                        # ElpisQuestTotalCount
+
+func _quest_done(qd: Dictionary) -> bool:
+	return UserDB.quest_claimed(String(qd["key"]))
+
+func _quest_cleared_count() -> int:
+	var n := 0
+	for qd in _QUESTS:
+		if _quest_done(qd):
+			n += 1
+	return n
+
+## 원작 BMFont. 비트맵이라 `fixed_size_scale_mode` 를 켜야 `font_size` 가 먹는다(CLAUDE.md §10).
+var _bmf_cache: Dictionary = {}
+func _bmfont(name: String) -> Font:
+	if _bmf_cache.has(name):
+		return _bmf_cache[name]
+	var p := "res://assets/converted/font_ui/%s.fnt" % name
+	if not ResourceLoader.exists(p):
+		return null
+	var f := (load(p) as FontFile)
+	if f != null:
+		f = f.duplicate() as FontFile
+		f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+	_bmf_cache[name] = f
+	return f
+
+func _q_label(text: String, font: String, size: int, color: Color, center: Vector2,
+		dim: Vector2, align := HORIZONTAL_ALIGNMENT_CENTER) -> Label:
+	var l := Label.new()
+	l.text = text
+	var f := _bmfont(font)
+	if f != null:
+		l.add_theme_font_override("font", f)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.horizontal_alignment = align
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.size = dim
+	l.position = center - dim * 0.5
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+## 원작 `RoundedButton::create(1.1, CCSize(220,56), …)` — 아틀라스 프레임이 아니라
+## 코드로 그리는 둥근 버튼이라 StyleBoxFlat 이 정확한 이식이다(대체품 아님).
+func _rounded_button(text: String, center: Vector2, enabled: bool) -> Button:
+	var b := Button.new()
+	b.size = Vector2(220.0, 56.0)
+	b.position = center - b.size * 0.5
+	b.text = text
+	b.disabled = not enabled
+	var f := _bmfont("font_subtitle")
+	if f != null:
+		b.add_theme_font_override("font", f)
+	b.add_theme_font_size_override("font_size", 20)
+	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.36, 0.22, 0.09) if enabled else Color(0.45, 0.42, 0.38)
+		if st == "hover":
+			sb.bg_color = Color(0.46, 0.30, 0.13)
+		elif st == "pressed":
+			sb.bg_color = Color(0.28, 0.16, 0.06)
+		sb.set_corner_radius_all(28)
+		sb.set_border_width_all(2)
+		sb.border_color = Color(0.86, 0.72, 0.42, 0.9 if enabled else 0.4)
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_color_override("font_color", Color(1, 0.95, 0.82))
+	b.add_theme_color_override("font_disabled_color", Color(0.85, 0.83, 0.80, 0.7))
+	return b
+
+## 원작 `TownWorldPopUp::initWidgetTotal` @01a70810 이식 — 마을 전체 미션 현황판.
+## 좌표는 팝업 콘텐츠(630×600) 기준 원작 리터럴 그대로, y 만 뒤집었다(§9 규칙2).
 func _open_quests() -> void:
-	var overlay := CanvasLayer.new(); overlay.layer = 30; add_child(overlay)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: overlay.queue_free())
-	overlay.add_child(dim)
 	var vis := _vis()
-	# 원작 QuestPopup(TownQuestLayer가 위임) 1:1: popup4 + pop_title_bg + icon_quest{1-5} 퀘스트아이콘 + close_btn.
-	# 근거: QuestPopup.c setContentSprite + scene/adventure/icon_quest1~5.png. TownQuestLayer.c initWidget=TownQuestPopUp::create 위임.
-	var BW := 520.0; var BH := 320.0
+	var S := Design.ASSET_SCALE
+	var cm := _load_manifest("common_ui")
+	var nm := _load_manifest("npc_icon")
+	var wm := _load_manifest("worldmap_ui")
+	var overlay := CanvasLayer.new(); overlay.layer = 30; add_child(overlay)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			overlay.queue_free())
+	overlay.add_child(dim)
+
+	# 원작 init: setContentSprite("9patch/popup4.png", CCRect(130,190,40,58))
+	#            + setContentSpriteSize(630, 600)
+	const CW := 630.0
+	const CH := 600.0
 	var win := NinePatchRect.new()
 	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
-	win.patch_margin_left = 130; win.patch_margin_top = 190; win.patch_margin_right = 55; win.patch_margin_bottom = 81
-	win.size = Vector2(BW, BH); win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
+	win.patch_margin_left = 130; win.patch_margin_top = 190
+	win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(CW, CH)
+	win.position = Vector2(round(vis.x * 0.5 - CW * 0.5), round(vis.y * 0.5 - CH * 0.5))
 	overlay.add_child(win)
-	var tbar := NinePatchRect.new(); tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
-	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
-	tbar.size = Vector2(BW * 0.9, 52); tbar.position = Vector2((BW - BW * 0.9) * 0.5, 12); win.add_child(tbar)
-	var t := Label.new(); t.text = "마을 퀘스트 (일일)"
-	t.add_theme_font_size_override("font_size", 22); t.add_theme_color_override("font_color", Color.WHITE)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	t.size = tbar.size; tbar.add_child(t)
-	var xb := TextureButton.new(); xb.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
-	xb.position = Vector2(BW - 50 - 16, 14); xb.pressed.connect(func(): overlay.queue_free()); win.add_child(xb)
-	# 원작 TownQuestPopUp::initRaonHelp: 라온 마스코트가 팝업 옆에서 퀘스트 안내(sd_raon "quest_start").
-	if ResourceLoader.exists("res://scenes/fx/sd_raon.tscn"):
-		var rh := Node2D.new(); rh.position = Vector2(-46, BH - 40); rh.scale = Vector2(0.6, 0.6); win.add_child(rh)
-		var ri = load("res://scenes/fx/sd_raon.tscn").instantiate(); rh.add_child(ri)
-		var rap: AnimationPlayer = ri.get_node_or_null("AnimationPlayer")
-		if rap and rap.has_animation("quest_start"):
-			rap.get_animation("quest_start").loop_mode = Animation.LOOP_LINEAR; rap.play("quest_start")
-		elif rap and rap.has_animation("wait"):
-			rap.play("wait")
+
+	# 제목 띠 — `9patch/pop_title_bg`, 폭 = 콘텐츠 × 0.9, 중심 (w/2, h−50)
+	var tbar := NinePatchRect.new()
+	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20
+	tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(CW * 0.9, 56.0)
+	tbar.position = Vector2((CW - tbar.size.x) * 0.5, 50.0 - tbar.size.y * 0.5)
+	win.add_child(tbar)
+	# 제목 라벨 font_subtitle scale 1.2 (원작 setScale(0x3f99999a))
+	win.add_child(_q_label(_Q_TITLE, "font_subtitle", 24, Color.WHITE,
+		Vector2(CW * 0.5, 50.0), Vector2(tbar.size.x, 40.0)))
+
+	# 안내문 — font_common, 원작 setColor(130,0,0), 중심 (w/2, h−120)
+	var cmt := _q_label(_Q_COMMENT, "font_common", 17, Color8(130, 0, 0),
+		Vector2(CW * 0.5, 120.0), Vector2(CW - 60.0, 56.0))
+	win.add_child(cmt)
+
+	# NPC 6칸 — 기준 (w/2−155, h/2+55), 열 간격 155, 2행은 아래로 120
 	for i in _QUESTS.size():
 		var qd: Dictionary = _QUESTS[i]
-		var cnt := mini(UserDB.quest_count(String(qd["key"])), int(qd["goal"]))
-		var done := cnt >= int(qd["goal"])
-		var claimed := UserDB.quest_claimed(String(qd["key"]))
-		var y := 80 + i * 82
-		# 원작 퀘스트 아이콘(icon_quest1~5)
-		var qic := load("res://assets/converted/adventure_ui/scene_adventure_icon_quest%d.tres" % (i + 1))
-		if qic:
-			var qi := TextureRect.new(); qi.texture = qic; qi.position = Vector2(24, y - 4); qi.size = Vector2(48, 48)
-			qi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; win.add_child(qi)
-		var nm := Label.new(); nm.text = "%s  %d/%d" % [qd["label"], cnt, qd["goal"]]
-		nm.add_theme_font_size_override("font_size", 20); nm.add_theme_color_override("font_color", Color(0.95, 0.92, 0.85))
-		nm.position = Vector2(84, y); win.add_child(nm)
-		var rw := Label.new(); rw.text = "보상: %d G" % qd["gold"]
-		rw.add_theme_font_size_override("font_size", 14); rw.add_theme_color_override("font_color", Color(0.8, 0.8, 0.6))
-		rw.position = Vector2(84, y + 28); win.add_child(rw)
-		var cb := Button.new(); cb.size = Vector2(120, 42); cb.position = Vector2(win.size.x - 148, y + 2)
-		cb.text = "수령 완료" if claimed else ("보상 받기" if done else "진행 중")
-		cb.disabled = claimed or not done
-		var qk: String = qd["key"]; var qg: int = int(qd["gold"])
-		# 보상 수령 → NPC 퀘스트 마크 + HUD(진행도 `%d/%d`·알림 뱃지·골드)를 함께 갱신.
-		cb.pressed.connect(func(): UserDB.claim_quest(qk); UserDB.add_currency("gold", qg); overlay.queue_free(); _refresh_quest_marks(); _refresh_hud(); _open_town_reward(qg))
-		win.add_child(cb)
-	# 지역 진행도(원작 TownWorldPopUp) 진입.
-	var prog := Button.new(); prog.text = "지역 진행도"; prog.size = Vector2(140, 40)
-	prog.position = Vector2(win.size.x * 0.5 - 160, win.size.y - 50)
-	prog.pressed.connect(func(): overlay.queue_free(); _open_region_progress()); win.add_child(prog)
-	var close := Button.new(); close.text = "닫기"; close.size = Vector2(100, 40)
-	close.position = Vector2(win.size.x * 0.5 + 20, win.size.y - 50)
-	close.pressed.connect(func(): overlay.queue_free()); win.add_child(close)
+		var col := i % 3
+		var row := i / 3
+		var c := Vector2(CW * 0.5 - 155.0 + col * 155.0, CH - (CH * 0.5 + 55.0) + row * 120.0)
+		var done := _quest_done(qd)
+		# 후광 `common/backlight3` scale 0.4 + RepeatForever(RotateBy(1초, −10°)) — 완료한 것만.
+		if done:
+			var bl := _atlas_sprite("common_ui", "common_backlight3", cm, S * 0.4)
+			if bl != null:
+				bl.position = c
+				win.add_child(bl)
+				var rt := bl.create_tween().set_loops()
+				rt.tween_property(bl, "rotation", -TAU, 36.0).from(0.0)
+		var ic := _atlas_sprite("npc_icon", "npc_icon_icon_%s" % String(qd["icon"]), nm, S)
+		if ic != null:
+			ic.position = c
+			# 미완료는 원작이 setColor(100,100,120) 로 죽인다.
+			if not done:
+				ic.modulate = Color8(100, 100, 120)
+			win.add_child(ic)
+			# 원작은 프로필 테두리를 아이콘의 **자식**으로 넣는다.
+			var pf := _atlas_sprite("npc_icon", "npc_icon_profile_layer", nm, S)
+			if pf != null:
+				pf.position = c
+				win.add_child(pf)
+		# 완료 도장 `common/clear_mark_kr` @ 후광 + (30,−30), 최종 scale 0.7
+		if done:
+			var mk := _atlas_sprite("common_ui", "common_clear_mark_kr", cm, S * 0.7)
+			if mk != null:
+				mk.position = c + Vector2(30.0, 30.0)
+				mk.z_index = 3
+				win.add_child(mk)
+		# 미션 이름 — 원작에는 없다(아이콘만 놓고, 무엇을 하는 일인지는 NPC 대화에서 알려 준다).
+		# 목표가 자작이라 안내가 없으면 뭐를 해야 하는지 알 수 없어 덧붙인다.
+		# 원작 좌표를 건드리지 않게 **초상 안쪽 윗단**에 이름판으로 깔다(아랫단은 원작 클리어 도장 자리) — 행 간격(120)과
+		# 아이콘 높이(100) 차가 20pt 뿐이라 밖에 두면 아래행·구분선과 겁친다.
+		var cap_w := 100.0
+		var plate := Panel.new()
+		var psb := StyleBoxFlat.new()
+		psb.bg_color = Color(0, 0, 0, 0.55)
+		plate.add_theme_stylebox_override("panel", psb)
+		plate.size = Vector2(cap_w, 18.0)
+		plate.position = c + Vector2(-cap_w * 0.5, -48.0)
+		plate.z_index = 4
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		win.add_child(plate)
+		var st := "완료" if done else "%d/%d" % [
+			mini(UserDB.quest_count(String(qd["key"])), int(qd["goal"])), int(qd["goal"])]
+		var cap := _q_label("%s %s" % [String(qd["label"]), st], "font_common", 12,
+			Color(1, 0.95, 0.85) if done else Color(0.85, 0.84, 0.82),
+			c + Vector2(0.0, -39.0), Vector2(cap_w, 18.0))
+		cap.z_index = 5
+		win.add_child(cap)
+
+	# 구분선 `scene/worldmap/certificate_popup_line` scale 1.2 @ (w/2, h/2−130)
+	var line := _atlas_sprite("worldmap_ui", "scene_worldmap_certificate_popup_line", wm, S * 1.2)
+	if line != null:
+		line.position = Vector2(CW * 0.5, CH - (CH * 0.5 - 130.0))
+		win.add_child(line)
+
+	# 진행도 — 구분선 아래 20pt, anchor(0.5,1) → 위쪽 정렬
+	var cleared := _quest_cleared_count()
+	win.add_child(_q_label(_Q_COUNT % [cleared, _QUESTS.size()], "font_subtitle", 20,
+		Color8(60, 40, 15), Vector2(CW * 0.5, CH - (CH * 0.5 - 150.0) + 12.0),
+		Vector2(CW - 80.0, 28.0)))
+
+	# 하단 버튼 2개 @ (w/2 ∓ 123, 70)
+	var all_done := cleared >= _QUESTS.size()
+	var claimed := UserDB.quest_claimed(_QUEST_TOTAL_KEY)
+	var reward := _rounded_button("보상 받기", Vector2(CW * 0.5 - 123.0, CH - 70.0),
+		all_done and not claimed)
+	reward.pressed.connect(func():
+		if not (all_done and not UserDB.quest_claimed(_QUEST_TOTAL_KEY)):
+			return
+		UserDB.claim_quest(_QUEST_TOTAL_KEY)
+		UserDB.add_currency("gold", _QUEST_TOTAL_GOLD)
+		overlay.queue_free()
+		_refresh_hud()
+		_open_town_reward(_QUEST_TOTAL_GOLD))
+	win.add_child(reward)
+	var cancel := _rounded_button("취소", Vector2(CW * 0.5 + 123.0, CH - 70.0), true)
+	cancel.pressed.connect(func(): overlay.queue_free())
+	win.add_child(cancel)
+
 
 ## 원작 TownRewardPopUp 1:1(initValue_town): 보상 획득 팝업 — popup4 + pop_title_bg + backlight3(광배)
 ## + yongsin_ball spine(용신 볼 축하연출) + coin 보상. 근거: TownRewardPopUp.c(9patch/popup4·pop_title_bg,
@@ -1353,76 +1559,6 @@ func _open_town_reward(gold: int) -> void:
 		if is_instance_valid(layer): layer.queue_free()
 		_open_quests())
 	win.add_child(ok)
-
-## 원작 TownWorldPopUp 1:1: 지역 진행도 팝업 — popup4 + pop_title_bg + common/gauge(클리어 진행)
-## + clear_mark + icon_questgold/questbox(마일스톤 보상) + sd_raon spine(라온 마스코트). 근거: TownWorldPopUp.c
-## init(setContentSprite 9patch/popup4,Rect130,190,40,58)+initWidget(gauge/gauge_bg·clear_mark·icon_quest*·sd_raon.spine_json).
-## ⚠️마일스톤 보상수치=서버 유실→오프라인 큐레이션(ASSUMPTION), 내부좌표 obfuscated→중앙 배치(computed).
-func _open_region_progress() -> void:
-	var vis := _vis()
-	var layer := CanvasLayer.new(); layer.layer = 40; add_child(layer)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(dim)
-	const BW := 520.0
-	const BH := 380.0
-	var cm := _load_manifest("common_ui")
-	var win := NinePatchRect.new()
-	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
-	win.patch_margin_left = 130; win.patch_margin_top = 190; win.patch_margin_right = 55; win.patch_margin_bottom = 81
-	win.size = Vector2(BW, BH); win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
-	layer.add_child(win)
-	var tbar := NinePatchRect.new()
-	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
-	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
-	tbar.size = Vector2(320, 52); tbar.position = Vector2((BW - 320) * 0.5, 12); win.add_child(tbar)
-	var title := Label.new(); title.text = "지역 진행도"
-	title.add_theme_font_size_override("font_size", 28); title.add_theme_color_override("font_color", Color.WHITE)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.size = tbar.size; tbar.add_child(title)
-	var xb := TextureButton.new(); xb.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
-	xb.position = Vector2(BW - 58, 14); xb.pressed.connect(func(): if is_instance_valid(layer): layer.queue_free()); win.add_child(xb)
-	# 라온 마스코트 spine(sd_raon, "happy"). 좌측.
-	if ResourceLoader.exists("res://scenes/fx/sd_raon.tscn"):
-		var holder := Node2D.new(); holder.position = Vector2(120, 210); holder.scale = Vector2(0.7, 0.7); win.add_child(holder)
-		var inst = load("res://scenes/fx/sd_raon.tscn").instantiate(); holder.add_child(inst)
-		var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
-		if ap and ap.has_animation("happy"):
-			ap.get_animation("happy").loop_mode = Animation.LOOP_LINEAR; ap.play("happy")
-		elif ap and ap.has_animation("wait"):
-			ap.play("wait")
-	# 진행도: 클리어한 던전 수 / 총 스테이지(UserDB progress "cleared_<id>").
-	var sd: Dictionary = Data.stages.get("stages", {})
-	var total: int = maxi(1, sd.size())
-	var cleared := 0
-	for sid in sd.keys():
-		if bool(UserDB.get_progress("cleared_" + str(sid), false)):
-			cleared += 1
-	var ratio := clampf(float(cleared) / float(total), 0.0, 1.0)
-	# gauge_bg + gauge(fill scale.x=ratio). 우측 상단.
-	var gx := 230.0; var gy := 150.0
-	var gbg := _atlas_sprite("common_ui", "common_gauge_bg", cm, 1.0)
-	if gbg: gbg.position = Vector2(gx + 120, gy); gbg.centered = false; gbg.position = Vector2(gx, gy - 12); win.add_child(gbg)
-	var gfill := _atlas_sprite("common_ui", "common_gauge", cm, 1.0)
-	if gfill: gfill.centered = false; gfill.position = Vector2(gx, gy - 12); gfill.scale = Vector2(ratio, 1.0); win.add_child(gfill)
-	var glab := Label.new(); glab.text = "%d / %d 클리어" % [cleared, total]
-	glab.add_theme_font_size_override("font_size", 20); glab.add_theme_color_override("font_color", Color(0.3, 0.2, 0.05))
-	glab.position = Vector2(gx, gy + 14); glab.size = Vector2(240, 26); win.add_child(glab)
-	# 마일스톤 보상(원작 icon_questgold/questbox + clear_mark). 3단계(오프라인 큐레이션).
-	var mile := [{"n": total / 3, "icon": "common_icon_questgold"}, {"n": total * 2 / 3, "icon": "common_icon_questbox"}, {"n": total, "icon": "common_icon_questgold"}]
-	for i in mile.size():
-		var m: Dictionary = mile[i]
-		var mx := 240.0 + i * 90.0
-		var ic := _atlas_sprite("common_ui", String(m["icon"]), cm, 0.9)
-		if ic: ic.position = Vector2(mx, 250); win.add_child(ic)
-		if cleared >= int(m["n"]):
-			var cmk := _atlas_sprite("common_ui", "common_clear_mark_kr", cm, 0.7)
-			if cmk: cmk.position = Vector2(mx, 250); win.add_child(cmk)
-		var ml := Label.new(); ml.text = "%d" % int(m["n"])
-		ml.add_theme_font_size_override("font_size", 15); ml.add_theme_color_override("font_color", Color(0.35, 0.24, 0.06))
-		ml.position = Vector2(mx - 12, 286); ml.size = Vector2(40, 20); ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		win.add_child(ml)
-	var ok := Button.new(); ok.text = "확인"; ok.size = Vector2(160, 44); ok.position = Vector2((BW - 160) * 0.5, BH - 60)
-	ok.pressed.connect(func(): if is_instance_valid(layer): layer.queue_free()); win.add_child(ok)
 
 ## 밤 여부. **유타칸 월드맵과 같은 값**을 본다 — 원작은 마을·월드맵이 모두
 ## `GameManager::getDBYutakanNight()` 하나를 읽는다(TownObjectManager.c:738·973·1565·1626·1968
@@ -1511,9 +1647,14 @@ func _toggle_night() -> void:
 	UserDB.set_pmeta("yutakan_night", _night)
 	_rebuild()
 
+## 원작 tag 700 `close_btn` → `CCDirector::popScene()` = **마을을 push 한 그 지도로 복귀**.
+## 마을을 push 하는 곳은 `WorldMapScene.c:12538`(지역 지도의 마을 노드) 하나뿐이므로,
+## 돌아가는 곳은 지역 개요가 아니라 **그 마을이 속한 지역 지도**다.
+## ⇒ 엘피스는 유타칸, 드워프 마을은 드워프 지역(`data/worldmap.json` regions).
+const _TOWN_REGION := {"elpis": "yutakan", "dwarf": "dwarf"}
 func _on_worldmap() -> void:
 	if Scenes.REGISTRY.has("worldmap"):
-		Scenes.goto("worldmap")
+		Scenes.goto("worldmap", {"region": String(_TOWN_REGION.get(_area_id, "yutakan"))})
 	else:
 		push_warning("[Town] worldmap 미구현 — Phase 2에서 연결")
 

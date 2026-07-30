@@ -650,6 +650,7 @@ func _confirm_gear(e: Dictionary) -> void:
 				_toast("골드가 부족합니다.")
 				return
 			UserDB.add_item(key, n)
+			UserDB.bump_quest("buys")   # 마을 미션: 상점 구매 카운트
 			_react = glabel
 			_rebuild()
 			# 원작도 장비/젬 구매 직후 획득물을 공개한다
@@ -694,6 +695,7 @@ func _confirm_buy(e: Dictionary) -> void:
 				_toast("재화가 부족합니다.")
 				return
 			UserDB.add_item(key, bundle * n)
+			UserDB.bump_quest("buys")   # 마을 미션: 상점 구매 카운트
 			_react = label
 			_rebuild()
 			# 원작은 `addItem` 직후 `ShowGetItemDetailLayer` 로 획득물을 공개한다
@@ -741,11 +743,16 @@ func _confirm_sell(e: Dictionary) -> void:
 			_rebuild(),
 	})
 
-## 장신구 뽑기 — 원작 ITEM 탭 상품(일반/고급/전용 ×1/×10). 등급별 풀은 data/drops.json.
+## 장신구 뽑기 — 원작 ITEM 탭 상품(일반/고급 ×1/×10). 등급별 풀은 data/drops.json
+## `gacha.equip.grades[<상품의 grade>]`.
+## 🔴 2026-07-30 수정: 종전엔 상품의 `grade` 를 읽지 않아 **값이 다른 상품이 같은 풀**을 굴렸다.
+##    (전용 상품은 결과가 드래곤 전용 장비인데 그 장비를 구현 대상에서 뺐으므로 진열도 뺐다 —
+##     근거는 data/shop.json `_gacha_cut`.)
 func _confirm_gacha(e: Dictionary) -> void:
 	var price := int(e.get("price", 0))
 	var cur := String(e.get("cur", "diamond"))
 	var n := int(e.get("n", 1))
+	var grade := String(e.get("grade", "high"))
 	_detail_popup({
 		"title": String(e.get("label", "")), "icon": _entry_icon(e), "action": "뽑기",
 		"desc": "%d회 뽑습니다." % n if n > 1 else "1회 뽑습니다.",
@@ -760,7 +767,7 @@ func _confirm_gacha(e: Dictionary) -> void:
 			var got: Array = []
 			for _i in n:
 				var k := Drops.roll_gem_gacha(Data.drops, Data.gems, rng) if pool == "gem" \
-					else Drops.roll_equip_gacha(Data.drops, Data.equipment, rng)
+					else Drops.roll_equip_gacha(Data.drops, Data.equipment, rng, grade)
 				if k == "":
 					continue
 				UserDB.add_item(k, 1)
