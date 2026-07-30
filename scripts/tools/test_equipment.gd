@@ -11,9 +11,11 @@ func _init() -> void:
 	var table = JSON.parse_string(FileAccess.open("res://data/equipment.json", FileAccess.READ).get_as_text())
 	var cat := E.catalog(table)
 
-	# 0) 카탈로그 — 일반 6종(등급 7·7·**6**·6·6·6=38) + 이벤트 25 + 특수 12 + 아티팩트 6×6=36.
+	# 0) 카탈로그 — 일반 6종(등급 7·7·**6**·6·6·6=38) + 이벤트 **6** + 특수 **0** + 아티팩트 6×6=36.
 	#    부적이 6등급인 근거: 위키 §2.1 등급표의 아만타 칸이 `-` + 아틀라스 talisman1..6 (2026-07-27 정정).
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36)
+	#    이벤트 25→6 · 특수 12→0 은 **아이콘 미보유분 구현 제외**(사용자 확정 2026-07-30).
+	#    데이터는 equipment.json 에 그대로 있고 `implemented: false` 로만 꺼져 있다.
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 6 + 0 + 36)
 	fails += _eq("부적 등급 수(아만타 없음)", (table["basic"]["부적"]["grades"] as Array).size(), 6)
 	fails += _true("아만타의 부적 없음", not cat.has("basic:부적:6"))
 	fails += _eq("깃털 최고등급 이름", String(cat["basic:깃털:6"]["name"]), "아만타의 금우")
@@ -21,30 +23,35 @@ func _init() -> void:
 	# 인벤토리 가상 키 왕복(젬/장비 인벤 도입 2026-07-27).
 	fails += _eq("장비 인벤 키 왕복", E.parse_item_key(E.item_key("basic:깃털:6")), "basic:깃털:6")
 	fails += _eq("장비 아닌 키는 빈 문자열", E.parse_item_key("gem:체력의 젬:0"), "")
-	fails += _true("발록 팔찌 존재", cat.has("special:balrog:카이저 발록의 팔찌"))
-	fails += _eq("발록 팔찌 회피", int(cat["special:balrog:카이저 발록의 팔찌"]["stat_main"]["evd"]), 13)
 	fails += _eq("눈사람 인형 회피", int(cat["event:눈사람 인형"]["stat_main"]["evd"]), 13)
+	# 아이콘 미보유 = 구현 제외(사용자 확정 2026-07-30). 카탈로그에 들어오면 안 된다 —
+	# 들어오면 목록·뽑기에 이름만 있고 그림이 없는 유령 장비가 된다.
+	fails += _true("특수 장비(발록)는 카탈로그에 없다",
+		not cat.has("special:balrog:카이저 발록의 팔찌"))
+	fails += _true("아이콘 없는 이벤트 장비는 카탈로그에 없다", not cat.has("event:크리스마스 종"))
+	fails += _eq("구현 이벤트 장비 = 6종", E.event_pool(table).size(), 6)
+	fails += _eq("이벤트 원본 데이터는 25종 그대로", (table["event"] as Array).size(), 25)
 
 	# 1) 슬롯 규칙(위키 §2): 관통(pure)=전투형, 회피(evd)=보조형, 아티팩트=전용칸.
-	fails += _eq("발록 투구 슬롯", String(cat["special:balrog:카이저 발록의 투구"]["slot_class"]), "battle")
-	fails += _eq("발록 팔찌 슬롯", String(cat["special:balrog:카이저 발록의 팔찌"]["slot_class"]), "support")
+	fails += _eq("묘안석 슬롯", String(cat["basic:묘안석:5"]["slot_class"]), "battle")
+	fails += _eq("눈사람 인형 슬롯", String(cat["event:눈사람 인형"]["slot_class"]), "support")
 	fails += _true("아티팩트는 all칸 불가", not E.can_equip(cat["artifact:루멘:5"], "all"))
 	fails += _true("아티팩트는 artifact칸 가능", E.can_equip(cat["artifact:루멘:5"], "artifact"))
-	fails += _true("보조형은 all칸 가능", E.can_equip(cat["special:balrog:카이저 발록의 팔찌"], "all"))
-	fails += _true("보조형은 battle칸 불가", not E.can_equip(cat["special:balrog:카이저 발록의 팔찌"], "battle"))
+	fails += _true("보조형은 all칸 가능", E.can_equip(cat["event:눈사람 인형"], "all"))
+	fails += _true("보조형은 battle칸 불가", not E.can_equip(cat["event:눈사람 인형"], "battle"))
 
-	# 2) 장착/집계 — 투구(관통40) + 팔찌(회피13).
+	# 2) 장착/집계 — 전설의 묘안석(관통30) + 눈사람 인형(회피13).
 	var eq: Dictionary = {}
-	eq = E.equip(eq, "battle", "special:balrog:카이저 발록의 투구", table)
-	fails += _true("투구 장착", not eq.is_empty())
-	eq = E.equip(eq, "support", "special:balrog:카이저 발록의 팔찌", table)
-	fails += _true("팔찌 장착", not eq.is_empty())
+	eq = E.equip(eq, "battle", "basic:묘안석:5", table)
+	fails += _true("묘안석 장착", not eq.is_empty())
+	eq = E.equip(eq, "support", "event:눈사람 인형", table)
+	fails += _true("눈사람 인형 장착", not eq.is_empty())
 	var agg := E.aggregate(eq, table)
-	fails += _eq("관통 합", int(agg.get("pure", 0)), 40)
+	fails += _eq("관통 합", int(agg.get("pure", 0)), 30)
 	fails += _eq("회피 합", int(agg.get("evd", 0)), 13)
 
 	# 3) 잘못된 칸 거부.
-	fails += _true("투구를 보조칸에 못 낌", E.equip({}, "support", "special:balrog:카이저 발록의 투구", table).is_empty())
+	fails += _true("묘안석을 보조칸에 못 낌", E.equip({}, "support", "basic:묘안석:5", table).is_empty())
 
 	# 4) 옵션 합산(info_item_acc 스탯).
 	#    ⚠️ 2026-07-29 단위 정정 — 원작 `Dragon::getAttAdd` 는 `Equip::getAtk()/100.0` 을 **곱한다**.
@@ -63,10 +70,14 @@ func _init() -> void:
 	fails += _eq("hp +5% 적용", int(st_pct["hp"]), 1050)
 	fails += _eq("def 는 옵션 없으니 그대로", int(st_pct["def"]), 100)
 
-	# 5) 편린 세트2(위키 §3): 모험가의 편린 2개 → 체력 10%.
+	# 5) 편린 — **구현 제외**(사용자 확정 2026-07-31). 아이콘 폴더 `raidpiece_acc/`·`raidpiece_cave/`
+	#    가 통째로 추출 에셋에 없고 프레임명이 서버 res key 라 복원 근거가 없다
+	#    (equipment.json `pieces._impl_basis`). 세트효과 데이터는 남지만 스탯에 합산되지 않는다.
+	#    구세이브에 pieces 가 남아 있어도 무시되는지까지 확인한다.
+	fails += _true("편린 계열 구현 제외 플래그", not bool((table["pieces"] as Dictionary).get("implemented", true)))
 	var eq3 := {"slots": [], "pieces": ["모험가의 편린", "모험가의 편린"]}
 	var st3 := E.apply({"hp": 1000, "att": 100, "def": 100}, eq3, table)
-	fails += _eq("편린 2세트 체력 10%", int(st3["hp"]), 1100)
+	fails += _eq("편린 2세트도 무효(구현 제외)", int(st3["hp"]), 1000)
 	var eq4 := {"slots": [], "pieces": ["모험가의 편린"]}
 	fails += _eq("편린 1개는 무효", int(E.apply({"hp": 1000}, eq4, table)["hp"]), 1000)
 

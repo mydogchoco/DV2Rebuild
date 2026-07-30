@@ -9,7 +9,10 @@
 #   아티팩트 item/accessory/{ignis_,maris_,ventus_,lumen_,obscurum_,terra_}1..6
 #   젬     item/gem/{gem_hp,gem_att,gem_def,gem_hp_att,…,gem_white}0..18  (10종 × 19티어)
 #          gem_white = 샌즈의 젬(위키 §2.2.7 "하얀색 외형")
-#   ⚠️ 소울젬 아이콘은 원작 후기 추가분이라 이 덤프에 없다 → 같은 축 일반젬 최고티어로 폴백.
+#   소울젬  gem_soul/gem_soul_{att,def,hp,all}0..9 (4종 × 10단계) — 원작 후기 추가분이라
+#          `item/gem` 아틀라스에 없고, 위키 `gems.pdf` §3 '사진' 열의 원본을
+#          `extract_soul_gem_icons.py` 로 복원해 구운 것이다(2026-07-31).
+#          ⚠️ 종전엔 같은 축 일반젬 최고티어를 빌려 써서 가방에서 일반젬과 그림이 겹쳤다 — 폐기.
 class_name Icons
 extends RefCounted
 
@@ -89,6 +92,32 @@ static func element_of(inst: Dictionary) -> String:
 		return String(own)
 	var m = Data.get_dragon(int(inst.get("id", 0))).get("element")
 	return String(m) if typeof(m) == TYPE_STRING else ""
+
+
+## 종 이름. 커스텀 종(600·700)은 마스터 `name` 이 비어 있고(`name_from_player: true`)
+## **소환 재료가 된 드래곤의 이름**을 세이브에서 물려받는다(사용자 확정 2026-07-30) —
+## 예: 고대신룡 "별밤이"를 수비형 재료로 쓰면 600 의 종 이름이 "별밤이" 가 된다.
+## 저장은 `UserDB.set_species_name`(소환 시 1회), 여기서는 해석만 한다.
+## 못 찾으면 "" — 호출측이 자기 폴백 문구를 정한다.
+static func species_name(id: int) -> String:
+	var own := UserDB.species_name(id)
+	if own != "":
+		return own
+	return String(Data.get_dragon(id).get("name", ""))
+
+
+## 개체 표시명 — 별명이 있으면 별명, 없으면 종 이름(위 해석 포함).
+## 개체를 아는 모든 표시 지점은 `Data.get_dragon(id).name` 을 직접 읽지 말고 이걸 쓴다.
+## ⚠️ 별명 키가 두 가지다 — 정식은 `nickname` 이지만 일부 화면이 `nick` 을 읽고 있었다
+##    (cave.gd 레벨업 헤더는 원래 둘 다 봤다). 둘 다 받아 준다.
+static func name_of(inst: Dictionary, fallback := "드래곤") -> String:
+	var nick := String(inst.get("nickname", ""))
+	if nick == "":
+		nick = String(inst.get("nick", ""))
+	if nick != "":
+		return nick
+	var nm := species_name(int(inst.get("id", 0)))
+	return nm if nm != "" else fallback
 
 
 ## 장비 카탈로그 항목 → 아이콘. Equipment.catalog() 가 만든 항목을 그대로 받는다.

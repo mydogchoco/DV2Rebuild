@@ -1,7 +1,7 @@
 {
  "_source": "scripts/tools/build_item_icons.py — 원본 아틀라스 프레임명 스캔",
  "_note": "논리키 → {dir, frame}. render 층만 이 표를 보고 AtlasTexture 를 로드한다(§8.4).",
- "_soul_note": "소울젬 4종 아이콘은 원작 후기 추가분이라 이 덤프에 없다 → 같은 축 일반젬 최고티어 아이콘으로 폴백(gem[SOUL*:n] 이 그것).",
+ "_soul_note": "소울젬 4종×10단계는 원작 후기 추가분이라 `item/gem` 아틀라스(190=10종×19티어)에 없다. 커뮤니티 위키 `docs/ref/wiki/gems.pdf` §3 '사진' 열에 원본이 알파까지 실려 있어 `extract_soul_gem_icons.py` 로 복원해 `assets/converted/gem_soul/` 에 굽는다(2026-07-31). 교차검증: 같은 PDF §2.2.7 꼬리 10장 ↔ 우리 `gem_white9~18` RMSE 10~11. 종전의 '일반젬 최고티어 폴백'은 폐기 — 가방에서 일반젬과 같은 그림으로 보였다.",
  "_bg_note": "equipment_bg = 아이콘 **뒤**에 깔고 희귀도 색을 입히는 흰 실루엣. 원작 `Equip::getGradeImageSmallSprite` 가 `<이름>_bg.png` 로 만들어 rarity(2~6)에 따라 setColor 한다(1=일반은 아예 안 그림). 논리키는 equipment_basic/artifact/event 와 같다.",
  "equipment_basic": {
   "깃털:0": {
@@ -1090,205 +1090,165 @@
    "dir": "item_gem",
    "frame": "item_gem_gem_white18"
   },
-  "SOULHP:0": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:1": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:2": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:3": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:4": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:5": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:6": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:7": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:8": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
-  "SOULHP:9": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_hp18",
-   "fallback": true
-  },
   "SOULATT:0": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att0"
   },
   "SOULATT:1": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att1"
   },
   "SOULATT:2": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att2"
   },
   "SOULATT:3": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att3"
   },
   "SOULATT:4": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att4"
   },
   "SOULATT:5": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att5"
   },
   "SOULATT:6": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att6"
   },
   "SOULATT:7": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att7"
   },
   "SOULATT:8": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att8"
   },
   "SOULATT:9": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_att18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_att9"
   },
   "SOULDEF:0": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def0"
   },
   "SOULDEF:1": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def1"
   },
   "SOULDEF:2": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def2"
   },
   "SOULDEF:3": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def3"
   },
   "SOULDEF:4": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def4"
   },
   "SOULDEF:5": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def5"
   },
   "SOULDEF:6": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def6"
   },
   "SOULDEF:7": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def7"
   },
   "SOULDEF:8": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def8"
   },
   "SOULDEF:9": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_def18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_def9"
+  },
+  "SOULHP:0": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp0"
+  },
+  "SOULHP:1": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp1"
+  },
+  "SOULHP:2": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp2"
+  },
+  "SOULHP:3": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp3"
+  },
+  "SOULHP:4": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp4"
+  },
+  "SOULHP:5": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp5"
+  },
+  "SOULHP:6": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp6"
+  },
+  "SOULHP:7": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp7"
+  },
+  "SOULHP:8": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp8"
+  },
+  "SOULHP:9": {
+   "dir": "gem_soul",
+   "frame": "gem_soul_hp9"
   },
   "SOULALL:0": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all0"
   },
   "SOULALL:1": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all1"
   },
   "SOULALL:2": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all2"
   },
   "SOULALL:3": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all3"
   },
   "SOULALL:4": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all4"
   },
   "SOULALL:5": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all5"
   },
   "SOULALL:6": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all6"
   },
   "SOULALL:7": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all7"
   },
   "SOULALL:8": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all8"
   },
   "SOULALL:9": {
-   "dir": "item_gem",
-   "frame": "item_gem_gem_white18",
-   "fallback": true
+   "dir": "gem_soul",
+   "frame": "gem_soul_all9"
   }
  },
  "equipment_bg": {

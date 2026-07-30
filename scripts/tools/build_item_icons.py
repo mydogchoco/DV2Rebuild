@@ -72,8 +72,8 @@ ARTIFACT_PREFIX = {
 # 젬 코드 → item/gem 프레임 접두어(0-base 티어). 실제 프레임: 10종 × 19티어 = 190.
 #   gem_hp/att/def(일반3) · gem_hp_att/hp_def/att_hp/att_def/def_hp/def_att(혼성6)
 #   gem_white(19) = 샌즈의 젬 — 위키 §2.2.7 "하얀색 외형을 가지고 있다" 와 일치.
-# ⚠️ 소울젬 4종 아이콘은 이 덤프에 없다(소울젬=후기 업데이트). 같은 축의 일반젬
-#   최고티어 아이콘으로 폴백한다(SOUL_FALLBACK).
+# 소울젬 4종(각 10단계)은 이 아틀라스에 없다(후기 업데이트) — 위키 PDF 에서 원본을 복원해
+#   `assets/converted/gem_soul/` 에 따로 굽는다(`extract_soul_gem_icons.py`, 2026-07-31).
 GEM_PREFIX = {
     "HP": "gem_hp", "ATT": "gem_att", "DEF": "gem_def",
     "HPATT": "gem_hp_att", "HPDEF": "gem_hp_def",
@@ -81,8 +81,9 @@ GEM_PREFIX = {
     "DEFHP": "gem_def_hp", "DEFATT": "gem_def_att",
     "ATTDEFHP": "gem_white",     # 샌즈의 젬(원작 typeDetail = ATTDEFHP)
 }
-SOUL_FALLBACK = {"SOULHP": "gem_hp", "SOULATT": "gem_att",
-                 "SOULDEF": "gem_def", "SOULALL": "gem_white"}
+# 소울젬 코드 → gem_soul 프레임 접두어(0-base 단계, 1~10단계). 실물 40장.
+SOUL_PREFIX = {"SOULATT": "att", "SOULDEF": "def", "SOULHP": "hp", "SOULALL": "all"}
+SOUL_STAGES = 10
 
 # 이벤트 장비 — 원작이 개별 아이콘을 갖고 있다. equipment.json event[].name 과 연결.
 EVENT_ICON = {
@@ -128,7 +129,8 @@ def build_map(subs: list[str]) -> dict:
     """논리키 → {"dir": 변환폴더, "frame": 프레임키} 매핑."""
     frames: dict[str, str] = {}          # 프레임키 → 폴더
     for sub in subs + ["item_small_ui", "item_etc", "item_mtr", "item_egg",
-                       "item_food", "item_spc", "item_doc", "item_quest"]:
+                       "item_food", "item_spc", "item_doc", "item_quest",
+                       "gem_soul"]:     # gem_soul = 위키에서 복원한 소울젬(원본 아틀라스 밖)
         for k in load_frames(sub):
             frames.setdefault(k, sub)
 
@@ -140,8 +142,11 @@ def build_map(subs: list[str]) -> dict:
 
     out: dict = {"_source": "scripts/tools/build_item_icons.py — 원본 아틀라스 프레임명 스캔",
                  "_note": "논리키 → {dir, frame}. render 층만 이 표를 보고 AtlasTexture 를 로드한다(§8.4).",
-                 "_soul_note": "소울젬 4종 아이콘은 원작 후기 추가분이라 이 덤프에 없다 → 같은 축 일반젬 "
-                               "최고티어 아이콘으로 폴백(gem[SOUL*:n] 이 그것).",
+                 "_soul_note": "소울젬 4종×10단계는 원작 후기 추가분이라 `item/gem` 아틀라스(190=10종×19티어)에 "
+                               "없다. 커뮤니티 위키 `docs/ref/wiki/gems.pdf` §3 '사진' 열에 원본이 알파까지 실려 있어 "
+                               "`extract_soul_gem_icons.py` 로 복원해 `assets/converted/gem_soul/` 에 굽는다"
+                               "(2026-07-31). 교차검증: 같은 PDF §2.2.7 꼬리 10장 ↔ 우리 `gem_white9~18` RMSE 10~11. "
+                               "종전의 '일반젬 최고티어 폴백'은 폐기 — 가방에서 일반젬과 같은 그림으로 보였다.",
                  "_bg_note": "equipment_bg = 아이콘 **뒤**에 깔고 희귀도 색을 입히는 흰 실루엣. "
                              "원작 `Equip::getGradeImageSmallSprite` 가 `<이름>_bg.png` 로 만들어 "
                              "rarity(2~6)에 따라 setColor 한다(1=일반은 아예 안 그림). "
@@ -172,12 +177,14 @@ def build_map(subs: list[str]) -> dict:
             hit = find(f"item_gem_{pre}{t}")
             if hit:
                 out["gem"][f"{code}:{t}"] = {"dir": hit[0], "frame": hit[1]}
-    # 소울젬 폴백(아이콘 부재) — 같은 축 일반젬 최고티어.
-    for code, pre in SOUL_FALLBACK.items():
-        hit = find(f"item_gem_{pre}18")
-        if hit:
-            for t in range(10):
-                out["gem"][f"{code}:{t}"] = {"dir": hit[0], "frame": hit[1], "fallback": True}
+    # 소울젬 — 위키 PDF 에서 복원한 실물(`extract_soul_gem_icons.py` → gem_soul/).
+    # 못 찾으면 **폴백하지 않고 비워 둔다** — 남의 아이콘을 빌려 쓰면 가방에서 일반젬과
+    # 같은 그림으로 보이고, 그게 2026-07-31 에 문제로 잡힌 상태다.
+    for code, pre in SOUL_PREFIX.items():
+        for t in range(SOUL_STAGES):
+            hit = find(f"gem_soul_{pre}{t}")
+            if hit:
+                out["gem"][f"{code}:{t}"] = {"dir": hit[0], "frame": hit[1]}
 
     # 희귀도 실루엣(`<이름>_bg`). 논리키는 위 3섹션과 동일하게 맞춰 render 가 같은 키로 찾게 한다.
     # ⚠️ 부적(talisman)만 원본에 `talisman6_bg` 한 장뿐이다 — 나머지 등급은 그 한 장으로 폴백한다
