@@ -590,8 +590,15 @@ func _ready() -> void:
 					for i in 20: await get_tree().process_frame
 				ms.call("_open_feature", feat)
 				for i in 20: await get_tree().process_frame
+				# `--pick=<n>` : 샌즈의 눈물 투입 칸을 n 번 눌러 둔다(1=10%, 2=20%, 3=미투입).
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--pick="):
+						for _p in int(a.substr(7)):
+							ms.call("_cycle_sands")
+							for i in 6: await get_tree().process_frame
 				print("SHOT magicshop: floor=", ms.get("_floor"), " feat=", feat,
-					" 눈물=", ms.get("_sands_key"))
+					" 눈물=", ms.get("_sands_key"),
+					" 확률=", Gem.sands_chance(Data.gems, ms.call("_sands_bonus_pct")))
 				# --reveal=<드래곤id> : 알 획득 공개창(코드 보상·소환이 쓰는 것)을 띄운다.
 				for a in OS.get_cmdline_user_args():
 					if a.begins_with("--reveal="):
@@ -1940,6 +1947,14 @@ func _ready() -> void:
 			print("SHOT storyauto: 다음회차=", StoryProgress.next_episode(),
 				" 해금=", StoryProgress.unlocked(StoryProgress.next_episode()),
 				" 현재씬=", cur)
+			# --skip=1 이면 건너뛰기 확인 팝업까지 띄운다(원작 ScenarioSkipTitle).
+			if OS.get_cmdline_user_args().has("--skip=1"):
+				var sk := _find_method_node(get_tree().root, "_confirm_skip")
+				if sk == null:
+					print("SHOT storyauto: story 씬 없음")
+				else:
+					sk.call("_confirm_skip")
+					for i in 15: await get_tree().process_frame
 		"storyreward":
 			# 회차별 특별보상(원작 ScenarioSpecialRewardPopup) — 26·58·78화. --ep=N 으로 고른다.
 			# 지급은 멱등이라 이미 받았으면 안 뜨므로 검수용으로 수령 플래그를 지운다(begin_batch=디스크 미기록).
