@@ -102,6 +102,17 @@ SINGLE = OrderedDict([
     ("magic.premium_code", "MagicWelcomePrimiumCode"),
 ])
 
+# 원작 문자열을 **오프라인 재구현 사정에 맞게 갈아 끼우는** 자리. 원문을 지우지 않고 여기 남겨
+# 무엇을 왜 바꿨는지 보이게 한다. (원본 XML 은 읽기 전용 — HARD RULE §4)
+#
+# `magic.code` — 원작은 "드래곤빌리지 오피셜 카드 코드를 입력하는 곳입니다.\n카드 코드 16자리를…"
+#   이었다. 우리 카드 코드는 서버 인증이 유실돼(§2-1) **사용자가 채우는 이스터에그 표**로
+#   바뀌었고(`docs/input/sheets/card_codes.csv`) 자릿수 고정도 없앴다 ⇒ 원문의 "오피셜"·
+#   "16자리"가 둘 다 사실이 아니다. 문구는 사용자 확정(2026-07-30).
+OVERRIDE = {
+    "magic.code": ["세계의 비밀에 대해 얼마나 알고 계신가요?"],
+}
+
 # 원작 setEmoticon 번호. `null` = 그 분기에서 이모티콘을 안 띄운다.
 # 근거: docs/ref/orig_code/decomp/LaboratoryScene.c setTextStart(=8) / setTextAgain(switch 0~9).
 #   여러 개면 그 묶음의 index 순서와 짝이다(1번 대사 → 첫 번호).
@@ -205,6 +216,8 @@ def main() -> None:
     for key, single_key in SINGLE.items():
         if single_key in s:
             screen[key] = {"lines": [s[single_key]]}
+    for key, lines in OVERRIDE.items():
+        screen.setdefault(key, {})["lines"] = list(lines)
 
     doc = OrderedDict([
         ("_source", "DV2/string/stringsData_KR.xml (원작 문자열 테이블 — 대사는 유실이 아니다)."

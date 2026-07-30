@@ -65,6 +65,17 @@ func _ready() -> void:
 			_eq("플래그 해시", String(r0.get("k", "")), "2dd1ed83e85463f9e512d3f31402686c")
 			_true("평문 이름 미포함", not String(r0.get("k", "")).contains("Flag"))
 
+	# 3-1) **자릿수 고정 없음** — 원작 CodeLayer 는 4자리 EditBox 4개(=16자리)였지만 우리 표는
+	#      사용자가 채우는 이스터에그라 길이가 제각각이다. 8자리 코드도 그대로 통해야 한다.
+	var c := CardCode.lookup("ShortOne", table)
+	_true("짧은 코드(8자) 인식", not c.is_empty())
+	if not c.is_empty():
+		var rc: Array = c.get("rewards", [])
+		if rc.size() == 1:
+			_eq("짧은 코드 보상 종류", String((rc[0] as Dictionary).get("t", "")), "dia")
+			_eq("짧은 코드 수량", str(int((rc[0] as Dictionary).get("n", 0))), "7")
+		_true("짧은 코드 무제한", not bool(c.get("once", true)))
+
 	# 4) 틀린 코드는 빈 사전
 	_true("없는 코드 거부", CardCode.lookup("AAAA-BBBB-CCCC-DDDD", table).is_empty())
 	_true("빈 입력 거부", CardCode.lookup("", table).is_empty())

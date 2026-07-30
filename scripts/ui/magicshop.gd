@@ -510,21 +510,25 @@ func _body_code(pop: OrigPopup) -> void:
 	if card != null:
 		card.position = Vector2(W * 0.5, 210.0)
 		pop.content.add_child(card)
-	var head := _note("드래곤빌리지 오피셜 카드 코드를 입력하는 곳입니다.")
+	var head := _note("0과 1로 재구축된 세계의 비밀은 선형대수학에 있습니다.")
 	head.position = Vector2(60.0, 92.0); head.size = Vector2(W - 120.0, 26.0)
 	head.custom_minimum_size = Vector2(W - 120.0, 0)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pop.content.add_child(head)
-	# 입력칸 — 원작은 4자리 CCEditBox 4개다. 우리는 한 줄로 받고 입력 시 4자리마다 끊어 보여 준다.
+	# 입력칸 — 원작은 4자리 CCEditBox 4개(=16자리 고정)다. 우리 표는 사용자가 채우는
+	# 이스터에그라 길이가 제각각이므로(`docs/input/sheets/card_codes.csv`) **자릿수를 강제하지
+	# 않는다**(사용자 확정 2026-07-30). 판정은 `CardCode.lookup` 이 정규화 후 해시로만 하므로
+	# 길이에 아무 의미가 없다 — 종전의 `max_length = 19` 는 긴 코드를 **조용히 잘라** 내
+	# 정상 코드도 인식 불가로 만들었다.
 	var box := AtlasUI.nine("ninepatch_ui", "9patch_train_box3", Vector2(440.0, 52.0),
 		Rect2(30, 16, 62, 8))
 	if box != null:
 		box.position = Vector2(W * 0.5 - 220.0, 318.0)
 		pop.content.add_child(box)
 	var edit := LineEdit.new()
-	edit.placeholder_text = "카드 코드 16자리"
+	edit.placeholder_text = "코드"
 	edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	edit.max_length = 19          # 16자리 + 구분자 3개
+	edit.max_length = 0           # 0 = 무제한
 	edit.flat = true
 	edit.add_theme_font_size_override("font_size", 22)
 	edit.add_theme_color_override("font_color", Color(1, 0.97, 0.88))
@@ -540,8 +544,8 @@ func _body_code(pop: OrigPopup) -> void:
 	pop.content.add_child(msg)
 	pop.add_action_button("확인", func():
 		var code := CardCode.normalize(edit.text)
-		if code.length() < 16:
-			msg.text = "카드 코드 16자리를 입력해 주세요."
+		if code.is_empty():
+			msg.text = "코드를 입력해 주세요."
 			return
 		var res := _redeem_code(code)
 		if res.is_empty():
@@ -2057,9 +2061,24 @@ func _body_trans(pop: OrigPopup) -> void:
 	var cy := H * 0.56
 	var unlocked := bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false))
 	# 소환진 2겹 — 바깥은 느리게, 안쪽은 반대로 돈다(원작 CCRotateBy 연출).
+	# ⚠️ `recall_magic_circle_1`(408×368) 은 **프레임 중심 ≠ 문양 중심**이다. 위·좌하·우하의
+	#    위성 원 3개가 큰 원 밖으로 튀어나와 캔버스를 비대칭으로 넓혀서, 문양의 진짜 중심은
+	#    프레임 기하중심 (204,184) 보다 **30px 아래**인 (203.3, 213.8) 이다.
+	#    Sprite2D 는 **원점**을 축으로 돌므로 보정 없이 돌리면 문양이 제자리 회전이 아니라
+	#    반경 30px(화면 25px)으로 **궤도를 그리며 돌아** 파란 소환진(218×218, 문양이 프레임
+	#    중앙 정렬)과 축이 어긋난다. offset 은 텍스처 픽셀이고 scale 이 함께 곱해진다.
+	#
+	#    측정(2026-07-30) — ⚠️ 촘촘한 선화라 "중심을 찍고 링을 피팅"하면 **찍은 점이 그대로
+	#    답으로 나온다**(모든 각도에서 뭔가에 맞는다). 씨앗 없는 두 방법으로만 확정했다:
+	#      · 텍스처: 후보 중심 격자마다 120° 자기유사 IoU → (203,214) 0.268 ≫ (204,184) 0.119
+	#      · 인게임: 양피지 배경을 뺀 문양 마스크에 씨앗 없는 원 검출(Hough)
+	#          수정 전 위상A (662,395) · 위상B (655,388)  ← 파란 축에서 26~29px, 위상마다 이동
+	#          수정 후 위상A (683,379) · 위상B (683,378)  ← 파란 축 (682.5,378.5) 과 0.7px
+	const C1_PIVOT := Vector2(0.8, -29.8)   # = 기하중심 − 문양중심
 	var c1 := _spr("recall_magic_circle_1", S * 0.62)
 	if c1 != null:
 		c1.position = Vector2(cx, cy)
+		c1.offset = C1_PIVOT
 		c1.modulate = Color(1, 1, 1, 0.55)
 		pop.content.add_child(c1)
 		c1.create_tween().set_loops().tween_property(c1, "rotation", TAU, 24.0).as_relative()

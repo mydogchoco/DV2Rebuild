@@ -321,6 +321,32 @@ func _ready() -> void:
 			Scenes.goto("town", {"area": "elpis"})
 			for i in 12: await get_tree().process_frame
 			Scenes.goto("shop", {})
+		"magicshop":
+			# 점술집 1층 기능 팝업 검수. `--feat=<ITEMS[0] 인덱스>`
+			#   0 드링크 강화 · 1 젬 강화 · 2 뽑기 · 3 카드 코드 · 4 드래곤 소환 · 5 연금술(층전환)
+			var feat := 3
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--feat="): feat = int(a.substr(7))
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 12: await get_tree().process_frame
+			Scenes.goto("magicshop", {})
+			# ⚠️ `get_tree().current_scene` 는 **main.tscn 루트**다 — 씬 매니저가 관리하는
+			#    화면은 `Scenes.current_scene()` 로 잡아야 한다(이걸 틀리면 팝업이 조용히
+			#    안 열려 메뉴 격자만 찍힌다). 프레임 수로 어림하지 말고 실제로 뜰 때까지 기다린다.
+			var ms: Node = null
+			for i in 120:
+				await get_tree().process_frame
+				var c := Scenes.current_scene()
+				if c != null and c.has_method("_open_feature"):
+					ms = c
+					break
+			if ms == null:
+				push_error("[shot] magicshop 진입 실패")
+			else:
+				ms.call("_open_feature", feat)
+				for i in 20: await get_tree().process_frame
 		"unodaily":
 			# 하루 1회 던전 초과입장 확인창 검수 — 오늘 자 도장을 미리 찍고 던전 팝업을 연다.
 			Scenes.goto("worldmap", {"region": "uno"})
