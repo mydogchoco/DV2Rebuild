@@ -1,0 +1,128 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_cart_new_spine/ani_cart_new_spine.png" id="1_4idf3"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_8rbu1"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ixy4p"]
+atlas = ExtResource("1_4idf3")
+region = Rect2(287, 2, 57, 61)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7erb7"]
+atlas = ExtResource("1_4idf3")
+region = Rect2(2, 2, 283, 275)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_hbq7k"]
+length = 5.5
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 3.8999, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 3.8999, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 3.8999, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/w_dwarf_mine_cart:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 2.0666, 2.5333, 2.8666, 3.2, 3.6333, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.3137829893688826, 2.3137829893688826, 2.3137829893688826, 2.206270707446032, 2.026850860341015, 1.9977038618327096, 2.1385519324686517, 2.256885255753867, 2.4214698042169327, 2.4214698042169327, 2.4214698042169327]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/w_dwarf_mine_cart:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 2.0666, 2.5333, 2.8666, 3.2, 3.6333, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(115.57, -118.44), Vector2(115.57, -118.44), Vector2(115.57, -118.44), Vector2(36.18, -54.33), Vector2(7.01, -11.22), Vector2(-10.97, 21.12), Vector2(-52.19, 79.05), Vector2(-123.48, 104.67), Vector2(-156.9, 106.9), Vector2(-156.9, 106.9), Vector2(-156.9, 106.9)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/w_dwarf_mine_cart:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.3434, 0.3435, 2.0666, 2.5333, 3.8999, 3.9, 5.4999, 5.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.75, 0.75), Vector2(0.75, 0.75), Vector2(0.75, 0.75), Vector2(0.95, 0.95), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_aat1b"]
+_data = {
+&"mine": SubResource("Animation_hbq7k")
+}
+
+[node name="Dragon_ani_cart_new_spine_scene" type="Node2D" unique_id=418568310]
+
+[node name="root" type="Node2D" parent="." unique_id=1779215531]
+
+[node name="w_dwarf_mine_cart" type="Node2D" parent="root" unique_id=66349382]
+position = Vector2(108.89, -118.44)
+rotation = 2.252173
+
+[node name="w_dwarf_mine_cart_slot_frame" type="Node2D" parent="root/w_dwarf_mine_cart" unique_id=333954253]
+position = Vector2(95.5, 5.02)
+rotation = -2.252173
+
+[node name="w_dwarf_mine_cart_slot" type="Sprite2D" parent="root/w_dwarf_mine_cart/w_dwarf_mine_cart_slot_frame" unique_id=1466598066]
+material = SubResource("CanvasItemMaterial_8rbu1")
+position = Vector2(83.847275, -79.93079)
+scale = Vector2(1.3309091, 1.3321799)
+texture = SubResource("AtlasTexture_ixy4p")
+
+[node name="w_dwarf_mine_book_frame" type="Node2D" parent="root" unique_id=252170260]
+
+[node name="w_dwarf_mine_book" type="Sprite2D" parent="root/w_dwarf_mine_book_frame" unique_id=1906019233]
+z_index = 1
+material = SubResource("CanvasItemMaterial_8rbu1")
+position = Vector2(0, 3.9965398)
+rotation = 1.5707964
+scale = Vector2(1.3309091, 1.3321799)
+texture = SubResource("AtlasTexture_7erb7")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=44975176]
+libraries/ = SubResource("AnimationLibrary_aat1b")

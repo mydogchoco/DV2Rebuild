@@ -1,0 +1,49 @@
+{
+  "_re_basis": [
+    "원작 AdventureScene::initJsonBattleMission 이 서버 JSON으로 받던 '전투 미션' 목록.",
+    "서버 종료로 원본 목록·확률·보너스 테이블은 유실됐다.",
+    "여기 실린 4종은 지어낸 것이 아니라 docs/ref/orig_image/battle 원작 스크린샷에서 그대로 읽은 것이다:",
+    "  · 몬스터피격.png  → '3연타 때리기 [0/1]' EXP +40% / '4번 이상 맞기 [0/4]' EXP +20%",
+    "  · 몬스터중상.png  → '2번 방어하기 [1/2]' EXP +20% / '회피 2번 하기 [0/2]' EXP +20%",
+    "원작은 전투마다 2개를 제시한다(스크린샷 모두 2행). 그 '2개 선택 규칙'과 이 4종 외의",
+    "미션·등장 확률은 근거가 없어 미복원 — 균등 랜덤 2개로 둔다(# ASSUMPTION).",
+    "아이콘 프레임은 원작 scene/adventure/icon_quest{1..8}.png 중 성격이 맞는 것을 지정."
+  ],
+  "_source": "docs/ref/orig_image/battle/몬스터피격.png, docs/ref/orig_image/battle/몬스터중상.png",
+  "pick_count": 2,
+  "missions": [
+    {
+      "id": "combo3",
+      "text": "3연타 때리기",
+      "goal": 1,
+      "exp_bonus": 0.40,
+      "rule": "combo_hits",
+      "rule_arg": 3,
+      "icon": 1
+    },
+    {
+      "id": "taken4",
+      "text": "4번 이상 맞기",
+      "goal": 4,
+      "exp_bonus": 0.20,
+      "rule": "hits_taken",
+      "icon": 2
+    },
+    {
+      "id": "block2",
+      "text": "2번 방어하기",
+      "goal": 2,
+      "exp_bonus": 0.20,
+      "rule": "blocks",
+      "icon": 3
+    },
+    {
+      "id": "dodge2",
+      "text": "회피 2번 하기",
+      "goal": 2,
+      "exp_bonus": 0.20,
+      "rule": "dodges",
+      "icon": 4
+    }
+  ]
+}

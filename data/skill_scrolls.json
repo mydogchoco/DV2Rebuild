@@ -1,0 +1,26 @@
+{
+  "_source": "원작 에자녹 계열 스크롤 → 스킬 아이템 변환표. 등급이 곧 획득 스킬의 레벨이다.",
+  "_basis": [
+    "ItemSkillSelectPopup.c:322 init(int) — 아이템번호 454~458(0x1c6~0x1ca)이 레벨 1~5(param_1-0x1c5)",
+    "ItemSkillSelectPopup.c:662-666 확인 시 sk(스킬번호)+sl(레벨)을 choose_skill_book.hb 로 전송",
+    "levels 배열의 출처는 아이템 설명문(data/items.json desc, 원작 info_item.comment):",
+    "  실버 '1~3레벨 스킬 스크롤을 1개' · 골드 '2~4레벨' · n레벨 'n레벨'",
+    "s_skillbook(등급 없는 '에자녹의 권능', 번호 453)은 원작 조건(param_1-0x1c6U<5)에 안 걸려",
+    "  레벨이 0으로 남는다 ⇒ 구판 잔존 아이템으로 보고 여기 넣지 않는다(items.json offline=stub)"
+  ],
+  "_note": "select=true 면 목록에서 고른다(에자녹의 권능), false 면 무작위(에자녹의 기억).",
+  "scrolls": {
+    "scroll_n1": {"levels": [1], "select": false},
+    "scroll_n2": {"levels": [2], "select": false},
+    "scroll_n3": {"levels": [3], "select": false},
+    "scroll_n4": {"levels": [4], "select": false},
+    "scroll_n5": {"levels": [5], "select": false},
+    "scroll_silver": {"levels": [1, 2, 3], "select": false},
+    "scroll_gold": {"levels": [2, 3, 4], "select": false},
+    "s_skillbook1": {"levels": [1], "select": true},
+    "s_skillbook2": {"levels": [2], "select": true},
+    "s_skillbook3": {"levels": [3], "select": true},
+    "s_skillbook4": {"levels": [4], "select": true},
+    "s_skillbook5": {"levels": [5], "select": true}
+  }
+}

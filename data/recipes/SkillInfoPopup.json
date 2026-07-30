@@ -1,0 +1,40 @@
+{
+  "_source": "docs/ref/orig_code/decomp/SkillInfoPopup.c (init@01413bXX, initWidget@01413df4[6816B])",
+  "_purpose": "SkillInfoPopup(스킬 상세/강화 팝업) 렌더 레시피. UI 1:1 리팩터용(gaps §8b). SkillsPopup(검증완료)의 심화 상세.",
+  "_status": "분석중-recipe: 표시부 근거화, 강화(upgrade)=서버유실+에셋미변환. 중첩컨테이너 내부 절대좌표 일부 TODO.",
+  "popup": {
+    "frame": "9patch/popup4.png",
+    "asset": "assets/converted/ninepatch_ui/9patch_popup4.tres",
+    "cap_insets_cocos": [130, 190, 40, 58],
+    "ninepatch_margins_godot": {"left": 130, "top": 190, "right": 55, "bottom": 81},
+    "content_size": [604, 466],
+    "_size_cite": "SkillInfoPopup.c:123-133 setContentSprite(popup4,Rect(130,190,40,58)) → 650×480(PopupLayer 기본) × (0.93w,0.97h) = 604.5×465.6",
+    "position_cocos": [387, 380],
+    "_pos_cite": "SkillInfoPopup.c:127 setContentSpritePosition((visW-250)*0.5, 380). visW=1024→387. ⚠️앵커/기준 미확정(중앙 추정)."
+  },
+  "elements": [
+    {"name": "title_bar", "type": "ninepatch", "frame": "9patch/pop_title_bg.png",
+     "asset": "assets/converted/ninepatch_ui/9patch_pop_title_bg.tres",
+     "size": ["bgW*0.9", "titleH"], "pos_cocos": ["bgW*0.5", "bgH-50"], "anchor": [0.5, 0.5],
+     "_cite": "SkillInfoPopup.c initWidget:254-263 CCScale9Sprite('9patch/pop_title_bg.png') size(bgW*0.9,_) pos(bgW*0.5,bgH-50)"},
+    {"name": "title_label", "type": "label_bmfont", "font": "subtitle", "string": "Skill::getName",
+     "pos_cocos": ["bgW*0.5", "bgH-50"], "_cite": "initWidget CCLabelBMFont at title bar"},
+    {"name": "skill_icon", "type": "sprite", "frame": "skill/skill_{id}.png",
+     "asset": "assets/converted/skill/skill_{id}.tres", "anchor": [0.5, 1.0],
+     "_note": "backlight3 발광 뒤(common/backlight3.png=common_backlight3.tres). 중앙 상단.",
+     "_cite": "initWidget:~469 createWithSpriteFrameName(skill icon), common/backlight3.png"},
+    {"name": "stat_left", "pos_cocos_rel": [-130, 120], "_note": "대칭 스탯/레벨 표시(좌)", "_cite": "initWidget CCPoint(-130,120)"},
+    {"name": "stat_right", "pos_cocos_rel": [130, 120], "_note": "대칭(우)", "_cite": "initWidget CCPoint(130,120)"},
+    {"name": "comment", "type": "label_bmfont", "font": "subtitle", "string": "Skill::getComment", "pos_cocos": ["bgW*0.5", "bgH*0.5"],
+     "_cite": "initWidget CCPoint(bgW*0.5,bgH*0.5) 중앙 설명"},
+    {"name": "close", "frame": "common/close_btn.png", "_note": "PopupLayer 기본 닫기(우상단)"}
+  ],
+  "upgrade": {
+    "_status": "유실+에셋미변환",
+    "frames": ["scene/laboratory/upgrade_gauge_bg.png", "scene/laboratory/upgrade_gauge_bar.png", "common/btn_arrow3.png"],
+    "arrow_pos_cocos_rel": [0, 45],
+    "_lost": "requestSkillUpgrade/responseSkillUpgrade=서버통신(유실). upgrade_gauge_bg/bar=scene/laboratory 아틀라스 미변환(9patch처럼 변환 필요). 강화 비용/레벨효과=유실 → 데이터외부화/사용자시트.",
+    "_cite": "initWidget upgrade_gauge_bg/bar, btn_arrow3(0,45), requestSkillUpgrade"
+  },
+  "_todo": "중첩 컨테이너(local_e0 오프셋) 절대좌표 확정 위해 initWidget 전본문 정독 필요. 강화 UI는 laboratory 아틀라스 변환 후. 표시부(popup4+title_bar+icon+comment)는 즉시 구현 가능."
+}

@@ -1,0 +1,374 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_shipwreck_spine/ani_shipwreck_spine.png" id="1_xwebm"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_dv6ci"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mdkui"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(88, 66, 37, 42)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_di8q5"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(127, 66, 38, 30)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_74e6t"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(2, 90, 84, 33)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nopsl"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(76, 2, 92, 62)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1xchy"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(2, 2, 72, 86)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ry2m8"]
+atlas = ExtResource("1_xwebm")
+region = Rect2(76, 2, 92, 62)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_wwb0j"]
+length = 2.7
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/worldmap_ship_wave02:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(1.2666, 1.7, 2.2333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0.05, 1), Vector2(1.448, 1.227), Vector2(0.05, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/worldmap_ship_wave01:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4665, 0.4666, 0.8666, 1.3666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.095, 1), Vector2(0.095, 1), Vector2(0.095, 1), Vector2(1.249, 1.259), Vector2(0.095, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/worldmap_ship_left:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.4332, 0.4333, 1.1333, 1.3333, 2.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-2.2425735558875144, -2.2425735558875144, -2.2425735558875144, -2.9021334802161713, -2.2425735558875144, -2.554289360293702]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/worldmap_ship_left:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.4332, 0.4333, 0.7, 1.1333, 1.3333, 1.6, 2.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-114.19, -14.43), Vector2(-114.19, -14.43), Vector2(-114.19, -14.43), Vector2(-129.47, -29.27), Vector2(-160.03, -29.49), Vector2(114.26, 60), Vector2(95.62, 32.71), Vector2(76.89, 36.92)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/worldmap_ship_left:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.4333, 0.8, 1.1332, 1.1333, 1.3333, 1.7, 2.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.5, 1.5), Vector2(1.5, 1.5), Vector2(1.5, 1.5), Vector2(1, 1), Vector2(1.5, 1.5), Vector2(1, 1)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/worldmap_ship_right:rotation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.3665, 0.3666, 1.2, 1.4, 2.1666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-0.6216862795603801, -0.6216862795603801, -0.6216862795603801, 0.5618214862169748, -0.6216862795603801, 0.5618214862169748]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/worldmap_ship_right:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.3665, 0.3666, 0.7333, 1.2, 1.4, 1.7666, 2.1666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-129.48, -22.45), Vector2(-129.48, -22.45), Vector2(-129.48, -22.45), Vector2(-108.39, -52.39), Vector2(-87.56, -27.04), Vector2(97.4, 60.3), Vector2(125.26, 20.5), Vector2(156.31, 45.18)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/worldmap_ship_right:scale")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0.3666, 0.7666, 1.2, 1.3999, 1.4, 1.8, 2.1666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.5, 1.5), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1.5, 1.5), Vector2(1, 1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/worldmap_ship_under:position")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0.4, 0.9666, 1.5, 2.0666, 2.1333, 2.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-128.87, 2.01), Vector2(-128.87, 18.72), Vector2(100, 66.62), Vector2(100, 96.06), Vector2(-56.99, 49.42), Vector2(-57, 59.91)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/worldmap_ship_under:scale")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0.4, 0.9666, 1.5, 2.0666, 2.1333, 2.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.227, 1.227), Vector2(1, 1), Vector2(1.227, 1.227), Vector2(0.768, 0.768), Vector2(1, 1)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/worldmap_ship_wave03:rotation")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(1.8982, 2.2, 2.6508),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-1.688256985454115, -1.6022122533307948, -1.688256985454115]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/worldmap_ship_wave03:position")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(1.8982, 2.6507, 2.6508),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(-60.07, 40), Vector2(-60.07, 40), Vector2(-60.07, 40)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/worldmap_ship_wave03:scale")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(1.8982, 2.2, 2.6508),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0.153, 0.811), Vector2(0.645, 0.937), Vector2(0.071, 0.809)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/worldmap_ship_wave01/worldmap_ship_wave01_slot_frame/worldmap_ship_wave01_slot:modulate")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.4665, 0.4666, 0.8666, 1.3666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/worldmap_ship_wave02/worldmap_ship_wave02_slot_frame/worldmap_ship_wave02_slot:modulate")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 1.2665, 1.2666, 1.7, 2.2333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/worldmap_ship_wave03/worldmap_ship_wave012_frame/worldmap_ship_wave012:modulate")
+tracks/15/interp = 1
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 1.8981, 1.8982, 2.2, 2.6508),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/worldmap_ship_under/worldmap_ship_under_slot_frame/worldmap_ship_under_slot:modulate")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 0.3999, 0.4, 0.7, 0.9666, 1.4999, 1.5, 1.8, 2.0666, 2.1332, 2.1333, 2.4333, 2.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/worldmap_ship_left/worldmap_ship_left_slot_frame/worldmap_ship_left_slot:modulate")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0, 0.4332, 0.4333, 0.8, 1.1333, 1.3332, 1.3333, 1.7, 2.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/worldmap_ship_right/worldmap_ship_right_slot_frame/worldmap_ship_right_slot:modulate")
+tracks/18/interp = 1
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.3665, 0.3666, 0.7666, 1.2, 1.3999, 1.4, 1.8, 2.1666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_q8dyb"]
+_data = {
+&"shiptouch": SubResource("Animation_wwb0j")
+}
+
+[node name="Dragon_ani_shipwreck_spine_scene" type="Node2D" unique_id=891285829]
+
+[node name="root" type="Node2D" parent="." unique_id=2108300644]
+
+[node name="worldmap_ship_left" type="Node2D" parent="root" unique_id=685871049]
+position = Vector2(-124.67, -28.18)
+rotation = -2.2425735
+
+[node name="worldmap_ship_left_slot_frame" type="Node2D" parent="root/worldmap_ship_left" unique_id=1270667696]
+position = Vector2(25.02, -0.46)
+rotation = 2.2425735
+
+[node name="worldmap_ship_left_slot" type="Sprite2D" parent="root/worldmap_ship_left/worldmap_ship_left_slot_frame" unique_id=1749193976]
+z_index = 4
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(0, 1.3265306)
+rotation = 1.5707964
+scale = Vector2(1.3269231, 1.3265306)
+texture = SubResource("AtlasTexture_mdkui")
+
+[node name="worldmap_ship_right" type="Node2D" parent="root" unique_id=1152821183]
+position = Vector2(-140.61, -34.89)
+rotation = -0.6216863
+
+[node name="worldmap_ship_right_slot_frame" type="Node2D" parent="root/worldmap_ship_right" unique_id=1984748244]
+position = Vector2(11.2, 5.96)
+rotation = 0.6216863
+
+[node name="worldmap_ship_right_slot" type="Sprite2D" parent="root/worldmap_ship_right/worldmap_ship_right_slot_frame" unique_id=1492417107]
+z_index = 5
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(0, 1.3269231)
+rotation = 1.5707964
+scale = Vector2(1.3181819, 1.3269231)
+texture = SubResource("AtlasTexture_di8q5")
+
+[node name="worldmap_ship_under" type="Node2D" parent="root" unique_id=744931819]
+position = Vector2(-128.87, 2.01)
+rotation = 1.5468854
+
+[node name="worldmap_ship_under_slot_frame" type="Node2D" parent="root/worldmap_ship_under" unique_id=1104516960]
+position = Vector2(-8.34, -1.87)
+rotation = -1.5468854
+
+[node name="worldmap_ship_under_slot" type="Sprite2D" parent="root/worldmap_ship_under/worldmap_ship_under_slot_frame" unique_id=2132422490]
+z_index = 3
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(-2.673913, 1.3255814)
+scale = Vector2(1.3369565, 1.3255814)
+texture = SubResource("AtlasTexture_74e6t")
+
+[node name="worldmap_ship_wave01" type="Node2D" parent="root" unique_id=1627889350]
+position = Vector2(-125.51, -12.24)
+rotation = -1.5313519
+
+[node name="worldmap_ship_wave01_slot_frame" type="Node2D" parent="root/worldmap_ship_wave01" unique_id=832777904]
+position = Vector2(31.72, -4.6)
+rotation = 1.5313519
+
+[node name="worldmap_ship_wave01_slot" type="Sprite2D" parent="root/worldmap_ship_wave01/worldmap_ship_wave01_slot_frame" unique_id=1811088017]
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(0, 1.3333334)
+rotation = 1.5707964
+scale = Vector2(1.3369565, 1.3333334)
+texture = SubResource("AtlasTexture_nopsl")
+
+[node name="worldmap_ship_wave02" type="Node2D" parent="root" unique_id=192992943]
+position = Vector2(100.17, 64.94)
+rotation = -1.5631169
+
+[node name="worldmap_ship_wave02_slot_frame" type="Node2D" parent="root/worldmap_ship_wave02" unique_id=1018885734]
+position = Vector2(26.89, 5.67)
+rotation = 1.5631169
+
+[node name="worldmap_ship_wave02_slot" type="Sprite2D" parent="root/worldmap_ship_wave02/worldmap_ship_wave02_slot_frame" unique_id=217042527]
+z_index = 1
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(-9.358696, 6.6666665)
+scale = Vector2(1.3369565, 1.3333334)
+texture = SubResource("AtlasTexture_1xchy")
+
+[node name="worldmap_ship_wave03" type="Node2D" parent="root" unique_id=1319904264]
+position = Vector2(-60.07, 75.01)
+rotation = -1.5627679
+
+[node name="worldmap_ship_wave012_frame" type="Node2D" parent="root/worldmap_ship_wave03" unique_id=1252030712]
+position = Vector2(25.17, 0.64)
+rotation = 1.6144296
+scale = Vector2(-1.114, 0.737)
+
+[node name="worldmap_ship_wave012" type="Sprite2D" parent="root/worldmap_ship_wave03/worldmap_ship_wave012_frame" unique_id=223871057]
+z_index = 2
+material = SubResource("CanvasItemMaterial_dv6ci")
+position = Vector2(0, 1.3333334)
+rotation = 1.5707964
+scale = Vector2(1.3369565, 1.3333334)
+texture = SubResource("AtlasTexture_ry2m8")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1177130763]
+libraries/ = SubResource("AnimationLibrary_q8dyb")

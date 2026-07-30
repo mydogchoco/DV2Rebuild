@@ -1,0 +1,125 @@
+{
+ "_doc": "전투 상수·속성 상성 (data 층, 불변). 출처: game_design.md §K-2~K-6, §B (사용자 확정).",
+ "_re_basis": "libgame.so 디컴파일로 확정: 원작 전투 공식·수치는 서버 권한(server-authoritative)이었고 서비스 종료로 소실됨(docs/ref/design/reverse_engineering.md, docs/ref/orig_code/probe/formulas_decompiled.c). 클라의 calculateDamage=연출, get*Damage=서버필드 getter. ⇒ 아래 값은 바이너리 추출값이 아니라 위키+자체밸런스 결정치(# ASSUMPTION). 이것이 CLAUDE.md 규칙 #6를 어기는 게 아니라, 유일하게 가능한 복원 방식임이 리버싱으로 입증됨.",
+ "damage": {
+  "base": 30,
+  "crit_mult": 1.5,
+  "rand_min": 0.95,
+  "rand_max": 1.05
+ },
+ "judge": {
+  "block_reduction": 0.5,
+  "prob_cap": 70,
+  "crit_hits": 2,
+  "_doc_crit_hits": "크리티컬 연타 횟수(연출). 간격 0.1초는 원작 확정값 (FightDragon::createCriticalFrame 이 critical_frame 을 (i*0.1+1.0)/0.0333 = 30fps 프레임으로 파싱). 횟수 `info_dragon_v2.critical_hit` 은 서버 데이터라 유실 → 2026-07-27 사용자 승인으로 HARD RULE 6(수치 날조 금지)의 예외로 두고 우리가 설계한 값이다. 자유롭게 조정 가능한 튜닝 노브. 드래곤별로 다르게 하려면 dragons.json 에 `critical_hit` 을 넣으면 그쪽이 우선한다. 총 피해량은 바뀌지 않는다 — 연출만 n회로 쪼갠다."
+ },
+ "awaken": {
+  "damage_mult": 2.0,
+  "ignore_evade": true,
+  "ignore_block": true,
+  "charge_per_turn": 3.6,
+  "_note": "각성기(§K-5): 회피·방어 무시 광역 확정 발동, ×2. 게이지 충전(공격·피격 시 ~10% 랜덤)·발동조건은 각성 시스템에서 TODO(미확정).",
+  "_charge_basis": "행동 1회당 충전량(만충 100 = 약 28행동). 원작 충전율은 유실 → ASSUMPTION. 사용자 지시(2026-07-27)로 종전 18(약 6행동)에서 5배 느리게 조정. 게이지는 UI에 표시하지 않는다(숨은 게이지)."
+ },
+ "double": {
+  "_note": "더블공격: 평타 2회. 회피·방어는 두 타격에 일괄 적용, 크리는 타격별 독립. 발동률 TODO(미확정)."
+ },
+ "element": {
+  "good_mult": 1.25,
+  "bad_mult": 0.85,
+  "neutral_mult": 1.0,
+  "_note": "공격자 기준. good_vs/bad_vs에 모두 없으면 1.0. shadow는 공·수 항상 1.0(어느 목록에도 없음).",
+  "good_vs": {
+   "aqua": [
+    "fire"
+   ],
+   "fire": [
+    "wind"
+   ],
+   "wind": [
+    "earth"
+   ],
+   "earth": [
+    "aqua"
+   ],
+   "light": [
+    "dark"
+   ],
+   "dark": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind"
+   ],
+   "holy": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind",
+    "light",
+    "dark",
+    "chaos"
+   ],
+   "chaos": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind",
+    "light",
+    "dark",
+    "holy"
+   ],
+   "shadow": []
+  },
+  "bad_vs": {
+   "aqua": [
+    "earth"
+   ],
+   "fire": [
+    "aqua"
+   ],
+   "wind": [
+    "fire"
+   ],
+   "earth": [
+    "wind"
+   ],
+   "light": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind"
+   ],
+   "dark": [
+    "light"
+   ],
+   "holy": [],
+   "chaos": [],
+   "shadow": []
+  }
+ },
+ "skill_slot_match": {
+  "_source": "원작 문자열 <ToolTipDragonSkillExplain>: '같은 스킬이라도 스킬과 슬롯의 타입이 일치하는 경우 추가 효과가 발생합니다. 스킬 타입은 동그라미, 네모, 세모 세가지 타입이 있습니다. 스킬 슬롯에는 별 타입의 특수 슬롯이 존재하는데 모든 스킬의 추가 효과를 발생 시킵니다.'",
+  "_re_basis": "'추가 효과'의 정체와 수치는 서버 유실. ASSUMPTION: 스킬 피해 +power_pct% 로 대체한다(회복·버프량 미적용). 슬롯 타입 값은 부화 시 랜덤(Loadout.random_slot_types) — 사용자 확정 2026-07-27. 사용자 확정(2026-07-29, open_questions.csv): power_pct 는 이대로 유지하고, **회복 계열 스킬은 최대 사용횟수 +1**을 추가효과로 받는다(피해 %가 의미 없는 계열이라).",
+  "_note": "장착 제약은 없다 — 모양이 안 맞아도 스킬은 장착되고 보너스만 붙지 않는다(사용자 확인). 젬 슬롯과 다른 점.",
+  "power_pct": 15,
+  "heal_use_bonus": 1,
+  "heal_categories": [
+   "heal",
+   "cleanse"
+  ],
+  "_heal_categories_basis": "data/skills.json 의 category 값. heal=치유의 빛(29), cleanse=빛의 정화(26). 39종 중 회복·해제로 분류된 것이 이 둘뿐이다. 다른 스킬을 회복 계열로 볼 근거가 생기면 이 배열에 category 를 추가한다."
+ },
+ "skill_hp_gate": {
+  "_source": "원작 아티팩트 **마리스**의 효과가 '스킬 발동 체력 조건 완화'이고, 위키 §2.4 표가 그 대상으로 분노의 일격·치유의 빛·아수라 일섬·신의 분노 4종을 적는다 ⇒ 이 4종이 원작의 **체력 조건 스킬**이다. 대상 목록은 위키 확정, **문턱값은 서버 유실**.",
+  "_authored": "⚠️ threshold_pct 는 자작(HARD RULE 6 예외). 네 스킬 모두 '몰렸을 때 터지는' 성격이라 체력 50% 이하로 잡았다. 마리스가 이 문턱을 완화(+%p)해 더 일찍 터지게 한다. 튜닝 노브 = data/combat.json skill_hp_gate.",
+  "threshold_pct": 50,
+  "skills": [
+   25,
+   29,
+   30,
+   36
+  ],
+  "_skills_note": "25 분노의 일격 · 29 치유의 빛 · 30 아수라일섬 · 36 신의 분노 (data/skills.json id)"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "_source": "원작 CombineEgg 모델 (docs/ref/orig_code/decomp/CombineEgg.c). SQLite 테이블 info_combine_egg.",
+ "_re_basis": "스키마=클라 복원: CombineEgg::setInfo `select combine_no, item1, item2, item3, item4 from info_combine_egg where target_no=%d` (CombineEgg.c:306).",
+ "_authored_note": "⚠️ HARD RULE 6 예외(사용자 승인 2026-07-27): **조합표 자체가 유실**이라 자작했다. 규칙 = 속성알 2개 → 그 계열의 희귀 알(불+땅=해태, 물+바람=자룡, 빛+신성=백룡, 어둠+혼돈=흑룡 …). 튜닝 노브 = COMBINE_TABLE / COMBINE_COST. egg_fragments.json(알조각 7세트→특수드래곤)은 이 조합과 별개 시스템이다.",
+ "recipes": [
+  {
+   "combine_no": 1,
+   "target": "mall_haetai_egg",
+   "materials": [
+    "mall_fire_egg",
+    "mall_ground_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  },
+  {
+   "combine_no": 2,
+   "target": "mall_jaryong_egg",
+   "materials": [
+    "mall_water_egg",
+    "mall_wind_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  },
+  {
+   "combine_no": 3,
+   "target": "mall_back_egg",
+   "materials": [
+    "mall_light_egg",
+    "mall_holy_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  },
+  {
+   "combine_no": 4,
+   "target": "mall_black_egg",
+   "materials": [
+    "mall_dark_egg",
+    "mall_chaos_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  },
+  {
+   "combine_no": 5,
+   "target": "mall_bagma_egg",
+   "materials": [
+    "mall_dark_egg",
+    "mall_darkpoll_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  },
+  {
+   "combine_no": 6,
+   "target": "mall_gaoron_egg",
+   "materials": [
+    "mall_fire_egg",
+    "mall_light_egg"
+   ],
+   "cost": 50000,
+   "_authored": true
+  }
+ ]
+}

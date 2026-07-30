@@ -1,0 +1,460 @@
+{
+ "_source": "원작 libgame.so `ScenarioSubQuestData` — scripts/tools/extract_story_subquest.py 자동생성",
+ "_evidence": {
+  "class": "docs/ref/orig_code/decomp/ScenarioSubQuestData.c (80메서드, [skip>8000] 0건)",
+  "caller_field": "WorldMapLayer::setScenarioNotification :3164 — getScenarioSubQuestFiled(sn_s, isNight)",
+  "caller_click": "WorldMapScene :4116 isBattleCountClick(sn, true) / :4133 scenairoClickCountSetting(true)",
+  "caller_mark": "WorldMapScene :5858 / :5947 getEventMarkFieldValue(sn, isNight)",
+  "struct_names": "AdventureScene::setMonster(no, lv, hp, att, def, 0, name, bool) — 레이드 경로 대조",
+  "log_strings": "libgame.so 0x224edba '서브퀘스트 완료시 다음 시나리오 클릭카운트' · 0x224f1d4 '배틀 완료시 …'"
+ },
+ "_unresolved": {
+  "note": "아래 판정은 .bss 의 std::vector<int> 전역(회차 목록)을 훑는다. 정적 초기화자를 특정하지 못해 목록 미추출 — 우리 구현은 이 표에 등장하는 회차를 '서브퀘스트 있음'으로 본다(ASSUMPTION).",
+  "vectors": {
+   "isScenarioAftercheck/isScenarioEndCheck": "DAT_029f3c50..c58",
+   "isSubQeustBattle": "DAT_029f3c68..c70",
+   "getEventMarkFieldValue_kades_gate": "DAT_029f3c80..c88",
+   "isSubQuestExtant": "DAT_029f3ce0..ce8",
+   "isBattleScenario": "DAT_029f3cf8..d00",
+   "isRealBattle": "DAT_029f3d40..d48"
+  }
+ },
+ "_lost": {
+  "info_scenario_v2": "select db_no, min_lv, point, title, daynight from info_scenario_v2 where no=%d and sub_no=%d (ScenarioData::setInfo) — 로컬 SQLite였다. 서버 소유가 아니지만 .db 파일이 덤프에 없어 값은 유실.",
+  "info_quest_v2": "QuestData::setInfo — 퀘스트 정의(type/target/max/보상) 로컬 SQLite. 동일."
+ },
+ "subquest_substep": 2,
+ "subquest_field": {
+  "79": {
+   "field": 7,
+   "night": true
+  },
+  "80": {
+   "field": 4,
+   "night": true
+  },
+  "81": {
+   "field": 4,
+   "night": true
+  },
+  "82": {
+   "field": 1,
+   "night": true
+  },
+  "83": {
+   "field": 1,
+   "night": true
+  },
+  "84": {
+   "field": 9,
+   "night": true
+  },
+  "85": {
+   "field": 1,
+   "night": true
+  },
+  "86": {
+   "field": 1,
+   "night": true
+  },
+  "89": {
+   "field": 9,
+   "night": true
+  },
+  "93": {
+   "field": 9,
+   "night": false,
+   "requires": {
+    "kades": 1
+   }
+  },
+  "94": {
+   "field": 5,
+   "night": false,
+   "requires": {
+    "kades": 1
+   }
+  },
+  "95": {
+   "field": 1,
+   "night": false,
+   "requires": {
+    "kades": 1
+   }
+  },
+  "96": {
+   "field": 22,
+   "night": false,
+   "requires": {
+    "selectmap": 1
+   }
+  },
+  "97": {
+   "field": 17,
+   "night": false,
+   "requires": {
+    "selectmap": 2
+   }
+  },
+  "98": {
+   "field": 14,
+   "night": false,
+   "requires": {
+    "kades": 1
+   }
+  },
+  "99": {
+   "field": 7,
+   "night": false,
+   "requires": {
+    "kades": 1
+   }
+  },
+  "102": {
+   "field": 32,
+   "night": false
+  },
+  "104": {
+   "field": 32,
+   "night": false
+  },
+  "106": {
+   "field": 33,
+   "night": false
+  },
+  "107": {
+   "field": 34,
+   "night": false
+  },
+  "109": {
+   "field": 23,
+   "night": false
+  },
+  "111": {
+   "field": 17,
+   "night": false
+  },
+  "114": {
+   "field": 35,
+   "night": false
+  },
+  "117": {
+   "field": 36,
+   "night": false
+  },
+  "118": {
+   "field": 36,
+   "night": false
+  },
+  "120": {
+   "field": 37,
+   "night": false
+  },
+  "121": {
+   "field": 35,
+   "night": false
+  },
+  "124": {
+   "field": 32,
+   "night": false
+  },
+  "131": {
+   "field": 25,
+   "night": false
+  },
+  "132": {
+   "field": 18,
+   "night": false
+  },
+  "141": {
+   "field": 15,
+   "night": false
+  },
+  "145": {
+   "field": 1007,
+   "night": false
+  }
+ },
+ "click_count": {
+  "79": 17,
+  "80": 39,
+  "81": 5,
+  "82": 5,
+  "83": 6,
+  "84": 14,
+  "85": 21,
+  "86": 30,
+  "88": 53,
+  "89": 41,
+  "93": 42,
+  "94": 38,
+  "95": 28,
+  "96": 51,
+  "97": 41,
+  "98": 37,
+  "99": 14,
+  "100": 12,
+  "102": 55,
+  "104": 34,
+  "106": 27,
+  "107": 25,
+  "109": 10,
+  "111": 25,
+  "114": 7,
+  "117": 37,
+  "118": 17,
+  "120": 14,
+  "121": 17,
+  "124": 16,
+  "131": 24,
+  "132": 28,
+  "134": 24,
+  "136": 34,
+  "144": 13,
+  "145": 14
+ },
+ "battle_click_count": {
+  "88": 26,
+  "90": 26,
+  "91": 20,
+  "103": 19,
+  "104": 63,
+  "107": 39,
+  "109": 22,
+  "112": 16,
+  "114": 20,
+  "124": 50,
+  "135": 26,
+  "138": 37,
+  "141": 7,
+  "142": 6
+ },
+ "battle_click_conditional": {
+  "91": {
+   "if_state_1": 20,
+   "else": 59
+  }
+ },
+ "battle_retry_scenarios": [
+  103,
+  104,
+  107,
+  109,
+  112,
+  114,
+  124,
+  135,
+  138,
+  141,
+  142
+ ],
+ "mark_field": {
+  "79": 1002,
+  "80": 1002,
+  "81": 999,
+  "82": 1,
+  "83": 999,
+  "84": 1002,
+  "85": 1002,
+  "86": 1002,
+  "87": 1002,
+  "88": 1,
+  "89": 1002,
+  "90": 24,
+  "91": 24,
+  "92": 1002,
+  "93": 1002,
+  "94": 1002,
+  "95": 1002,
+  "96": 999,
+  "97": 0,
+  "98": 1002,
+  "99": 1002,
+  "100": 999,
+  "101": 1002,
+  "102": 1002,
+  "103": 26,
+  "104": 26,
+  "105": 26,
+  "106": 27,
+  "107": 28,
+  "108": 28,
+  "109": 18,
+  "110": 1004,
+  "111": 1003,
+  "112": 22,
+  "113": 1007,
+  "114": 29,
+  "115": 29,
+  "116": 1008,
+  "117": 30,
+  "118": 30,
+  "119": 1008,
+  "120": 1008,
+  "121": 29,
+  "122": 26,
+  "123": 29,
+  "124": 26,
+  "125": 26,
+  "126": 26,
+  "127": 1008,
+  "128": 1008,
+  "129": 17,
+  "130": 1002,
+  "131": 1004,
+  "132": 22,
+  "133": 1003,
+  "134": 18,
+  "135": 1004,
+  "136": 18,
+  "137": 18,
+  "138": 26,
+  "139": 26,
+  "140": 1002,
+  "141": 15,
+  "142": 15,
+  "143": 15,
+  "144": 1002,
+  "145": 1007,
+  "146": 999
+ },
+ "event_battle_ids": [
+  26,
+  27,
+  29,
+  100
+ ],
+ "event_battle": {
+  "26": {
+   "monster_no": 8,
+   "lv": 99,
+   "hp": 90000,
+   "att": 90000,
+   "def": 90000,
+   "field_no": 602,
+   "monster_anim": "AdventureMonster1",
+   "event_key": "AdventureEvent88",
+   "bg": "scene/adventure/bg/602/bg.jpg",
+   "bg_item": "scene/adventure/bg/602/item/bg_item.png",
+   "flag6": 0
+  },
+  "27": {
+   "monster_no": 181,
+   "lv": 99,
+   "hp": 90000,
+   "att": 90000,
+   "def": 90000,
+   "field_no": 24,
+   "monster_anim": "AdventureMonster1",
+   "event_key": "AdventureEvent88",
+   "bg": "scene/adventure/bg/24/bg.jpg",
+   "bg_item": "scene/adventure/bg/24/item/bg_item.png",
+   "flag6": 0
+  },
+  "29": {
+   "monster_no": 75,
+   "lv": 50,
+   "hp": 1100,
+   "att": 200,
+   "def": 125,
+   "field_no": 601,
+   "monster_anim": "AdventureMonster1",
+   "event_key": "AdventureEvent88",
+   "bg": "scene/adventure/bg/601/bg.jpg",
+   "bg_item": "scene/adventure/bg/601/item/bg_item.png",
+   "flag6": 1
+  }
+ },
+ "special_reward": {
+  "26": {
+   "raw": "DRAGON:9:50:3:112:131:150:R:B:Y:81_2,12_2,46_2",
+   "dragon_no": 9,
+   "level": 50,
+   "rating": 3,
+   "gems": [
+    112,
+    131,
+    150
+   ],
+   "gem_colors": [
+    "R",
+    "B",
+    "Y"
+   ],
+   "skills": [
+    {
+     "no": 81,
+     "lv": 2
+    },
+    {
+     "no": 12,
+     "lv": 2
+    },
+    {
+     "no": 46,
+     "lv": 2
+    }
+   ]
+  },
+  "58": {
+   "raw": "DRAGON:87:50:3:112:131:150:R:B:Y:155_2,21_2,56_2",
+   "dragon_no": 87,
+   "level": 50,
+   "rating": 3,
+   "gems": [
+    112,
+    131,
+    150
+   ],
+   "gem_colors": [
+    "R",
+    "B",
+    "Y"
+   ],
+   "skills": [
+    {
+     "no": 155,
+     "lv": 2
+    },
+    {
+     "no": 21,
+     "lv": 2
+    },
+    {
+     "no": 56,
+     "lv": 2
+    }
+   ]
+  },
+  "78": {
+   "raw": "DRAGON:105:50:3:114:114:152:R:R:Y:29_2,32_2,101_2",
+   "dragon_no": 105,
+   "level": 50,
+   "rating": 3,
+   "gems": [
+    114,
+    114,
+    152
+   ],
+   "gem_colors": [
+    "R",
+    "R",
+    "Y"
+   ],
+   "skills": [
+    {
+     "no": 29,
+     "lv": 2
+    },
+    {
+     "no": 32,
+     "lv": 2
+    },
+    {
+     "no": 101,
+     "lv": 2
+    }
+   ]
+  }
+ }
+}

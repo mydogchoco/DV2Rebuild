@@ -1,0 +1,86 @@
+{
+ "_re_basis": [
+  "아이템 '효과 수치'는 서버 데이터라 유실됐다(data/items.json 의 effect:null, offline:'todo').",
+  "규칙은 docs/ref/wiki/item.pdf 에서 확인되고, 수치는 사용자(원작 경험자)가 2026-07-26 확정했다.",
+  "",
+  "[위키 확정 규칙 — docs/ref/wiki/item.pdf §2.3 드링크]",
+  "  · '사용 시 짧은 턴동안 능력치를 증가시켜 준다'",
+  "  · '중복 복용할 경우 효과의 지속시간만 증가하고 효력은 증가하지 않는다'",
+  "    → stack_mode = 'duration' (지속 연장, 효력 고정)",
+  "  · 1~3단계 존재, 상위가 더 강함",
+  "",
+  "[위키 확정 규칙 — docs/ref/wiki/item.pdf §2.2 회복 물약]",
+  "  · 1단계 = Lv 1~24(해치·해츨링) / 2단계 = Lv 25~44(성체) / 3단계 = Lv 45~50(오라 성체)",
+  "  · 1단계 100골드, 2단계 = 1단계 3개, 3단계 = 2단계 3개",
+  "",
+  "[사용자 확정 수치 — 2026-07-26]",
+  "  · 버프 물약: 1단계 +5%, 단계마다 +5%p (1/2/3단계 = 5/10/15%)",
+  "  · 버프 지속: 모든 버프 물약 동일하게 10턴",
+  "  · 회복 물약: 최대 체력의 30% 회복 (단계 무관, 단계는 사용 가능 레벨대만 가름)"
+ ],
+ "_source": "docs/ref/wiki/item.pdf §2.2/§2.3 (규칙) + 사용자 확정(수치, 2026-07-26)",
+ "drink": {
+  "stack_mode": "duration",
+  "duration_turns": 10,
+  "pct_per_tier": 5,
+  "stats": {
+   "att_drink": "att",
+   "def_drink": "def",
+   "hp_drink": "hp",
+   "cri_drink": "crit",
+   "miss_drink": "dodge",
+   "prodef_drink": "block"
+  }
+ },
+ "heal_potion": {
+  "heal_pct_of_max": 30,
+  "tiers": [
+   {
+    "key": "heal_potion1",
+    "level_min": 1,
+    "level_max": 24
+   },
+   {
+    "key": "heal_potion2",
+    "level_min": 25,
+    "level_max": 44
+   },
+   {
+    "key": "heal_potion3",
+    "level_min": 45,
+    "level_max": 50
+   }
+  ]
+ },
+ "feed": {
+  "food_max": 100,
+  "_food_max_basis": "우리 눈금(FOOD: 100=배부름 … 0=굶음, 원작 용어 Dragon::isFood). 원작 허기 눈금은 서버 유실. 종전 임시 `fatigue` 필드의 0~100 을 그대로 물려받았다 — 전투 1회당 −15(`battle.gd HUNGER_PER_BATTLE`) 이므로 약 7전투에 만복→굶음(그 뒤 탐험 입장 불가). 튜닝 노브는 이 두 값뿐이다.",
+  "restore_pct": {
+   "full": 100,
+   "half": 50
+  },
+  "_restore_basis": "사용자 확정(2026-07-30): 먹이는 속성당 2종이고 **하나는 허기 절반만, 하나는 100% 회복**한다. 어느 쪽이 절반인지는 원작 파일명이 말해 준다 — `food_ground_paopao_half` 가 literally 'half' 이고, 나머지 8속성도 같은 축(piece/leg/small/tadpole/fly/branch = 작은 쪽)이다.",
+  "half": [
+   "food_water_fly_pirania",
+   "food_chaos_tadpole",
+   "food_dark_darkmelon_piece",
+   "food_ground_paopao_half",
+   "food_fire_chickenleg",
+   "food_holy_small_ginseng",
+   "food_light_lightmelon_piece",
+   "food_shadow_chocolate_piece",
+   "food_wind_branch_yggdrasil"
+  ],
+  "full": [
+   "food_chaos_toud",
+   "food_dark_darkmelon",
+   "food_fire_chicken",
+   "food_ground_paopao",
+   "food_holy_big_ginseng",
+   "food_light_lightmelon",
+   "food_shadow_chocolate",
+   "food_water_pirania",
+   "food_wind_yggdrasil"
+  ]
+ }
+}

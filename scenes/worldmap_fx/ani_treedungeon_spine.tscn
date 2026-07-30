@@ -1,0 +1,264 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_treedungeon_spine/ani_treedungeon_spine.png" id="1_ocun6"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_vrpbc"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w1deo"]
+atlas = ExtResource("1_ocun6")
+region = Rect2(165, 2, 28, 29)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pq1de"]
+atlas = ExtResource("1_ocun6")
+region = Rect2(165, 2, 28, 29)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hpxwl"]
+atlas = ExtResource("1_ocun6")
+region = Rect2(165, 2, 28, 29)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u6hu8"]
+atlas = ExtResource("1_ocun6")
+region = Rect2(165, 2, 28, 29)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5fv0t"]
+atlas = ExtResource("1_ocun6")
+region = Rect2(2, 2, 161, 146)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_5tmm8"]
+length = 16.3
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/worldmap_treetouch_dust:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.2333, 2.0333, 2.4, 3.3666, 3.7, 4.1, 7, 8, 8.9333, 10.8666, 12.0666, 14.4666, 15.5333, 16.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-13.45, -12.18), Vector2(-34.5, -10.76), Vector2(-58.9, -16.43), Vector2(-69.24, -6.62), Vector2(-98.27, 38.63), Vector2(-90.22, 55.1), Vector2(-75.9, 58.14), Vector2(-1.61, 38.06), Vector2(4.5, 42.85), Vector2(8.93, 39.22), Vector2(65.5, 56.48), Vector2(85.16, 53.92), Vector2(87.83, -11.03), Vector2(77.44, -20.39), Vector2(7.62, -9.74)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/worldmap_treetouch_dust:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 2.0332, 2.0333, 2.4, 3.3666, 4.1, 7, 8, 8.9333, 12.0666, 13.5666, 14.4666, 16.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.5, 0.5), Vector2(0.5, 0.5), Vector2(0.5, 0.5), Vector2(0.633, 0.633), Vector2(1, 1), Vector2(0.399, 0.399), Vector2(1.8, 1.8), Vector2(1, 1), Vector2(1.599, 1.599), Vector2(0.399, 0.399), Vector2(1.2, 1.2), Vector2(0.6, 0.6), Vector2(0.2, 0.2)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/worldmap_treetouch_dust2:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(1, 5.4666),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-11.99, 85.79), Vector2(94, -23.33)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/worldmap_treetouch_dust3:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(9.3333, 14.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-40.09, -18.78), Vector2(-95.76, -66.57)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/worldmap_treetouch_dust3:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(9.3333, 14.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.2, 0.2), Vector2(1.4, 1.4)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/worldmap_treetouch_dust4:position")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(5.0333, 10.0666),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(55.03, 18.92), Vector2(83.91, -9.96)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/worldmap_treetouch_dust4:scale")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(5.0333, 8.4, 10.0666),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0.299, 0.299), Vector2(0.799, 0.799), Vector2(0.5, 0.5)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/worldmap_treetouch_tree/worldmap_treetouch_tree_slot_frame/worldmap_treetouch_tree_slot:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 3.0333, 5.1333, 8.9333, 8.9666, 11.6333, 13.3333, 16.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0.47843137, 0.47843137, 0.47843137, 0.47843137), Color(0.99215686, 0.99215686, 0.99215686, 0.99215686), Color(1, 1, 1, 1), Color(0.65882355, 0.65882355, 0.65882355, 0.65882355), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/worldmap_treetouch_dust/worldmap_treetouch_dust_slot_frame/worldmap_treetouch_dust_slot:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 2.0333, 2.3999, 2.4, 3.3666, 4.0999, 4.1, 6.0666, 7.9999, 8, 8.9332, 8.9333, 10.4333, 12.0666, 13.5666, 14.4666, 15, 16.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.8627451, 0.8627451, 0.8627451, 0.8627451), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/worldmap_treetouch_dust2/worldmap_treetouch_dust2_slot_frame/worldmap_treetouch_dust2_slot:modulate")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.9999, 1, 3.2666, 5.4666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/worldmap_treetouch_dust3/worldmap_treetouch_dust3_slot_frame/worldmap_treetouch_dust3_slot:modulate")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 9.3332, 9.3333, 11.9, 14.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/worldmap_treetouch_dust4/worldmap_treetouch_dust4_slot_frame/worldmap_treetouch_dust4_slot:modulate")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 5.0332, 5.0333, 8.4, 10.0666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_to5nc"]
+_data = {
+&"treee": SubResource("Animation_5tmm8")
+}
+
+[node name="Dragon_ani_treedungeon_spine_scene" type="Node2D" unique_id=1834294132]
+
+[node name="root" type="Node2D" parent="." unique_id=214165908]
+
+[node name="worldmap_treetouch_dust" type="Node2D" parent="root" unique_id=267875814]
+position = Vector2(-13.45, -12.18)
+rotation = -1.688257
+
+[node name="worldmap_treetouch_dust_slot_frame" type="Node2D" parent="root/worldmap_treetouch_dust" unique_id=1324328418]
+position = Vector2(0.79, 2.21)
+rotation = 1.688257
+
+[node name="worldmap_treetouch_dust_slot" type="Sprite2D" parent="root/worldmap_treetouch_dust/worldmap_treetouch_dust_slot_frame" unique_id=1244529881]
+z_index = 1
+material = SubResource("CanvasItemMaterial_vrpbc")
+position = Vector2(-2.631579, 0)
+scale = Vector2(1.3157895, 1.3243244)
+texture = SubResource("AtlasTexture_w1deo")
+
+[node name="worldmap_treetouch_dust2" type="Node2D" parent="root" unique_id=119302602]
+position = Vector2(-11.99, 85.79)
+rotation = -1.5943583
+
+[node name="worldmap_treetouch_dust2_slot_frame" type="Node2D" parent="root/worldmap_treetouch_dust2" unique_id=38625249]
+position = Vector2(-0.49, 2.51)
+rotation = 1.5943583
+
+[node name="worldmap_treetouch_dust2_slot" type="Sprite2D" parent="root/worldmap_treetouch_dust2/worldmap_treetouch_dust2_slot_frame" unique_id=1660522455]
+z_index = 2
+material = SubResource("CanvasItemMaterial_vrpbc")
+position = Vector2(-2.631579, 0)
+scale = Vector2(1.3157895, 1.3243244)
+texture = SubResource("AtlasTexture_pq1de")
+
+[node name="worldmap_treetouch_dust3" type="Node2D" parent="root" unique_id=163709852]
+position = Vector2(-40.09, -18.78)
+rotation = -1.515644
+
+[node name="worldmap_treetouch_dust3_slot_frame" type="Node2D" parent="root/worldmap_treetouch_dust3" unique_id=1252020542]
+position = Vector2(0.13, 2.46)
+rotation = 1.515644
+
+[node name="worldmap_treetouch_dust3_slot" type="Sprite2D" parent="root/worldmap_treetouch_dust3/worldmap_treetouch_dust3_slot_frame" unique_id=803221344]
+z_index = 3
+material = SubResource("CanvasItemMaterial_vrpbc")
+position = Vector2(-2.631579, 0)
+scale = Vector2(1.3157895, 1.3243244)
+texture = SubResource("AtlasTexture_hpxwl")
+
+[node name="worldmap_treetouch_dust4" type="Node2D" parent="root" unique_id=1351791538]
+position = Vector2(55.03, 18.92)
+rotation = -1.230108
+
+[node name="worldmap_treetouch_dust4_slot_frame" type="Node2D" parent="root/worldmap_treetouch_dust4" unique_id=153873971]
+position = Vector2(1.75, 1.43)
+rotation = 1.230108
+
+[node name="worldmap_treetouch_dust4_slot" type="Sprite2D" parent="root/worldmap_treetouch_dust4/worldmap_treetouch_dust4_slot_frame" unique_id=891112206]
+z_index = 4
+material = SubResource("CanvasItemMaterial_vrpbc")
+position = Vector2(-2.631579, 0)
+scale = Vector2(1.3157895, 1.3243244)
+texture = SubResource("AtlasTexture_u6hu8")
+
+[node name="worldmap_treetouch_tree" type="Node2D" parent="root" unique_id=929635941]
+position = Vector2(3.11, 13.59)
+
+[node name="worldmap_treetouch_tree_slot_frame" type="Node2D" parent="root/worldmap_treetouch_tree" unique_id=469642609]
+position = Vector2(15.48, -19.79)
+
+[node name="worldmap_treetouch_tree_slot" type="Sprite2D" parent="root/worldmap_treetouch_tree/worldmap_treetouch_tree_slot_frame" unique_id=780024151]
+material = SubResource("CanvasItemMaterial_vrpbc")
+position = Vector2(-4.006579, -3.9946525)
+rotation = 1.5707964
+scale = Vector2(1.3355263, 1.3315508)
+texture = SubResource("AtlasTexture_5fv0t")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1381924798]
+libraries/ = SubResource("AnimationLibrary_to5nc")

@@ -1,0 +1,3297 @@
+extends Control
+## Battle(전투) 씬 — 파티(하단 카드 1~3) vs 중앙 대형 적. render 층. (CLAUDE.md §10)
+## 레퍼런스: docs/Ref/battle1.png·battle3.png (PvE 어드벤처 전투. 대칭 3v3 레시피는 컷된 PvP용→미사용).
+## 로직: Battle.simulate(party_a,party_b,rng,cfg,skills_db) → {winner,events,rounds}.
+##   render는 events를 타이밍 재생(§10.3): HP드레인·데미지숫자·crit/miss/block·공격큐·사망·DoT·승패.
+## 좌표: 692 고정높이(design.gd). 전환은 Scenes.goto()만(§10.4).
+##
+## ⚠️ 적 스탯·스테이지 구성은 원작 서버데이터라 유실 → 자작(ASSUMPTION). data/stages 신설 예정.
+##    파티 스킬은 UserDB에 스킬 필드가 아직 없음 → 현재 평타 위주(스킬↔드래곤 연결 시 스킬연출 자동 활성).
+
+const FLOOR := 692.0   # = Design.DESIGN_HEIGHT
+
+var _pma: CanvasItemMaterial
+var _adv: Dictionary = {}
+var _bat: Dictionary = {}
+var _portrait_man: Dictionary = {}
+var _params: Dictionary = {}
+var _enemy: Dictionary = {}
+var _party: Array = []                    # [{id,level,name,element,uid,stats}]
+var _drink_users: Array = []              # 이번 전투에 드링크 버프가 걸려 있던 uid(종료 시 턴 차감)
+## 이번 전투에서 레벨이 오른 드래곤들 → `LevelUpResult` 모달 입력.
+## 탐험이 이어지면 `Scenes.goto("adventure", {"levelups": …})` 로 넘겨 **탐험 쪽에서** 띄우고,
+## 던전이 끝나면 결과 화면에서 바로 띄운다. (원작에는 창이 없었다 — levelup_result.gd 헤더 참조)
+var _levelup_queue: Array = []
+
+# 재생 상태
+var _views: Dictionary = {}               # 내부이름(A0/E0) -> view dict
+var _events: Array = []
+var _winner := ""
+var _speed := 1.0
+var _skip := false
+var _playing := false
+var _finished := false
+var _log_label: Label
+var _speed_btn: Button
+var _speed_spr: Sprite2D   # 속도 버튼 원작 이미지(speed_0/1/2 전환)
+
+func enter(params: Dictionary = {}) -> void:
+	_params = params
+	if _pma != null:
+		_rebuild()
+
+func _ready() -> void:
+	_pma = CanvasItemMaterial.new()
+	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	_adv = _man("adventure_ui")
+	_bat = _man("battle_ui")
+	_rebuild()
+
+func _rebuild() -> void:
+	_gen += 1        # 진행 중이던 재생 코루틴 무효화(아래 _play_events 참조)
+	for c in get_children():
+		c.queue_free()
+	_views.clear()
+	_events.clear()
+	_winner = ""
+	_skip = false
+	_setup_enemy()
+	_setup_party()
+	# 원작 AdventureScene: 일반몹=bg_colosseum_battle_2, 보스(Monster::isBoss)=bg_battle_boss.
+	# 근거: docs/ref/orig_code/decomp/AdventureScene.c:16317-16333 (SoundManager::playBackground).
+	Bgm.play("bg_battle_boss" if _is_boss() else "bg_colosseum_battle_2")
+	_build_bg()
+	_build_enemy()
+	_build_enemy_hpbar()
+	_build_party_cards()
+	# 원작 setCheckFieldBuffToUi: 필드 속성과 같은 속성의 드래곤 **카드**에 붙는다 → 카드 생성 뒤.
+	_build_field_buff()
+	_build_textbox()
+	_build_hud()
+	_build_team_buff_badges()   # 원작 TeamBuff::createIcon — 활성 조합버프 배지
+	_run_and_replay()
+
+# ---------- 데이터 조립 ----------
+func _setup_enemy() -> void:
+	# 스테이지 데이터(data/stages.json, 사용자 작성)가 있으면 그걸로 구성. 없으면 params.enemy 또는 스텁.
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	if st.get("bg") != null and not _params.has("bg"):   # bg=null(미매칭) 가드
+		_params["bg"] = int(st["bg"])
+	# 조우 인덱스(enc): 어드벤처 다중 조우에서 몇 번째 몹인지. 마지막=보스.
+	var enemies: Array = st.get("enemies", [])
+	var enc := clampi(int(_params.get("enc", 0)), 0, maxi(0, enemies.size() - 1))
+	# 랜덤 보스 스테이지(원작 혼돈의 틈새 등): 일반몹 없이 보스전만 — 입장 시 목록서 랜덤 1마리.
+	if bool(st.get("random_boss", false)) and not enemies.is_empty():
+		# enc가 지정되면 그걸(재현), 아니면 무작위. hp_state 이월과 무관한 단발 보스.
+		if not _params.has("enc"):
+			var rr := RandomNumberGenerator.new(); rr.randomize()
+			enc = rr.randi() % enemies.size()
+	# 요일별 보스 교대(원작 우노 '미지의 터'). 위키 dungeon_4.pdf §4.2 가 요일을 특정한다 —
+	# 월=볼케이노 화=윗치 수=드라고노이드 목=골드 토=퍼플립스, 일요일은 전부 등장(=무작위).
+	# stages.json `boss_by_weekday` = {"1"(월)…"7"(일): enemies 인덱스, -1 = 무작위}.
+	var wd_map: Dictionary = st.get("boss_by_weekday", {})
+	if not wd_map.is_empty() and not enemies.is_empty() and not _params.has("enc"):
+		# Godot Time 은 weekday 0=일요일 → 우리 키(1=월 … 7=일)로 옮긴다.
+		var g := int(Time.get_datetime_dict_from_system().get("weekday", 0))
+		var key := str(7 if g == 0 else g)
+		var idx := int(wd_map.get(key, -1))
+		if idx < 0 or idx >= enemies.size():
+			var wr := RandomNumberGenerator.new(); wr.randomize()
+			idx = wr.randi() % enemies.size()
+		enc = idx
+	var e: Dictionary = (enemies[enc] if not enemies.is_empty() else _params.get("enemy", {}))
+	# 몬스터 에셋 id 미매칭(위키 데이터엔 이름만, 스프라이트 id 매칭은 TODO) → null이면 플레이스홀더 스프라이트.
+	# 이름·레벨·스탯은 위키값 사용(월드맵→던전→전투 루프가 실 데이터로 동작). # ASSUMPTION: sprite=1 폴백.
+	var eid: Variant = e.get("id", 1)
+	_enemy = {
+		"id": int(eid) if eid != null else 1,
+		"name": String(e.get("name", "분홍 몬스터")),
+		"level": int(e.get("level", 15)),
+		"element": String(e.get("element", "grass")),
+		"hp_max": int(e.get("hp_max", 520)),
+		"hp": int(e.get("hp", e.get("hp_max", 520))),
+		"att": int(e.get("att", 60)),
+		"def": int(e.get("def", 40)),
+		# 몬스터 보유 스킬(스킬 id 목록). 원작 몬스터도 스킬을 쓴다 —
+		# `BattleMonster::setReadySkill`/`callReadySkill`/`setAnimatedReadySkill`(준비 모션)이 실재하고
+		# `FightManager::getActorSkillNumber`/`getTargetSkillNumber` 는 진영을 가리지 않는다.
+		# 값은 위키 dungeon_*.pdf → `data/monsters.json` → `data/stages.json`
+		# (기입 도구 `scripts/tools/build_monster_skills.py`). 없으면 빈 배열 = 종전과 동일한 전투.
+		"skills": (e.get("skills", []) as Array).duplicate(),
+	}
+	# 영웅 난이도에서만 실리는 스킬(stages.json `skills_hero`) — 우노 '검은 섬' 관문의 수호자의
+	# 철갑 방패가 그렇다. 위키 §4.1 표기도 '철갑 방패[영웅]' 이고 🟦 사용자 확정(2026-07-30).
+	if bool(_params.get("hero", false)):
+		for hs in (e.get("skills_hero", []) as Array):
+			if not (_enemy["skills"] as Array).has(int(hs)):
+				(_enemy["skills"] as Array).append(int(hs))
+	# 파티 **인원수** 연동 보스(원작 우노 '검은 섬' 관문의 수호자).
+	# 🟦 사용자 확정(2026-07-30): 기본 스탯 × (출전 드래곤 수)^power (power=2) —
+	#   1마리 ×1 · 2마리 ×4 · 3마리 ×9. 위키 §4.1 의 "여러 마리를 사용할 경우 난이도가 급등",
+	#   "한 마리만 쓸 때의 스펙이 훨씬 낮다" 서술과 맞는다.
+	# ⚠️ 종전 `scale_to_party`(파티 평균 **스탯** × 자작 계수)는 같은 위키 서술을 스탯 연동으로
+	#   해석한 자작이었다 — 경로는 남겨 두되(다른 스테이지가 쓰면 동작) 우노는 이쪽을 쓴다.
+	var pc: Dictionary = st.get("scale_by_party_count", {})
+	if not pc.is_empty():
+		_apply_party_count_scaling(pc)
+	else:
+		var sc: Dictionary = st.get("scale_to_party", {})
+		if not sc.is_empty():
+			_apply_party_scaling(sc)
+	# 원작 setEventMonster: 정예 몬스터 — 스탯 ×1.5(공/방/체), 보상은 _finish에서 2배.
+	if bool(_params.get("elite", false)):
+		_enemy["name"] = "정예 " + String(_enemy["name"])
+		_enemy["hp_max"] = int(_enemy["hp_max"] * 1.5)
+		_enemy["hp"] = _enemy["hp_max"]
+		_enemy["att"] = int(_enemy["att"] * 1.4)
+		_enemy["def"] = int(_enemy["def"] * 1.3)
+	if _is_kades():
+		_apply_kades_enemy(bool(e.get("boss", false)))
+
+## 적 전투원에 실을 스킬 목록 — `Battle.make_combatant` 형식 `[{id, level}]`.
+##
+## 스킬 **레벨**은 원작 표가 서버와 함께 유실됐다(위키는 몬스터의 보유 스킬 이름만 적는다).
+## # ASSUMPTION: 1레벨(가장 약한 눈금)로 쓴다 — 지어낸 강화치로 밸런스를 흔들지 않는 쪽.
+##   되살릴 근거가 생기면 `data/stages.json` 편성에 레벨 칸을 더하고 여기만 고치면 된다.
+## 스킬 봉인 던전에서는 `skills_db` 가 비어 이 목록이 그대로 무효가 된다(드래곤과 같은 규칙).
+## 전투 1회당 줄어드는 허기 게이지(FOOD). # ASSUMPTION — 원작 속도는 서버 유실. `_finish` 에서 쓴다.
+const FOOD_PER_BATTLE := 15
+
+const ENEMY_SKILL_LEVEL := 1
+func _enemy_skills() -> Array:
+	var out: Array = []
+	for sid in (_enemy.get("skills", []) as Array):
+		# JSON 숫자는 float 로 들어온다 — `make_combatant` 도 int 로 정규화하지만
+		# 여기서 먼저 맞춰 둔다(str(30.0)="30.0" 조회 실패 함정, §7 기록).
+		out.append({"id": int(sid), "level": ENEMY_SKILL_LEVEL})
+	return out
+
+## 카데스의 공간 몬스터 강화 — 위키 dungeon_1.pdf §2.
+##   "기존 지역에 등장했던 몬스터들이 더욱더 강해져서 돌아오며, 보스는 더욱 강력해지며
+##    외형까지 바뀐다" / "보스 몬스터의 레벨은 120~200 사이로 랜덤하게 정해지며,
+##    이에 따라 능력치도 달라진다."
+## 보스 레벨 구간은 **위키 확정**이고, 그 레벨에서의 스탯은 원작 표가 서버 유실이라
+## 기본 필드 스탯을 레벨비로 끌어올린다(# ASSUMPTION — data/kades.json `_boss_note`).
+## 일반몹 배수는 자작 노브(`data/kades.json` monster_mult)다.
+func _apply_kades_enemy(boss: bool) -> void:
+	var lv0 := maxi(1, int(_enemy.get("level", 1)))
+	if boss:
+		var r := RandomNumberGenerator.new()
+		# 조우 재현성 — 같은 스테이지/조우에서는 같은 보스 레벨이 나오게 한다.
+		r.seed = hash("kades_boss_%s_%d" % [String(_params.get("stage", "")),
+			int(_params.get("enc", 0))])
+		var lv := Kades.boss_level(Data.kades, r)
+		if lv > 0:
+			# 스탯별 배수 = 낮 보스 레벨곡선 f(lv)/f(lv0) (data/kades.json boss_stat_curve).
+			# 🔴 종전의 단순 레벨비(lv/lv0)는 Lv.1 던전을 ×120~200 으로 부풀려
+			#    희망의 숲(카데스)이 칼바람의 산맥(카데스)보다 훨씬 세지는 역전이 났다.
+			_enemy["level"] = lv
+			_enemy["hp_max"] = maxi(1, int(round(float(_enemy["hp_max"])
+				* Kades.boss_stat_mult(Data.kades, "hp", lv, lv0))))
+			_enemy["hp"] = _enemy["hp_max"]
+			_enemy["att"] = maxi(1, int(round(float(_enemy["att"])
+				* Kades.boss_stat_mult(Data.kades, "att", lv, lv0))))
+			_enemy["def"] = maxi(0, int(round(float(_enemy["def"])
+				* Kades.boss_stat_mult(Data.kades, "def", lv, lv0))))
+		_enemy["name"] = "%s [전설]" % String(_enemy["name"])
+	else:
+		var m := float(Data.kades.get("monster_mult", 2.0))
+		_enemy["hp_max"] = maxi(1, int(round(float(_enemy["hp_max"]) * m)))
+		_enemy["hp"] = _enemy["hp_max"]
+		_enemy["att"] = maxi(1, int(round(float(_enemy["att"]) * m)))
+		_enemy["def"] = maxi(0, int(round(float(_enemy["def"]) * m)))
+
+## 카데스의 공간인가. 진입은 **변형 필드 id(601~614)** 로 이뤄진다 → 스테이지가 답을 갖고 있다.
+## `params.kades` 는 adventure 가 명시로 넘겨 주거나 테스트가 덮어쓰는 override.
+func _is_kades() -> bool:
+	if _params.has("kades"):
+		return bool(_params.get("kades"))
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	return String(st.get("variant", "")) == "kades"
+
+## 기본 필드 id(1~15). 아티팩트 배정표 조회용.
+func _base_field() -> int:
+	if _params.has("field"):
+		return int(_params.get("field"))
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	return DungeonBG.base_field(DungeonBG.field_id(st))
+
+## 스토리 서브퀘스트에 이번 던전 완주를 보고한다 — 원작 `AdventureScene::setEventScenario`
+## (`QuestData::setCount(getCount()+1)` @AdventureScene.c:45749) + 던전 클리어 시의
+## `CompleteLayer`(시나리오 진행 처리) 자리.
+##
+## ⚠️ ASSUMPTION — **세는 시점**: 원작은 탐험 이벤트 테이블의 `case 0x20`(setEventScenario)이
+##    뜰 때 1 올렸고, 그 이벤트 확률은 서버 `InfoEventData` 소유라 유실이다. 확률을 지어내지
+##    않기로 하고(CLAUDE.md §2-6) **던전 1회 완주 = 1회**로 센다 — 원작 문자열
+##    `QuestTitle_ADVENTURE` = "%d회 탐험" 의 문면과도 맞는다.
+## 판정·저장은 logic(`StoryQuest`)이 하고 여기서는 상황(필드/밤/카데스)만 넘긴다(§8.3).
+func _note_story_quest(st: Dictionary) -> void:
+	var field := DungeonBG.base_field(DungeonBG.field_id(st))
+	var is_night := bool(UserDB.get_pmeta("yutakan_night", false))
+	var variant := {"kades": 1 if String(st.get("variant", "")) == "kades" else 0}
+	var done := StoryProgress.note_adventure(field, is_night, variant)
+	if done > 0:
+		Toast.show(self, "서브미션 달성! %d화가 열렸습니다." % done)
+
+
+## 파티 평균 스탯 × 계수로 보스 스탯을 세운다. 마릿수가 늘면 난이도가 오르도록 인원 배수를 곱한다
+## (위키: "여러 마리를 사용할 경우 난이도가 급등"). 계수·인원 배수는 `data/stages.json` 의
+## `scale_to_party` — 원작 공식은 서버 유실이라 **자작 튜닝 노브**다. # ASSUMPTION
+## 출전 **드래곤 수** 연동 보스 — 기본 스탯 × n^power. 🟦 사용자 확정(2026-07-30, 검은 섬).
+## `enemies` 의 hp_max/att/def 가 **1마리 기준 기본값**이다(543/180/130).
+func _apply_party_count_scaling(pc: Dictionary) -> void:
+	var n := 0
+	for u in _party_uids_for_scaling():
+		var d: Dictionary = UserDB.get_dragon(int(u))
+		if d.is_empty() or UserDB.is_egg(d):
+			continue
+		n += 1
+	if n <= 1:
+		return                      # ×1 — 기본값 그대로
+	var mult := pow(float(n), float(pc.get("power", 2)))
+	_enemy["att"] = maxi(1, int(round(float(_enemy["att"]) * mult)))
+	_enemy["def"] = maxi(0, int(round(float(_enemy["def"]) * mult)))
+	_enemy["hp_max"] = maxi(1, int(round(float(_enemy["hp_max"]) * mult)))
+	_enemy["hp"] = _enemy["hp_max"]
+
+## 스케일링이 셀 파티 — 이번 탐험이 정한 출전 인원(`party_uids`), 없으면 활성 드래곤 1마리.
+func _party_uids_for_scaling() -> Array:
+	var uids: Array = _params.get("party_uids", [])
+	if uids.is_empty():
+		var au := UserDB.active_uid()
+		if au > 0:
+			uids = [au]
+	return uids
+
+func _apply_party_scaling(sc: Dictionary) -> void:
+	var uids: Array = _party_uids_for_scaling()
+	if uids.is_empty():
+		return
+	var n := 0
+	var sum_att := 0.0
+	var sum_def := 0.0
+	var sum_hp := 0.0
+	for u in uids:
+		var d: Dictionary = UserDB.get_dragon(int(u))
+		if d.is_empty() or UserDB.is_egg(d):
+			continue
+		var s: Dictionary = Growth.compute_stats(Data.get_dragon(int(d.get("id", 1))),
+			Data.stat_table, int(d.get("level", 1)))
+		sum_att += float(s.get("att", 0))
+		sum_def += float(s.get("def", 0))
+		sum_hp += float(s.get("hp", 0))
+		n += 1
+	if n == 0:
+		return
+	# 인원 배수: 1마리=1.0, 마리당 +0.5 (위키 '여러 마리면 난이도 급등'을 반영한 자작값).
+	var crowd := 1.0 + 0.5 * float(n - 1)
+	_enemy["att"] = maxi(1, int(round(sum_att / n * float(sc.get("att", 1.0)) * crowd)))
+	_enemy["def"] = maxi(0, int(round(sum_def / n * float(sc.get("def", 1.0)) * crowd)))
+	_enemy["hp_max"] = maxi(1, int(round(sum_hp / n * float(sc.get("hp", 1.0)) * crowd)))
+	_enemy["hp"] = _enemy["hp_max"]
+
+func _setup_party() -> void:
+	_party.clear()
+	_drink_users.clear()
+	var owned: Array = UserDB.dragons()
+	var active := UserDB.active_uid()
+	var ordered: Array = []
+	# 출전 인원은 **이번 탐험이 정한 것**을 그대로 쓴다(adventure 가 `party_uids` 로 넘긴다).
+	# 원작 일반 탐험은 리더 1마리(`AdventureScene::initMainDragon` → `Dragon::isSelected`)이고,
+	# 3마리는 레이드·영웅·유타칸 밤·카데스의 공간·혼돈의 틈새에서만이다(2026-07-27 사용자 확정).
+	# ⚠️ 여기서 전역 `UserDB.party()` 를 다시 읽으면 1인 탐험에도 3마리가 나온다.
+	var chosen: Array = _params.get("party_uids", [])
+	if chosen.is_empty():
+		chosen = UserDB.party()      # 탐험을 거치지 않은 직접 진입(데모·테스트) 폴백
+	if not chosen.is_empty():
+		for uid in chosen:
+			var d := UserDB.get_dragon(int(uid))
+			if not d.is_empty(): ordered.append(d)
+	else:
+		for d in owned:
+			if int(d["uid"]) == active:
+				ordered.push_front(d)
+			else:
+				ordered.append(d)
+	# 종족 조합 팀버프(원작 TeamBuff, docs/ref/design/team_buff_analysis.md): 파티 전체 구성으로 1회 산출.
+	# ⚠️ race_dim=element는 ASSUMPTION(원작 DragonRace id 유실). 테이블 비면 no-op(안전).
+	var party3: Array = ordered.slice(0, 3)
+	var team_delta := _team_buff_delta(party3)
+	_active_team_buffs = _team_buff_list(party3)
+
+	for i in mini(3, ordered.size()):
+		var d: Dictionary = ordered[i]
+		var id := int(d["id"])
+		var ddef := Data.get_dragon(id)
+		var level := int(d.get("level", 1))
+		# 실 스탯 = base + 영구base보정 + Σ레벨업 롤(gain_log). §K-1 정정(랜덤롤 모델).
+		var base_bonus: Dictionary = (d.get("stat_bonus", {}) as Dictionary).get("base", {})
+		var stats := Growth.main_stats(ddef, Data.stat_table, d.get("gain_log", []), base_bonus)
+		# 장착 젬(최대 3슬롯) — flat 가산 → % 배수 → 부가확률(cri/evd/blk). 로직=Gem(scripts/systems/gem.gd),
+		# 데이터=data/gems.json(위키 전량 + 원작 typeDetail 코드). 소울젬의 %·부가확률이 여기서 반영된다.
+		stats = Gem.apply(stats, d.get("gems", {}), Data.gems)
+		# 장비(원작 4칸: 전체/전투형/보조형/아티팩트) + 편린 세트. 로직=Equipment(scripts/systems/equipment.gd),
+		# 데이터=data/equipment.json. 여기서 pure(관통)·depure·cri_pow·accuracy·cure 가 stats 에 실리고
+		# make_combatant 가 그대로 전투원 필드로 옮긴다.
+		stats = Equipment.apply(stats, d.get("equip", {}), Data.equipment)
+		# 아티팩트는 스탯이 아니라 **스킬**을 건드린다(원작 typeDetail BOOST/REQHP/BNR/DEDMG/
+		# INRATE/DERATE). 스킬 id 로 키를 잡은 수정치를 만들어 전투원에 실어 보낸다.
+		stats["artifact"] = Equipment.artifact_mods(d.get("equip", {}), Data.equipment, Data.skills)
+		# 구형 장신구 필드(accessories.json) — 장비 시스템 이전 세이브 호환. 신규 장착은 equip 로 간다.
+		var accb: Dictionary = d.get("accessory", {})   # 장신구(cri/evd/blk %)
+		for ak in ["cri", "evd", "blk"]:
+			stats[ak] = int(stats.get(ak, 0)) + int(accb.get(ak, 0))
+		# 속성 조합 팀버프(위키 §2.3.3.1 30종). 스탯마다 적용 방식이 다르다 —
+		#   hp/att/def = 배수(%), cri/evd/blk = 퍼센트 포인트, pure = flat.
+		# combine(조합 구성)은 30/30 복원돼 있다 — 조합이 안 맞으면 team_delta={} → 무효과(안전).
+		stats = TeamBuff.apply(stats, team_delta)
+		# 드링크(버프 물약) — 마지막에 **배율**로 곱한다. 판정=ItemEffect(logic), 값=data/item_effects.json.
+		# 규칙 출처 docs/ref/wiki/item.pdf §2.3 + 사용자 확정 수치(1단계 +5%, 단계마다 +5%p, 10턴).
+		var drinks: Dictionary = d.get("drink_buffs", {})
+		if not drinks.is_empty():
+			for dk: String in ["att", "def", "hp", "crit", "dodge", "block"]:
+				var m := ItemEffect.mult(drinks, dk)
+				if is_equal_approx(m, 1.0): continue
+				# 우리 스탯키 대응: crit→cri, dodge→evd, block→blk
+				var sk: String = {"crit": "cri", "dodge": "evd", "block": "blk"}.get(dk, dk)
+				stats[sk] = int(round(float(int(stats.get(sk, 0))) * m))
+			_drink_users.append(int(d["uid"]))
+		# 카데스의 공간 — **미각성 드래곤만** 능력치가 깎인다(위키 dungeon_1.pdf §2).
+		#   혼돈/신성 35% · 던전 속성과 같은 속성 25% · 그 외 50%. 판정=Kades(logic).
+		# 여기가 마지막이어야 한다 — 젬·장비·팀버프·드링크를 전부 반영한 **합계**에 걸린다.
+		if _is_kades():
+			var pen := Kades.penalty_pct(Data.kades, bool(d.get("awakened", false)),
+				String(ddef.get("element", "")), _field_element())
+			stats = Kades.apply_penalty(stats, pen)
+		# 조우 간 HP 영속(어드벤처 다중 조우): hp_state에 uid별 잔여HP가 있으면 그걸로 시작.
+		var hpmax := int(stats.get("hp", 1))
+		var carried: Dictionary = _params.get("hp_state", {})
+		var hp0 := int(carried.get(str(int(d["uid"])), hpmax)) if not carried.is_empty() else hpmax
+		var eq: Dictionary = _resolve_skills(int(d["uid"]), ddef)
+		_party.append({
+			"id": id, "uid": int(d["uid"]), "level": level,
+			"name": String(ddef.get("name", "드래곤")),
+			"element": String(ddef.get("element", "")),
+			"stats": stats,
+			"hp": clampi(hp0, 0, hpmax), "hp_max": hpmax,
+			"skills": eq["skills"],
+			# 스킬 칸 타입(원작 Dragon::getSkillType). 스킬 타입과 일치하면 추가효과
+			# (`<ToolTipDragonSkillExplain>`) — Battle 이 `skill_slot_match` 로 반영한다.
+			# 빈 칸을 건너뛴 만큼 타입도 같이 좁혀 온다(skills 와 인덱스가 맞아야 한다).
+			"skill_slots": eq["slot_types"],
+			# 각성 여부 — 원작 `Dragon::setAwaken(bool)`. 크리티컬 컷인/타격 아트가 이 플래그
+			# 하나로 `e_` 변형으로 갈린다(Dragon.c:8621 · :8935 가 같은 오프셋 0xac 를 본다).
+			"awakened": bool(d.get("awakened", false)),
+			# 크리티컬 보이스 번호 — 원작 `info_dragon_v2.voice_critical_no` → `music/voice<N>.mp3`.
+			# 서버 데이터 유실 → dragons.json 에 채워 넣는 값(없으면 0 = 속성 효과음 폴백).
+			"voice_critical": int(ddef.get("voice_critical", 0)),
+			# 크리티컬 연타 횟수 — 원작 `info_dragon_v2.critical_hit`. 유실 → 있으면 쓰고
+			# 없으면 combat.json `judge.crit_hits` 로 폴백(`_crit_hits`).
+			"critical_hit": int(ddef.get("critical_hit", 0)),
+			# 각성 스킬 번호(data/skill_awaken.json). 효과는 아래 `_apply_awaken_skills` 가 얹는다.
+			"awaken_skill": int(d.get("awaken_skill", 0)) if bool(d.get("awakened", false)) else 0,
+			# 개체 등급(§K-10). 각성스킬 18·100 이 아군끼리 비교할 때 쓴다.
+			"grade": Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
+				d.get("gain_log", []), Data.level_curve.get("grade", {})),
+		})
+	_apply_awaken_skills()
+
+## 각성 스킬(상시 특성)을 파티에 반영한다. 판정 = `AwakenSkill`(logic) · 표 = data/skill_awaken.json.
+##
+## ⚠️ **여기(카드 생성 전)에서 해야 한다.** 체력을 올리는 스킬(57 생명의 기운 등)이 있어서
+##   `_build_party_cards` 뒤에 걸면 카드의 HP 게이지가 옛 최대치로 그려진다.
+##   그래서 임시 전투원을 만들어 효과를 얹고, 결과를 `_party` 로 되돌려 적는다.
+##   `_run_and_replay` 는 이 결과(stats·hp_max·awaken_effects)로 진짜 전투원을 만든다.
+##
+## 각성스킬은 '스킬'이 아니라 상시 특성이라 Battle 의 skill_uses 흐름을 타지 않는다.
+var _awaken_fired: Array = []      # 이번 전투에 실제로 발동한 것 [{no, name, owner}]
+
+## 이번 파티의 각성 스킬 **탐험 보너스** 합 {gold_pct, artifact_chance_pct}.
+## 전투 밖 보상(골드·아티팩트 확률)에 쓴다 — 전투 계수와 달리 combatant 가 필요 없다.
+func _awaken_explore() -> Dictionary:
+	var lst: Array = []
+	for p in _party:
+		lst.append({"awaken_no": int((p as Dictionary).get("awaken_skill", 0))})
+	return AwakenSkill.explore_bonus(lst, Data.skill_awaken)
+func _apply_awaken_skills() -> void:
+	_awaken_fired = []
+	if _party.is_empty() or Data.skill_awaken.is_empty():
+		return
+	var pa: Array = []
+	for i in _party.size():
+		var pd: Dictionary = _party[i]
+		var st: Dictionary = (pd["stats"] as Dictionary).duplicate()
+		st["awaken_no"] = int(pd.get("awaken_skill", 0))
+		st["grade"] = float(pd.get("grade", 0.0))
+		st["dragon_id"] = int(pd.get("id", 0))
+		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
+		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
+		pa.append(c)
+	var eb := Battle.make_combatant("E0", "enemy", String(_enemy.get("element", "")),
+		{"hp": int(_enemy.get("hp_max", 1)), "att": 1, "def": 1})
+	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, {
+		"field_element": _field_element(),
+		"enemy_boss": _is_boss(),
+	})
+	# 결과를 파티로 되돌린다 — 체력은 값으로, 나머지는 효과 목록으로.
+	for i in _party.size():
+		var c2: Dictionary = pa[i]
+		var pd2: Dictionary = _party[i]
+		var old_max := int(pd2["hp_max"])
+		var new_max := int(c2["hp_max"])
+		if new_max != old_max:
+			# 조우 간 이월 체력이 있으면 비율을 지킨다(1조우째면 어차피 만피).
+			var ratio := float(pd2["hp"]) / maxf(1.0, float(old_max))
+			pd2["hp_max"] = new_max
+			pd2["hp"] = clampi(int(round(float(new_max) * ratio)), 1, new_max)
+		pd2["awaken_effects"] = (c2["effects"] as Array).duplicate(true)
+		pd2["awaken_gauge"] = float(c2.get("awaken_gauge", 0.0))
+
+## 속성 조합 팀버프 집계 — 로직=원작 TeamBuff::isActivate 복원(scripts/systems/team_buff.gd).
+## 데이터=data/team_buffs.json: 이름·효과 30종을 위키 §2.3.3.1 에서 복원했고,
+## **combine(조합 구성)도 30/30 채워져 있다**(각 버프가 정확히 3마리 조합 → 파티 3마리로 전부 발동 가능).
+## ⚠️ 2026-07-30 주석 정정 — 종전엔 "combine 미복원 → 전 버프 미발동"이라고 적혀 있었으나
+##   그 뒤 채워졌고 실측(`data/team_buffs.json` 30건 전부 combine 합계 3)으로 확인했다.
+## 반환 = TeamBuff.aggregate_typed 형식 {stat: {pct, point, flat}}. atk 별칭은 TeamBuff.apply 가 att로 정규화.
+## ⚠️ race_dim=element는 ASSUMPTION(원작 DragonRace id 유실 — 위키가 "속성 조합 버프"라 부르는 근거).
+## 활성 팀버프 목록(연출용). 원작 TeamBuff::createIcon 이 아이콘을 만드는 그 목록이다.
+var _active_team_buffs: Array = []
+func _team_buff_list(party: Array) -> Array:
+	var table: Dictionary = Data.team_buffs
+	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
+		return []
+	var race_dim := String(table.get("race_dim", "element"))
+	var race_keys: Array = []
+	for d in party:
+		race_keys.append(String(Data.get_dragon(int(d["id"])).get(race_dim, "")))
+	return TeamBuff.active_buffs(race_keys, table)
+
+## 활성 팀버프 배지 — 원작 `TeamBuff::createIcon`(TeamBuff.c:658-669)이
+## `battle/<res>/combine_outline.png` 위에 `combine_mark.png` 를 겹쳐 만든다. 그대로 재현한다.
+## res 이름 = team_buffs.json 의 img (Combine1..24 ↔ battle/* 폴더 1:1 확인분).
+func _build_team_buff_badges() -> void:
+	if _active_team_buffs.is_empty():
+		return
+	var S := Design.ASSET_SCALE
+	var lay := CanvasLayer.new(); lay.layer = 8; add_child(lay)
+	var x := 18.0
+	for b in _active_team_buffs:
+		var res := String((b as Dictionary).get("img", ""))
+		if res == "":
+			continue                     # 25~30(그림자 계열)은 구판 덤프에 아이콘 없음
+		var dir := "battle_combine_%s" % res
+		var holder := Node2D.new()
+		holder.position = Vector2(x + 26.0, 118.0)
+		lay.add_child(holder)
+		for frame in ["combine_outline", "combine_mark"]:
+			var pth := "res://assets/converted/%s/battle_%s_%s.tres" % [dir, res, frame]
+			if not ResourceLoader.exists(pth):
+				continue
+			var sp := Sprite2D.new(); sp.texture = load(pth); sp.material = _pma
+			sp.scale = Vector2(S * 0.5, S * 0.5)
+			holder.add_child(sp)
+		var nm := Label.new(); nm.text = String((b as Dictionary).get("name", ""))
+		nm.add_theme_font_size_override("font_size", 13)
+		nm.add_theme_color_override("font_color", Color(1, 0.95, 0.75))
+		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		nm.add_theme_constant_override("outline_size", 4)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nm.size = Vector2(96, 18); nm.position = Vector2(x - 22.0, 146.0)
+		lay.add_child(nm)
+		x += 58.0
+
+func _team_buff_delta(party: Array) -> Dictionary:
+	var table: Dictionary = Data.team_buffs
+	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
+		return {}
+	var race_dim := String(table.get("race_dim", "element"))
+	var race_keys: Array = []
+	for d in party:
+		var ddef := Data.get_dragon(int(d["id"]))
+		race_keys.append(String(ddef.get(race_dim, "")))
+	return TeamBuff.typed_for_party(race_keys, table)
+
+## 전투에 나가는 스킬 = **장착 2칸에 꽂힌 것만**(원작 `Dragon::getSkill(0/1)`).
+## 학습 풀(`dragon_skills`)은 가지고만 있는 목록이라 전투에 안 나간다 — 종전엔 풀 전체를 넘겼다.
+## 반환 {skills, slot_types} — 칸 타입을 같이 좁혀 인덱스 정렬을 지킨다(Battle.slot_match_mult 전제).
+## 유실 매핑이라 기본배정은 ASSUMPTION([[Loadout]]).
+func _resolve_skills(uid: int, ddef: Dictionary) -> Dictionary:
+	# override(`data/dragon_skills.json`, 사용자 정밀배정)가 있으면 그것으로 채운다(멱등).
+	# 없으면 빈 채로 두고 — 스킬은 레벨 10·25·45 자동 습득과 스크롤로만 생긴다(위키 규칙).
+	if (UserDB.dragon_skills(uid) as Array).is_empty():
+		UserDB.ensure_dragon_skills(uid,
+			Loadout.default_skills(ddef, Data.skills, Data.dragon_skill_overrides()))
+	UserDB.sync_skill_grants(uid)   # 레벨업이 다른 경로로 들어온 경우까지 보정(멱등)
+	return UserDB.dragon_battle_skills(uid)
+
+# ---------- 배경 ----------
+func _build_bg() -> void:
+	# 던전 배경(DungeonBG): 원작 scene/adventure/bg/<필드id>/ 의 원경 + 전경 2겹.
+	# 스테이지를 못 정하면 params.bg → battle_bg/bg_1 폴백.
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	if not st.is_empty() and DungeonBG.build(self, st) != null:
+		return
+	var bg := TextureRect.new()
+	var p := "res://assets/converted/battle_bg/bg_%d.jpg" % int(_params.get("bg", 1))
+	if ResourceLoader.exists(p):
+		bg.texture = load(p)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+
+# ---------- 적(중앙) ----------
+## 필드 버프 파티클(`battle/stage_<속성>_buff_spine`) — 원작 `AdventureScene::setCheckFieldBuffToUi`
+## (AdventureScene.c:38080-38370) 축자 이식.
+##
+##   Field::create(fieldNo) → Field::getAttribute()  = **필드(던전)의 속성 문자 1글자**
+##   출전 드래곤 3칸을 돌며:
+##      if Dragon::getIsFieldBuff(d) and Dragon::getRace(d) == 필드속성:
+##           spine = stage_<race>_buff_spine
+##           spine.position = InterFace::getBackSprite(카드).contentSize * 0.5   ← **그 드래곤 카드 중앙**
+##           backSprite->addChild(spine, 100, 0xbc7);  setRaceParticleOn(true)
+##   그리고 `setIsFieldBuff` 자체가 `dragon.race == Field::getAttribute()` 의 결과다
+##   (AdventureScene.c:37434-37658 의 종족별 memcmp "E"/"F"/"W"/"L"/"D"/"H"/"C"/"S").
+##
+## 🔴 2026-07-27 정정: 종전 구현은 **적(몬스터) 속성**으로 골라 화면 중앙 바닥에 한 장 깔았다.
+##   그래서 빛 속성 드래곤 1마리로 칼바람의 산맥(몹 aqua/wind)에 들어가면 물·바람 이펙트가
+##   떴다(사용자 신고). 원작은 적 속성과 무관하며, **속성이 맞는 드래곤 카드에만** 붙는다.
+##
+## # ASSUMPTION(필드 속성): `Field::setInfo` 는 서버 DB(info_field)를 읽으므로 필드별 속성값은
+##   유실됐다. `data/stages.json` 에 `field_element` 가 있으면 그것을 쓰고, 없으면
+##   **그 던전 몬스터의 최빈 속성**으로 대신한다(원작에서 필드 속성과 서식 몬스터 속성은
+##   같은 계열이다). 확정값이 생기면 stages.json 에 `field_element` 만 채우면 된다.
+func _build_field_buff() -> void:
+	var fel := _field_element()
+	if fel == "" or fel == "none":
+		return
+	var path := "res://scenes/buffs/stage_buff_%s.tscn" % fel
+	if not ResourceLoader.exists(path):
+		return
+	for i in _party.size():
+		if String(_party[i].get("element", "")) != fel:
+			continue                       # = Dragon::getIsFieldBuff(d) == false
+		var v: Dictionary = _views.get("A%d" % i, {})
+		var card = v.get("node", null)
+		if not (card is Control):
+			continue
+		var c := card as Control
+		var holder := Node2D.new()
+		holder.position = c.size * 0.5     # 원작: 백스프라이트 contentSize 중앙
+		holder.z_index = 1                 # 원작 addChild(spine, 100) — 카드 아트 위
+		holder.scale = Vector2(1.5, 1.5)   # 원작 `*(float*)(spine+0x150) = 0x3fc00000` = 1.5
+		c.add_child(holder)
+		var inst = (load(path) as PackedScene).instantiate()
+		holder.add_child(inst)
+		var ap := inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if ap:
+			var anims := ap.get_animation_list()
+			if anims.size() > 0:
+				# 원작 `setAnimation(spine, "animation", false, 0)` — **loop=false**, 전투 시작에 1회.
+				ap.get_animation(anims[0]).loop_mode = Animation.LOOP_NONE
+				ap.play(anims[0])
+
+## 필드(던전) 속성. stages.json `field_element` 우선, 없으면 몬스터 최빈 속성(ASSUMPTION).
+func _field_element() -> String:
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var authored := String(st.get("field_element", ""))
+	if authored != "":
+		return authored
+	var tally: Dictionary = {}
+	for e in st.get("enemies", []):
+		var el := String((e as Dictionary).get("element", ""))
+		if el == "" or el == "none":
+			continue
+		tally[el] = int(tally.get(el, 0)) + 1
+	var best := ""
+	var best_n := 0
+	for k in tally:
+		if int(tally[k]) > best_n:
+			best_n = int(tally[k]); best = String(k)
+	return best
+
+func _build_enemy() -> void:
+	var vis := _vis()
+	var cx := vis.x * 0.5
+	# 보스는 네이티브 스파인이 커서 상단 HP UI를 가림 → 더 아래로 내리고 살짝 작게(구도 개선).
+	var boss := _is_boss()
+	var ey := 360.0 if boss else 300.0   # ASSUMPTION: 보스는 하단 배치로 상단 UI 확보
+	var e_scale := 0.66 if boss else 0.85
+	var sh := _spr("adventure_ui", "scene_adventure_shadow", _adv, 1.6 if boss else 1.4)
+	if sh: sh.position = Vector2(cx, ey + 130.0); add_child(sh)
+	# 정예 몬스터: 금빛 방사 오라(가산) — 적 뒤에 배치, 맥동.
+	if bool(_params.get("elite", false)):
+		var grad := Gradient.new()
+		grad.set_color(0, Color(1.0, 0.85, 0.3, 0.55)); grad.set_color(1, Color(1.0, 0.8, 0.2, 0.0))
+		var gtex := GradientTexture2D.new(); gtex.gradient = grad
+		gtex.fill = GradientTexture2D.FILL_RADIAL; gtex.fill_from = Vector2(0.5, 0.5); gtex.fill_to = Vector2(1.0, 0.5)
+		gtex.width = 420; gtex.height = 420
+		var glow := Sprite2D.new(); glow.texture = gtex; glow.position = Vector2(cx, ey)
+		var am := CanvasItemMaterial.new(); am.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		glow.material = am; glow.z_index = -1
+		add_child(glow)
+		var gt := glow.create_tween().set_loops()
+		gt.tween_property(glow, "scale", Vector2(1.15, 1.15), 1.0).set_trans(Tween.TRANS_SINE)
+		gt.tween_property(glow, "scale", Vector2.ONE, 1.0).set_trans(Tween.TRANS_SINE)
+	# 원작 방식: 몬스터=스파인 idle('wait') 상시. att프레임은 공격 시만(basicAction) 사용.
+	# 변환된 몬스터 스파인 씬이 있으면 그걸로, 없으면 정적 att 프레임 폴백.
+	var mid := int(_enemy["id"])
+	var mspr: Node2D = null
+	var att_spr: Sprite2D = null      # 공격 순간용 att 프레임(평소 숨김)
+	var hit_spr: Sprite2D = null      # 피격 순간용 hit 프레임(평소 숨김)
+	var mdir := "monster_%d" % mid
+	var mman := _man(mdir)
+	att_spr = _spr(mdir, "monster_%d_%d_image_att" % [mid, mid], mman, 1.6)
+	# 원작 `BattleMonster::setAnimatedHit` 는 피격 시 `monster/%d/%d_image/hit.png` 로 교체한다
+	# (Monster::getImagePathHit). 변환된 몬스터만 있으므로 없으면 틴트 플래시만 남는다.
+	hit_spr = _spr(mdir, "monster_%d_%d_image_hit" % [mid, mid], mman, 1.6)
+	var mscn_path := "res://scenes/monsters/monster_%d.tscn" % mid
+	if ResourceLoader.exists(mscn_path):
+		mspr = (load(mscn_path) as PackedScene).instantiate()
+		mspr.scale = Vector2(e_scale, e_scale)   # 보스=더 작게(상단 UI 확보)
+		var ap := mspr.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if ap and ap.has_animation("wait"):
+			ap.play("wait")   # idle
+	else:
+		mspr = att_spr        # 스파인 없으면 att 프레임을 상시 표시(폴백)
+		att_spr = null
+	if mspr:
+		mspr.position = Vector2(cx, ey)
+		add_child(mspr)
+	if att_spr:
+		att_spr.position = Vector2(cx, ey)
+		att_spr.visible = false        # 공격 시에만(_cue) 표시
+		add_child(att_spr)
+	if hit_spr:
+		hit_spr.position = Vector2(cx, ey)
+		hit_spr.visible = false        # 피격 시에만(_hurt) 표시
+		add_child(hit_spr)
+	_views["E0"] = {"kind": "enemy", "node": mspr, "att_node": att_spr, "hit_node": hit_spr,
+		"center": Vector2(cx, ey), "base_pos": Vector2(cx, ey), "alive": true,
+		"anim": (mspr.find_child("AnimationPlayer", true, false) if mspr else null),
+		"groggy": false, "base_scale": (mspr.scale if mspr else Vector2.ONE),
+		"element": String(_enemy.get("element", ""))}
+	_monster_income(mspr)
+
+# ---------- 적 인터페이스(상단) — 원작 InterFace::UI_InterFace(type4=몬스터) ----------
+# 원작 구조(docs/ref/orig_code/decomp/InterFace.c:238-283, 745-1010 · AdventureScene.c:50261-50270):
+#   · backSprite = `scene/adventure/monster_box_bg`(392×21, HP바 트랙) — **앵커(0.5,1.0)**,
+#     위치 = VisibleRect::top() = 화면 상단 중앙. z=6 tag=100.
+#     프레임 선택 분기(InterFace.c:246-283): 보스아님+비카데스 → monster_box / 보스+비던전 →
+#     monster_box2 / 보스+카데스 → monster_box3. **우리는 카데스 없음** ⇒ 일반=monster_box,
+#     보스=monster_box2.  (이전 구현은 일반=monster_box2, 보스=monster_box3 → 🔴 한 칸씩 밀림)
+#   · 그 자식으로 네임플레이트 `monster_box`(476×55) 앵커(0,0) pos(0,0).
+#   · HP 게이지 = Scale9 `scene/adventure/hp_bar10`.
+#   · 현재HP BMFont(subtitle, scale 0.8) 앵커(0,0.5) @ (w*0.5-8, h*0.5-10)  ← 몬스터 분기
+#   · att_icon-hd 앵커(0,1) scale 0.9 @ (w-150, h*0.5+30) / def_icon-hd @ (w-70, h*0.5+30)
+#   · 등장: backSprite를 y+h*2 위(=화면 밖)에서 MoveTo 0.7 EaseExponentialInOut.
+# 크기 배율은 Design.ASSET_SCALE(=4/3, 원작 contentScaleFactor 0.75의 역수).
+func _build_enemy_hpbar() -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var boss := _is_boss()
+	var bg_key := "scene_adventure_monster_box2_bg" if boss else "scene_adventure_monster_box_bg"
+	var plate_key := "scene_adventure_monster_box2" if boss else "scene_adventure_monster_box"
+	# 레이아웃 기준은 **네임플레이트**(monster_box / monster_box2). 게이지 트랙(`*_bg`)은
+	# 플레이트 안쪽 홈에 가로·세로 중앙정렬된다 — 레퍼런스 실측(docs/ref/orig_image/battle/몬스터싸움.png):
+	#   플레이트 x 321..985(665px), 빨간 게이지 x 379..926(548px) → 양쪽 여백 40px로 대칭 = 중앙정렬,
+	#   548/1.062(스샷배율) = 516 디자인px ≒ monster_box_bg 392 × 4/3 = 523 ✓
+	var bgi: Dictionary = _adv.get(bg_key, {})
+	var pli: Dictionary = _adv.get(plate_key, {})
+	var pw := float(pli.get("w", 476)) * S
+	var ph := float(pli.get("h", 55)) * S
+	var w := float(bgi.get("w", 392)) * S
+	var h := float(bgi.get("h", 21)) * S
+	# 원작 앵커(0.5,1.0)·pos=VisibleRect::top → 박스 상단이 화면 최상단에 붙는다.
+	var root := Node2D.new()
+	root.position = Vector2(vis.x * 0.5 - pw * 0.5, 0.0)
+	add_child(root)
+	var plate := _spr("adventure_ui", plate_key, _adv, S)
+	if plate:
+		plate.position = Vector2(pw * 0.5, ph * 0.5)
+		root.add_child(plate)
+	var trk_org := Vector2((pw - w) * 0.5, (ph - h) * 0.5)
+	var track := _spr("adventure_ui", bg_key, _adv, S)
+	if track:
+		track.position = trk_org + Vector2(w * 0.5, h * 0.5)
+		root.add_child(track)
+	# HP fill — 원작 hp_bar10 Scale9. 트랙 안쪽(테두리 2px×배율만큼 인셋).
+	var pad := 2.0 * S
+	var bar_w := w - pad * 2.0
+	var bar_h := h - pad * 2.0
+	var fill := _hp_fill(bar_w, bar_h, true)
+	fill.position = trk_org + Vector2(pad, pad)
+	root.add_child(fill)
+	# 이름·레벨 — 네임플레이트 위. 원작 몬스터 이름은 흰색(레퍼런스 docs/ref/orig_image/battle/몬스터싸움.png).
+	var nm := Label.new()
+	nm.text = "레벨 %d  %s" % [int(_enemy["level"]), String(_enemy["name"])]
+	nm.add_theme_font_size_override("font_size", 22)
+	nm.add_theme_color_override("font_color", Color.WHITE)
+	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	nm.add_theme_constant_override("outline_size", 4)
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.size = Vector2(pw, trk_org.y); nm.position = Vector2(0, 0)
+	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	root.add_child(nm)
+	# 현재/최대 HP — 원작 BMFont(font_subtitle, scale 0.8) 게이지 중앙.
+	var hp := _bmf_label("subtitle", 0.8 * S)
+	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hp.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hp.size = Vector2(w, h); hp.position = trk_org
+	root.add_child(hp)
+	# 공/방 — 원작 att_icon-hd @ (w-150, h*0.5+30) / def_icon-hd @ (w-70, h*0.5+30), 앵커(0,1).
+	# ⚠️ 원작 리터럴(150/70/30)은 **포인트 단위**다 — contentSize가 이미 px/0.75 이므로 ASSET_SCALE을
+	#    다시 곱하지 않는다. 기준 w,h는 네임플레이트 contentSize(=476×4/3=635, 55×4/3=73).
+	#    검증: pw-150 = 485 ≒ 레퍼런스 실측 att 493 디자인px, pw-70 = 565 ≒ def 586. ✓
+	var sy := ph - (ph * 0.5 + 30.0)
+	_stat_icon(root, "scene_adventure_att_icon-hd", int(_enemy.get("att", 0)),
+		Vector2(pw - 150.0, sy), S)
+	_stat_icon(root, "scene_adventure_def_icon-hd", int(_enemy.get("def", 0)),
+		Vector2(pw - 70.0, sy), S)
+	# 속성 아이콘 — 🔴 2026-07-30 수정(사용자 지적): 종전엔 `battle/element_*_mark`+`_outline`을
+	#   맥동시켜 그렸는데 그건 **속성 조합(시너지) 연출 자산**이다 — 전 디컴프에서 그 두 프레임을
+	#   쓰는 클래스는 `CombineElementsLayer` 뿐이다(grep "battle/element_%s_mark").
+	#   원작 몬스터 네임플레이트는 **'정기' 아이템과 같은 `item/item_small/ele_*`** 를 쓴다
+	#   (`InterFace.c:575-640` 의 속성 switch → 앵커(0,1) · pos(10, 플레이트높이 − 5) · scale 0.5 · z 2).
+	#   레퍼런스 `docs/ref/orig_image/battle/battle3.png` 의 보스 플레이트 좌상단 금색 원이 그것이고,
+	#   무속성 몬스터(같은 폴더 `몬스터싸움.png` 데스웜)에는 **아이콘이 없다** — 원작 switch 의
+	#   default 가 스프라이트를 만들지 않는 것과 일치한다. 둥지 상단바도 같은 오진을 고친 적이 있다.
+	var elem := String(_enemy.get("element", ""))
+	var ekey := Icons.element_small_frame(elem)
+	if ekey != "":
+		# 원작 리터럴(10, −5)은 포인트 단위 → ASSET_SCALE 을 다시 곱하지 않는다(§9-2).
+		# 앵커(0,1)=좌상단 기준 → 중앙앵커 Sprite2D 로 보정(+절반).
+		# size_pt 는 이미 ASSET_SCALE 이 곱해진 포인트 크기다 → scale 0.5 만 더 반영한다.
+		var esz := AtlasUI.size_pt("item_small_ui", ekey) * 0.5
+		var ei := AtlasUI.spr("item_small_ui", ekey, 0.5 * S)
+		if ei != null:
+			ei.position = Vector2(10.0 + esz.x * 0.5, 5.0 + esz.y * 0.5)
+			ei.z_index = 2
+			root.add_child(ei)
+	var v: Dictionary = _views["E0"]
+	v["hp"] = int(_enemy["hp"]); v["hp_max"] = int(_enemy["hp_max"])
+	v["hp_fill"] = fill; v["hp_label"] = hp; v["bar_w"] = bar_w; v["bar_x"] = pad
+	v["bar_local"] = true
+	_refresh_bar(v)
+	# 원작 등장 연출: 화면 위(y - h*2)에서 0.7s EaseExponentialInOut로 내려온다.
+	root.position.y = -ph * 2.0
+	create_tween().tween_property(root, "position:y", 0.0, 0.7)\
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+
+## 원작 InterFace 공/방 표기: 아이콘(앵커 0,1, scale 0.9) + 그 오른쪽에 BMFont 수치(scale 0.6, 앵커 0,0.5).
+## 근거: InterFace.c:787-800(att), 843-860(def), 824-840(수치 = 아이콘pos + (iconW, -10)).
+func _stat_icon(parent: Node2D, frame: String, value: int, gpos: Vector2, s: float) -> void:
+	var info: Dictionary = _adv.get(frame, {})
+	var iw := float(info.get("w", 21)) * 0.9 * s
+	var ih := float(info.get("h", 21)) * 0.9 * s
+	var ic := _spr("adventure_ui", frame, _adv, 0.9 * s)
+	if ic:
+		ic.position = gpos + Vector2(iw * 0.5, ih * 0.5)   # 앵커(0,1)=좌상단 → 중앙앵커 보정
+		parent.add_child(ic)
+	var lb := _bmf_label("subtitle", 0.6 * s)
+	lb.text = str(value)
+	lb.position = gpos + Vector2(iw + 2.0, -2.0)
+	lb.size = Vector2(90, ih + 6.0)
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	parent.add_child(lb)
+
+## 원작 BMFont 라벨(font/font_*.fnt). GameManager::getFontName_subtitle → font_subtitle.fnt,
+## getFontName_common → font_common.fnt (docs/ref/orig_code/decomp/GameManager.c:2161/2009).
+const _BMF := {
+	"subtitle": "res://assets/480/font/font_subtitle.fnt",
+	"common": "res://assets/480/font/font_common.fnt",
+	"total": "res://assets/480/font/font_total.fnt",
+}
+var _bmf_cache: Dictionary = {}
+func _bmf_font(kind: String) -> Font:
+	if not _bmf_cache.has(kind):
+		var p: String = _BMF.get(kind, _BMF["subtitle"])
+		_bmf_cache[kind] = load(p) if ResourceLoader.exists(p) else null
+	return _bmf_cache[kind]
+
+func _bmf_label(kind: String, scale := 1.0) -> Label:
+	var l := Label.new()
+	var f := _bmf_font(kind)
+	if f:
+		l.add_theme_font_override("font", f)
+		# BMFont 원본 크기 × scale (Cocos setScale 대응). fixed_size=0이면 32 기준.
+		var base: float = float(f.fixed_size) if f.fixed_size > 0 else 32.0
+		l.add_theme_font_size_override("font_size", int(round(base * scale)))
+	else:
+		l.add_theme_font_size_override("font_size", int(round(24.0 * scale)))
+		l.add_theme_color_override("font_color", Color.WHITE)
+	return l
+
+# ---------- 파티 카드(하단) ----------
+# 원작 AdventureScene::setInterfaceDragon (docs/ref/orig_code/decomp/AdventureScene.c:50024-50110):
+#   1번째 = VisibleRect::leftBottom()  + (20, 128)
+#   2번째 = VisibleRect::bottom()      + (-cardW*0.5, 128)      ← 화면 하단 중앙
+#   3번째 = VisibleRect::rightBottom() + (-20 - cardW, 128)
+#   z=400, tag 0xbc0/1/2. 등장: backSprite를 y - h*3(화면 아래)에서 MoveTo 0.7 EaseExponentialInOut.
+# 좌표는 Cocos(y-up) 기준이므로 Godot y = FLOOR - 128 - cardH.
+func _build_party_cards() -> void:
+	var vis := _vis()
+	var n := _party.size()
+	if n == 0:
+		return
+	var S := Design.ASSET_SCALE
+	var cw := float(_adv.get("scene_adventure_stat_box3", {}).get("w", 220)) * S
+	var ch := float(_adv.get("scene_adventure_stat_box3", {}).get("h", 79)) * S
+	# Cocos y=128 = 카드 좌하단 → Godot 좌상단 y = 화면높이 - 128 - ch.
+	var cardY := vis.y - 128.0 - ch
+	var xs: Array[float] = []
+	match n:
+		1: xs = [20.0]
+		2: xs = [20.0, vis.x * 0.5 - cw * 0.5]
+		_: xs = [20.0, vis.x * 0.5 - cw * 0.5, vis.x - 20.0 - cw]
+	for i in n:
+		_party_card(i, _party[i], xs[mini(i, xs.size() - 1)], cardY, cw, ch)
+
+# 원작 InterFace::UI_InterFace(param_2=드래곤) — docs/ref/orig_code/decomp/InterFace.c:238-243, 745-1010.
+#   backSprite = `scene/adventure/stat_box3_bg`(136×21, HP바 트랙) 앵커(0,0),
+#     그 자식으로 카드 아트 `scene/adventure/stat_box3`(220×79) 앵커(0,0) @(0,0), z=2 tag=100.
+#   · profile_bg  @ (50, h*0.5+3)                          (InterFace.c:313-318)
+#   · 레벨 BMFont(subtitle, scale 0.75) 앵커(0,0) @ (profile_bg.x+40, h*0.5+22)   (:750-768)
+#   · 이름 TTF Thonburi 17, color #353535 앵커(0,0), 레벨라벨 오른쪽                (:806-822)
+#   · HP게이지 Scale9 hp_bar10, **contentSize(177,30)**(포인트) @ (97, 40)          (:828-834)
+#   · 현재HP BMFont(subtitle, scale 0.8) 앵커(0,0.5) @ (w*0.5+30, h*0.5+2)          (:884-889)
+#   · att_icon-hd 앵커(0,1) scale0.9 @ (w*0.5-50, h*0.5-19) / def_icon-hd @ (w*0.5+30, ")
+#   · 수치 BMFont scale 0.6 @ 아이콘pos + (iconW, -10)
+#   여기서 w,h = backSprite(stat_box3_bg) contentSize = 136,21 픽셀 × ASSET_SCALE.
+func _party_card(idx: int, pd: Dictionary, x: float, y: float, w: float, ch: float) -> void:
+	var S := Design.ASSET_SCALE
+	var card := Control.new()
+	card.set_meta("party_card", true)   # 검증용 표식(test_party_flow.gd 가 장수를 센다)
+	card.position = Vector2(x, y)
+	card.size = Vector2(w, ch)
+	card.pivot_offset = Vector2(w * 0.5, ch * 0.5)
+	add_child(card)
+	# 좌표 기준 = 카드 아트(stat_box3) contentSize = 220×79 px ÷ 0.75 = **293×105 포인트**.
+	# ⚠️ 원작 소스의 리터럴(50/40/22/97/30/-50/-19…)은 이미 포인트 단위 → ASSET_SCALE을 곱하지 않는다.
+	#    스프라이트 "그림 크기"만 ASSET_SCALE 배로 커진다(_spr(..., S)).
+	# Cocos(y-up, 원점=카드 좌하단) → Godot(y-down, 원점=카드 좌상단): gy = ch - cy.
+	var C := func(cx: float, cy: float) -> Vector2: return Vector2(cx, ch - cy)
+	var bg := _spr("adventure_ui", "scene_adventure_stat_box3", _adv, S)
+	if bg: bg.position = Vector2(w * 0.5, ch * 0.5); card.add_child(bg)
+	# 슬롯별 테두리 프레임(stat_box_frame1/2/3, 227×85) — 카드보다 살짝 크게 중앙정렬.
+	var frame := _spr("adventure_ui", "scene_adventure_stat_box_frame%d" % (idx % 3 + 1), _adv, S)
+	if frame: frame.position = Vector2(w * 0.5, ch * 0.5); card.add_child(frame)
+	var stage := Growth.stage_for_level(int(pd["level"]))
+	# 초상 — 원작 profile_bg @ (50, h*0.5+3), 앵커 중앙.
+	var ppos: Vector2 = C.call(50.0, ch * 0.5 + 3.0)
+	var pbg := _spr("common_ui", "common_profile_bg", _man("common_ui"), S)
+	if pbg: pbg.position = ppos; card.add_child(pbg)
+	# 초상(box 이미지)은 원작 setScale(0x3f2147ae = **0.63**) — InterFace.c:535.
+	var por := _portrait(int(pd["id"]), stage, 0.63 * S)
+	if por: por.position = ppos; card.add_child(por)
+	# 레벨 — 원작 BMFont(subtitle, scale 0.75) 앵커(0,0) @ (profile_bg.x + 40, h*0.5 + 22).
+	# Cocos 앵커(0,0)=좌하단 → Godot Label(좌상단 기준)은 라벨 높이만큼 위로 올린다.
+	# ⚠️ "레벨" 접두는 TTF로 낸다: Godot 4.7 BMFont 임포터가 원작 .fnt의 한글 1160자를 읽지 못한다
+	#    (FontFile.get_supported_chars() 길이 96 = ASCII만, has_char(0xB808 '레')=false.
+	#     .fnt 파일 자체에는 `char id=47112` 존재). 숫자는 정상 → 원작이 BMFont를 쓰는
+	#     HP/공/방/데미지/레벨 **수치**는 전부 원작 폰트를 그대로 쓴다.
+	var lv_org: Vector2 = C.call(ppos.x + 40.0, ch * 0.5 + 22.0) - Vector2(0, 22.0)
+	var lvk := Label.new()
+	lvk.text = "레벨"
+	lvk.add_theme_font_size_override("font_size", 15)
+	lvk.add_theme_color_override("font_color", Color8(0x35, 0x35, 0x35))
+	lvk.position = lv_org + Vector2(0, 4.0)
+	card.add_child(lvk)
+	var lv := _bmf_label("subtitle", 0.75 * S)
+	lv.text = "%d" % int(pd["level"])
+	lv.add_theme_color_override("font_color", Color8(0x35, 0x35, 0x35))
+	lv.position = lv_org + Vector2(32.0, 0.0)
+	card.add_child(lv)
+	# 이름 TTF Thonburi 17 #353535 — 레벨 라벨 오른쪽(원작 :806-822).
+	var nm := Label.new()
+	nm.text = String(pd["name"])
+	nm.add_theme_font_size_override("font_size", 17)
+	nm.add_theme_color_override("font_color", Color8(0x35, 0x35, 0x35))
+	nm.position = lv_org + Vector2(66.0, 3.0)
+	card.add_child(nm)
+	# HP 게이지 — 원작 Scale9 hp_bar10 contentSize(177,30) 앵커(0,0) @ (97,40).
+	var bar_w := 177.0
+	var bar_h := 30.0
+	var bar_org: Vector2 = C.call(97.0, 40.0 + bar_h)   # Cocos 좌하단 → Godot 좌상단
+	var hbg := _spr("adventure_ui", "scene_adventure_stat_box3_bg", _adv, S)
+	if hbg:
+		hbg.position = bar_org + Vector2(bar_w * 0.5, bar_h * 0.5)
+		card.add_child(hbg)
+	var hfl := _hp_fill(bar_w - 10.0, bar_h - 14.0)
+	hfl.position = bar_org + Vector2(5.0, 7.0)
+	card.add_child(hfl)
+	var hp := _bmf_label("subtitle", 0.8 * S)
+	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hp.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hp.size = Vector2(bar_w, bar_h); hp.position = bar_org
+	card.add_child(hp)
+	# 공/방 — 원작 att @ (w*0.5-50, h*0.5-19), def @ (w*0.5+30, h*0.5-19), 앵커(0,1).
+	var ay := ch * 0.5 - 19.0
+	_stat_icon_ui(card, "scene_adventure_att_icon-hd", int(pd["stats"].get("att", 0)),
+		C.call(w * 0.5 - 50.0, ay), S)
+	_stat_icon_ui(card, "scene_adventure_def_icon-hd", int(pd["stats"].get("def", 0)),
+		C.call(w * 0.5 + 30.0, ay), S)
+	# 각성 게이지(원작 super attack 충전) — **숨긴 게이지**.
+	# 사용자 지시(2026-07-27): 시스템(충전·발동)은 그대로 두되 유저에게는 보이지 않는다.
+	#   원작 카드에도 이 노란 바는 없다 — 우리가 디버그용으로 그려 두었던 것.
+	#   `_set_gauge` 가 계속 이 노드의 size 를 갱신하므로 노드는 남기고 visible 만 끈다.
+	var gauge_w := w - 100.0
+	var gfl := ColorRect.new(); gfl.color = Color(1, 0.8, 0.25)
+	gfl.size = Vector2(0, 5); gfl.position = Vector2(97.0, ch - 12.0)
+	gfl.visible = false
+	card.add_child(gfl)
+	var v := {"kind": "party", "node": card, "center": Vector2(x + w * 0.5, y - 10),
+		"base_pos": Vector2(x, y), "alive": true, "element": String(pd.get("element", "")),
+		# 🔴 2026-07-27 수정: 여기에 `id`/`awakened`/`voice_critical`/`critical_hit` 이 빠져 있었다.
+		#   재생 코드(`_play_event`)는 `_views` 의 이 dict 를 크리티컬 연출에 그대로 넘기므로
+		#   `caster.get("id", 0)` 이 **0** 이 되어 `critical_0` 아틀라스를 찾다 실패했다:
+		#     · `_critical_art` — 폴백이 없어 **화면 전체 아트가 아예 안 떴다**(사용자 신고 증상)
+		#     · `_critical_cutin` — 얼굴만 dragon_1 폴백(Cutin.c:699)으로 떠서 **컷인은 보였다**
+		#       (단 어떤 드래곤이든 1번 얼굴이었다)
+		#     · `_crit_voice`/`_crit_hits` — 드래곤별 값 대신 항상 폴백 경로
+		#   `_party[idx]`(=pd) 는 이 값들을 이미 갖고 있다(:180-196) → 뷰로 전달만 하면 된다.
+		"id": int(pd.get("id", 0)), "awakened": bool(pd.get("awakened", false)),
+		"voice_critical": int(pd.get("voice_critical", 0)),
+		"critical_hit": int(pd.get("critical_hit", 0)),
+		"hp": int(pd["hp"]), "hp_max": int(pd["hp_max"]),
+		"hp_fill": hfl, "hp_label": hp, "bar_w": bar_w - 8.0, "bar_x": bar_org.x, "bar_local": true,
+		"gauge": 0.0, "gauge_fill": gfl, "gauge_w": gauge_w}
+	_views["A%d" % idx] = v
+	_refresh_bar(v)
+	# 원작 등장: 카드가 화면 아래(y - h*3)에서 0.7s EaseExponentialInOut로 올라온다.
+	card.position.y = y + ch * 3.0
+	create_tween().tween_property(card, "position:y", y, 0.7)\
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+
+## _stat_icon의 Control(카드) 버전.
+func _stat_icon_ui(parent: Control, frame: String, value: int, gpos: Vector2, s: float) -> void:
+	var info: Dictionary = _adv.get(frame, {})
+	var iw := float(info.get("w", 21)) * 0.9 * s
+	var ih := float(info.get("h", 21)) * 0.9 * s
+	var ic := _spr("adventure_ui", frame, _adv, 0.9 * s)
+	if ic:
+		ic.position = gpos + Vector2(iw * 0.5, ih * 0.5)
+		parent.add_child(ic)
+	var lb := _bmf_label("subtitle", 0.6 * s)
+	lb.text = str(value)
+	lb.position = gpos + Vector2(iw + 2.0, -1.0)
+	lb.size = Vector2(80, ih + 6.0)
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	parent.add_child(lb)
+
+# ---------- HUD ----------
+func _build_hud() -> void:
+	var hud := CanvasLayer.new()
+	hud.layer = 10
+	add_child(hud)
+	var vis := _vis()
+	# 원작 HUD 버튼 이미지(scene/adventure/auto·speed_N·bt_skip_kr). 회전 아틀라스라 _spr(자동 -90° 복원) 사용.
+	var autob := _img_button("scene_adventure_auto", Vector2(74, 30))
+	autob.position = Vector2(16, 12); autob.toggle_mode = true; autob.button_pressed = true
+	hud.add_child(autob)
+	# 속도(=원작 FF) 버튼 — 원작 setFastBattleButton: **VisibleRect::right() 기준 안쪽 100**,
+	# 즉 우측 가장자리 **세로 중앙**. (docs/ref/orig_code/decomp/AdventureScene.c:47144 VisibleRect::right + (100,0),
+	#  프레임 scene/adventure/speed_0 ↔ speed_2 토글, z=999999 tag=0x6a)
+	# 레퍼런스 docs/ref/orig_image/battle/몬스터피격.png의 ▶▶ 위치(우측, 화면 세로 중앙)와 일치.
+	var S := Design.ASSET_SCALE
+	var fw := 74.0 * S
+	var fh := 40.0 * S
+	_speed_btn = _img_button("scene_adventure_speed_0", Vector2(fw, fh), S)
+	_speed_btn.position = Vector2(vis.x - 100.0 - fw * 0.5, vis.y * 0.5 - fh * 0.5)
+	_speed_btn.pressed.connect(_cycle_speed)
+	if _speed_btn.get_child_count() > 0: _speed_spr = _speed_btn.get_child(0) as Sprite2D
+	hud.add_child(_speed_btn)
+	var skip := _img_button("scene_adventure_bt_skip_kr", Vector2(74, 32))
+	skip.position = Vector2(vis.x - 90, vis.y * 0.5 + fh)
+	skip.pressed.connect(func(): _skip = true)
+	hud.add_child(skip)
+	# 원작 PopAutoSettingLayer 진입(자동/속도/반복 설정 팝업).
+	var setb := Button.new(); setb.text = "⚙"; setb.size = Vector2(38, 32)
+	setb.add_theme_font_size_override("font_size", 20)
+	setb.position = Vector2(vis.x - 72, vis.y * 0.5 + fh + 40.0); setb.pressed.connect(_open_battle_settings)
+	hud.add_child(setb)
+	# 라운드 표시(원작 duel 턴 카운터)
+	_round_label = Label.new()
+	_round_label.add_theme_font_size_override("font_size", 16)
+	_round_label.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+	_round_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	_round_label.add_theme_constant_override("outline_size", 3)
+	_round_label.position = Vector2(104, 14); hud.add_child(_round_label)
+	_build_exp_panel(hud)
+	_build_mission_labels(hud)
+	_log("%s 이(가) 나타났다!" % String(_enemy["name"]))
+
+# ---------- EXP 패널(좌상단) + 전투 미션 ----------
+## 원작 AdventureScene::setExpAddIcon (docs/ref/orig_code/decomp/AdventureScene.c:46555-46700):
+##   · 배경 = **CCScale9Sprite** `scene/colosseum/week_time_bg.png`, contentSize **(190, 30)**,
+##     앵커(0,0.5) @ (visW*0.03, visH*0.85), z=123 tag=123        (AdventureScene.c:46633-46645)
+##   · 날개 EXP 아트 `scene/adventure/bonus_exp_mini(2).png` 앵커(0,0.5) @ (-10, h*0.5 + 5)
+##     ← 배경 왼쪽으로 삐져나온다(레퍼런스 docs/ref/orig_image/battle/몬스터피격.png 그대로)
+##   · 획득 EXP = BMFont 앵커(1,0.5) @ (w-10, h*0.5+2)
+## Cocos y-up(0.85=위쪽) → Godot y = visH*(1-0.85) = visH*0.15.
+const _EXP_PANEL := Vector2(190.0, 30.0)
+var _exp_label: Label
+var _exp_gained := 0
+func _build_exp_panel(hud: CanvasLayer) -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var w := _EXP_PANEL.x
+	var h := _EXP_PANEL.y
+	var root := Control.new()
+	root.position = Vector2(vis.x * 0.03, vis.y * 0.15 - h * 0.5)   # 앵커(0,0.5) 보정
+	root.size = Vector2(w, h)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(root)
+	var bg := NinePatchRect.new()
+	bg.texture = load("res://assets/converted/colosseum_ui/scene_colosseum_week_time_bg.tres")
+	bg.patch_margin_left = 10; bg.patch_margin_right = 10
+	bg.patch_margin_top = 6; bg.patch_margin_bottom = 6
+	bg.size = Vector2(w, h)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg)
+	# 날개 EXP 아트 — 원작 앵커(0,0.5) @ (-10, h*0.5+5).
+	var wing := _spr("adventure_ui", "scene_adventure_bonus_exp_mini", _adv, S)
+	if wing:
+		var wi: Dictionary = _adv.get("scene_adventure_bonus_exp_mini", {})
+		wing.position = Vector2(-10.0 + float(wi.get("w", 64)) * S * 0.5, h * 0.5 - 5.0)
+		root.add_child(wing)
+	_exp_label = _bmf_label("subtitle", S)
+	_exp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_exp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_exp_label.size = Vector2(w - 10.0, h); _exp_label.position = Vector2(0, -2.0)
+	_exp_label.text = "0"
+	root.add_child(_exp_label)
+
+## 원작 QuestAndBattleLabel 행(전투 미션). EXP 패널 바로 아래로 두 줄.
+## 근거: QuestAndBattleLabel.c:459-700 —
+##   Scale9 `scene/adventure/quest_shadow.png` capInsets(10,10,4,4) 앵커(0,0.5), contentSize(…,60),
+##   `common/profile_bg.png` scale 0.5 @ (40,h/2) + `common/checked.png` 같은 자리(달성 시 표시),
+##   제목 TTF Thonburi 22 #f6f6f6 @ (80,h/2), 카운트 BMFont "[cur/max]" 색 #d65f5f scale 0.8,
+##   보상 아이콘 + 보상 텍스트 TTF 22.
+## 진입 연출: 화면 위에서 MoveBy 0.5s EaseExponentialInOut (AdventureScene.c:53500-53525).
+var _mission_rows: Array = []      # [{def, cnt_label, check}]
+var _missions: Array = []
+const _MISSION_ROW_H := 60.0
+func _build_mission_labels(hud: CanvasLayer) -> void:
+	var defs: Dictionary = Data.battle_missions
+	if defs.is_empty(): return
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	_missions = BattleMission.pick(defs, rng)
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var top := vis.y * 0.15 + 22.0
+	var bw := 400.0
+	for i in _missions.size():
+		var m: Dictionary = _missions[i]
+		var y := top + i * _MISSION_ROW_H
+		var row := NinePatchRect.new()
+		row.texture = load("res://assets/converted/adventure_ui/scene_adventure_quest_shadow.tres")
+		row.patch_margin_left = 10; row.patch_margin_right = 10
+		row.patch_margin_top = 4; row.patch_margin_bottom = 4
+		row.size = Vector2(bw, _MISSION_ROW_H)
+		row.position = Vector2(vis.x * 0.03, y)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hud.add_child(row)
+		# 체크박스(원작 profile_bg + checked) @ x=40
+		var pbg := _spr("common_ui", "common_profile_bg", _man("common_ui"), 0.5 * S)
+		if pbg: pbg.position = Vector2(40, _MISSION_ROW_H * 0.5); row.add_child(pbg)
+		var chk := _spr("common_ui", "common_checked", _man("common_ui"), 0.9 * S)
+		if chk:
+			chk.position = Vector2(40, _MISSION_ROW_H * 0.5); chk.visible = false
+			row.add_child(chk)
+		# 제목 TTF 22 #f6f6f6 @ x=80
+		var t := Label.new()
+		t.text = String(m.get("text", ""))
+		t.add_theme_font_size_override("font_size", 22)
+		t.add_theme_color_override("font_color", Color8(0xf6, 0xf6, 0xf6))
+		t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		t.position = Vector2(80, 0); t.size = Vector2(200, _MISSION_ROW_H)
+		row.add_child(t)
+		# 카운트 BMFont [0/N] — 원작 색 #d65f5f, scale 0.8
+		var cnt := _bmf_label("subtitle", 0.8 * S)
+		cnt.text = "[0/%d]" % int(m.get("goal", 1))
+		cnt.add_theme_color_override("font_color", Color8(0xd6, 0x5f, 0x5f))
+		cnt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cnt.position = Vector2(250, 0); cnt.size = Vector2(90, _MISSION_ROW_H)
+		row.add_child(cnt)
+		# 보상: 원작 EXP 아이콘 + "+NN%"
+		var ico := _spr("adventure_ui", "scene_adventure_bonus_exp_mini", _adv, 0.85 * S)
+		if ico: ico.position = Vector2(bw - 110, _MISSION_ROW_H * 0.5); row.add_child(ico)
+		var rw := Label.new()
+		rw.text = "+%d%%" % int(round(float(m.get("exp_bonus", 0.0)) * 100.0))
+		rw.add_theme_font_size_override("font_size", 22)
+		rw.add_theme_color_override("font_color", Color8(0xf6, 0xf6, 0xf6))
+		rw.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		rw.position = Vector2(bw - 76, 0); rw.size = Vector2(70, _MISSION_ROW_H)
+		row.add_child(rw)
+		_mission_rows.append({"def": m, "cnt": cnt, "check": chk})
+		# 원작 진입: 화면 위에서 0.5s EaseExponentialInOut로 내려온다.
+		row.position.y = y - vis.y * 0.5
+		create_tween().tween_property(row, "position:y", y, 0.5)\
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+
+## 재생 중 누적 이벤트로 미션 진행도 갱신(판정은 logic 층 BattleMission).
+func _update_missions(played: Array) -> void:
+	if _mission_rows.is_empty(): return
+	var names: Array = []
+	for p in _party: names.append(String(p.get("name", "")))
+	var prog: Array = BattleMission.evaluate(_missions, played, names)
+	for i in mini(prog.size(), _mission_rows.size()):
+		var r: Dictionary = _mission_rows[i]
+		var p: Dictionary = prog[i]
+		var cl = r.get("cnt")
+		if is_instance_valid(cl):
+			(cl as Label).text = "[%d/%d]" % [int(p["count"]), int((p["mission"] as Dictionary).get("goal", 1))]
+		var ck = r.get("check")
+		if is_instance_valid(ck):
+			(ck as Sprite2D).visible = bool(p["done"])
+
+var _auto := true
+var _settings_layer: CanvasLayer
+## 원작 PopAutoSettingLayer 1:1: popup4 + pop_title_bg + close_btn + 체크박스(자동전투) + arrow(속도/반복횟수).
+## 근거: PopAutoSettingLayer.c makeBaseUI(popup4/pop_title_bg/close_btn)+initBattleFight(자동전투)+
+##   initAdvCount(반복횟수 arrow, max 50)+onClickCheck/onClickArrow. ⚠️라벨=StringManager 유실→기능명 사용(ASSUMPTION).
+func _open_battle_settings() -> void:
+	if is_instance_valid(_settings_layer):
+		return
+	var vis := _vis()
+	_settings_layer = CanvasLayer.new(); _settings_layer.layer = 70; add_child(_settings_layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.6); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_settings_layer.add_child(dim)
+	const BW := 460.0
+	const BH := 330.0
+	var win := NinePatchRect.new()
+	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	win.patch_margin_left = 130; win.patch_margin_top = 190; win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(BW, BH); win.position = Vector2(round((vis.x - BW) * 0.5), round((vis.y - BH) * 0.5))
+	_settings_layer.add_child(win)
+	var tbar := NinePatchRect.new()
+	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(300, 52); tbar.position = Vector2((BW - 300) * 0.5, 12); win.add_child(tbar)
+	var title := Label.new(); title.text = "자동 설정"
+	title.add_theme_font_size_override("font_size", 28); title.add_theme_color_override("font_color", Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.size = tbar.size; tbar.add_child(title)
+	var xb := TextureButton.new(); xb.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
+	xb.position = Vector2(BW - 58, 14); xb.pressed.connect(_close_battle_settings); win.add_child(xb)
+	# 행1: 자동 전투(체크 토글). 원작 initBattleFight + checkbox_on/off(scene/guild 미변환→토글 대체).
+	_setting_row(win, "자동 전투", 88, func() -> String: return "켜짐" if _auto else "꺼짐",
+		func(): _auto = not _auto)
+	# 행2: 전투 속도(arrow, x1/x2/x4). 우리 _speed 구동.
+	_setting_arrow_row(win, "전투 속도", 148, func() -> String: return "x%d" % int(_speed),
+		func(d: int): _cycle_speed())
+	# 행3: 반복 횟수(arrow 1~50). 원작 initAdvCount max 50 → UserDB pmeta adv_repeat 저장.
+	_setting_arrow_row(win, "반복 횟수", 208, func() -> String: return "%d회" % int(UserDB.get_pmeta("adv_repeat", 1)),
+		func(d: int): UserDB.set_pmeta("adv_repeat", clampi(int(UserDB.get_pmeta("adv_repeat", 1)) + d, 1, 50)))
+	var ok := Button.new(); ok.text = "확인"; ok.size = Vector2(160, 44); ok.position = Vector2((BW - 160) * 0.5, BH - 62)
+	ok.pressed.connect(_close_battle_settings); win.add_child(ok)
+
+func _close_battle_settings() -> void:
+	if is_instance_valid(_settings_layer): _settings_layer.queue_free(); _settings_layer = null
+
+func _setting_row(win: Control, label: String, y: float, val: Callable, toggle: Callable) -> void:
+	var lb := Label.new(); lb.text = label; lb.add_theme_font_size_override("font_size", 22)
+	lb.add_theme_color_override("font_color", Color(0.28, 0.18, 0.05)); lb.position = Vector2(150, y); lb.size = Vector2(160, 30)
+	win.add_child(lb)
+	var b := Button.new(); b.size = Vector2(96, 34); b.position = Vector2(300, y - 2); b.text = String(val.call())
+	b.pressed.connect(func(): toggle.call(); b.text = String(val.call())); win.add_child(b)
+
+func _setting_arrow_row(win: Control, label: String, y: float, val: Callable, adj: Callable) -> void:
+	var lb := Label.new(); lb.text = label; lb.add_theme_font_size_override("font_size", 22)
+	lb.add_theme_color_override("font_color", Color(0.28, 0.18, 0.05)); lb.position = Vector2(150, y); lb.size = Vector2(150, 30)
+	win.add_child(lb)
+	var vlb := Label.new(); vlb.add_theme_font_size_override("font_size", 22)
+	vlb.add_theme_color_override("font_color", Color(0.3, 0.2, 0.05)); vlb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vlb.position = Vector2(316, y); vlb.size = Vector2(70, 30)
+	var upd := func(): vlb.text = String(val.call())
+	upd.call()
+	# 원작 common/btn_arrow1(좌)/btn_arrow2(우).
+	var la := TextureButton.new(); la.texture_normal = load("res://assets/converted/common_ui/common_btn_arrow1.tres")
+	la.position = Vector2(300, y - 2); la.pressed.connect(func(): adj.call(-1); upd.call()); win.add_child(la)
+	var ra := TextureButton.new(); ra.texture_normal = load("res://assets/converted/common_ui/common_btn_arrow2.tres")
+	ra.position = Vector2(388, y - 2); ra.pressed.connect(func(): adj.call(1); upd.call()); win.add_child(ra)
+	win.add_child(vlb)
+
+func _cycle_speed() -> void:
+	_speed = {1.0: 2.0, 2.0: 4.0, 4.0: 1.0}[_speed]
+	# 원작 speed_0/1/2 이미지 전환(x1/x2/x4).
+	var idx: int = {1.0: 0, 2.0: 1, 4.0: 2}[_speed]
+	if is_instance_valid(_speed_spr):
+		var p := "res://assets/converted/adventure_ui/scene_adventure_speed_%d.tres" % idx
+		if ResourceLoader.exists(p): _speed_spr.texture = load(p)
+	else:
+		_speed_btn.text = "▶ x%d" % int(_speed)
+
+## 원작 BattleTextBox — 화면 하단 전폭 대화상자. 전투 로그는 전부 여기로 나간다.
+## 근거: docs/ref/orig_code/decomp/BattleTextBox.c:167-205
+##   · Scale9 `9patch/dialogue_box.png` capInsets Rect(10,10,4,4), 앵커(0,0), 박스 z=100
+##   · 박스 앵커(0.5, 0.0) @ VisibleRect::bottom() → 하단 중앙
+##   · contentSize = (visibleRect.width - 10, **120**)   ← 포인트 단위(ASSET_SCALE 미적용)
+##   · CCLabelTTF("", "Thonburi", **28**) 좌정렬, dimensions(width-20, 0) 워드랩,
+##     앵커(0, 0.5) @ (10, height*0.5 - 2), 흰색, z=200
+## 레퍼런스 실측(docs/ref/orig_image/battle/몬스터싸움.png): 하단 박스 높이 123px / (735/692) = 119 디자인px ✓
+const _TEXTBOX_H := 120.0
+func _build_textbox() -> void:
+	var vis := _vis()
+	var lay := CanvasLayer.new(); lay.layer = 8
+	add_child(lay)
+	var box := NinePatchRect.new()
+	box.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
+	box.patch_margin_left = 10; box.patch_margin_right = 10
+	box.patch_margin_top = 4; box.patch_margin_bottom = 4
+	box.size = Vector2(vis.x - 10.0, _TEXTBOX_H)
+	box.position = Vector2(5.0, vis.y - _TEXTBOX_H)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(box)
+	_log_label = Label.new()
+	_log_label.add_theme_font_size_override("font_size", 28)
+	_log_label.add_theme_color_override("font_color", Color.WHITE)
+	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_log_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_log_label.size = Vector2(box.size.x - 20.0, _TEXTBOX_H - 8.0)
+	_log_label.position = Vector2(10.0, 4.0)
+	_log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_log_label)
+	if _pending_log != "":
+		_log_label.text = _pending_log
+
+var _pending_log := ""
+func _log(msg: String) -> void:
+	_pending_log = msg
+	if _log_label:
+		_log_label.text = msg
+
+# ---------- 전투 실행 + 재생 ----------
+func _run_and_replay() -> void:
+	# combatant 조립(내부이름 A0../E0로 뷰 매핑). 파티=ally, 적=enemy.
+	var pa: Array = []
+	for i in _party.size():
+		var pd: Dictionary = _party[i]
+		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]),
+			pd["stats"], 0.0, pd.get("skills", []))
+		c["hp"] = int(pd["hp"]); c["hp_max"] = int(pd["hp_max"])
+		# 각성 스킬 효과는 `_apply_awaken_skills`(카드 생성 전)가 이미 산출해 뒀다.
+		# 체력은 `_party` 값에 이미 반영돼 있고, 나머지는 효과 목록으로 옮긴다.
+		c["awaken_no"] = int(pd.get("awaken_skill", 0))
+		c["grade"] = float(pd.get("grade", 0.0))
+		c["dragon_id"] = int(pd.get("id", 0))
+		c["awaken_gauge"] = float(pd.get("awaken_gauge", 0.0))   # 97 하얀매의 친구
+		for e in (pd.get("awaken_effects", []) as Array):
+			(c["effects"] as Array).append((e as Dictionary).duplicate())
+		pa.append(c)
+	var eb := Battle.make_combatant("E0", "enemy", String(_enemy["element"]),
+		{"hp": int(_enemy["hp_max"]), "att": int(_enemy["att"]), "def": int(_enemy["def"]), "cri": 8, "evd": 6, "blk": 8},
+		0.0, _enemy_skills())
+	var pb: Array = [eb]
+	if pa.is_empty():
+		_log("출전할 드래곤이 없습니다."); return
+	# 스킬 봉인 던전(원작 우노 '미지의 터'). 위키 dungeon_4.pdf §4.2:
+	# "알수없는 기운으로 인해 드래곤들이 스킬을 사용할수 없다" → 스킬 DB 를 비운 채 시뮬레이션한다.
+	# (드래곤의 스킬 장착은 그대로 두고 **발동만** 막는다 — 상태 변화가 아니라 이 전투 한정 규칙.)
+	var st_now: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var skills_db: Dictionary = {} if bool(st_now.get("no_skills", false)) else Data.skills
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var res := Battle.simulate(pa, pb, rng, Data.combat, skills_db)
+	_events = res.get("events", [])
+	_winner = String(res.get("winner", "draw"))
+	_play_events()
+
+## 재생 세대(generation). `_rebuild()` 가 증가시키고, 재생 코루틴은 매 await 뒤에 자기 세대를
+## 확인해 낡았으면 즉시 빠진다.
+## 🔴 근거(2026-07-27 실제 버그): 씬이 두 번 빌드되면(당시 Scenes.goto 순서 문제) 1차 빌드의
+##   이 코루틴이 살아남아 **2차 빌드의 이벤트 배열을 같이 재생**했다. `_views` 는 멤버라
+##   같은 뷰를 두 코루틴이 때려 뷰 HP가 두 배로 깎였고, 몬스터 HP 표시가 0인데 로직상은
+##   살아 있어 전투가 계속됐다. 근본원인은 scene_manager 에서 고쳤고 이건 이중 안전장치다.
+var _gen := 0
+func _play_events() -> void:
+	var gen := _gen
+	_playing = true
+	_battle_opening()          # 원작 OpeningBattleScene: 전투 시작 배너 스윕
+	await _wait(1.0)
+	if gen != _gen: return
+	var played: Array = []
+	for ev in _events:
+		_play_event(ev)
+		played.append(ev)
+		_update_missions(played)      # 원작 QuestAndBattleLabel 카운트 실시간 갱신
+		await _wait(_evt_delay(ev))
+		if gen != _gen: return
+	await _wait(0.3)
+	if gen != _gen: return
+	_finish()
+	_playing = false
+
+func _evt_delay(ev: Dictionary) -> float:
+	var t := String(ev.get("type", ""))
+	if t == "status_skip":
+		return 0.35
+	# 크리티컬은 컷인(막+밴드+얼굴) → 연타 → 화면 전체 아트까지 약 0.7초가 더 붙는다.
+	# 기본 간격 0.6 그대로 두면 다음 이벤트가 아트 위로 겹쳐 들어온다.
+	if bool(ev.get("crit", false)):
+		return 1.3
+	return 0.6
+
+var _cur_round := 0
+var _round_label: Label
+
+## 원작 duel 라운드 전환(nextDuel/turnFinish): 라운드 라벨 갱신 + "ROUND N" 배너 팝.
+func _show_round(n: int) -> void:
+	if is_instance_valid(_round_label): _round_label.text = "ROUND %d" % n
+	if n <= 1: return   # 1라운드는 오프닝 배너로 대체
+	var vis := _vis()
+	var banner := Label.new(); banner.text = "ROUND %d" % n
+	banner.add_theme_font_size_override("font_size", 34)
+	banner.add_theme_color_override("font_color", Color(1, 0.92, 0.7))
+	banner.add_theme_color_override("font_outline_color", Color(0.2, 0.15, 0, 0.9))
+	banner.add_theme_constant_override("outline_size", 5)
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.size = Vector2(vis.x, 44); banner.position = Vector2(0, vis.y * 0.14)
+	banner.z_index = 115; banner.modulate.a = 0.0; add_child(banner)
+	var t := banner.create_tween()
+	t.tween_property(banner, "modulate:a", 1.0, 0.2)
+	t.tween_interval(0.5)
+	t.tween_property(banner, "modulate:a", 0.0, 0.3)
+	t.tween_callback(banner.queue_free)
+
+func _play_event(ev: Dictionary) -> void:
+	# 원작 duel 구조(startDuel/nextDuel/turnFinish): 라운드가 바뀌면 라운드 표시 갱신.
+	if ev.has("round") and int(ev["round"]) != _cur_round:
+		_cur_round = int(ev["round"])
+		_show_round(_cur_round)
+	match String(ev.get("type", "")):
+		"normal", "double", "awaken":
+			var atk: Dictionary = _find(String(ev.get("attacker", "")))
+			var dfn: Dictionary = _find(String(ev.get("defender", "")))
+			if String(ev.get("type", "")) == "awaken":
+				_super_attack_fx(atk)   # 원작 setSuperAttackStart: 각성기 발동 연출
+				_set_gauge(atk, 0.0)    # 각성기 발동 → 게이지 리셋
+			else:
+				_charge_gauge(atk)      # 평타 → 게이지 충전(simulate와 동일 +18)
+			if not atk.is_empty(): _cue(atk)
+			if bool(ev.get("miss", false)):
+				_fx_text(dfn, "battle_miss_kr", "MISS", Color(0.8, 0.8, 0.8), "scene_adventure_txt_miss")
+				_log("%s의 공격 — 빗나감!" % _disp(ev.get("attacker", "")))
+			else:
+				if int(ev.get("damage", 0)) > 0:
+					var is_crit := bool(ev.get("crit", false))
+					# 크리티컬 시퀀스 = 드래곤 음성 + 컷인 → hit 타격 연타 → 화면 전체 아트.
+					# 근거·재구성 경위는 `_critical_sequence` 주석 참조. 아군 크리에서만 낸다(원작도 내 얼굴을 띄운다).
+					if is_crit and String(atk.get("kind", "")) == "party":
+						# ⚠️ **await 필수** — 안 기다리면 데미지 숫자·파티클·의성어가 컷인과 동시에 터지고
+						#   실제 타격은 0.5초 뒤에 들어와 순서가 뒤집힌다(2026-07-27 발견·수정).
+						#   `_play_event` 는 재생 루프가 await 없이 부르므로 여기서 기다려도 루프는 안 막힌다.
+						await _critical_sequence(atk, dfn)
+						_log("%s 크리티컬 발동~!" % _disp(ev.get("attacker", "")))
+					else:
+						_strike(dfn, false, 1)
+					# 몬스터가 맞았을 때만 붓글씨 의성어(원작 monster/hit_talk) — 몬스터의 비명이다.
+					if String(dfn.get("kind", "")) == "enemy":
+						_hit_talk()
+					_hurt(dfn, int(ev["damage"]), is_crit)
+					_attr_particles(dfn, String(atk.get("element", "")), is_crit, int(atk.get("voice_critical", 0)))
+				if bool(ev.get("block", false)):
+					_fx_text(dfn, "battle_block_kr", "BLOCK", Color(0.6, 0.8, 1.0)); Bgm.sfx("effect_block")
+				if bool(ev.get("dead", false)): _kill(dfn)
+				if int(ev.get("lifesteal", 0)) > 0: _heal(atk, int(ev["lifesteal"]))
+				if int(ev.get("reflect", 0)) > 0:
+					_hurt(atk, int(ev["reflect"]), false)
+					if bool(ev.get("reflect_dead", false)): _kill(atk)
+				# 쓰러진 경우 _kill 이 원작 격파 서사를 이미 넣었다 → 피해 줄로 덮어쓰지 않는다.
+				if not bool(ev.get("dead", false)):
+					_log("%s → %s  %d 피해%s" % [_disp(ev.get("attacker", "")), _disp(ev.get("defender", "")),
+						int(ev.get("damage", 0)), ("  치명타!" if ev.get("crit", false) else "")])
+		"skill":
+			_play_skill(ev)
+		"confused":
+			var a: Dictionary = _find(String(ev.get("actor", "")))
+			_hurt(a, int(ev.get("damage", 0)), false)
+			if bool(ev.get("dead", false)): _kill(a)
+			_log("%s 혼란 — 자해 %d" % [_disp(ev.get("actor", "")), int(ev.get("damage", 0))])
+		"dot", "timed":
+			var tg: Dictionary = _find(String(ev.get("target", "")))
+			_hurt(tg, int(ev.get("damage", 0)), false)
+			_status_badge(tg, "dot")
+			_burning_fx(tg)   # 원작 setViewBurningEffect: 지속피해 화염 연출
+			if bool(ev.get("dead", false)): _kill(tg)
+			_log("%s 지속피해 %d" % [_disp(ev.get("target", "")), int(ev.get("damage", 0))])
+		"status_skip":
+			_status_badge(_find(String(ev.get("actor", ""))), "stun")
+			_log("%s 행동불가!" % _disp(ev.get("actor", "")))
+
+## 스킬 이벤트 연출(증분 3). 공격형=피해, 힐/디버프/정화 각 표시. per-드래곤 spine은 폴리시 TODO.
+func _play_skill(ev: Dictionary) -> void:
+	var caster: Dictionary = _find(String(ev.get("caster", "")))
+	_charge_gauge(caster)   # 스킬도 행동 → 각성 게이지 충전
+	if not caster.is_empty(): _cue(caster)
+	var sname := String(ev.get("skill_name", "스킬"))
+	_skill_banner(sname)
+	var tgt: Dictionary = _find(String(ev.get("target", "")))
+	# 원작 skillMimic/skillBomb/skillBlock: 스킬 카테고리별 시각 이펙트 분기.
+	_skill_fx(ev, caster, tgt)
+	if bool(ev.get("interrupt", false)):
+		_log("%s! %s의 스킬 무효화" % [sname, _disp(ev.get("target", ""))])
+		return
+	if int(ev.get("damage", 0)) > 0:
+		_hurt(tgt, int(ev["damage"]), false)
+		if bool(ev.get("dead", false)): _kill(tgt)
+	if int(ev.get("heal", 0)) > 0:
+		_heal(tgt, int(ev["heal"]))
+	if int(ev.get("target_loss", 0)) > 0:
+		_hurt(tgt, int(ev["target_loss"]), false)
+	if int(ev.get("self_loss", 0)) > 0:
+		_hurt(caster, int(ev["self_loss"]), false)
+	if ev.has("debuff"):
+		_fx_text(tgt, "", String(ev["debuff"]), Color(0.9, 0.6, 1.0))
+		_status_badge(tgt, "debuff")
+	if bool(ev.get("cleanse", false)):
+		_fx_text(tgt, "", "정화", Color(0.7, 1.0, 0.8))
+	# 버프/방어 카테고리 스킬 → 시전자에 강화 배지.
+	var scat := String(Data.skills.get(str(int(ev.get("skill_id", 0))), {}).get("category", ""))
+	if scat == "buff" or scat == "defense":
+		_status_badge(caster, "buff")
+	_log("%s 발동 — %s" % [sname, _disp(ev.get("caster", ""))])
+
+## 스킬 카테고리별 이펙트(원작 skillMimic/skillBomb/skillBlock 분기).
+## attack/debuff/cleanse=대상에, buff/defense=시전자에 링+스킬아이콘 버스트. 색=카테고리.
+## 원작 스킬 이펙트 스파인 노출 시간 — AdventureScene.c:38859 `CCDelayTime::create(0.7)` 뒤 Hide/Blink.
+const _SKILL_SPINE_SEC := 0.7
+
+const _SKILL_FX := {
+	"attack":    {"col": Color(1.0, 0.5, 0.2), "on": "target"},
+	"debuff":    {"col": Color(0.85, 0.4, 1.0), "on": "target"},
+	"heal":      {"col": Color(0.4, 1.0, 0.5), "on": "target"},
+	"buff":      {"col": Color(1.0, 0.85, 0.3), "on": "caster"},
+	"defense":   {"col": Color(0.4, 0.7, 1.0), "on": "caster"},
+	"cleanse":   {"col": Color(0.8, 1.0, 0.9), "on": "target"},
+	"interrupt": {"col": Color(1.0, 0.9, 0.4), "on": "target"},
+}
+## 스킬 카테고리별 발동 SFX(원작 effect_*). 속성 스킬은 element 우선.
+const _SKILL_SFX := {
+	"attack": "effect_bite", "heal": "effect_blink", "debuff": "effect_dark_clap",
+	"buff": "effect_buildup", "defense": "effect_block", "cleanse": "effect_blink",
+	"dot": "effect_burn", "reflect": "effect_bomb",
+}
+const _ELEM_SFX := {"fire": "effect_burn", "chaos": "effect_bomb", "dark": "effect_dark_clap"}
+func _skill_fx(ev: Dictionary, caster: Dictionary, target: Dictionary) -> void:
+	var sid := int(ev.get("skill_id", 0))
+	var sdef: Dictionary = Data.skills.get(str(sid), {})
+	var cat := String(sdef.get("category", "attack"))
+	var sel := String(sdef.get("element", ""))
+	# 원작은 **스킬별 전용 효과음**을 쓴다: `music/effect_skill_%d.mp3`
+	#   근거: docs/ref/orig_code/decomp/AdventureScene.c:57622
+	#         `CCString::createWithFormat("music/effect_skill_%d.mp3", …)`
+	#   대응 확인: `DV2/music/effect_skill_N.mp3` 의 N 24종
+	#         {11,12,14,15,20,21,22,23,24,26,29,30,32,36,46,50,54,56,60,70,90,100,110,170} 이
+	#         **전부 data/skills.json 의 스킬 id에 포함**되고, 스킬 id가 아닌 N은 하나도 없다
+	#         → N = 스킬 id 로 확정(# ASSUMPTION 이 아니라 전수 대조 결과).
+	#   파일이 있는 스킬만 전용음, 없으면 기존 카테고리/속성 효과음으로 폴백한다.
+	var own := "effect_skill_%d" % sid
+	if sid > 0 and ResourceLoader.exists("res://assets/music/%s.mp3" % own):
+		Bgm.sfx(own)
+	else:
+		Bgm.sfx(_ELEM_SFX.get(sel, _SKILL_SFX.get(cat, "effect_cut_in")))
+	# 원작 **스킬 전용 이펙트 스파인** — `skill/skill_{id}_spine.spine_json`.
+	#   근거: 스파인 34종의 N 중 33종이 data/skills.json 의 스킬 id이고, 스킬 id가 아닌 N은 `2` 하나뿐
+	#         (사운드 `effect_skill_{id}.mp3` 24종이 전부 스킬 id였던 것과 같은 규약).
+	#   변환: scripts/tools/build_skill_fx.py → build_skill_fx_scenes.gd → scenes/fx/skill_{id}_spine.tscn
+	#   있으면 그걸 쓰고, 없으면 아래 카테고리별 도형 이펙트로 폴백한다.
+	if sid > 0 and _play_skill_spine(sid, (target if not target.is_empty() else caster)):
+		return
+	var spec: Dictionary = _SKILL_FX.get(cat, _SKILL_FX["attack"])
+	var v: Dictionary = caster if String(spec["on"]) == "caster" else target
+	if v.is_empty(): v = caster
+	if v.is_empty() or not v.has("center"): return
+	var center: Vector2 = v["center"]
+	_fx_ring(center, spec["col"])
+	# 스킬 아이콘 버스트
+	var icon_p := "res://assets/converted/skill/skill_%d.tres" % sid
+	if ResourceLoader.exists(icon_p):
+		var ic := Sprite2D.new(); ic.texture = load(icon_p); ic.material = _pma
+		ic.position = center + Vector2(0, -8); ic.z_index = 101; ic.scale = Vector2(0.3, 0.3)
+		add_child(ic)
+		var t := create_tween()
+		t.tween_property(ic, "scale", Vector2(1.05, 1.05), 0.16).set_trans(Tween.TRANS_BACK)
+		t.tween_interval(0.14)
+		t.tween_property(ic, "modulate:a", 0.0, 0.22)
+		t.parallel().tween_property(ic, "scale", Vector2(1.35, 1.35), 0.22)
+		t.tween_callback(ic.queue_free)
+
+## 확장·페이드 링(스킬 이펙트 공통). 색=카테고리.
+func _fx_ring(center: Vector2, col: Color) -> void:
+	var ring := Line2D.new()
+	ring.width = 5.0; ring.default_color = col; ring.closed = true; ring.antialiased = true
+	var pts := PackedVector2Array()
+	for i in 24:
+		var a := TAU * float(i) / 24.0
+		pts.append(Vector2(cos(a), sin(a)) * 42.0)
+	ring.points = pts
+	ring.position = center; ring.z_index = 100; ring.scale = Vector2(0.25, 0.25)
+	add_child(ring)
+	var t := create_tween()
+	t.tween_property(ring, "scale", Vector2(1.7, 1.7), 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(ring, "modulate:a", 0.0, 0.4)
+	t.tween_callback(ring.queue_free)
+
+# ---------- 연출 primitives ----------
+## 원작 HP fill(9-slice). 파티=hp_bar10(134×21), 몬스터=hp_bar9(594×23). 회전/아틀라스라 표준 PNG로 추출.
+const _HP_BAR := "res://assets/converted/battle_extra/hp_bar10.png"       # 파티 카드용
+const _HP_BAR_MONSTER := "res://assets/converted/battle_extra/hp_bar9.png" # 적(몬스터)용
+func _hp_fill(w: float, h: float, monster := false) -> NinePatchRect:
+	var np := NinePatchRect.new()
+	var tex_path := _HP_BAR_MONSTER if monster else _HP_BAR
+	if not ResourceLoader.exists(tex_path): tex_path = _HP_BAR
+	if ResourceLoader.exists(tex_path):
+		np.texture = load(tex_path)
+	np.patch_margin_left = 8; np.patch_margin_right = 8
+	np.patch_margin_top = 3; np.patch_margin_bottom = 3
+	np.size = Vector2(w, h); np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return np
+
+func _refresh_bar(v: Dictionary) -> void:
+	var frac := clampf(float(v["hp"]) / maxf(1.0, float(v["hp_max"])), 0.0, 1.0)
+	var fill: Control = v["hp_fill"]
+	fill.size.x = maxf(0.0, float(v["bar_w"]) * frac)
+	(v["hp_label"] as Label).text = "%d / %d" % [int(v["hp"]), int(v["hp_max"])]
+
+func _hurt(v: Dictionary, dmg: int, crit: bool) -> void:
+	if v.is_empty(): return
+	# 피격 기본음. 크리티컬 속성별 SFX는 _attr_particles(공격자 속성 보유)에서 재생.
+	if not crit: Bgm.sfx("effect_dragon_damaged_1")   # 원작 전투 효과음
+	v["hp"] = maxi(0, int(v["hp"]) - dmg)
+	var fill: Control = v["hp_fill"]
+	var frac := clampf(float(v["hp"]) / maxf(1.0, float(v["hp_max"])), 0.0, 1.0)
+	create_tween().tween_property(fill, "size:x", maxf(0.0, float(v["bar_w"]) * frac), 0.25)
+	(v["hp_label"] as Label).text = "%d / %d" % [int(v["hp"]), int(v["hp_max"])]
+	# 데미지 숫자(원작 font_normal — 숫자전용 비트맵). 크리는 색·크기로 표현(원작도 "!"글자 없음).
+	_dmg_number(v["center"], dmg, crit)
+	# 피격 모션. 몬스터는 원작 BattleMonster::setAnimatedHit(hit 아트 교체 + 붉은 점멸 2회 + Shake),
+	# 파티(드래곤 카드)는 종전의 짧은 플래시 + 흔들림.
+	if String(v.get("kind", "")) == "enemy":
+		_monster_hit_motion(v)
+	else:
+		var node: Node = v["node"]
+		if node is CanvasItem:
+			var ci := node as CanvasItem
+			var t := create_tween()
+			t.tween_property(ci, "modulate", Color(1.4, 0.5, 0.5), 0.06)
+			t.tween_property(ci, "modulate", Color.WHITE, 0.14)
+		_screen_shake(8.0 if crit else 4.0)   # 원작 피격 임팩트: 화면 흔들림(crit 강)
+	_check_groggy(v)
+
+## 몬스터 "중상" 상태 — 원작 몬스터 스파인의 **`groggy`** 애니메이션.
+## 근거: 변환된 `scenes/monsters/monster_N.tscn` 의 AnimationLibrary 에 `wait` 와 함께 `groggy` 가
+##   들어 있다(monster_1.tscn 확인). 원작도 같은 이름을 쓴다 —
+##   `Monster::getImagePathSpineJsonBossGroggy` → `monster/%d/%d_monster_groggy_spine.spine_json`
+##   (Monster.c:881-899), `CCSkeletonAnimation::setAnimation(…, "groggy", true, 0)` (ScenarioLayer.c:11435).
+## 레퍼런스 docs/ref/orig_image/battle/몬스터중상.png = 몸에 흰 상처 표시가 붙은 그 상태.
+## # ASSUMPTION: **전환 HP 임계값은 복원하지 못했다.** 레퍼런스의 관측점 하나(17/279 = 6%)뿐이라
+##   0.25로 둔다. 원작 수치를 아는 값처럼 적지 않는다.
+const _GROGGY_HP_RATIO := 0.25
+func _check_groggy(v: Dictionary) -> void:
+	if v.is_empty() or String(v.get("kind", "")) != "enemy": return
+	if bool(v.get("groggy", false)) or not bool(v.get("alive", true)): return
+	if float(v["hp"]) > float(v["hp_max"]) * _GROGGY_HP_RATIO: return
+	var ap = v.get("anim")
+	if ap is AnimationPlayer and (ap as AnimationPlayer).has_animation("groggy"):
+		(ap as AnimationPlayer).play("groggy")
+		v["groggy"] = true
+
+## 화면 흔들림(원작 전투 임팩트). battle=Control이라 Camera2D.offset을 지터 → 정착.
+## HUD가 별도 CanvasLayer면 필드만 흔들리고, 아니면 전체가 짧게 흔들린다(둘 다 유효한 연출).
+var _shake_cam: Camera2D
+var _shake_tw: Tween
+func _screen_shake(intensity: float = 6.0) -> void:
+	if not is_instance_valid(_shake_cam):
+		_shake_cam = Camera2D.new()
+		_shake_cam.position = _vis() * 0.5   # 콘텐츠(0..vis) 중심을 봄 → 기본 정렬 유지
+		add_child(_shake_cam)
+		_shake_cam.make_current()
+	if is_instance_valid(_shake_tw): _shake_tw.kill()
+	_shake_tw = create_tween()
+	var amt := intensity
+	for i in 5:
+		var off := Vector2(randf_range(-amt, amt), randf_range(-amt, amt))
+		_shake_tw.tween_property(_shake_cam, "offset", off, 0.03)
+		amt *= 0.68
+	_shake_tw.tween_property(_shake_cam, "offset", Vector2.ZERO, 0.05)
+
+## 원작 setAttributeParticleEffect: 피격 지점에 공격자 속성색 파티클 버스트(에셋 부재→프리미티브).
+const _ELEM_COL := {
+	"fire": Color(1.0, 0.45, 0.2), "aqua": Color(0.35, 0.7, 1.0), "wind": Color(0.5, 1.0, 0.6),
+	"earth": Color(0.8, 0.6, 0.35), "light": Color(1.0, 0.95, 0.5), "dark": Color(0.7, 0.4, 1.0),
+	"holy": Color(1.0, 0.9, 0.45), "chaos": Color(1.0, 0.4, 0.85), "shadow": Color(0.6, 0.55, 0.8),
+}
+const _CRIT_SFX := {
+	"fire": "effect_critical_fire_1", "aqua": "effect_critical_ice_1",
+	"wind": "effect_critical_lightning_1", "light": "effect_critical_lightning_1",
+}
+## ⚠️ `v` 는 **피격자**, `element`/`crit_voice` 는 **공격자** 것이다(소리는 때린 쪽이 낸다).
+func _attr_particles(v: Dictionary, element: String, crit: bool, crit_voice := 0) -> void:
+	if v.is_empty(): return
+	# ⚠️ 크리티컬 소리는 여기서 내지 않는다 — `_critical_sequence` 시작에서 `_crit_voice` 가
+	#   드래곤별 보이스로 낸다(원작 순서: 음성 → 컷인 → 타격). 여기 두면 타격 뒤에 또 나온다.
+	var col: Color = _ELEM_COL.get(element, Color(1, 1, 1))
+	var p := CPUParticles2D.new()
+	p.position = v["center"]
+	p.z_index = 95
+	p.one_shot = true; p.explosiveness = 1.0
+	p.amount = 18 if crit else 11
+	p.lifetime = 0.5
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 12.0
+	p.direction = Vector2(-1, -0.4); p.spread = 130.0
+	p.initial_velocity_min = 80.0; p.initial_velocity_max = (240.0 if crit else 170.0)
+	p.gravity = Vector2(0, 180.0)
+	p.scale_amount_min = 2.0; p.scale_amount_max = (5.0 if crit else 3.5)
+	var g := Gradient.new()
+	g.set_color(0, Color(col.r, col.g, col.b, 0.95)); g.set_color(1, Color(col.r, col.g, col.b, 0.0))
+	p.color_ramp = g
+	var mat := CanvasItemMaterial.new(); mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	p.material = mat
+	add_child(p)
+	p.emitting = true
+	get_tree().create_timer(0.9).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
+
+## 원작 setViewBurningEffect: 지속피해(DoT) 대상에 불타는 파티클(에셋 부재→프리미티브 화염 모트).
+func _burning_fx(v: Dictionary) -> void:
+	if v.is_empty() or not v.has("center"): return
+	var p := CPUParticles2D.new()
+	p.position = (v["center"] as Vector2) + Vector2(0, 10)
+	p.z_index = 96
+	p.one_shot = true; p.explosiveness = 0.4
+	p.amount = 14
+	p.lifetime = 0.6
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(28, 6)
+	p.direction = Vector2(0, -1); p.spread = 24.0
+	p.initial_velocity_min = 60.0; p.initial_velocity_max = 130.0
+	p.gravity = Vector2(0, -40.0)
+	p.scale_amount_min = 2.5; p.scale_amount_max = 5.0
+	var g := Gradient.new()
+	g.set_color(0, Color(1.0, 0.9, 0.3, 0.95))   # 노랑 → 주황 → 투명(불꽃)
+	g.add_point(0.5, Color(1.0, 0.5, 0.15, 0.7))
+	g.set_color(1, Color(0.8, 0.2, 0.1, 0.0))
+	p.color_ramp = g
+	var mat := CanvasItemMaterial.new(); mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	p.material = mat
+	add_child(p); p.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
+
+func _heal(v: Dictionary, amt: int) -> void:
+	if v.is_empty(): return
+	v["hp"] = mini(int(v["hp_max"]), int(v["hp"]) + amt)
+	var fill: Control = v["hp_fill"]
+	var frac := clampf(float(v["hp"]) / maxf(1.0, float(v["hp_max"])), 0.0, 1.0)
+	create_tween().tween_property(fill, "size:x", float(v["bar_w"]) * frac, 0.25)
+	(v["hp_label"] as Label).text = "%d / %d" % [int(v["hp"]), int(v["hp_max"])]
+	_heal_number(v["center"], amt)
+
+## 원작 힐 숫자 폰트. InterFace.c:6381 `CCLabelBMFont::create(n, "font/font_heal.fnt")` —
+## 데미지는 font_normal(위 _dmg_number), 힐은 **전용 font_heal** 비트맵을 쓴다.
+## 숫자 전용 폰트라 "+"는 별도 라벨 없이 숫자만 담는다(두부 방지).
+const _HEAL_FONT := "res://assets/480/font/font_heal.fnt"
+var _heal_font_cache: Font = null
+func _heal_number(pos: Vector2, amt: int) -> void:
+	var l := Label.new()
+	l.text = str(amt)
+	if _heal_font_cache == null and ResourceLoader.exists(_HEAL_FONT):
+		_heal_font_cache = load(_HEAL_FONT)
+	if _heal_font_cache != null:
+		l.add_theme_font_override("font", _heal_font_cache)
+	else:
+		l.text = "+%d" % amt   # 폰트 부재 시 폴백
+	l.add_theme_font_size_override("font_size", 26)
+	l.add_theme_color_override("font_color", Color(0.55, 1.0, 0.55))
+	l.add_theme_color_override("font_outline_color", Color(0, 0.25, 0, 0.85))
+	l.add_theme_constant_override("outline_size", 4)
+	l.z_index = 101
+	l.position = pos + Vector2(-10, -16)
+	add_child(l)
+	var t := create_tween()
+	t.tween_property(l, "position:y", l.position.y - 44, 0.6)
+	t.parallel().tween_property(l, "modulate:a", 0.0, 0.6)
+	t.tween_callback(l.queue_free)
+
+func _kill(v: Dictionary) -> void:
+	if v.is_empty() or not bool(v.get("alive", true)): return
+	v["alive"] = false
+	Bgm.sfx("effect_dead")   # 원작 사망 효과음
+	var node: Node = v["node"]
+	if node is CanvasItem:
+		create_tween().tween_property(node, "modulate:a", 0.25 if v["kind"] == "party" else 0.0, 0.4)
+	# 원작 몬스터 격파 서사 — 레퍼런스 docs/ref/orig_image/battle/몬스터승리.png 하단:
+	#   "데스웜은 힘없이 비틀거리다가 쓰러졌다."  (몬스터가 사라지고 이 문장만 남는다)
+	if String(v.get("kind", "")) == "enemy":
+		var mn := String(_enemy.get("name", "몬스터"))
+		_log("%s%s 힘없이 비틀거리다가 쓰러졌다." % [mn, _josa(mn, "은", "는")])
+		# 비틀거리다 쓰러지는 동작: 좌우로 기울다가 아래로 가라앉으며 사라짐.
+		if node is Node2D:
+			var n2 := node as Node2D
+			var t := n2.create_tween()
+			t.tween_property(n2, "rotation", 0.12, 0.18).set_trans(Tween.TRANS_SINE)
+			t.tween_property(n2, "rotation", -0.14, 0.20).set_trans(Tween.TRANS_SINE)
+			t.tween_property(n2, "rotation", 0.5, 0.35).set_trans(Tween.TRANS_BACK)
+			t.parallel().tween_property(n2, "position:y", n2.position.y + 60.0, 0.35)
+
+## 한글 조사 선택(받침 유무). 원작 문장을 그대로 쓰기 위한 표기 헬퍼.
+func _josa(word: String, with_batchim: String, without: String) -> String:
+	if word.is_empty(): return without
+	var c := word.unicode_at(word.length() - 1)
+	if c < 0xAC00 or c > 0xD7A3: return without
+	return with_batchim if ((c - 0xAC00) % 28) != 0 else without
+
+func _cue(v: Dictionary) -> void:
+	if v.is_empty() or not bool(v.get("alive", true)): return
+	var node: Node = v["node"]
+	if v["kind"] == "enemy" and node is Node2D:
+		_monster_attack(v)
+	elif v["kind"] == "party" and node is Control:
+		# 원작 basicAction: 공격자가 대상(적) 방향으로 짧게 돌진 후 복귀.
+		var base: Vector2 = v["base_pos"]
+		var center: Vector2 = v["center"]
+		var enemy_c: Vector2 = _views.get("E0", {}).get("center", center + Vector2(0, -80))
+		var dir: Vector2 = (enemy_c - center).normalized()
+		var t := create_tween()
+		t.tween_property(node, "position", base + dir * 34.0, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(node, "scale", Vector2(1.08, 1.08), 0.1)
+		t.tween_property(node, "position", base, 0.16).set_trans(Tween.TRANS_QUAD)
+		t.parallel().tween_property(node, "scale", Vector2.ONE, 0.16)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 몬스터 조우/공격/피격 연출 — 원작 1:1 복원
+#
+# 원작 근거(값까지 그대로):
+#   · 등장  `AdventureScene::showMonster` (AdventureScene.c:121191~121461)
+#       SFX `music/effect_monster_in.mp3` (:121299) 후 몬스터 노드에 시퀀스:
+#         Spawn(ScaleTo 0.3 → 1.2 , MoveBy 0.3 (0,+130))        위로 솟구치며 확대
+#         Spawn(ScaleTo 0.15 → 0.8, MoveBy 0.15 (0,-120),
+#               ScaleTo 0.15 → (0.9, 0.8))                       내려찍으며 납작(스쿼시)
+#         CallFunc(setAllViewShake)                              착지 순간 화면 흔들림
+#         Spawn(ScaleTo 0.2 → 1.0 , MoveBy 0.2 (0,+20))          반동 후 정착
+#       (Cocos y+ = 위 → Godot y- 로 부호 반전)
+#   · 화면 플래시 `AdventureScene::incomeMonster(bool)` (:16274~)
+#       일반: CCLayerColor(0xEAEAEA, a=0x64) → FadeTo(0.2,200) → FadeOut(0.7)
+#       보스: CCLayerColor(0xCC3D3D, a=0)    → Delay(0.3) → FadeTo(0.2,255) → FadeOut(0.7)
+#       파티클 `particle/scene/adventure/pt_monster_income_1.plist` 를 화면 상단에 z=999999.
+#   · 흔들림 세기 `Shake::actionWithDuration(0.5, 10.0)` (setMonsterThreat :100609)
+
+## 몬스터 등장(원작 showMonster + incomeMonster).
+func _monster_income(node: Node2D) -> void:
+	var vis := _vis()
+	var boss := _is_boss()
+	# 화면 플래시(원작 incomeMonster CCLayerColor). 보스는 붉은색 + 0.3s 지연.
+	var flash := ColorRect.new()
+	flash.color = Color(0.8, 0.24, 0.24, 0.0) if boss else Color(0.918, 0.918, 0.918, 0.0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fl := CanvasLayer.new(); fl.layer = 90; add_child(fl); fl.add_child(flash)
+	var ft := flash.create_tween()
+	if boss:
+		ft.tween_interval(0.3)
+		ft.tween_property(flash, "color:a", 1.0, 0.2)      # FadeTo(0.2, 255)
+	else:
+		ft.tween_property(flash, "color:a", 200.0 / 255.0, 0.2)   # FadeTo(0.2, 200)
+	ft.tween_property(flash, "color:a", 0.0, 0.7)          # FadeOut(0.7)
+	ft.tween_callback(fl.queue_free)
+	# 등장 파티클(원작 pt_monster_income_1, 화면 상단).
+	_levelup_particle("pt_monster_income_1", vis.x * 0.5, 40.0)
+	Bgm.sfx("effect_monster_in")
+	if node == null or not is_instance_valid(node):
+		return
+	# 몬스터 본체 시퀀스(원작 showMonster). 배율은 우리 배치 배율(base)에 곱해 적용한다.
+	var base: Vector2 = node.scale
+	var pos: Vector2 = node.position
+	node.scale = base
+	var t := node.create_tween()
+	t.tween_property(node, "scale", base * 1.2, 0.3)
+	t.parallel().tween_property(node, "position", pos + Vector2(0, -130), 0.3)
+	t.tween_property(node, "scale", Vector2(base.x * 0.9, base.y * 0.8), 0.15)
+	t.parallel().tween_property(node, "position", pos + Vector2(0, -10), 0.15)
+	t.tween_callback(func(): _screen_shake(10.0))          # 원작 setAllViewShake
+	t.tween_property(node, "scale", base, 0.2)
+	t.parallel().tween_property(node, "position", pos, 0.2)
+
+## 몬스터 공격 — 원작 `BattleMonster::setAnimatedAttack` (BattleMonster.c:1310~1630).
+## 원작 구조:
+##   1) 스프라이트를 `att.png`(또는 att1/att2)로 교체 — Monster::getImagePathAtt (:1448)
+##   2) ScaleTo(0.15, base×2.2) → ScaleTo(0.05, base×2.0)   화면 쪽으로 확 다가온다 (:1561-1562)
+##   3) 4px 진동: MoveTo 0.02초 ×5(+4+4 → -4-4 → -4+4 → +4-4 → 원위치)를 **8회 반복** (:1606-1629, :1567)
+## 즉 원작 몬스터 공격은 "앞으로 나오는 돌진"이 아니라 **att 아트가 2배로 확대되며 부르르 떠는** 연출이다.
+## (이전 구현의 y+24 짧은 바운스는 원작에 없다.)
+const _MON_ATK_JITTER := 4.0     # 원작 리터럴 4px
+const _MON_ATK_REPEAT := 8       # 원작 CCSequence 에 진동 시퀀스가 8번 들어간다
+func _monster_attack(v: Dictionary) -> void:
+	var node: Node2D = v["node"]
+	var base_pos: Vector2 = v["base_pos"]
+	var att: Sprite2D = v.get("att_node")
+	var sp := maxf(0.5, _speed)
+	# att 포즈로 교체(원작 1단계). 없으면 스파인 그대로 확대만.
+	var target: Node2D = node
+	if att != null and is_instance_valid(att):
+		att.position = base_pos
+		att.scale = Vector2.ONE * 1.6      # _spr 로 만들 때의 기준 배율
+		node.visible = false; att.visible = true
+		target = att
+	var base_scale: Vector2 = target.scale
+	var t := target.create_tween()
+	t.tween_property(target, "scale", base_scale * 2.2, 0.15 / sp)
+	t.tween_property(target, "scale", base_scale * 2.0, 0.05 / sp)
+	# 진동(원작 3단계) — 대각 4방향을 0.02초씩 돌고 원위치, 8회.
+	var d := _MON_ATK_JITTER
+	for i in _MON_ATK_REPEAT:
+		for off in [Vector2(d, d), Vector2(-d, -d), Vector2(-d, d), Vector2(d, -d), Vector2.ZERO]:
+			t.tween_property(target, "position", base_pos + off, 0.02 / sp)
+	t.tween_property(target, "scale", base_scale, 0.1 / sp)
+	t.tween_callback(func():
+		if is_instance_valid(node): node.visible = true
+		if att != null and is_instance_valid(att): att.visible = false)
+
+## 몬스터 피격 — 원작 `BattleMonster::setAnimatedHit` (BattleMonster.c:3333~3705).
+## 원작 구조:
+##   1) 스프라이트를 `hit.png`(또는 hit1/hit2)로 교체 — Monster::getImagePathHit (:3644)
+##   2) 붉은 틴트 점멸 2회: TintTo(0,255,0,0) → Delay(t×0.025) → TintTo(0,255,255,255)
+##      → Delay(t×0.05) → 같은 쌍 한 번 더 (:3688-3697)
+##   3) ScaleTo(0.05, base) (:3698) + Shake(t×0.7, 10.0) (:3702)
+## t = 연출 시간계수(속도배속). 우리는 _speed 로 나눈다.
+func _monster_hit_motion(v: Dictionary) -> void:
+	var node: Node2D = v.get("node")
+	if node == null or not is_instance_valid(node): return
+	var sp := maxf(0.5, _speed)
+	var hit: Sprite2D = v.get("hit_node")
+	var target: CanvasItem = node
+	if hit != null and is_instance_valid(hit):
+		hit.position = v["base_pos"]
+		node.visible = false; hit.visible = true
+		target = hit
+	var red := Color(1, 0, 0)
+	var white := Color.WHITE
+	var t := target.create_tween()
+	for i in 2:                                   # 원작: 붉은 점멸 2회
+		t.tween_callback(func(): if is_instance_valid(target): target.modulate = red)
+		t.tween_interval(0.025 / sp)
+		t.tween_callback(func(): if is_instance_valid(target): target.modulate = white)
+		t.tween_interval(0.05 / sp)
+	t.tween_callback(func():
+		if is_instance_valid(target): target.modulate = white
+		if hit != null and is_instance_valid(hit): hit.visible = false
+		if is_instance_valid(node): node.visible = true)
+	_screen_shake(10.0)                           # 원작 Shake(t×0.7, 10.0)
+
+## 크리티컬 연타 횟수. 원작 `Dragon::getCriticalHit()`(DB `info_dragon_v2.critical_hit`)이고
+## 타이밍은 `FightDragon::createCriticalFrame` 이 DB `critical_frame` 을 30fps 프레임으로 파싱한다
+## (`(i*0.1 + 1.0) / 0.033332903`, docs/ref/orig_code/decomp/FightDragon.c:351-405) — 즉 **0.1초 간격**.
+## 두 값 모두 서버 DB라 유실 → 드래곤별 값이 있으면 그걸, 없으면 `combat.json judge.crit_hits`.
+func _crit_hits(caster: Dictionary) -> int:
+	var n := int(caster.get("critical_hit", 0))
+	if n <= 0:
+		n = int((Data.combat.get("judge", {}) as Dictionary).get("crit_hits", 1))
+	return maxi(1, n)
+
+## 타격 n회(연타).
+##
+## 간격 0.1초는 원작에서 나온 값이다 — `FightDragon::createCriticalFrame` 이 DB `critical_frame`
+## 을 `(i*0.1 + 1.0) / 0.033332903`(30fps 프레임)로 바꾼다. 반면 **횟수(`critical_hit`)는 유실**이라
+## 2026-07-27 사용자 승인으로 HARD RULE 6(수치 날조 금지)의 **예외**로 두고 우리가 설계했다:
+##   · 기본 2회 (`combat.json judge.crit_hits`) — 드래곤별 값이 있으면 그쪽이 우선
+##   · 총 피해량은 **바뀌지 않는다**. 연출만 n회로 쪼갠다(로직 층은 손대지 않음 → §8 계층 유지)
+##   · 마지막 타가 가장 세게 보이도록 임팩트를 뒤로 갈수록 키운다(연타의 타감)
+func _strike(target: Dictionary, crit: bool, hits: int) -> void:
+	var n := maxi(1, hits)
+	for i in n:
+		if i > 0:
+			await get_tree().create_timer(0.1 / maxf(0.5, _speed)).timeout
+			if not is_inside_tree() or target.is_empty():
+				return
+		# 크리티컬은 타격 스파인이 다르다 — case 3·4(hit, x2.5) + effect_headbutt.
+		_normal_attack_fx(target, _CRIT_FX if crit else {})
+		# 마지막 타에만 유리깨짐(원작 monster/hit_effect)을 크게 — 중간 타는 임팩트만.
+		_normal_impact(target, crit and i == n - 1)
+		if i == n - 1:
+			_hit_crack(target, crit)
+
+## 크리티컬 전체 시퀀스 (2026-07-27 사용자 지정 순서로 재구성):
+##
+##   드래곤별 음성(voice_critical) + 컷인  →  hit 타격음·타격효과 × 연타  →  화면 전체 크리티컬 아트
+##
+## 각 조각의 근거는 해당 함수 주석에 있다:
+##   `_crit_voice`(Dragon.c:13478-13526 voice_critical_no) · `_critical_cutin`(PvP·PvE 공통) ·
+##   `_CRIT_FX`(firstAttackEffect case 3·4) · `_critical_art`(getImagePathCritical, 화면 전체).
+## 타격 간격 0.1초는 원작 확정값(createCriticalFrame), 횟수는 `_crit_hits`(설계값).
+## 🔴 2026-07-27 수정 — 세 조각이 서로를 가려서 **타격 스파인이 한 프레임도 안 보였다**.
+##   컷인은 CanvasLayer 40, 크리티컬 아트는 41 인데 타격 스파인은 몬스터 노드의 자식(레이어 0)이다.
+##   타이밍이 0.5초 대기 → 타격(0.2초짜리 ×2) → 즉시 아트였으므로 타격 구간 0.5~0.8초가
+##   앞은 컷인 막(alpha 150)에, 뒤는 화면 전체 아트에 완전히 덮였다.
+##   ⇒ 순서(사용자 지정)는 그대로 두고 **겹침만 없앤다**: 컷인이 걷힌 뒤 때리고, 마지막 타의
+##     스파인이 끝난 뒤 아트를 띄운다.
+func _critical_sequence(caster: Dictionary, target: Dictionary) -> void:
+	_crit_voice(caster)
+	_critical_cutin(caster)
+	# 컷인 오버레이(막 + 밴드)가 **완전히 걷힌 뒤** 타격으로 넘어간다 — 정리 시각과 같은 식.
+	await get_tree().create_timer(_CUTIN_TOTAL / maxf(0.5, _speed)).timeout
+	if not is_inside_tree():
+		return
+	var n := _crit_hits(caster)
+	await _strike(target, true, n)
+	if not is_inside_tree():
+		return
+	# 마지막 타의 hit 스파인이 끝날 시간을 준다. 아트는 화면 전체(CanvasLayer 41)라 겹치면 덮는다.
+	await get_tree().create_timer(_HIT_FX_DUR / maxf(0.5, _speed)).timeout
+	if not is_inside_tree():
+		return
+	_critical_art(caster)
+
+## 크리티컬 음성 — 원작은 드래곤마다 다른 보이스(`voice_critical_no` → `music/voice<N>.mp3`).
+## 매핑이 유실이라 값이 없으면 속성별 `effect_critical*` 로 폴백한다.
+func _crit_voice(caster: Dictionary) -> void:
+	var v := int(caster.get("voice_critical", 0))
+	if v > 0:
+		Bgm.sfx("voice%d" % v)
+	else:
+		Bgm.sfx(_CRIT_SFX.get(String(caster.get("element", "")), "effect_critical"))
+
+## PvE 크리티컬 아트 — `dragon/dragon_%d_critical/critical.png`(각성이면 `e_critical.png`).
+## 원작 게터는 `Dragon::getImagePathCritical`(Dragon.c:8576-8650, 각성 분기는 컷인과 같은 0xac).
+##
+## 배치 근거: **화면 정중앙 · 화면 전체 크기**(2026-07-27 사용자 확인).
+##   프레임 실측이 이를 뒷받침한다 — 372종 중 대부분이 384×260, 일부가 **768×519**인데
+##   768×519 는 원작 리소스 기준 화면 크기 그 자체다(CLAUDE.md §9). 384×260 은 정확히 그 절반이라
+##   **가로를 화면 폭에 맞추면 두 변형 모두 화면을 꽉 채운다**(260×2.67≒692 = 디자인 높이).
+##   그래서 배율은 `vis.x / w` 하나로 충분하다.
+## ⚠️ PvP 크리티컬(왼→오른쪽으로 쏘는 작은 연출)은 `MakeInterface::criticalEffectMake` 의
+##   스파인이며 별개다 — `_critical_spine()` 에 남겨 뒀지만 탐험에서는 부르지 않는다.
+func _critical_art(caster: Dictionary) -> bool:
+	var cid := int(caster.get("id", 0))
+	var dir := "critical_%d" % cid
+	var man := _man(dir)
+	if man.is_empty():
+		return false
+	var key := "dragon_dragon_%d_critical_critical" % cid
+	if bool(caster.get("awakened", false)):
+		var ekey := "dragon_dragon_%d_critical_e_critical" % cid
+		if man.has(ekey):
+			key = ekey
+	var ent: Dictionary = man.get(key, {})
+	# ⚠️ 배율은 **트림된 프레임(w)이 아니라 원본 캔버스(src)** 기준이어야 한다.
+	#   아틀라스가 투명 여백을 잘라내서 프레임 크기가 드래곤마다 제각각이다(280×260 … 384×260).
+	#   src 는 대부분 384×260(일부 768×519·576×389)이고 셋 다 화면비 1.48 = 768/519 로 같다.
+	#   ⇒ src 가로를 화면 폭에 맞추면 어떤 변형이든 화면을 꽉 채운다.
+	var src: Array = ent.get("src", [ent.get("w", 0), ent.get("h", 0)])
+	var sw := float(src[0])
+	if sw <= 0.0:
+		return false
+	var vis := _vis()
+	var s := vis.x / sw
+	var spr := _spr(dir, key, man, s)
+	if spr == null:
+		return false
+	# 트림 오프셋 보정 — cocos off = (트림중심 − 원본캔버스중심), y-up (dungeon_bg.gd 와 같은 규약).
+	var off: Array = ent.get("off", [0, 0])
+	spr.position = vis * 0.5 + Vector2(float(off[0]), -float(off[1])) * s
+	spr.z_index = 120
+	var lay := CanvasLayer.new()
+	lay.layer = 41                    # 컷인(40) 위
+	add_child(lay)
+	lay.add_child(spr)
+	var t := spr.create_tween()
+	t.tween_interval(0.45 / maxf(0.5, _speed))
+	t.tween_property(spr, "modulate:a", 0.0, 0.18)
+	t.tween_callback(func(): if is_instance_valid(lay): lay.queue_free())
+	return true
+
+## 일반공격 아트 — 원작 `MakeInterface::firstAttackEffect(CCNode*, int attackType)`
+## (`MakeInterface.c:14990-15120`, `secondAttackEffect`:31409 도 동일 3종). 타입별 파라미터까지 원작 그대로:
+##
+## | attackType | 스파인 | 원작 tag | 원작 파라미터 |
+## |---|---|---|---|
+## | 1 | `skill/skill_1_bite_spine`    | -0xf3dda   | tint 0xfff0c226 · 지속 1.0 |
+## | 2 | `skill/skill_1_scratch_spine` | -0xd151c   | tint 0xfff2eae4 · **setScaleX 음수(X반전)** · 지속 1.5 |
+## | 3,4 | `skill/skill_1_hit_spine`   | -0xc3ca11  | tint 0xff3c35ef · **배율 ×2.5** |
+##
+## 공통: `createWithFile(json, atlas, 1.0)` → `setVisible(0)` → `addChild(spine, 10)`.
+##
+## ⚠️ ASSUMPTION — **타입 선택은 매 공격 랜덤**(사용자 확인: "같은 드래곤이라도 발톱/물기가 섞인다").
+##   `Dragon::getAttackType()` 은 스킨 문자열 처리 후 필드를 돌려주는 게터라 자체 랜덤이 없고,
+##   `firstAttackEffect` 의 **호출부는 디컴파일 400+클래스에 없어** 선택 규칙을 코드로 확인하지 못했다.
+##   가중치는 균등으로 둔다(근거 없음 — 확인되면 여기만 고친다).
+## 효과음도 타입별로 다르다. `effect_scratch` · `effect_headbutt` 는 원작 전투 프리로드 목록
+##   (`MakeInterface::preloadHeavyResource`)에 **실재**하고, `effect_bite` 는 파일은 있으나
+##   그 목록엔 없다 → bite 사운드는 이름 대응으로 둔 ASSUMPTION.
+## 일반공격은 case 1·2(물기·발톱)만 쓴다 — 사용자 확인: 탐험 일반공격에서 타격(case 3·4)은 본 적이 없다.
+const _ATK_FX := [
+	{"scene": "skill_1_bite_spine", "sfx": "effect_bite", "scale": 1.0, "flip": false},
+	{"scene": "skill_1_scratch_spine", "sfx": "effect_scratch", "scale": 1.0, "flip": true},
+]
+
+## 크리티컬 타격 = 원작 스위치 case 3·4(`skill_1_hit_spine`, **배율 ×2.5**, tint 0xff3c35ef).
+##
+## 재구성 근거(2026-07-27 사용자 가설 → 스키마로 확인). 직접 증거는 아니고 정황이 전부 맞는 것이다:
+##  · `info_dragon_v2` 의 컬럼 6~9 가 연속된 int 4개다 —
+##      6 `attack_type` · 7 **`critical_type`** · 8 `critical_hit`(횟수) · 9 **`critical_type_ad`**
+##    ⇒ 일반공격 타입과 크리티컬 타입이 **별개 컬럼**이다. `firstAttackEffect(node, int)` 는
+##    타입 번호만 받으므로 같은 3종 스파인을 일반은 attack_type, 크리 는 critical_type 으로 고른다.
+##  · `firstAttackEffect`/`secondAttackEffect` 가 같은 3종을 쓰면서 **태그가 다르다**
+##    (first: -0xf3dda/-0xd151c/-0xc3ca11, second: -0xb6901/-0x2c6c65/-0xb7b3e5)
+##    ⇒ 1타·2타를 따로 띄우는 구조 = 연타. `critical_type`(1타) + `critical_type_ad`(2타) 쌍과 맞물린다.
+##  · 셋 중 hit 만 ×2.5 로 가장 크다 — 크리티컬용이라는 해석에 부합.
+##  · `effect_headbutt` 은 원작 전투 프리로드 목록에 실재한다(`MakeInterface::preloadHeavyResource`).
+## ⚠️ 미확정: `firstAttackEffect` 의 **호출부가 디컴파일 400+클래스에 없어** 인자가 attack_type 인지
+##   critical_type 인지는 코드로 못 봤다. critical_type 의 값(3인지 4인지)도 서버 데이터라 유실.
+const _CRIT_FX := {"scene": "skill_1_hit_spine", "sfx": "effect_headbutt", "scale": 2.5, "flip": false}
+## 타격 스파인 재생 길이 — `scenes/fx/skill_1_hit_spine.tscn` 의 `animation` 길이(0.2초, 30fps 6프레임).
+## 크리티컬 시퀀스가 이 시간을 기다린 뒤 전체 아트로 넘어간다(안 기다리면 아트가 타격을 덮는다).
+const _HIT_FX_DUR := 0.2
+## 🔴 원작 노드 구조 (2026-07-27 디컴프로 확정) — **이펙트는 몸통의 형제다**
+##
+## `BattleMonster` 는 `getAnimatedSpriteNode()`(this+0x58) 컨테이너 하나를 두고 그 **자식으로**
+## 몸통과 이펙트를 나란히 붙인다(BattleMonster.c:3578-3596 정리 루프에서 태그가 드러난다):
+##
+##     컨테이너 (getAnimatedSpriteNode)
+##     ├─ tag 200    idle 스파인 `wait`      ← 피격 시 setVisible(false)  (:3589-3591)
+##     ├─ tag 300    hit 아트 스프라이트      ← 피격 시 생성해 addChild    (:3655-3657)
+##     ├─ tag 0x12f  att 아트 스프라이트      ← 정리 루프가 건너뛴다       (:3592-3593)
+##     ├─ tag 0xbc8  상시 이펙트 스파인       ← 정리 루프 **예외**         (:3582, :5122)
+##     └─ 그 외      removeFromParentAndCleanup(true)                     (:3594-3596)
+##
+## 즉 **원작도 피격 때 스파인을 숨긴다**(프레임 교체가 아니다). 그래도 이펙트가 안 사라지는 이유는
+## 이펙트가 스파인의 자식이 아니라 **컨테이너의 형제**이기 때문이다. 스킬 이펙트도 같다 —
+## `AdventureScene::setCheckShildImpact` 가 `BattleMonster::getAnimatedSpriteNode()` 를 부모로
+## `addChild(spine, 100)` 한다(AdventureScene.c:38855, 부모 추적 = plVar10).
+##
+## 우리 트리에서는 `self` 가 그 컨테이너 역할이다(mspr·att_spr·hit_spr 가 전부 self 의 자식).
+## 그래서 이펙트도 **self 의 자식**으로 붙인다.
+##   🔴 이전에는 `node`(=몬스터 스파인)의 자식으로 붙여서 `_monster_hit_motion` 이
+##      `node.visible = false` 하는 0.15초 동안 이펙트가 함께 사라졌다(2026-07-27 수정).
+##   부수 효과로 몸통 진동/확대를 물려받지 않게 되는데 **그게 원작과 같다** — 원작이 흔드는 것은
+##   컨테이너가 아니라 att/hit 스프라이트다(setAnimatedAttack/Hit 가 그 스프라이트에 runAction).
+##
+## `entry` 를 주면 그 타입으로, 안 주면 일반공격 2종 중 랜덤.
+func _normal_attack_fx(target: Dictionary, entry := {}) -> bool:
+	if target.is_empty(): return false
+	var pick: Dictionary = entry if not entry.is_empty() else _ATK_FX[randi() % _ATK_FX.size()]
+	var path := "res://scenes/fx/%s.tscn" % pick["scene"]
+	if not ResourceLoader.exists(path):
+		return false
+	var holder := Node2D.new()
+	holder.z_index = 10                                  # 원작 addChild(spine, 10)
+	add_child(holder)
+	holder.position = target.get("center", _vis() * 0.5)
+	# 몸통 배율(몬스터 0.85 / 보스 0.66)은 우리 레이아웃 값이라 이펙트에도 같이 곱해 크기를 유지한다.
+	var bs: Vector2 = target.get("base_scale", Vector2.ONE)
+	var s := float(pick["scale"])
+	holder.scale = Vector2(-s if bool(pick["flip"]) else s, s) * bs
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+	if ap == null or not ap.has_animation("animation"):
+		holder.queue_free()
+		return false
+	ap.get_animation("animation").loop_mode = Animation.LOOP_NONE
+	ap.play("animation")
+	Bgm.sfx(String(pick["sfx"]))
+	var t := holder.create_tween()
+	t.tween_interval(ap.get_animation("animation").length / maxf(0.5, _speed))
+	t.tween_callback(holder.queue_free)
+	return true
+
+## 원작 일반공격 타격 연출: scene/adventure/effect_bullet(임팩트) + txt_hit(HIT). 피격 지점에 순간 표시.
+func _normal_impact(v: Dictionary, crit: bool) -> void:
+	if v.is_empty(): return
+	var c: Vector2 = v.get("center", _vis() * 0.5)
+	# effect_bullet(229×201): 타격 임팩트 — 작게 팡 터지고 사라짐(가산 블렌드).
+	var b := _spr("adventure_ui", "scene_adventure_effect_bullet", _adv, 1.0)
+	if b:
+		b.position = c
+		b.z_index = 95
+		b.scale = Vector2(0.35, 0.35) * (1.25 if crit else 1.0)
+		var am := CanvasItemMaterial.new(); am.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		b.material = am
+		add_child(b)
+		var tb := b.create_tween()
+		tb.tween_property(b, "scale", Vector2(0.72, 0.72) * (1.25 if crit else 1.0), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tb.parallel().tween_property(b, "rotation", randf_range(-0.3, 0.3), 0.12)
+		tb.tween_property(b, "modulate:a", 0.0, 0.16)
+		tb.tween_callback(b.queue_free)
+	# 🔴 2026-07-26 제거: 여기서 `scene/adventure/txt_hit`("HIT!")를 띄우고 있었지만,
+	#   그 프레임의 원작 소유자는 **ShadowMonsterLayer**(탐험의 그림자 몬스터 탭 미니게임)다
+	#   (`asset_index.py --grep txt_hit` → orig=ShadowMonsterLayer). 전투 화면에는 쓰이지 않는다.
+	#   레퍼런스 docs/ref/orig_image/battle/{몬스터피격,몬스터피격2,몬스터중상}.png 어디에도 "HIT!"가 없고,
+	#   대신 **붓글씨 의성어**(monster/hit_talk)와 큰 데미지 숫자만 뜬다 → _hit_talk()로 대체.
+	#   txt_hit/txt_miss는 adventure.gd의 그림자 미니게임에서 계속 원작대로 쓴다.
+
+## 몬스터 피격 유리깨짐 — 원작 `monster/hit_effect/hit_effect_1.png` · `_2.png`(384×260).
+## 근거: `asset_index.py --grep hit_effect` → 원작 사용(libgame.so), 우리는 미사용이었다(🟠).
+##   레퍼런스 docs/ref/orig_image/battle/몬스터공격.png = 몬스터 위에 흰 유리 균열이 크게 깔린다.
+## 2프레임을 빠르게 갈아끼워 "쩍" 하고 갈라진 뒤 흩어지듯 사라진다.
+func _hit_crack(v: Dictionary, crit: bool) -> void:
+	if v.is_empty(): return
+	var man := _man("hit_effect")
+	var f1 := _spr("hit_effect", "monster_hit_effect_hit_effect_1", man, Design.ASSET_SCALE)
+	if f1 == null: return
+	var c: Vector2 = v.get("center", _vis() * 0.5)
+	f1.position = c
+	f1.z_index = 97
+	f1.scale *= (1.25 if crit else 1.0)
+	f1.rotation += randf_range(-0.25, 0.25)
+	add_child(f1)
+	var f2 := _spr("hit_effect", "monster_hit_effect_hit_effect_2", man, Design.ASSET_SCALE)
+	if f2:
+		f2.position = c; f2.z_index = 97; f2.visible = false
+		f2.scale = f1.scale; f2.rotation = f1.rotation
+		add_child(f2)
+	var t := create_tween()
+	t.tween_interval(0.07)
+	t.tween_callback(func():
+		if is_instance_valid(f1): f1.visible = false
+		if is_instance_valid(f2): f2.visible = true)
+	t.tween_interval(0.10)
+	t.tween_callback(func():
+		for n: Sprite2D in [f1, f2]:
+			if not is_instance_valid(n): continue
+			var ft: Tween = n.create_tween()
+			ft.tween_property(n, "modulate:a", 0.0, 0.18)
+			ft.parallel().tween_property(n, "scale", n.scale * 1.15, 0.18)
+			ft.tween_callback(n.queue_free))
+
+## 몬스터 타격 의성어 — 원작 `monster/hit_talk/story{N}_{KR|EN|JP}.png`(붓글씨 "우쩍/크엑!/컥!" 등 31종).
+## 근거: `asset_index.py --grep hit_talk` → 93프레임(언어 3종 × 31), 원작 패턴
+##   `monster/hit_talk/story%d_%s.png`, 우리는 전량 미사용이었다(🟠). DV2/480/monster/hit_talk.img_plist.
+## 레퍼런스 docs/ref/orig_image/battle/몬스터피격2.png: 몬스터를 때린 순간 화면 **우상단**에 큰 붓글씨("우쩍")가
+##   기울어져 팍 나타났다 사라진다. 폭은 화면의 약 30%(390px/1305 → 실측).
+var _hit_talk_keys: Array = []
+## 화면에 떠 있는 의성어 한 장(원작은 동시에 하나).
+var _hit_talk_node: Node2D = null
+## 레퍼런스 실측값 — 위 bbox 계산 근거.
+const _HIT_TALK_W := 0.293
+const _HIT_TALK_CX := 0.696
+const _HIT_TALK_CY := 0.174
+
+func _hit_talk() -> void:
+	if _hit_talk_keys.is_empty():
+		var man := _man("hit_talk")
+		for k in man.keys():
+			if String(k).ends_with("_KR"): _hit_talk_keys.append(String(k))
+		_hit_talk_keys.sort()
+	if _hit_talk_keys.is_empty(): return
+	# 원작 레퍼런스(docs/ref/orig_image/battle/몬스터피격2.png)에는 의성어가 **항상 한 장뿐**이다.
+	# 연타 시 이전 것을 지우지 않아 겹쳐 쌓이던 버그를 여기서 막는다.
+	if is_instance_valid(_hit_talk_node):
+		_hit_talk_node.queue_free()
+		_hit_talk_node = null
+	var key: String = _hit_talk_keys[randi() % _hit_talk_keys.size()]
+	var man2 := _man("hit_talk")
+	var info: Dictionary = man2.get(key, {})
+	var w := maxf(1.0, float(info.get("w", 180)))
+	var vis := _vis()
+	# 레퍼런스 실측(docs/ref/orig_image/battle/몬스터피격2.png, 1304x740 / 워터마크 제외 흰테두리 검은획 bbox):
+	#   폭 382/1304 = 0.293 · 중심 x 0.696 · 중심 y 0.174(위가 화면 밖으로 잘려 실제는 더 위)
+	var sp := _spr("hit_talk", key, man2, (vis.x * _HIT_TALK_W) / w)
+	if sp == null: return
+	sp.position = Vector2(vis.x * _HIT_TALK_CX, vis.y * _HIT_TALK_CY)
+	_hit_talk_node = sp
+	sp.rotation = randf_range(-0.12, 0.12)
+	sp.z_index = 99
+	add_child(sp)
+	sp.scale *= 0.5
+	var target := sp.scale * 2.0
+	var t := sp.create_tween()
+	t.tween_property(sp, "scale", target, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_interval(0.30)
+	t.tween_property(sp, "modulate:a", 0.0, 0.20)
+	t.tween_callback(sp.queue_free)
+
+## 크리티컬 컷인. 본체 = `scripts/ui/cutin.gd`(DragonCutin) — 레벨업 화면의 트리플맥스가
+## 같은 컷인을 쓰므로 공용 헬퍼로 뽑았다(2026-07-27). 원작 근거·시간값은 그쪽 헤더에 있다.
+## 크리티컬 시퀀스가 이 값만큼 기다린 뒤 타격을 넣는다(그 전에 때리면 막 아래에 깔려 안 보인다).
+const _CUTIN_TOTAL := DragonCutin.TOTAL
+
+func _critical_cutin(caster: Dictionary) -> void:
+	# 본체는 `scripts/ui/cutin.gd`(DragonCutin) 로 옮겼다 — 레벨업 화면의 트리플맥스 연출이
+	# 같은 컷인을 쓰기 때문(사용자 확인 2026-07-27). 연출 파라미터·원작 근거는 그쪽 주석 참조.
+	DragonCutin.show(self, caster, _speed)
+
+
+## 크리티컬 스파인 — 원작 `MakeInterface::criticalEffectMake`(MakeInterface.c:9853-9925) +
+## `criticalPlaceEffect`(:9935-) 를 그대로 옮긴 것. 포팅 카드: `docs/ref/porting/MakeInterface_critical.md`.
+##
+##   getAwaken()==0 ? "dragon/dragon_%d_critical_spine.spine_json"
+##                  : "dragon/dragon_%d_e_critical_spine.spine_json"
+##   아틀라스 = dragon/dragon_%d_spine.img_plist   ← 크리티컬 전용이 아니라 **일반 스파인 아틀라스**
+##   createWithFile(json, atlas, 1.0) · setScaleX(음수 = X반전) · addChild(spine, 8, -2)
+##   재생 = Show → runSpineWithAnimationName("animation") → DelayTime(getDuration("animation"))
+##
+## ⚠️ 붙는 곳은 **공격자가 아니라 대상(target)의 레이어**다 — 원작이 param_2(target)의
+##    getDragonLayer() 에 addChild 한다. 스파인 자체는 공격자(param_1) 것을 쓴다.
+func _critical_spine(caster: Dictionary, target: Dictionary) -> bool:
+	var cid := int(caster.get("id", 0))
+	var stage := "e_critical" if bool(caster.get("awakened", false)) else "critical"
+	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [cid, stage]
+	if not ResourceLoader.exists(path):
+		# 각성본이 없으면 기본 크리티컬로 폴백(원본에 e_ 스켈레톤이 없는 드래곤이 다수다).
+		path = "res://scenes/dragons/dragon_%d_critical.tscn" % cid
+		if not ResourceLoader.exists(path):
+			return false
+	var holder := Node2D.new()
+	holder.z_index = 8                                   # 원작 addChild(spine, 8, -2)
+	var node = target.get("node")
+	if node is Node2D and is_instance_valid(node):
+		node.add_child(holder)
+	else:
+		add_child(holder)
+		holder.position = target.get("center", _vis() * 0.5)
+	# 원작 setScaleX(-(|scaleX|/scaleY) * n) — 부호가 핵심(공격 방향으로 뒤집는다).
+	# ASSUMPTION: 배율 크기는 대상 레이어의 스케일 비에서 오는데 우리 카드/스프라이트는
+	#   그 계층이 없다 → 반전만 취하고 크기는 원작 createWithFile 배율 1.0 을 쓴다.
+	holder.scale = Vector2(-1.0, 1.0)
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+	if ap == null:
+		holder.queue_free()
+		return false
+	# 원작은 `runSpineWithAnimationName("animation")` 하나만 쓴다. 다만 원본 스켈레톤 중
+	# `dragon_4007` 은 애니 이름이 `critical` 이라 그대로는 아무것도 재생되지 않는다
+	# (원작에서도 마찬가지였을 것이다). ASSUMPTION: 데이터 편차로 보고 대체명을 하나 허용한다.
+	var pick := ""
+	for cand in ["animation", "critical"]:
+		if ap.has_animation(cand):
+			pick = cand
+			break
+	if pick == "":
+		holder.queue_free()          # dragon_9999(플레이스홀더 스켈레톤) 등
+		return false
+	ap.get_animation(pick).loop_mode = Animation.LOOP_NONE
+	ap.play(pick)
+	# 원작은 `CCDelayTime(getDuration("animation"))` — 애니 길이만큼만 띄운다(고정 초가 아니다).
+	var t := holder.create_tween()
+	t.tween_interval(ap.get_animation(pick).length / maxf(0.5, _speed))
+	t.tween_callback(holder.queue_free)
+	return true
+
+## 원작 데미지 숫자 폰트(font_normal = "Fontdinerdotcom Huggable", 숫자 0-9 전용 비트맵).
+## 숫자만 담아 두부 위험 0. 크리티컬 = 금색+확대(원작도 별도 "!"글자 없음).
+const _NUM_FONT := "res://assets/480/font/font_normal.fnt"
+var _num_font_cache: Font = null
+func _dmg_number(pos: Vector2, dmg: int, crit: bool) -> void:
+	var l := Label.new()
+	l.text = str(dmg)   # 순수 숫자만(font_normal 커버)
+	if _num_font_cache == null and ResourceLoader.exists(_NUM_FONT):
+		_num_font_cache = load(_NUM_FONT)
+	if _num_font_cache != null:
+		l.add_theme_font_override("font", _num_font_cache)
+	# 원작 InterFace::setDamagedHp — font_normal.fnt(원본 size **56**)에 setScale **1.5**(일반)/
+	# **2.0**(강타·크리)를 건다 ⇒ 표시 크기 84 / 112 포인트.
+	# 근거: docs/ref/orig_code/decomp/InterFace.c:6435 CCLabelBMFont(font/font_normal.fnt),
+	#       :6544-6553 fVar29 = 1.5 / 2.0, :6554 CCScaleTo(0, fVar29);
+	#       assets/480/font/font_normal.fnt `info ... size=56`.
+	# 레퍼런스 실측(docs/ref/orig_image/battle/몬스터피격.png "45") 숫자 높이 ≈ 90px / 1.062 = 85 디자인px ≒ 84 ✓
+	# (이전 구현은 28/40 — 원작의 1/3 크기였다.)
+	var base := 56.0
+	var s := 2.0 if crit else 1.5
+	l.add_theme_font_size_override("font_size", int(round(base * s)))
+	l.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2) if crit else Color.WHITE)
+	l.add_theme_color_override("font_outline_color", Color(0.4, 0.1, 0.0, 0.9) if crit else Color(0, 0, 0, 0.85))
+	l.add_theme_constant_override("outline_size", 6 if crit else 5)
+	l.z_index = 101
+	l.position = pos + Vector2(-24 if crit else -18, -60)
+	add_child(l)
+	# 원작 연출: JumpTo(0.5·dur, 목표, 높이 **150**, 1회) EaseInOut(0.375) +
+	#   ScaleTo(0.05·dur, s*1.1) → ScaleTo(0.05·dur, s) → ScaleTo(0.4·dur, s*0.8) +
+	#   Delay(0.25·dur) → FadeTo(0.25·dur, 0) EaseOut.  (InterFace.c:6554-6570)
+	#   목표 x 오프셋 = ±75(일반) / ±112.5(강타).
+	const DUR := 0.9
+	var dx := (112.5 if crit else 75.0) * (1.0 if (dmg % 2) == 0 else -1.0)
+	l.pivot_offset = Vector2(20, 20)
+	var jt := create_tween()
+	jt.tween_property(l, "position:x", l.position.x + dx, DUR * 0.5).set_trans(Tween.TRANS_SINE)
+	var jy := create_tween()   # 점프 궤적(위로 150 올랐다 내려옴)
+	jy.tween_property(l, "position:y", l.position.y - 150.0, DUR * 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	jy.tween_property(l, "position:y", l.position.y, DUR * 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var st := create_tween()
+	st.tween_property(l, "scale", Vector2(1.1, 1.1), DUR * 0.05)
+	st.tween_property(l, "scale", Vector2.ONE, DUR * 0.05)
+	st.tween_property(l, "scale", Vector2(0.8, 0.8), DUR * 0.4)
+	var ft := create_tween()
+	ft.tween_interval(DUR * 0.25)
+	ft.tween_property(l, "modulate:a", 0.0, DUR * 0.25).set_ease(Tween.EASE_OUT)
+	ft.tween_callback(l.queue_free)
+
+func _float(pos: Vector2, text: String, color: Color, size: int) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_constant_override("outline_size", 4)
+	l.position = pos + Vector2(-10, -10)
+	l.z_index = 100
+	add_child(l)
+	var t := create_tween()
+	t.tween_property(l, "position:y", l.position.y - 46, 0.6)
+	t.parallel().tween_property(l, "modulate:a", 0.0, 0.6)
+	t.tween_callback(l.queue_free)
+
+func _fx_text(v: Dictionary, frame: String, fallback: String, col: Color, adv_frame := "") -> void:
+	if v.is_empty(): return
+	# 1순위 battle_ui, 2순위 adventure_ui(원작 txt_miss 등), 최후 텍스트 폴백.
+	var s: Sprite2D = null
+	if frame != "":
+		s = _spr("battle_ui", frame, _bat, 0.9)
+	if s == null and adv_frame != "":
+		s = _spr("adventure_ui", adv_frame, _adv, 0.9)
+	if s:
+		s.position = v["center"] + Vector2(0, -30)
+		s.z_index = 100
+		add_child(s)
+		var t := create_tween()
+		t.tween_property(s, "position:y", s.position.y - 30, 0.5)
+		t.parallel().tween_property(s, "modulate:a", 0.0, 0.5)
+		t.tween_callback(s.queue_free)
+		return
+	_float(v["center"] + Vector2(0, -20), fallback, col, 20)
+
+## 각성 게이지 미러. 충전량은 로직(Battle._act)과 **같은 출처**를 본다 —
+## `data/combat.json awaken.charge_per_turn`. 여기 숫자를 박아 두면 로직과 어긋난다.
+## ⚠️ 게이지 바 자체는 숨김이다(_party_card 참조). 시스템은 그대로 돌아간다.
+func _charge_gauge(v: Dictionary) -> void:
+	if v.is_empty() or v.get("kind") != "party": return
+	var per := float(Data.combat.get("awaken", {}).get("charge_per_turn", 3.6))
+	_set_gauge(v, minf(100.0, float(v.get("gauge", 0.0)) + per))
+
+func _set_gauge(v: Dictionary, val: float) -> void:
+	if v.is_empty() or v.get("kind") != "party": return
+	v["gauge"] = val
+	var fill = v.get("gauge_fill", null)
+	if fill != null and is_instance_valid(fill):
+		var w := float(v.get("gauge_w", 100)) * clampf(val / 100.0, 0.0, 1.0)
+		create_tween().tween_property(fill, "size:x", w, 0.2)
+		# 만충 시 반짝(발동 임박)
+		(fill as ColorRect).color = Color(1, 0.95, 0.5) if val >= 100.0 else Color(1, 0.8, 0.25)
+
+## 상태효과 배지(원작 버프/디버프/DoT 표시): 대상 위에 상태 아이콘이 뜨고 잠시 유지 후 페이드.
+const _STATUS_DEF := {
+	"dot":    {"txt": "독", "col": Color(0.6, 1.0, 0.3)},    # 지속피해
+	"debuff": {"txt": "▼", "col": Color(0.9, 0.5, 1.0)},    # 약화
+	"buff":   {"txt": "▲", "col": Color(0.5, 1.0, 0.6)},    # 강화
+	"stun":   {"txt": "!", "col": Color(1.0, 0.9, 0.3)},    # 행동불가
+}
+func _status_badge(v: Dictionary, kind: String) -> void:
+	if v.is_empty() or not v.has("center"): return
+	var d: Dictionary = _STATUS_DEF.get(kind, {})
+	if d.is_empty(): return
+	var c: Vector2 = v["center"]
+	var offs := -74.0 if v.get("kind") == "enemy" else -96.0
+	var badge := Label.new()
+	badge.text = String(d["txt"])
+	badge.add_theme_font_size_override("font_size", 24)
+	badge.add_theme_color_override("font_color", d["col"])
+	badge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	badge.add_theme_constant_override("outline_size", 5)
+	badge.position = c + Vector2(-12, offs)
+	badge.z_index = 96
+	badge.pivot_offset = Vector2(12, 12); badge.scale = Vector2(0.4, 0.4)
+	add_child(badge)
+	var t := badge.create_tween()
+	t.tween_property(badge, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+	t.tween_interval(1.7)
+	t.tween_property(badge, "modulate:a", 0.0, 0.5)
+	t.tween_callback(badge.queue_free)
+
+func _skill_banner(name: String) -> void:
+	var vis := _vis()
+	var l := Label.new()
+	l.text = name
+	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6))
+	l.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0.0, 0.9))
+	l.add_theme_constant_override("outline_size", 6)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(vis.x, 40); l.position = Vector2(0, 150)
+	l.z_index = 110
+	add_child(l)
+	var t := create_tween()
+	t.tween_property(l, "modulate:a", 0.0, 0.9).from(1.0)
+	t.tween_callback(l.queue_free)
+
+## 전투 오프닝(원작 OpeningBattleScene): "전투 시작!" 배너가 좌→우로 스윕 + 살짝 플래시.
+## 이 전투가 보스 조우인지(스테이지 마지막 조우). params.boss로도 강제 가능.
+func _is_boss() -> bool:
+	if _params.has("boss"): return bool(_params["boss"])
+	if not _params.has("stage"): return false
+	var st: Dictionary = Data.stage(str(_params.get("stage", "")))
+	var total := int((st.get("enemies", []) as Array).size())
+	var enc := int(_params.get("enc", 0))
+	return total > 0 and enc + 1 >= total
+
+func _battle_opening() -> void:
+	var vis := _vis()
+	var boss := _is_boss()
+	if boss:
+		_boss_show_effect()   # 원작 setNormalBossShowEffect: 보스 전용 등장 연출
+	# 배너 띠(반투명 검정) + 텍스트. 화면 밖 좌측서 진입 → 정지 → 우측으로 퇴장.
+	var band := Control.new(); band.z_index = 130; add_child(band)
+	var strip := ColorRect.new()
+	strip.color = Color(0.2, 0.03, 0.02, 0.78) if boss else Color(0.08, 0.05, 0.02, 0.72)
+	strip.size = Vector2(vis.x, 84); strip.position = Vector2(0, vis.y * 0.4)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.add_child(strip)
+	if boss and ResourceLoader.exists("res://assets/converted/adventure_ui/scene_adventure_txt_boss1_kr.tres"):
+		# 원작 setNormalBossShowEffect: txt_boss{1~4}_kr = "보"·"스"·"출"·"현" 정품 스타일 텍스트.
+		var cy := vis.y * 0.4 + 42.0
+		var sc := 1.15
+		var cw := 86.0 * sc
+		var gap := 6.0
+		var startx := vis.x * 0.5 - (4.0 * cw + 3.0 * gap) * 0.5 + cw * 0.5
+		for ci in 4:
+			var cs := _spr("adventure_ui", "scene_adventure_txt_boss%d_kr" % (ci + 1), _adv, sc)
+			if cs:
+				cs.position = Vector2(startx + ci * (cw + gap), cy)
+				band.add_child(cs)
+				cs.scale *= 0.4   # 팝인
+				cs.create_tween().tween_property(cs, "scale", Vector2(sc, sc), 0.22).set_trans(Tween.TRANS_BACK).set_delay(0.28 + ci * 0.05)
+	else:
+		var l := Label.new()
+		l.text = "전투 시작!"
+		l.add_theme_font_size_override("font_size", 46)
+		l.add_theme_color_override("font_color", Color(1.0, 0.92, 0.5))
+		l.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0.0, 0.9))
+		l.add_theme_constant_override("outline_size", 6)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.size = Vector2(vis.x, 60); l.position = Vector2(0, vis.y * 0.4 + 12)
+		band.add_child(l)
+	band.position = Vector2(-vis.x, 0)
+	var t := band.create_tween()
+	t.tween_property(band, "position:x", 0.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_interval(0.36)
+	t.tween_property(band, "position:x", vis.x, 0.26).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_callback(band.queue_free)
+	# 진입 순간 살짝 흰 플래시
+	var flash := ColorRect.new()
+	flash.color = Color(1, 1, 1, 0.0); flash.z_index = 129
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT); flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+	var tf := flash.create_tween()
+	tf.tween_property(flash, "color:a", (0.55 if _is_boss() else 0.35), 0.12)
+	tf.tween_property(flash, "color:a", 0.0, 0.3)
+	tf.tween_callback(flash.queue_free)
+
+## 원작 setNormalBossShowEffect: 보스 등장 연출 — 붉은 비네트 + 보스 스파인 확대·흔들림(포효 느낌).
+func _boss_show_effect() -> void:
+	var vis := _vis()
+	# 붉은 비네트(상하 붉은 띠가 밀려오며 페이드)
+	var vig := ColorRect.new(); vig.color = Color(0.6, 0.0, 0.0, 0.0); vig.z_index = 125
+	vig.set_anchors_preset(Control.PRESET_FULL_RECT); vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vig)
+	var vt := vig.create_tween()
+	vt.tween_property(vig, "color:a", 0.28, 0.2)
+	vt.tween_property(vig, "color:a", 0.0, 0.6)
+	vt.tween_callback(vig.queue_free)
+	# 보스 스파인 확대 펄스 + 좌우 흔들림(포효)
+	var ev: Dictionary = _views.get("E0", {})
+	var node = ev.get("node", null)
+	if node != null and is_instance_valid(node) and node is Node2D:
+		var n2d := node as Node2D
+		var base: Vector2 = ev.get("base_pos", n2d.position)
+		var s0: Vector2 = n2d.scale
+		var t := n2d.create_tween()
+		t.tween_property(n2d, "scale", s0 * 1.14, 0.25).set_trans(Tween.TRANS_BACK)
+		# 흔들림
+		for i in 4:
+			t.tween_property(n2d, "position", base + Vector2(10, 0), 0.05)
+			t.tween_property(n2d, "position", base + Vector2(-10, 0), 0.05)
+		t.tween_property(n2d, "position", base, 0.05)
+		t.tween_property(n2d, "scale", s0, 0.2)
+
+## 원작 setSuperAttackStart + makeSkillParticle: 각성기(awaken 평타) 발동 연출.
+## 금빛 화면 플래시 + "각성기!" 배너 + 시전자 발광 + 방사 파티클.
+func _super_attack_fx(caster: Dictionary) -> void:
+	var vis := _vis()
+	_screen_shake(14.0)
+	Bgm.sfx("effect_bigbang")   # 원작 각성기 효과음   # 각성기 임팩트: 강한 화면 흔들림
+	# 금빛 플래시
+	var flash := ColorRect.new(); flash.color = Color(1, 0.92, 0.6, 0.0); flash.z_index = 118
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT); flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+	var tf := flash.create_tween()
+	tf.tween_property(flash, "color:a", 0.6, 0.1)
+	tf.tween_property(flash, "color:a", 0.0, 0.4)
+	tf.tween_callback(flash.queue_free)
+	# "각성기!" 배너(팝)
+	var banner := Label.new(); banner.text = "각성기!"
+	banner.add_theme_font_size_override("font_size", 48)
+	banner.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
+	banner.add_theme_color_override("font_outline_color", Color(0.4, 0.15, 0, 0.9))
+	banner.add_theme_constant_override("outline_size", 7)
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.size = Vector2(vis.x, 60); banner.position = Vector2(0, vis.y * 0.2)
+	banner.z_index = 119; banner.pivot_offset = Vector2(vis.x * 0.5, 30); banner.scale = Vector2(0.4, 0.4)
+	add_child(banner)
+	var bt := banner.create_tween()
+	bt.tween_property(banner, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+	bt.tween_interval(0.5)
+	bt.tween_property(banner, "modulate:a", 0.0, 0.3)
+	bt.tween_callback(banner.queue_free)
+	# 시전자 발광 + 방사 파티클(makeSkillParticle)
+	if not caster.is_empty() and caster.has("center"):
+		var c: Vector2 = caster["center"]
+		var burst := CPUParticles2D.new()
+		burst.position = c; burst.z_index = 117; burst.emitting = true; burst.one_shot = true
+		burst.amount = 28; burst.lifetime = 0.6; burst.explosiveness = 0.95
+		burst.direction = Vector2(0, -1); burst.spread = 180.0
+		burst.initial_velocity_min = 120.0; burst.initial_velocity_max = 280.0
+		burst.gravity = Vector2(0, 60.0); burst.scale_amount_min = 3.0; burst.scale_amount_max = 7.0
+		burst.color = Color(1, 0.9, 0.45)
+		add_child(burst)
+		get_tree().create_timer(0.9).timeout.connect(func(): if is_instance_valid(burst): burst.queue_free())
+		var node = caster.get("node", null)
+		if node is CanvasItem:
+			var ci := node as CanvasItem
+			var t := create_tween()
+			t.tween_property(ci, "modulate", Color(1.6, 1.4, 0.8), 0.12)
+			t.tween_property(ci, "modulate", Color.WHITE, 0.3)
+
+## 승리 보상 연출(원작 CoinEffectLayer/GoldImpLayer/ExpLayer): 코인 버스트 + EXP 아이콘 상승.
+func _reward_fx(gold: int, exp: int) -> void:
+	Bgm.sfx("effect_coin")   # 원작 코인 효과음
+	var vis := _vis()
+	var origin := Vector2(vis.x * 0.5, vis.y * 0.46)
+	var cman := _man("common_ui")
+	# 코인 버스트: 중앙서 여러 코인이 위로 튀었다가 낙하+페이드(양=골드 비례).
+	var n := clampi(6 + gold / 40, 6, 14)
+	for i in n:
+		var cname: String = ["common_coin_small1", "common_coin_small2", "common_coin"][i % 3]
+		var coin := _spr("common_ui", cname, cman, 0.7)
+		if coin == null: continue
+		coin.position = origin; coin.z_index = 120
+		add_child(coin)
+		var ang := randf_range(-PI * 0.82, -PI * 0.18)
+		var peak := origin + Vector2(cos(ang), sin(ang)) * randf_range(70.0, 175.0)
+		var t := coin.create_tween()
+		t.tween_property(coin, "position", peak, 0.33).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(coin, "position", peak + Vector2(randf_range(-24, 24), 130.0), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(coin, "modulate:a", 0.0, 0.42)
+		t.tween_callback(coin.queue_free)
+	# 원작 "골드 획득!" 배너 — 레퍼런스 docs/ref/orig_image/battle/전리품드랍예시.png:
+	#   화면 중앙 상단에 큰 주황 제목, 그 아래 코인 1개 + `X 111`(획득 수량), 좌하단 `EXP +N` + 게이지.
+	var title := Label.new()
+	title.text = "골드 획득!"
+	title.add_theme_font_size_override("font_size", 46)
+	title.add_theme_color_override("font_color", Color(1.0, 0.62, 0.10))
+	title.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.0, 0.95))
+	title.add_theme_constant_override("outline_size", 8)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size = Vector2(vis.x, 60); title.position = Vector2(0, vis.y * 0.20)
+	title.z_index = 122
+	add_child(title)
+	title.pivot_offset = Vector2(vis.x * 0.5, 30); title.scale = Vector2(0.6, 0.6)
+	var tt := title.create_tween()
+	tt.tween_property(title, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK)
+	tt.tween_interval(1.1)
+	tt.tween_property(title, "modulate:a", 0.0, 0.3)
+	tt.tween_callback(title.queue_free)
+	# 대표 코인 1개 + 수량 텍스트(원작 `X 111`).
+	# 레퍼런스 실측: 코인 지름 약 55px / 1.062 = 52 디자인px → common_coin(92px) × 0.57.
+	var big := _spr("common_ui", "common_coin", cman, 0.57 * Design.ASSET_SCALE)
+	var cpos := Vector2(vis.x * 0.44, vis.y * 0.345)
+	if big:
+		big.position = cpos; big.z_index = 122; add_child(big)
+		var bt := big.create_tween()
+		bt.tween_interval(1.35)
+		bt.tween_property(big, "modulate:a", 0.0, 0.3)
+		bt.tween_callback(big.queue_free)
+	var amt := _bmf_label("subtitle", 1.0 * Design.ASSET_SCALE)
+	amt.text = "X %d" % gold
+	amt.z_index = 122
+	amt.position = cpos + Vector2(48, -22); amt.size = Vector2(240, 44)
+	amt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(amt)
+	var at := amt.create_tween()
+	at.tween_interval(1.35)
+	at.tween_property(amt, "modulate:a", 0.0, 0.3)
+	at.tween_callback(amt.queue_free)
+	# EXP 아이콘 + 수치 상승(원작 ExpLayer/bonus_exp).
+	var ei := _spr("adventure_ui", "scene_adventure_icon_exp", _adv, 0.8)
+	var ex_pos := Vector2(vis.x * 0.5, vis.y * 0.62)
+	if ei:
+		ei.position = ex_pos; ei.z_index = 121; add_child(ei)
+		var te := ei.create_tween()
+		te.tween_property(ei, "position:y", ex_pos.y - 40.0, 0.7)
+		te.parallel().tween_property(ei, "modulate:a", 0.0, 0.7).from(1.0)
+		te.tween_callback(ei.queue_free)
+	_float(ex_pos + Vector2(26, 0), "+%d EXP" % exp, Color(0.6, 1.0, 0.7), 22)
+	# 원작 하단 서술: "92(+19) 골드를 얻었습니다." (레퍼런스 전리품드랍예시.png)
+	_log("%d 골드를 얻었습니다." % gold)
+
+## 경험치 지급 + 레벨업 처리 코디네이터(render→logic→data). UserDB 상태를 읽어 LevelSystem에 넘기고
+## 결과(새 레벨/잔여 exp)를 다시 UserDB에 영속화한다. 반환=레벨업 이벤트(연출용). 규칙은 LevelSystem이 소유.
+func _grant_exp(uid: int, amount: int) -> Dictionary:
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty():
+		return {"levels_gained": 0}
+	var ddef := Data.get_dragon(int(d.get("id", 0)))
+	var max_stats := Growth.tier_growth(ddef, Data.stat_table)   # 레벨당 스탯별 최대 상승량
+	var roll_cfg: Dictionary = Data.level_curve.get("roll", {})
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	var ev := LevelSystem.apply_exp(Data.level_curve, roll_cfg, max_stats,
+		int(d.get("level", 1)), int(d.get("exp", 0)), amount, rng, bool(d.get("awakened", false)))
+	# 롤 결과를 gain_log에 누적 + 레벨/exp 영속화(1회 커밋). 연출용 gains는 ev로 반환.
+	# apply_levelups 안에서 레벨 10·25·45 자동 습득(sync_skill_grants)이 함께 돈다.
+	var before := {}
+	for s in UserDB.dragon_skills(uid):
+		before[int((s as Dictionary).get("id", 0))] = true
+	UserDB.apply_levelups(uid, int(ev["level"]), int(ev["exp"]), ev.get("gains", []))
+	ev["max_stats"] = max_stats   # 연출: +상승/max 분모 표시용
+	# 이번에 새로 배운 스킬(연출용) — 풀의 증분.
+	var learned: Array = []
+	for s in UserDB.dragon_skills(uid):
+		var sid := int((s as Dictionary).get("id", 0))
+		if not before.has(sid):
+			learned.append(String(Data.skills.get(str(sid), {}).get("name", "스킬")))
+	ev["learned_skills"] = learned
+	return ev
+
+## 레벨업 연출(원작 AdventureResultExpLevelup): 레벨 오른 드래곤마다 배지를 순차 팝업.
+## 레벨 오른 드래곤마다 상세 패널을 순차 팝업. 원작 DragonEnchantResultLayer 재현:
+## per-스탯 "+상승/max" + MAX/MAX+ 뱃지(초월=보라), 트리플맥스 시 LEVEL UP 날개 배너 + pt_3max + effect_max_fun.
+const _STAT_KR := {"hp": "생명력", "att": "공격력", "def": "방어력"}
+func _levelup_fx(events: Array) -> void:
+	var vis := _vis()
+	var iman := _man("item_etc")
+	for i in events.size():
+		var nm := String(events[i]["name"])
+		var ev: Dictionary = events[i]["ev"]
+		var gains: Array = ev.get("gains", [])
+		if gains.is_empty():
+			continue
+		var max_stats: Dictionary = ev.get("max_stats", {})
+		# per-스탯 집계: 총 상승 / 맥스 횟수 / 초월 여부. (여러 레벨이 한 번에 오르면 합산)
+		var agg := {}
+		for k in ["hp", "att", "def"]:
+			agg[k] = {"gain": 0, "maxn": 0, "trans": false}
+		var triples := 0
+		for g in gains:
+			if bool(g.get("triple", false)):
+				triples += 1
+			var ismax: Dictionary = g.get("is_max", {})
+			var tm: Dictionary = g.get("tmax", {})
+			for k in ["hp", "att", "def"]:
+				agg[k]["gain"] = int(agg[k]["gain"]) + int(g.get(k, 0))
+				if bool(ismax.get(k, false)):
+					agg[k]["maxn"] = int(agg[k]["maxn"]) + 1
+				if bool(tm.get(k, false)):
+					agg[k]["trans"] = true
+		var final_lv := int(ev.get("level", 0))
+		var from_lv := final_lv - int(ev.get("levels_gained", gains.size()))
+		_levelup_panel(iman, nm, from_lv, final_lv, agg, max_stats, gains.size(), triples,
+			vis, i, 0.3 + i * 0.6, ev.get("learned_skills", []))
+
+## 상세 레벨업 패널(원작 스탯 비교 화면 재현). agg=per-스탯 집계, single=1레벨(분모 /max 표기), triples=트리플맥스 레벨 수.
+func _levelup_panel(iman: Dictionary, nm: String, from_lv: int, to_lv: int,
+		agg: Dictionary, max_stats: Dictionary, levels: int, triples: int,
+		vis: Vector2, idx: int, delay: float, learned: Array = []) -> void:
+	var w := 424.0
+	var row_h := 26.0
+	var head_h := 32.0
+	# 레벨 10·25·45 자동 습득이 걸린 레벨업이면 한 줄 더 붙인다.
+	var h := head_h + row_h * (3.0 + (1.0 if not learned.is_empty() else 0.0)) + 12.0
+	var any_trans := bool(agg["hp"]["trans"]) or bool(agg["att"]["trans"]) or bool(agg["def"]["trans"])
+	var accent := Color(1.0, 0.82, 0.32)                # 일반 = 금색
+	if triples > 0:
+		accent = Color(1.0, 0.9, 0.42)                  # 트리플맥스 = 밝은 금
+	elif any_trans:
+		accent = Color(0.78, 0.58, 1.0)                 # 초월맥스 = 보라(원작)
+	var cx_w := vis.x
+	var y := vis.y * 0.06 + idx * (h + 8.0)
+	var root := Control.new()
+	root.z_index = 132
+	root.position = Vector2(0, y)
+	root.modulate.a = 0.0
+	root.pivot_offset = Vector2(cx_w * 0.5, h * 0.5)
+	root.scale = Vector2(0.62, 0.62)
+	add_child(root)
+	# 🟠 정정: 전투 중 레벨업 알림 패널이 자작 StyleBoxFlat 이었다.
+	#   원작은 어두운 라운드 정보판에 `9patch/train_box4` 를 쓴다(레벨업 결과 계열에서 우리도 사용 중).
+	#   트리플/초월일 때만 accent 로 물들여 강조한다.
+	var panel := NinePatchRect.new()
+	panel.texture = load("res://assets/converted/ninepatch_ui/9patch_train_box4.tres")
+	panel.patch_margin_left = 22; panel.patch_margin_right = 22
+	panel.patch_margin_top = 16; panel.patch_margin_bottom = 16
+	panel.size = Vector2(w, h)
+	panel.position = Vector2((cx_w - w) * 0.5, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if triples > 0 or any_trans:
+		panel.modulate = accent.lerp(Color.WHITE, 0.55)
+	root.add_child(panel)
+	# 헤더: 레벨업 아이콘 + 이름 + Lv.a→b
+	var icon := _spr("item_etc", "item_etc_level_up", iman, 0.6)
+	if icon:
+		icon.position = Vector2(28, head_h * 0.5 + 2)
+		panel.add_child(icon)
+	var hd := Label.new()
+	hd.text = "%s      Lv.%d ▶ %d" % [nm, from_lv, to_lv]
+	hd.add_theme_font_size_override("font_size", 19)
+	hd.add_theme_color_override("font_color", Color(1, 0.92, 0.55))
+	hd.add_theme_color_override("font_outline_color", Color(0.2, 0.12, 0, 0.9))
+	hd.add_theme_constant_override("outline_size", 3)
+	hd.position = Vector2(58, 5)
+	panel.add_child(hd)
+	# 스탯 3행
+	var ry := head_h + 2.0
+	for k in ["hp", "att", "def"]:
+		var a: Dictionary = agg[k]
+		var gain := int(a["gain"])
+		var maxn := int(a["maxn"])
+		var trans := bool(a["trans"])
+		var lab := Label.new()
+		lab.text = String(_STAT_KR[k])
+		lab.add_theme_font_size_override("font_size", 16)
+		lab.add_theme_color_override("font_color", Color(0.86, 0.6, 0.28))
+		lab.position = Vector2(26, ry)
+		panel.add_child(lab)
+		var val := Label.new()
+		# 1레벨 = "+상승/max"(분모 표기), 다레벨 = "+합계".
+		if levels == 1 and max_stats.has(k):
+			var denom := int(max_stats[k]) + (int({"hp": 4, "att": 1, "def": 1}[k]) if trans else 0)
+			val.text = "+%d / %d" % [gain, denom]
+		else:
+			val.text = "+%d" % gain
+		val.add_theme_font_size_override("font_size", 16)
+		val.add_theme_color_override("font_color", accent if trans else Color(0.7, 1.0, 0.76))
+		val.position = Vector2(150, ry)
+		panel.add_child(val)
+		# MAX 뱃지(맥스 발생 시). 초월=MAX+ 보라, 일반=MAX 금. 다레벨은 ×n.
+		if maxn > 0:
+			var badge := Label.new()
+			var btxt := "MAX+" if trans else "MAX"
+			if levels > 1:
+				btxt += "×%d" % maxn
+			badge.text = btxt
+			badge.add_theme_font_size_override("font_size", 15)
+			badge.add_theme_color_override("font_color", Color(0.85, 0.6, 1.0) if trans else Color(1.0, 0.85, 0.3))
+			badge.add_theme_color_override("font_outline_color", Color(0.15, 0.1, 0, 0.9))
+			badge.add_theme_constant_override("outline_size", 3)
+			badge.position = Vector2(300, ry)
+			panel.add_child(badge)
+		ry += row_h
+	# 자동 습득(위키: 레벨 10·25·45) — 배운 스킬 이름을 스탯 아래 한 줄로.
+	if not learned.is_empty():
+		var sl := Label.new()
+		sl.text = "새 스킬  %s" % ", ".join(learned)
+		sl.add_theme_font_size_override("font_size", 16)
+		sl.add_theme_color_override("font_color", Color(0.72, 0.92, 1.0))
+		sl.add_theme_color_override("font_outline_color", Color(0.1, 0.14, 0.25, 0.9))
+		sl.add_theme_constant_override("outline_size", 3)
+		sl.position = Vector2(26, ry)
+		panel.add_child(sl)
+	# 애니: 스케일 팝인 → 유지 → 상승 페이드아웃. 트리플맥스=전용 연출.
+	var tw := root.create_tween()
+	tw.tween_interval(delay)
+	tw.tween_callback(func():
+		if triples > 0:
+			Bgm.sfx("effect_max_fun")
+			_levelup_particle("pt_3max1", cx_w * 0.5, y + h * 0.5)
+			_levelup_particle("pt_3max2", cx_w * 0.5, y + h * 0.5)
+		else:
+			Bgm.sfx("effect_level_updown" if _has_sfx("effect_level_updown") else "effect_coin")
+			_levelup_particle("pt_levelup_light", cx_w * 0.5, y + h - 6.0))
+	tw.tween_property(root, "modulate:a", 1.0, 0.22)
+	tw.parallel().tween_property(root, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.7 if triples > 0 else 1.35)
+	tw.tween_property(root, "position:y", y - 34.0, 0.45)
+	tw.parallel().tween_property(root, "modulate:a", 0.0, 0.45)
+	tw.tween_callback(root.queue_free)
+
+func _has_sfx(name: String) -> bool:
+	return ResourceLoader.exists("res://assets/music/%s.mp3" % name)
+
+## 원작 Cocos 파티클 1회 발사 — 본체는 공용 헬퍼 CocosParticle(scripts/ui/cocos_particle.gd).
+## (원래 여기 있었는데 레벨업 화면(cave.gd)과 공유하려고 뽑아냈다 — 중복 작성 금지.)
+func _levelup_particle(name: String, x: float, y: float) -> void:
+	CocosParticle.spawn(self, name, Vector2(x, y), 131,
+		0.9 if name.begins_with("pt_3max") else 0.5)
+
+## 전투 후 파티 잔여 HP(uid→hp) — 어드벤처 조우 간 이월용.
+func _party_hp_state() -> Dictionary:
+	var out := {}
+	for i in _party.size():
+		var v: Dictionary = _views.get("A%d" % i, {})
+		var uid := int(_party[i]["uid"])
+		out[str(uid)] = int(v.get("hp", _party[i].get("hp", 0)))
+	return out
+
+# ---------- 종료/결과 ----------
+func _finish() -> void:
+	_finished = true
+	# 드링크 버프 턴 소모 — 이번 전투에서 진행된 라운드 수만큼 차감(0턴이면 소멸).
+	# 위키 §2.3 "짧은 턴동안" + 사용자 확정 지속 10턴. 판정=ItemEffect(logic).
+	for uid in _drink_users:
+		var db: Dictionary = UserDB.get_dragon(int(uid)).get("drink_buffs", {})
+		for _r in maxi(1, _cur_round):
+			db = ItemEffect.tick(db)
+		UserDB.set_dragon_field(int(uid), "drink_buffs", db)
+	# 전투 참여 → 파티 **허기(FOOD) 소모**. 원작 후기판에는 피로도가 없고 허기만 있다(사용자 확정
+	# 2026-07-30) → 회복은 동굴에서 **속성이 맞는 먹이**를 먹이는 것뿐이다(`cave.gd::_use_food`).
+	# 0이 되면 탐험 입장이 막히고, 탐험 중이면 `adventure.gd` 가 즉시 종료한다.
+	# # ASSUMPTION: 소모 속도는 서버 유실 → 전투 1회당 −15(튜닝 노브는 이 상수 하나).
+	var fmax := ItemEffect.food_max(Data.item_effects)
+	for pv in _party:
+		var uid := int(pv["uid"])
+		var fd := maxi(0, int(UserDB.get_dragon(uid).get("food", fmax)) - FOOD_PER_BATTLE)
+		UserDB.set_dragon_field(uid, "food", fd)
+	var vis := _vis()
+	var win := _winner == "ally"
+	if not win and _winner == "enemy":
+		_apply_defeat_incapacitation()
+	if win: Bgm.sfx("bg_ad_win_short")   # 원작 승리 팡파레
+	# 🔴 결과 오버레이는 전투원 위에. 패배하면 몬스터 스파인(z 8~100)이 살아남아 어둠막·문구·
+	#    버튼을 전부 가렸다(사용자 신고 2026-07-27). 버튼 z 는 `_big_button` 참조.
+	var panel := ColorRect.new()
+	panel.color = Color(0, 0, 0, 0.6)
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.z_index = 120
+	add_child(panel)
+	var res := Label.new()
+	res.text = "승리!" if win else ("패배..." if _winner == "enemy" else "무승부")
+	res.add_theme_font_size_override("font_size", 56)
+	res.add_theme_color_override("font_color", Color(1, 0.9, 0.4) if win else Color(0.9, 0.5, 0.5))
+	res.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	res.size = Vector2(vis.x, 70); res.position = Vector2(0, vis.y * 0.32)
+	res.z_index = 123
+	add_child(res)
+	# 패배로 행동불능이 된 드래곤을 알린다(부적이 막으면 목록에서 빠진다).
+	if not _downed_uids.is_empty():
+		var names: PackedStringArray = []
+		for u in _downed_uids:
+			var dd := UserDB.get_dragon(int(u))
+			names.append(String(Data.get_dragon(int(dd.get("id", 0))).get("name", "드래곤")))
+		var dn := Label.new()
+		dn.text = "%s — 행동불능 (%s 뒤 회복)" % [", ".join(names),
+			Incapacitation.remain_text(UserDB.cure_time(int(_downed_uids[0])),
+				int(Time.get_unix_time_from_system()))]
+		dn.add_theme_font_size_override("font_size", 22)
+		dn.add_theme_color_override("font_color", Color(0.95, 0.7, 0.7))
+		dn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dn.size = Vector2(vis.x, 60); dn.position = Vector2(0, vis.y * 0.32 + 74.0)
+		dn.z_index = 123
+		add_child(dn)
+	# 어드벤처 다중 조우: 이긴 몹이 마지막(보스)이 아니면 탐험으로 복귀해 다음 조우.
+	var st: Dictionary = Data.stage(str(_params.get("stage", ""))) if _params.has("stage") else {}
+	var total := int((st.get("enemies", []) as Array).size())
+	var enc := int(_params.get("enc", 0))
+	var region := String(_params.get("region", "yutakan"))
+	# 랜덤 보스 스테이지는 단발 보스전(다중 조우 아님) → 항상 클리어(more=false).
+	var more := win and total > 0 and enc + 1 < total and not bool(st.get("random_boss", false))
+	# 원작 연승(initWinningStreak): 조우 체인 연속 승리 카운트. 승리 시 +1, 패배 시 0.
+	var streak := int(_params.get("streak", 0))
+	if win: streak += 1
+	else: streak = 0
+	# 연승 보상 보너스(2연승부터 +10%/단계, 최대 +100%). 원작 winning streak 보너스 반영.
+	var sbonus := 1.0 + 0.1 * float(clampi(streak - 1, 0, 10))
+	# 던전 런 누적(원작 DungeonFinishLayer 결산용): 조우별 보상을 합산해 클리어 시 요약.
+	var run_exp := int(_params.get("run_exp", 0))
+	var run_gold := int(_params.get("run_gold", 0))
+	var run_items: Array = (_params.get("run_items", []) as Array).duplicate()
+	var best_streak := maxi(int(_params.get("best_streak", 0)), streak)
+	# 보상: 스테이지 rewards가 유실(null)이라 처치 몹 레벨 기반 파생(ASSUMPTION). 보스=보너스.
+	var reward_txt := ""
+	if win:
+		UserDB.bump_quest("battles")   # 마을 퀘스트: 전투 승리 카운트
+		var rlv := maxi(1, int(_enemy.get("level", 1)))
+		var boss := (not more) and total > 0
+		var exp_r := rlv * 8 + 20
+		var gold_r := rlv * 12 + 30
+		if boss: exp_r *= 3; gold_r *= 3
+		if bool(_params.get("elite", false)): exp_r *= 2; gold_r *= 2   # 정예 몬스터 보상 2배
+		exp_r = int(exp_r * sbonus); gold_r = int(gold_r * sbonus)   # 연승 보너스
+		# 각성 스킬 '부유한 기운'(42) — 탐험시 골드 획득량 50% 증가. 판정=AwakenSkill(logic).
+		gold_r = int(round(float(gold_r) * AwakenSkill.mult_of(_awaken_explore(), "gold_pct")))
+		# 전투 미션 달성 EXP 보너스(원작 QuestAndBattleLabel "+40%/+20%"). 판정=BattleMission(logic).
+		var names: Array = []
+		for p in _party: names.append(String(p.get("name", "")))
+		var mbonus := BattleMission.exp_bonus(BattleMission.evaluate(_missions, _events, names))
+		if mbonus > 0.0:
+			exp_r = int(exp_r * (1.0 + mbonus))
+		_exp_gained += exp_r
+		if is_instance_valid(_exp_label): _exp_label.text = str(_exp_gained)
+		UserDB.add_currency("gold", gold_r)
+		# 경험치 지급 → 레벨업 판정(logic=LevelSystem). 원작은 서버가 계산해 change1/2/3 JSON을 내려줬고
+		# 클라 CheckLevelUp이 적용만 했다(reverse_engineering.md §Tier2) — 서버유실분을 LevelSystem이 대신 계산.
+		var levelups: Array = []
+		for pv in _party:
+			var lev := _grant_exp(int(pv["uid"]), exp_r)
+			if int(lev.get("levels_gained", 0)) > 0:
+				levelups.append({"name": String(pv["name"]), "ev": lev})
+				# 레벨업 결과창(LevelUpResult)에 넘길 항목. 탐험이 이어지면 params로 이월한다.
+				var lv_to := int(lev.get("level", 1))
+				_levelup_queue.append({
+					"uid": int(pv["uid"]), "name": String(pv["name"]),
+					"from_lv": lv_to - int(lev.get("levels_gained", 1)), "to_lv": lv_to,
+					"gains": lev.get("gains", []), "max_stats": lev.get("max_stats", {})})
+				# 원작 동작 유지 — 하단 텍스트박스 한 줄(stringsData_KR `AdventureResultExpLevelup`).
+				_log("%s이(가) 경험치를 %d 얻고 레벨업 했습니다." % [String(pv["name"]), exp_r])
+		_reward_fx(gold_r, exp_r)   # 코인 버스트 + EXP 아이콘(원작 CoinEffectLayer/ExpLayer)
+		# ⚠️ 예전의 자동 소멸 배지(_levelup_fx)는 더 이상 부르지 않는다 — 같은 정보를
+		#    `LevelUpResult` 모달이 담당하고(사용자 지시: 닫기 전까지 탐험 정지), 둘을 같이 띄우면 중복이다.
+		#    배지 코드는 참고용으로 남겨 둔다(호출부 없음).
+		reward_txt = "  +EXP %d / +골드 %d" % [exp_r, gold_r]
+		run_exp += exp_r; run_gold += gold_r   # 런 누적
+		# 아이템 드롭(보스 클리어 시).
+		# 1) 스테이지 고정 드롭표(`data/stages.json` `drops`) — 위키로 확정된 던전만 갖는다.
+		#    🔴 2026-07-29: 이 표는 데이터에만 있고 **아무도 읽지 않고 있었다** — 우노의
+		#    아니마·보네르가 인게임에서 나올 길이 없어 각성 자체가 도달 불가였다.
+		#    영웅 난이도는 `hero_min/hero_max`(위키 item.pdf 각주 [40] 확정: 일반 5~10 / 영웅 15~20).
+		if boss:
+			var dr := RandomNumberGenerator.new(); dr.randomize()
+			var hero_mode := bool(_params.get("hero", false))
+			for dp in (st.get("drops", []) as Array):
+				if dr.randi_range(1, 100) > int((dp as Dictionary).get("rate", 100)):
+					continue
+				var lo := int(dp.get("hero_min", dp.get("min", 1))) if hero_mode else int(dp.get("min", 1))
+				var hi := int(dp.get("hero_max", dp.get("max", 1))) if hero_mode else int(dp.get("max", 1))
+				var qty := dr.randi_range(mini(lo, hi), maxi(lo, hi))
+				if qty <= 0: continue
+				var dkey := String(dp.get("item", ""))
+				if dkey == "": continue
+				UserDB.add_item(dkey, qty)
+				reward_txt += " / %s x%d" % [Data.item_name(dkey), qty]
+				run_items.append(dkey)
+		# 2) 그 밖의 던전 — 드롭표 유실 → 소비/재료/음식 풀서 시드추첨(ASSUMPTION).
+		if boss and (st.get("drops", []) as Array).is_empty():
+			var pool: Array = Data.items_by("consumable") + Data.items_by("food") + Data.items_by("material")
+			if not pool.is_empty():
+				var r := RandomNumberGenerator.new()
+				r.seed = hash("drop_%s_%d" % [String(_params.get("stage", "")), enc])
+				var key: String = pool[r.randi() % pool.size()]
+				UserDB.add_item(key, 1)
+				reward_txt += " / %s x1" % Data.item_name(key)
+				run_items.append(key)   # 아이템 key 저장(썸네일 렌더용). 표시는 Data.item_name.
+		# 젬·장비 드롭(사용자 확정 2026-07-27): **탐험이 기본 획득처**다. 고레벨 지역일수록,
+		# 일반몹 < 보스 일수록 더 좋은 것이 나온다(보물상자는 adventure.gd 담당).
+		# 판정=Drops(logic) · 표=data/drops.json.
+		# 카데스의 공간(유타칸 전설 모드)이면 아티팩트도 나온다. 종류는 던전마다 다르다
+		# (위키 dungeon_1.pdf §2 — 배정표는 자작, data/drops.json kades.artifact_by_dungeon).
+		var grng := RandomNumberGenerator.new(); grng.randomize()
+		var gkey := Drops.roll_exploration(Data.drops, rlv,
+			Drops.SOURCE_BOSS if boss else Drops.SOURCE_NORMAL, Data.equipment, grng,
+			_is_kades(), _base_field(),
+			# 각성 스킬 '구드라의 가호'(17) — 전설 난이도 지역 아티팩트 확률 50% 증가.
+			AwakenSkill.mult_of(_awaken_explore(), "artifact_chance_pct"))
+		if gkey != "":
+			UserDB.add_item(gkey, 1)
+			reward_txt += " / %s x1" % Drops.display_name(gkey, Data.gems, Data.equipment)
+			run_items.append(gkey)
+	var sub := Label.new()
+	if win and not more:
+		var sid := str(_params.get("stage", ""))
+		if sid != "":
+			UserDB.set_progress("cleared_" + sid, true)   # 원작 setScenarioMark용 진행도 기록(던전 클리어)
+		sub.text = "%s 클리어!" % String(st.get("name", "던전"))
+		_note_story_quest(st)
+	elif win:
+		# 조우 계속 중일 때 원작은 별도 자막 없이 **하단 텍스트박스**로만 알린다
+		# (레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png). 그만하기/계속하기 버튼과 겹치던 줄을 없앤다.
+		sub.text = ""
+		if reward_txt != "": _log("전리품%s 을(를) 얻었습니다." % reward_txt)
+	else:
+		sub.text = "다시 도전해보세요"
+	sub.add_theme_font_size_override("font_size", 18)
+	sub.add_theme_color_override("font_color", Color.WHITE)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.size = Vector2(vis.x, 24); sub.position = Vector2(0, vis.y * 0.32 + 76)
+	sub.z_index = 123
+	add_child(sub)
+	# 원작 DungeonFinishLayer/AdventureRewardLayer: 던전 클리어 시 런 전체 결산 요약.
+	if win and not more:
+		_dungeon_finish_summary(run_exp, run_gold, run_items, best_streak, enc + 1)
+	# 원작 showWinningStreak: 2연승 이상이면 연승 배지(팝 애니 + 보너스 표기).
+	if win and streak >= 2:
+		var stk := Label.new()
+		stk.text = "%d 연승!  (보상 +%d%%)" % [streak, int(round((sbonus - 1.0) * 100.0))]
+		stk.add_theme_font_size_override("font_size", 30)
+		stk.add_theme_color_override("font_color", Color(1, 0.55, 0.2))
+		stk.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0, 0.9))
+		stk.add_theme_constant_override("outline_size", 5)
+		stk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stk.size = Vector2(vis.x, 40); stk.position = Vector2(0, vis.y * 0.32 - 56)
+		stk.pivot_offset = Vector2(vis.x * 0.5, 20); stk.scale = Vector2(0.5, 0.5)
+		stk.z_index = 123
+		add_child(stk)
+		stk.create_tween().tween_property(stk, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK)
+	# 원작 계속/중단 선택 — 레퍼런스 docs/ref/orig_image/battle/{전리품드랍후.png, 화면 캡처 …024440.png}:
+	#   화면 중앙에 **그만하기(붉은)** / **계속하기(초록)** 큰 버튼 2개가 나란히 서고,
+	#   하단 텍스트박스에 "탐험을 계속 이어가시겠습니까?"가 뜬다.
+	#   프레임 = `9patch/btn`(붉은) · `9patch/btn2`(초록) — 지금까지 미사용이던 원작 9patch다
+	#   (`asset_index.py --grep 9patch/bt` → 전부 🟠).
+	var btn_y := (vis.y * 0.5 + 200.0) if (win and not more) else (vis.y * 0.38)
+	if more:
+		_log("탐험을 계속 이어가시겠습니까?")
+		var hp_state := _party_hp_state()   # 잔여 HP 이월
+		# 레벨업 결과창은 **다음 탐험 구간으로 이월**한다 — 탐험이 이어지는 동안 창이 뜨고,
+		# 닫기 전까지 배회가 멈춘다(adventure.gd `_open_levelup_result`). 사용자 지시 2026-07-27.
+		var lvq := _levelup_queue.duplicate()
+		_levelup_queue.clear()
+		_big_button("그만하기", "9patch_btn", Vector2(vis.x * 0.5 - 300.0, btn_y),
+			func(): Scenes.goto("worldmap", {"region": region}))
+		_big_button("계속하기", "9patch_btn2", Vector2(vis.x * 0.5 + 20.0, btn_y),
+			func(): Scenes.goto("adventure",
+				{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1, "hp_state": hp_state,
+				"streak": streak, "run_exp": run_exp, "run_gold": run_gold,
+				"run_items": run_items, "best_streak": best_streak, "levelups": lvq}))
+	else:
+		# 던전이 끝나 이어질 탐험이 없다 → 결과 화면에서 바로 띄운다(이월할 곳이 없으므로).
+		if not _levelup_queue.is_empty():
+			var q := _levelup_queue.duplicate()
+			_levelup_queue.clear()
+			LevelUpResult.open(self, q)
+		_big_button("월드맵으로", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, btn_y),
+			func(): Scenes.goto("worldmap", {"region": region}))
+	# 원작 onClickRetry/setRetryButton: 패배 시 재도전(부활+현 조우 재시작, 골드 비용).
+	if not win and _winner == "enemy":
+		const RETRY_COST := 100
+		_big_button("재도전 (%dG)" % RETRY_COST, "9patch_btn3",
+			Vector2(vis.x * 0.5 - 300.0, btn_y), func():
+				if not UserDB.spend("gold", RETRY_COST): return
+				# 던전을 나가지 않았으므로 방금 건 행동불능을 되돌린다(원작 setCureTime(0)).
+				_undo_defeat_incapacitation()
+				# 현 조우를 처음부터(파티 풀피=hp_state 없이) 재시작. 연승 리셋.
+				Scenes.goto("adventure", {"stage": _params.get("stage", ""), "region": region, "enc": enc}))
+
+## 던전 패배 → 출전 드래곤 **행동불능**(원작 `Dragon::setCureTime`). 사용자 확정 2026-07-29:
+##   "패배 후 던전 나가면 해당 던전에 들어갔던 드래곤이 행동불능 상태가 되어 치료제를 쓰거나
+##    회복시간 1시간을 채우기 전까지 전투 참여가 불가능했음."
+## 부적(장비 `cure` %)은 **여기에 걸리지 않을 확률**이다(같은 줄에서 확정).
+## 재도전(골드)을 누르면 그 자리에서 해제한다 — "던전을 나가지 않았으므로".
+func _apply_defeat_incapacitation() -> void:
+	var cfg: Dictionary = Data.incapacitation
+	if cfg.is_empty():
+		return
+	var now := int(Time.get_unix_time_from_system())
+	var until := Incapacitation.down_until(cfg, now)
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	var avoid_stat := String(cfg.get("avoid_stat", "cure"))
+	_downed_uids.clear()
+	for pv in _party:
+		var uid := int(pv["uid"])
+		var cure := int((pv.get("stats", {}) as Dictionary).get(avoid_stat, 0))
+		if Incapacitation.avoids(cure, rng):
+			continue                      # 부적이 막았다
+		UserDB.set_cure_time(uid, until)
+		_downed_uids.append(uid)
+
+var _downed_uids: Array = []    # 이번 패배로 행동불능이 된 uid (재도전 시 되돌린다)
+
+## 재도전 = 던전을 나가지 않은 것 → 방금 건 행동불능을 취소한다(원작 setCureTime(0)).
+func _undo_defeat_incapacitation() -> void:
+	for uid in _downed_uids:
+		UserDB.set_cure_time(int(uid), 0)
+	_downed_uids.clear()
+
+## 원작 대형 버튼 — `9patch/btn*` 프레임 위에 라벨. 레퍼런스의 그만하기/계속하기 크기(약 280×86)를 따른다.
+func _big_button(text: String, frame: String, pos: Vector2, cb: Callable) -> void:
+	var np := NinePatchRect.new()
+	np.texture = load("res://assets/converted/ninepatch_ui/%s.tres" % frame)
+	np.patch_margin_left = 16; np.patch_margin_right = 16
+	np.patch_margin_top = 16; np.patch_margin_bottom = 16
+	np.size = Vector2(280, 86); np.position = pos
+	# 🔴 2026-07-27: 패배 결과에서 살아남은 몬스터 스파인(holder z_index 8~100)이
+	#   '재도전/도망치기' 버튼을 덮었다(사용자 신고). 결과 버튼은 전투원보다 항상 위.
+	np.z_index = 124
+	add_child(np)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 34)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0, 0.9))
+	l.add_theme_constant_override("outline_size", 6)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.size = np.size; l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	np.add_child(l)
+	var b := Button.new()
+	b.flat = true; b.size = np.size
+	b.pressed.connect(cb)
+	np.add_child(b)
+
+## 던전 결산 = 원작 AdventureRewardLayer::initWidget(AdventureRewardLayer.c:170) 충실 재현.
+## 근거: reward_bg.png 배경(:235) + 좌우 btn_arrow2_t.png 화살표(x=25 / winW-25, :275-287) +
+##   CCScrollView 컨테이너(this+0x168)에 타입별 보상 셀 — 각 셀 9patch/box1.png(:843) + 썸네일 + "x%d"(:547).
+##   타입: GOLD/ITEM(setCount)/EGG(setCount)/SKILL(setLevel+getImageLevel)/CARD(getThumbnail+getCardName) strcmp 분기(:385-607).
+## ⚠️ 에셋: reward_bg.png(scene/adventure/) 미추출 → popup4 패널 대체(asset-blocked, 명시). box1/btn_arrow2_t/coin/trophy는 추출됨.
+## ⚠️ EGG/SKILL 드롭·CARD(=PvP) 보상은 서버 유실/§1 CUT → 우리 런 보상은 GOLD + ITEM 셀만(EXP는 원작 별도지급, 요약표기).
+func _dungeon_finish_summary(run_exp: int, run_gold: int, run_items: Array, best_streak: int, cleared: int) -> void:
+	var vis := _vis()
+	const BW := 480.0
+	const BH := 300.0
+	var panel := NinePatchRect.new()   # 원작 reward_bg 대체(미추출)
+	panel.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	panel.patch_margin_left = 130; panel.patch_margin_top = 190; panel.patch_margin_right = 55; panel.patch_margin_bottom = 81
+	panel.size = Vector2(BW, BH); panel.position = Vector2(vis.x * 0.5 - BW * 0.5, vis.y * 0.5 - BH * 0.5)
+	var flayer := CanvasLayer.new(); flayer.layer = 60; add_child(flayer)  # 결산은 전투원 위에
+	flayer.add_child(panel)
+	var tbar := NinePatchRect.new(); tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(BW * 0.9, 50); tbar.position = Vector2((BW - BW * 0.9) * 0.5, 10); panel.add_child(tbar)
+	var head := Label.new(); head.text = "던전 결산"
+	head.add_theme_font_size_override("font_size", 22); head.add_theme_color_override("font_color", Color.WHITE)
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; head.size = tbar.size
+	tbar.add_child(head)
+	var cman := _man("common_ui")
+	var trophy := _spr("common_ui", "common_mission_trophy", cman, 0.55)  # 원작 트로피
+	if trophy: trophy.position = Vector2(BW * 0.5, 82); panel.add_child(trophy)
+	# 보상 셀 목록 구성: GOLD 1셀 + ITEM(런 획득 key별 집계) 셀들. (원작 GOLD/ITEM strcmp 분기 대응)
+	var cells: Array = []   # 각 원소: {type, icon_dir, icon_name, icon_path, count}
+	if run_gold > 0:
+		cells.append({"type": "GOLD", "dir": "common_ui", "name": "common_coin", "path": "", "count": run_gold})
+	var agg := {}   # key → count (원작 Item::setCount)
+	for k in run_items:
+		agg[k] = int(agg.get(k, 0)) + 1
+	for k in agg.keys():
+		cells.append({"type": "ITEM", "dir": "", "name": "", "path": Data.item_icon_path(String(k)), "count": int(agg[k])})
+	# CCScrollView 컨테이너 대응: 셀을 가로로 중앙 정렬 배치(원작 box1 셀 + 썸네일 + x%d).
+	const CELL := 78.0
+	const GAP := 10.0
+	var cy := 150.0
+	var total_w: float = cells.size() * CELL + maxf(0.0, (cells.size() - 1)) * GAP
+	var sx := BW * 0.5 - total_w * 0.5
+	# 원작 좌우 장식 화살표(btn_arrow2_t, :275-287) — 셀 행 양옆.
+	var alx := _spr("common_ui", "common_btn_arrow2_t", cman, 0.7)
+	if alx: alx.position = Vector2(sx - 22, cy + CELL * 0.5); alx.flip_h = true; panel.add_child(alx)
+	var arx := _spr("common_ui", "common_btn_arrow2_t", cman, 0.7)
+	if arx: arx.position = Vector2(sx + total_w + 22, cy + CELL * 0.5); panel.add_child(arx)
+	for i in cells.size():
+		var c: Dictionary = cells[i]
+		var cx := sx + i * (CELL + GAP)
+		# 셀 배경 = 원작 9patch/box1.png(:843).
+		var box := _spr("common_ui", "common_box1", cman, 1.0)
+		if box: box.position = Vector2(cx + CELL * 0.5, cy + CELL * 0.5); panel.add_child(box)
+		# 썸네일(GOLD=coin 프레임 / ITEM=아이템 아이콘 리소스).
+		var icon: Sprite2D = null
+		if String(c["path"]) != "":
+			if ResourceLoader.exists(String(c["path"])):
+				icon = Sprite2D.new(); icon.texture = load(String(c["path"])); icon.scale = Vector2(0.5, 0.5)
+		else:
+			icon = _spr(String(c["dir"]), String(c["name"]), cman, 0.7)
+		if icon: icon.position = Vector2(cx + CELL * 0.5, cy + CELL * 0.5 - 4); panel.add_child(icon)
+		# "x%d" 수량(원작 CCString::createWithFormat("x%d"), :547).
+		var cl := Label.new(); cl.text = "x%d" % int(c["count"])
+		cl.add_theme_font_size_override("font_size", 15); cl.add_theme_color_override("font_color", Color.WHITE)
+		cl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85)); cl.add_theme_constant_override("outline_size", 3)
+		cl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; cl.size = Vector2(CELL, 20)
+		cl.position = Vector2(cx, cy + CELL - 20); panel.add_child(cl)
+	# 처치 수 / 최고 연승 + EXP(원작 reward 셀 타입 아님 — 별도 요약).
+	var st_l := Label.new()
+	st_l.text = "처치 %d마리   최고 %d연승   총 EXP +%d" % [cleared, best_streak, run_exp]
+	st_l.add_theme_font_size_override("font_size", 17); st_l.add_theme_color_override("font_color", Color(0.85, 0.95, 1))
+	st_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; st_l.size = Vector2(BW, 22)
+	st_l.position = Vector2(0, cy + CELL + 22); panel.add_child(st_l)
+	if cells.is_empty():
+		var none := Label.new(); none.text = "획득 보상 없음"
+		none.add_theme_font_size_override("font_size", 16); none.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; none.size = Vector2(BW, 22)
+		none.position = Vector2(0, cy + 28); panel.add_child(none)
+
+# ---------- helpers ----------
+func _find(internal_name: String) -> Dictionary:
+	return _views.get(internal_name, {})
+
+func _disp(internal_name) -> String:
+	var n := String(internal_name)
+	if n == "E0":
+		return String(_enemy.get("name", "적"))
+	if n.begins_with("A") and n.substr(1).is_valid_int():
+		var i := int(n.substr(1))
+		if i < _party.size():
+			return String(_party[i].get("name", "드래곤"))
+	return n
+
+func _wait(base: float) -> void:
+	var t := 0.03 if _skip else base / _speed
+	await get_tree().create_timer(t).timeout
+
+func _vis() -> Vector2:
+	return get_viewport_rect().size
+
+func _man(dir: String) -> Dictionary:
+	var f := FileAccess.open("res://assets/converted/%s/_manifest.json" % dir, FileAccess.READ)
+	if f == null: return {}
+	var d = JSON.parse_string(f.get_as_text())
+	return d if d is Dictionary else {}
+
+func _portrait(id: int, stage: String, scale := 1.0) -> Sprite2D:
+	var dir := "portrait_%d" % id
+	if not _portrait_man.has(dir):
+		_portrait_man[dir] = _man(dir)
+	return _spr(dir, "dragon_dragon_%d_box_%s" % [id, stage], _portrait_man[dir], scale)
+
+## 원작 아틀라스 프레임을 얹은 플랫 버튼(클릭영역=Button, 비주얼=_spr 자동 회전복원 스프라이트 중앙배치).
+func _img_button(frame: String, size: Vector2, scale := 1.0) -> Button:
+	var b := Button.new()
+	b.size = size
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	var sp := _spr("adventure_ui", frame, _adv, scale)
+	if sp:
+		sp.position = size * 0.5
+		b.add_child(sp)
+	else:
+		b.text = frame.get_slice("_", -1)   # 폴백: 프레임명 꼬리
+	return b
+
+func _spr(dir: String, name: String, man: Dictionary, scale := 1.0) -> Sprite2D:
+	var p := "res://assets/converted/%s/%s.tres" % [dir, name]
+	if not ResourceLoader.exists(p):
+		return null
+	var s := Sprite2D.new()
+	s.texture = load(p)
+	s.material = _pma
+	# 회전 보정 불필요 — 변환 단계가 흡수(scripts/tools/fix_rotated_frames.py)
+	s.scale = Vector2(scale, scale)
+	return s
+
+## 스킬 전용 이펙트 스파인 재생. 씬이 없으면 false 를 돌려 호출측이 폴백하게 한다.
+##
+## 원작 배치(AdventureScene.c:38828-38856) — 그대로 옮긴다:
+##   CCSkeletonAnimation::createWithFile(json, atlas, **1.0**)   ← 스파인 자체 배율 1.0
+##   setScale(1.0)                                               ← (특수 케이스 param_1==4 만 2.0, +y130)
+##   setPosition(target.contentSize * 0.5)                       ← **컨테이너의 중심**
+##   target->addChild(spine, 100)                                ← z=100
+##   runAction(Sequence(callfunc, DelayTime(0.7), Hide|Blink))    ← 0.7초 재생 후 숨김
+## 🔴 여기서 `target` 은 몬스터 스파인이 아니라 `BattleMonster::getAnimatedSpriteNode()`
+##   **컨테이너**다(AdventureScene.c:38855 의 부모 = plVar10 추적). 원작 노드 구조와 왜 형제로
+##   붙여야 하는지는 `_normal_attack_fx` 위의 구조 주석에 정리해 뒀다.
+func _play_skill_spine(sid: int, v: Dictionary) -> bool:
+	var path := "res://scenes/fx/skill_%d_spine.tscn" % sid
+	if not ResourceLoader.exists(path):
+		return false
+	var holder := Node2D.new()
+	holder.z_index = 100                                  # 원작 addChild(spine, 100)
+	add_child(holder)
+	holder.position = v.get("center", _vis() * 0.5)
+	# 원작 스파인 자체 배율은 1.0. 몸통 배율(몬스터 0.85/보스 0.66)은 우리 레이아웃 값이라
+	# 종전 모습(스파인 자식으로 물려받던 크기)을 유지하도록 그대로 곱한다.
+	# ASSUMPTION: 카드(Control) 대상은 base_scale 이 없어 몬스터 기본값 0.85 로 둔다(종전과 동일).
+	holder.scale = v.get("base_scale", Vector2(0.85, 0.85))
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+	if ap:
+		# 원작 스킬 스파인은 `animation`(본체) + `work`/`destroy`(뒤처리)를 갖는다.
+		var pick := ""
+		for cand in ["animation", "work", "destroy"]:
+			if ap.has_animation(cand):
+				pick = cand
+				break
+		if pick == "":
+			holder.queue_free()
+			return false
+		ap.get_animation(pick).loop_mode = Animation.LOOP_NONE
+		ap.play(pick)
+	# 원작은 애니 길이와 무관하게 **0.7초 뒤 숨김**(Hide/Blink) 이다.
+	var t := holder.create_tween()
+	t.tween_interval(_SKILL_SPINE_SEC)
+	t.tween_callback(holder.queue_free)
+	return true

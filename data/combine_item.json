@@ -1,0 +1,29 @@
+{
+  "_source": "원작 CombineItem 모델 (docs/ref/orig_code/decomp/CombineItem.c). SQLite 테이블 info_combine_item.",
+  "_re_basis": "스키마=클라 복원(근거): CombineItem::setInfo `select item1_no, item1_cnt, item2_no, item2_cnt, combine_cost from info_combine_item where target_no = %d`(CombineItem.c:516, sqlite3_column_int×5 @559-563). getCostType/setCostType=비용 통화 종류(gold/dia 등, 값 미확정). 화면 = 원작 `ItemSmeltPopup` — **가방에서 아이템을 골라 열린다**(BagPopup.c:15703 `ItemSmeltPopup::create(item)` + `setConfirmListener`), `9patch/popup4` + `9patch/pop_title_bg` + `common/plus` + `common/btn_fold` + `common/coin_small1`. ⚠️ 행 값(어떤 재료→어떤 결과 아이템)은 서버 런타임 주입(DBManager::insertCombine/createDB)이라 소실=유실(원칙2).",
+  "_schema": {
+    "target": "string — 결과 아이템 키 (원작 target_no; items.json 키로 매핑)",
+    "item1": "string — 재료1 아이템 키 (원작 item1_no)",
+    "item1_cnt": "int — 재료1 개수 (원작 item1_cnt)",
+    "item2": "string — 재료2 아이템 키 (원작 item2_no; 없으면 빈칸)",
+    "item2_cnt": "int — 재료2 개수 (원작 item2_cnt)",
+    "cost": "int — 조합 비용 (원작 combine_cost)",
+    "cost_type": "string — 비용 통화 (원작 getCostType; 기본 gold, 미확정)"
+  },
+  "_rows_basis": [
+    "아래 6행의 **재료·개수는 위키 확정치**다 — docs/ref/orig_image/lab/labwiki.pdf §2.1 각주 [3]~[8]:",
+    "  조각난 정령석/스톤하트 ×12 → 온전한 · 온전한 ×6 → 완벽한 · 완벽한 ×3 → 완전무결한.",
+    "위키는 이 환산을 알 강화 재료의 조달 경로로 적고, 원작에서 아이템끼리 합치는 화면은 가방의 ItemSmeltPopup 이다.",
+    "⚠️ 자작한 것은 **골드 비용뿐**(_authored_cost) — 상위 티어일수록 비싸게 잡았다. 튜닝 노브는 이 파일이다.",
+    "규칙 = scripts/systems/item_smelt.gd(logic) · 화면 = scripts/ui/cave.gd 가방 아이템 상세의 '제련'.",
+    "재료 자체(조각난 정령석/스톤하트)의 수급은 연구소 강화 보상 20~40레벨(data/laboratory.json rewards)과 레이드 산출(data/drops.json, 솔로 레이드 구현 시)."
+  ],
+  "recipes": [
+    {"target": "stone_spirit2", "item1": "stone_spirit1", "item1_cnt": 12, "item2": "", "item2_cnt": 0, "cost": 5000, "cost_type": "gold", "_authored_cost": true},
+    {"target": "stone_spirit3", "item1": "stone_spirit2", "item1_cnt": 6, "item2": "", "item2_cnt": 0, "cost": 20000, "cost_type": "gold", "_authored_cost": true},
+    {"target": "stone_spirit4", "item1": "stone_spirit3", "item1_cnt": 3, "item2": "", "item2_cnt": 0, "cost": 60000, "cost_type": "gold", "_authored_cost": true},
+    {"target": "stone_heart2", "item1": "stone_heart1", "item1_cnt": 12, "item2": "", "item2_cnt": 0, "cost": 5000, "cost_type": "gold", "_authored_cost": true},
+    {"target": "stone_heart3", "item1": "stone_heart2", "item1_cnt": 6, "item2": "", "item2_cnt": 0, "cost": 20000, "cost_type": "gold", "_authored_cost": true},
+    {"target": "stone_heart4", "item1": "stone_heart3", "item1_cnt": 3, "item2": "", "item2_cnt": 0, "cost": 60000, "cost_type": "gold", "_authored_cost": true}
+  ]
+}

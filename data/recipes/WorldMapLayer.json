@@ -1,0 +1,92 @@
+{
+  "_source": "docs/ref/orig_code/decomp/WorldMapLayer.c (extract_recipe.py). 좌표=cocos원작. 이식=design.gd.",
+  "class": "WorldMapLayer",
+  "methods": {
+    "initWidget": [
+      {
+        "kind": "spine",
+        "spine": "",
+        "raw": "",
+        "plist": "",
+        "pos": null,
+        "anim": "nest"
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_background_trans_bg",
+        "raw": "scene/worldmap/background_trans/bg.png",
+        "pos": null
+      },
+      {
+        "kind": "spine",
+        "spine": "",
+        "raw": "",
+        "plist": "",
+        "pos": null,
+        "anim": "dustwave"
+      }
+    ],
+    "setScenarioMark": [
+      {
+        "kind": "sprite",
+        "frame": "common_event",
+        "raw": "common/event.png",
+        "pos": [
+          0.5,
+          0.5
+        ]
+      }
+    ],
+    "setScenarioNotification": [
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_storyguide_arrow",
+        "raw": "scene/worldmap/storyguide_arrow.png",
+        "pos": [
+          0.0,
+          105.0
+        ]
+      }
+    ],
+    "showAida": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_aida_spine_spine_json",
+        "raw": "scene/worldmap/ani_aida_spine.spine_json",
+        "plist": "scene/worldmap/ani_aida_spine.img_plist",
+        "pos": [
+          1590.0,
+          560.0
+        ],
+        "anim": "normal"
+      }
+    ],
+    "showImp": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_worldmap_imp_spine_spine_json",
+        "raw": "scene/worldmap/worldmap_imp_spine.spine_json",
+        "plist": "scene/worldmap/ani_imp_spine.img_plist",
+        "pos": [
+          1370.0,
+          615.0
+        ],
+        "anim": "normal"
+      }
+    ],
+    "showWonder": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_wonder_spine_spine_json",
+        "raw": "scene/worldmap/ani_wonder_spine.spine_json",
+        "plist": "scene/worldmap/ani_wonder_spine.img_plist",
+        "pos": [
+          1370.0,
+          650.0
+        ],
+        "anim": "worldcup"
+      }
+    ]
+  },
+  "_count": 8
+}

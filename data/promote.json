@@ -1,0 +1,108 @@
+{
+  "_source": [
+    "구조 = docs/ref/orig_code/decomp/PromoteScene.c (initWidget / onClickTab / setTalker) + TrainingLayer.c(initCamp/setCamp) + MateLayer.c + DragonHistoryLayer.c.",
+    "BGM = music/bg_promote.mp3 (PromoteScene.c:961~969 playBackground 바이트디코드).",
+    "탭 라벨 = scene/promote/tab_*_kr 프레임 실물: tab_train_kr='훈련' · tab_latea_kr='라티아' · tab_history_kr='하늘둥지' (tab_breed_kr='교배'는 원작 initWidget 이 안 쓴다).",
+    "탭 인덱스 = onClickTab: 0=showTraining · 1=showMate · 2=showHistory (getEnabledBreed()==1 분기)."
+  ],
+  "_authored_note": "⚠️ HARD RULE 6 예외. 훈련 캠프의 소요시간·획득경험치, 캠프 해금가, 교배 비용/시간, 부활가는 전부 `Request*`/`Response*` = **서버 소유라 유실**이다. 아래 값은 자작 튜닝 노브다 — 이 파일 한 곳만 고치면 된다.",
+  "training": {
+    "_camps_note": "원작 TrainingLayer::initCamp 는 캠프를 정확히 3개 만든다(setCamp 1·2·3), 화면 가운데 기준 x = cx-150-w / cx / cx+150+w. 잠긴 캠프에는 `common/lock.png` 를 덮는다.",
+    "camps": 3,
+    "unlock_cost_dia": [
+      0,
+      30,
+      80
+    ],
+    "programs": [
+      {
+        "icon": "train1",
+        "name": "수영",
+        "minutes": 10,
+        "exp": 120,
+        "cost_gold": 100
+      },
+      {
+        "icon": "train2",
+        "name": "잠수",
+        "minutes": 20,
+        "exp": 260,
+        "cost_gold": 250
+      },
+      {
+        "icon": "train3",
+        "name": "파도타기",
+        "minutes": 40,
+        "exp": 560,
+        "cost_gold": 550
+      },
+      {
+        "icon": "train4",
+        "name": "질주",
+        "minutes": 60,
+        "exp": 880,
+        "cost_gold": 900
+      },
+      {
+        "icon": "train5",
+        "name": "역기들기",
+        "minutes": 120,
+        "exp": 1900,
+        "cost_gold": 1900
+      },
+      {
+        "icon": "train6",
+        "name": "철봉",
+        "minutes": 180,
+        "exp": 3000,
+        "cost_gold": 3000
+      },
+      {
+        "icon": "train7",
+        "name": "근력단련",
+        "minutes": 240,
+        "exp": 4200,
+        "cost_gold": 4200
+      },
+      {
+        "icon": "train8",
+        "name": "활쏘기",
+        "minutes": 360,
+        "exp": 6600,
+        "cost_gold": 6600
+      },
+      {
+        "icon": "train9",
+        "name": "명중훈련",
+        "minutes": 480,
+        "exp": 9200,
+        "cost_gold": 9200
+      },
+      {
+        "icon": "train10",
+        "name": "실전연습",
+        "minutes": 720,
+        "exp": 14500,
+        "cost_gold": 14500
+      }
+    ],
+    "_programs_note": "이름은 scene/promote/train1~10 프레임의 그림(수영·달리기·역기·활 등)을 보고 붙였다 — 원작 명칭 문자열은 서버 응답에 있었고 유실됐다. 시간/경험치는 자작 곡선(대략 exp ≈ 분×12).",
+    "_cost_note": "원작 `TrainingSelectCell` 은 셀 하단에 비용 아이콘(coin/diamond)+숫자를 그린다 — 즉 훈련에 비용이 든다. 금액은 서버 소유라 유실 → exp×2 를 50 단위로 반올림한 자작값."
+  },
+  "mate": {
+    "_note": "원작 MateLayer: 부모 2마리 슬롯(scene/promote/slot_bg) + 하트(heart) + 카운트다운, 다이아로 즉시완료(onClickInstant). 결과는 알.",
+    "min_level": 20,
+    "cost_gold": 30000,
+    "minutes": 60,
+    "instant_dia": 20,
+    "_result_rule": "부모 두 마리의 속성으로 data/combine_egg.json 레시피를 먼저 찾고, 없으면 부모 중 한쪽 속성의 기본 속성알(mall_<element>_egg)이 나온다."
+  },
+  "sky_nest": {
+    "_note": "원작 DragonHistoryLayer(탭 '하늘둥지') — 떠나보낸 드래곤 목록과 부활(callRevive).",
+    "revive_cost_gold": 50000,
+    "revive_cost_dia": 30,
+    "max_records": 50,
+    "_note2": "원작 [육성]-[하늘둥지] 본래 기능 = '드래곤의 고삐'로 맡긴 드래곤 회수. 원작 안내문 NurtureHistoryMsg2 는 '소량의 보석'만 말하고 액수는 서버 소유라 유실 → 아래는 자작 노브.",
+    "retrieve_cost_dia": 5
+  }
+}

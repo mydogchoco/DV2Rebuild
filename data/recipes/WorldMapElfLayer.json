@@ -1,0 +1,263 @@
+{
+  "_source": "docs/ref/orig_code/decomp/WorldMapElfLayer.c (extract_recipe.py). 좌표=cocos원작. 이식=design.gd.",
+  "class": "WorldMapElfLayer",
+  "methods": {
+    "initAnimation": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_waterflow_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_waterflow_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_waterflow_spine.img_plist",
+        "pos": [
+          1024.0,
+          693.0
+        ],
+        "anim": "animation"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_wave_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_wave_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_wave_new_spine.img_plist",
+        "pos": [
+          1025.0,
+          693.0
+        ],
+        "anim": "animation"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_livingwaters_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_livingwaters_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_livingwaters_new_spine.img_plist",
+        "pos": [
+          921.0,
+          980.0
+        ],
+        "anim": "animation"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_tree_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_tree_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_tree_spine.img_plist",
+        "pos": [
+          906.0,
+          1039.0
+        ],
+        "anim": "animation"
+      }
+    ],
+    "initBG": [
+      {
+        "kind": "piece",
+        "field": 16,
+        "frame": "scene_worldmap_map_elf_new_map001",
+        "raw": "scene/worldmap/map_elf_new/map001.png",
+        "ptA": [
+          1275.0,
+          556.0
+        ],
+        "ptB": [
+          1504.0,
+          712.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 18,
+        "frame": "scene_worldmap_map_elf_new_map002",
+        "raw": "scene/worldmap/map_elf_new/map002.png",
+        "ptA": [
+          486.0,
+          318.0
+        ],
+        "ptB": [
+          708.0,
+          502.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 17,
+        "frame": "scene_worldmap_map_elf_new_map003",
+        "raw": "scene/worldmap/map_elf_new/map003.png",
+        "ptA": [
+          290.0,
+          580.0
+        ],
+        "ptB": [
+          450.0,
+          749.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 19,
+        "frame": "scene_worldmap_map_elf_new_map004",
+        "raw": "scene/worldmap/map_elf_new/map004.png",
+        "ptA": [
+          638.0,
+          743.0
+        ],
+        "ptB": [
+          892.0,
+          1026.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 1004,
+        "frame": "scene_worldmap_map_elf_new_map005",
+        "raw": "scene/worldmap/map_elf_new/map005.png",
+        "ptA": [
+          1117.0,
+          624.0
+        ],
+        "ptB": [
+          1301.0,
+          863.0
+        ]
+      }
+    ],
+    "initWidget": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_waves_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_waves_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_waves_new_spine.img_plist",
+        "pos": null,
+        "anim": null
+      }
+    ],
+    "setMapAnimation": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_wood_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_wood_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_wood_new_spine.img_plist",
+        "pos": [
+          1515.0,
+          741.0
+        ],
+        "anim": "touch"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_valley_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_valley_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_valley_new_spine.img_plist",
+        "pos": [
+          484.0,
+          772.0
+        ],
+        "anim": "animation"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_temple_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_temple_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_temple_spine.img_plist",
+        "pos": [
+          709.0,
+          481.0
+        ],
+        "anim": "animation"
+      }
+    ],
+    "showAniCharacter": [
+      {
+        "kind": "spine",
+        "spine": "",
+        "raw": "",
+        "plist": "",
+        "pos": null,
+        "anim": null
+      }
+    ],
+    "showRaidWorldAttack": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_raid_attack_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_raid_attack_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_raid_attack_spine.img_plist",
+        "pos": [
+          960.0,
+          1015.0
+        ],
+        "anim": "01"
+      }
+    ],
+    "showRaidWorldEther": [
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_raid_ether_max",
+        "raw": "scene/worldmap/raid/ether_max.png",
+        "pos": null
+      }
+    ],
+    "showRaidWorldMonster": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_raid_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_raid_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_raid_spine.img_plist",
+        "pos": null,
+        "anim": "groggy"
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog03",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog03.png",
+        "pos": null
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog02",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog02.png",
+        "pos": null
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog01",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog01.png",
+        "pos": null
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_raid_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_raid_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_raid_spine.img_plist",
+        "pos": null,
+        "anim": "angry"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elf_raid_spine_spine_json",
+        "raw": "scene/worldmap/ani_elf_raid_spine.spine_json",
+        "plist": "scene/worldmap/ani_elf_raid_spine.img_plist",
+        "pos": null,
+        "anim": "groggy"
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog03",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog03.png",
+        "pos": null
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog02",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog02.png",
+        "pos": null
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_elf_ani_new_ani_fog01",
+        "raw": "scene/worldmap/map_elf_ani_new/ani_fog01.png",
+        "pos": null
+      }
+    ]
+  },
+  "_count": 25
+}

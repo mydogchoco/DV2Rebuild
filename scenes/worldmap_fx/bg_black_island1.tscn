@@ -1,0 +1,199 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_bg_black_island1/effect1_spine.png" id="1_rwxy4"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_d0h5t"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vm3ex"]
+atlas = ExtResource("1_rwxy4")
+region = Rect2(298, 2, 294, 210)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u5dd3"]
+atlas = ExtResource("1_rwxy4")
+region = Rect2(2, 2, 294, 210)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_muil0"]
+atlas = ExtResource("1_rwxy4")
+region = Rect2(594, 2, 54, 71)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ylfvs"]
+atlas = ExtResource("1_rwxy4")
+region = Rect2(594, 75, 41, 71)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_0hob5"]
+length = 10.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bg_black_island_light_s3_s2:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 10),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(11.33, 38.23), Vector2(11.33, 25.49)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bg_black_island_light_s1:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bg_black_island_light_s1/bg_black_island_light_s1_s1:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bg_black_island_light_s1/bg_black_island_light_s1_s2:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bg_black_island_light_s3_s1:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 10),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(29.9, 72.47), Vector2(29.9, 41.32)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bg_black_island_light_s1/bg_black_island_light_s1_s1/bg_black_island_light_s1_s1_slot_frame/bg_black_island_light_s1_s1_slot:modulate")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bg_black_island_light_s1/bg_black_island_light_s1_s2/bg_black_island_light_s1_s2_slot_frame/bg_black_island_light_s1_s2_slot:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 1.3, 2.8, 4.0666, 5.6, 6.7666, 8.1, 9.2, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bg_black_island_light_s3_s1/bg_black_island_light_s3_s1_slot_frame/bg_black_island_light_s3_s1_slot:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 1.6666, 3.3333, 5, 6.6666, 8.3333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bg_black_island_light_s3_s2/bg_black_island_light_s3_s2_slot_frame/bg_black_island_light_s3_s2_slot:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 1.6666, 3.3333, 5, 6.7, 8.3333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.3372549, 0.3372549, 0.3372549, 0.3372549), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0.14117648, 0.14117648, 0.14117648, 0.14117648)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_l86q1"]
+_data = {
+&"animation": SubResource("Animation_0hob5")
+}
+
+[node name="Dragon_bg_black_island1_scene" type="Node2D" unique_id=1474518686]
+
+[node name="root" type="Node2D" parent="." unique_id=640272168]
+
+[node name="bg_black_island_light_s1" type="Node2D" parent="root" unique_id=1862520953]
+
+[node name="bg_black_island_light_s1_s1" type="Node2D" parent="root/bg_black_island_light_s1" unique_id=1284698529]
+
+[node name="bg_black_island_light_s1_s1_slot_frame" type="Node2D" parent="root/bg_black_island_light_s1/bg_black_island_light_s1_s1" unique_id=1651918699]
+position = Vector2(0.39, -2.14)
+
+[node name="bg_black_island_light_s1_s1_slot" type="Sprite2D" parent="root/bg_black_island_light_s1/bg_black_island_light_s1_s1/bg_black_island_light_s1_s1_slot_frame" unique_id=486068465]
+material = SubResource("CanvasItemMaterial_d0h5t")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3333334)
+texture = SubResource("AtlasTexture_vm3ex")
+
+[node name="bg_black_island_light_s1_s2" type="Node2D" parent="root/bg_black_island_light_s1" unique_id=1485342434]
+
+[node name="bg_black_island_light_s1_s2_slot_frame" type="Node2D" parent="root/bg_black_island_light_s1/bg_black_island_light_s1_s2" unique_id=2142779145]
+position = Vector2(0.39, -2.14)
+
+[node name="bg_black_island_light_s1_s2_slot" type="Sprite2D" parent="root/bg_black_island_light_s1/bg_black_island_light_s1_s2/bg_black_island_light_s1_s2_slot_frame" unique_id=560761269]
+z_index = 1
+material = SubResource("CanvasItemMaterial_d0h5t")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3333334)
+texture = SubResource("AtlasTexture_u5dd3")
+
+[node name="bg_black_island_light_s3_s1" type="Node2D" parent="root" unique_id=1197264353]
+position = Vector2(29.9, 72.47)
+
+[node name="bg_black_island_light_s3_s1_slot_frame" type="Node2D" parent="root/bg_black_island_light_s3_s1" unique_id=1818799079]
+position = Vector2(-27.19, -6.47)
+
+[node name="bg_black_island_light_s3_s1_slot" type="Sprite2D" parent="root/bg_black_island_light_s3_s1/bg_black_island_light_s3_s1_slot_frame" unique_id=2086613798]
+z_index = 2
+material = SubResource("CanvasItemMaterial_d0h5t")
+scale = Vector2(1.3333334, 1.3239436)
+texture = SubResource("AtlasTexture_muil0")
+
+[node name="bg_black_island_light_s3_s2" type="Node2D" parent="root" unique_id=1159337678]
+position = Vector2(6.09, 32.98)
+
+[node name="bg_black_island_light_s3_s2_slot_frame" type="Node2D" parent="root/bg_black_island_light_s3_s2" unique_id=1864298486]
+position = Vector2(-3.39, -4.85)
+
+[node name="bg_black_island_light_s3_s2_slot" type="Sprite2D" parent="root/bg_black_island_light_s3_s2/bg_black_island_light_s3_s2_slot_frame" unique_id=237376492]
+z_index = 3
+material = SubResource("CanvasItemMaterial_d0h5t")
+scale = Vector2(1.3414634, 1.3239436)
+texture = SubResource("AtlasTexture_ylfvs")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=2023999158]
+libraries/ = SubResource("AnimationLibrary_l86q1")

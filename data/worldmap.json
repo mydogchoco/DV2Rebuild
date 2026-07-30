@@ -1,0 +1,1469 @@
+{
+ "_re_basis": "월드맵 지역/노드 배치·연결·이름은 원작에서 서버측 데이터였고 서비스 종료로 유실됨(전투공식과 동일). libgame.so 추출로도 복원 불가 → 전부 자작(ASSUMPTION). 아래 world[x,y] 좌표와 node label/target/type은 사용자 검수·보정 대상. 프레임(thumb/label/frame)만 실제 에셋(assets/converted/worldmap_maps)에 근거.",
+ "regions": [
+  {
+   "id": "yutakan",
+   "bgm": "bg_yutakan",
+   "_bgm_source": "원작 지역 BGM(비전투 월드맵/탐험 기본). dwarf=bg_metal_tower·elf=bg_elysium은 사용자 확정. yutakan=bg_yutakan(동명 트랙, ASSUMPTION). bg_worldraid는 월드레이드 전용(오배정 아님). 던전별 고유 BGM은 stages.json bgm(유실→사용자 매핑), 없으면 이 지역 bgm 폴백. 전투 중엔 bg_colosseum_battle_2/bg_battle_boss(원작 setIsBasicBg=false).",
+   "label_kr": "유타칸",
+   "thumb": "scene_worldmap_map_world_map_yukatan",
+   "label_frame": "scene_worldmap_map_world_label_yukatan_kr",
+   "world": [
+    250,
+    150
+   ],
+   "unlocked": true,
+   "town": "elpis",
+   "_source": "원작 libgame.so WorldMapYutakanLayer::initBG/initWidget 디컴파일에서 복원(2026-07-24). 조각=map_yutakan_new 에셋, pos=원작 하드코딩 점A(cocos y-up, 앵커0.5). field=스테이지ID(getMapBGWithFieldNo). pieces 배열순=원작 addChild z순서. coord=cocos→godot(design_x=scale*cx+ox, design_y=-scale*cy+oy).",
+   "native": {
+    "atlas_dir": "worldmap_yutakan_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_yutakan_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.72,
+     "bg_tex_center": [
+      735,
+      467.5
+     ],
+     "bg_design": [
+      615,
+      346
+     ],
+     "layer": {
+      "s": 0.75,
+      "tx": 93.91,
+      "ty": 910.72,
+      "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down). bgpx = (s*x + tx, -s*y + ty).",
+      "_s_basis": "**s 는 적합값이 아니라 이론값이다.** 아틀라스 px → cocos 포인트 = 4/3 (CLAUDE.md §9, contentScaleFactor 0.75) 이고 bg-아틀라스 px → 우리 디자인 = S(0.72) 이므로 레이어 포인트 → bg-아틀라스 px = 0.75 로 딱 떨어진다.",
+      "_t_basis": "tx/ty 만 최소제곱. 기준 = WorldMapYutakanLayer::initBG 의 WorldMapBG::create(field, frame, piecePos, labelPos) 1번 좌표 16종 ↔ background1/bg.png 투명 슬롯(연결성분) bbox 중심 실측 16종, 조각 하단앵커 보정(-h/2) 후.",
+      "_residual": "평균 |오차| x 42.9px / y 26.1px, 최대 113/83px(bg-아틀라스 px). 원작 조각좌표와 우리 슬롯 실측중심이 강체 대응이 아니라 이만큼 남는다. s 를 자유롭게 풀면 0.6795 로 잔차가 37.6/20.1 로 조금 줄지만, 그건 **자기참조 적합**이라 이론값을 쓴다 (docs/ref/porting/WorldMapAmbient_ElfDwarf.md §3 의 교훈).",
+      "_use": "조각은 슬롯 실측중심을 쓰므로 이 어파인은 **슬롯이 없는 점 좌표**(카데스 구름 7장·밤 발광점)에만 쓴다. 오차 40px ≈ 디자인 29px ≈ 화면폭의 2.4% — 장식 요소엔 충분하다.",
+      "_note": "원작 좌표에 붙는 +CCSize(280,0)*0.5 = (+140,0) 은 모든 요소 공통이라 tx 에 흡수돼 있다 → 원좌표를 그대로 넣을 것."
+     },
+     "label": {
+      "s": 0.75,
+      "tx": 22.0,
+      "ty": 872.81,
+      "_residual": "|dx| 평균 30.0 최대 102.5 / |dy| 평균 24.8 최대 82.3 (bg-아틀라스 px, 빛의 탑 제외 14점)",
+      "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     }
+    },
+    "content_w": 1360,
+    "_coord_note": "pos=bg-atlas px(슬롯중심). design=bg_design+(pos-bg_tex_center)*scale. 슬롯기반 균일배치(A좌표 x/y왜곡 회피).",
+    "_light_tower_source": "원작 WorldMapYutakanLayer::showLightTower @01b3a710. param_1=false 분기가 tag 0x3f7 조각을 지우고 다시 만든다: localtime(GameManager::getTime()).tm_hour % 8 → 속성코드 → GameManager::setDBLightTowerType 저장 → 두 번째 switch 가 코드→프레임(:7100~). 서버값이 아니라 실제 시각이라 유실분이 없다. 표시 게이트 = ScenarioManager 진행도 0x2c(44) 초과 & 1000 미만(WorldMapYutakanLayer.c:5144).",
+    "light_tower": {
+     "_codes": "원작 코드↔속성: A=water C=chaos D=dark E=ground F=fire H=holy L=light N=normal W=wind. 여기서는 원작 1글자 코드 대신 속성명을 키로 쓴다 — 가독성 + asset_index.py 의 문자열 렉서가 1글자 JSON 키(\"C\": \"값\")에서 값의 여는 따옴표를 삼켜 프레임을 미사용으로 오판하기 때문.",
+     "hour_cycle": [
+      "water",
+      "chaos",
+      "dark",
+      "ground",
+      "fire",
+      "holy",
+      "light",
+      "wind"
+     ],
+     "frames": {
+      "water": "scene_worldmap_map_yutakan_new_map_tower_water",
+      "chaos": "scene_worldmap_map_yutakan_new_map_tower_chaos",
+      "dark": "scene_worldmap_map_yutakan_new_map_tower_dark",
+      "ground": "scene_worldmap_map_yutakan_new_map_tower_ground",
+      "fire": "scene_worldmap_map_yutakan_new_map_tower_fire",
+      "holy": "scene_worldmap_map_yutakan_new_map_tower_holy",
+      "light": "scene_worldmap_map_yutakan_new_map_tower_light",
+      "normal": "scene_worldmap_map_yutakan_new_map_tower_normal",
+      "wind": "scene_worldmap_map_yutakan_new_map_tower_wind"
+     },
+     "_frames_note": "normal 은 원작 두 번째 switch(:7139)에는 있으나 hour_cycle(첫 switch :6990~7042)에는 없다 — 회전에 안 나오는 기본형이라 표는 원작 그대로 9종을 유지한다.",
+     "scenario_min": 45,
+     "scenario_max": 1000,
+     "touch_anims": {
+      "water": "touch_water",
+      "chaos": "touch_chaos",
+      "dark": "touch_dark",
+      "ground": "touch_ground",
+      "fire": "touch_fire",
+      "holy": "touch_holy",
+      "light": "touch_right",
+      "normal": "touch_wind",
+      "wind": "touch_wind"
+     },
+     "_touch_anims_note": "원작 setMapAnimation case 15 의 중첩 switch(:5920~6010) 그대로. 두 가지가 이름에서 유추되지 않으니 주의: L(빛)은 touch_light 가 아니라 **touch_right**(:5980), N(기본)은 case 0x4e 가 본문 없이 case 0x57 로 흘러내려 **touch_wind** 를 쓴다. 스파인 ani_lighttower_spine 의 실제 애니 키도 appear + touch_{water,chaos,dark,ground,fire,holy,right,wind} 8종으로 일치한다."
+    },
+    "ambient_prefix": "scene_worldmap_map_yutakan_ani_new_",
+    "_ambient_source": "원작 libgame.so WorldMapYutakanLayer::initAnimation 디컴파일(2026-07-24). kind=연출종류, base=프레임명, n=플립북프레임수. pos=cocos원좌표를 조각앵커+어파인선형부(M)로 bg-atlas px 변환(docs 참조). 프레임딜레이 0.2s(CCAnimation::createWithSpriteFrames). 스파인 3종(fire_new·cave·veti)은 변환 완료 — scenes/worldmap_fx/*.tscn.",
+    "ambient": [
+     {
+      "kind": "flip",
+      "base": "ani_cow",
+      "n": 6,
+      "pos": [
+       870,
+       201
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_flag",
+      "n": 8,
+      "pos": [
+       718,
+       154
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_fractioin",
+      "n": 3,
+      "pos": [
+       823,
+       325
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_watercave",
+      "n": 3,
+      "pos": [
+       235,
+       559
+      ]
+     },
+     {
+      "kind": "spin",
+      "base": "ani_windmill",
+      "pos": [
+       818,
+       199
+      ],
+      "period": 2.0
+     },
+     {
+      "kind": "pulse",
+      "base": "ani_shadow",
+      "pos": [
+       1368,
+       555
+      ],
+      "to": 1.2,
+      "period": 2.0
+     },
+     {
+      "kind": "bob",
+      "base": "ani_wreck01",
+      "pos": [
+       1074,
+       681
+      ]
+     },
+     {
+      "kind": "sway",
+      "base": "ani_wreck02",
+      "pos": [
+       1074,
+       681
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_falls",
+      "n": 6,
+      "pos": [
+       351,
+       333
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_lava",
+      "n": 6,
+      "pos": [
+       1132,
+       230
+      ],
+      "_pos_note": "불의 산 봉우리 실측 정렬(2026-07-29). 조각 map010(269×172, 중심 pos [1155,306]) 안에서 용암 얹힌 최고봉이 프레임 (112,10) → bg-아틀라스 (1155-22.5, 306-76) = (1132.5, 230). 원작 좌표가 아니다 — ani_lava 는 디컴프 참조 0건(우리 추가분)이고, ani_fire_new 는 원작 레이어 (1600,1085)+(140,0) 이지만 우리 화산 조각이 그 자리에 없어 어파인으로 옮기면 크게 빗나간다."
+     },
+     {
+      "kind": "flip",
+      "base": "ani_crystal",
+      "n": 13,
+      "pos": [
+       537,
+       405
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_smoke",
+      "n": 12,
+      "pos": [
+       465,
+       649
+      ],
+      "no_offset": true
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_fire_new_spine",
+      "anim": "normal",
+      "pos": [
+       1059,
+       199
+      ],
+      "_why": "불의 산",
+      "_pos_note": "불의 산 봉우리 실측 정렬(2026-07-29). 조각 map010(269×172, 중심 pos [1155,306]) 안에서 용암 얹힌 최고봉이 프레임 (112,10) → bg-아틀라스 (1155-22.5, 306-76) = (1132.5, 230). 원작 좌표가 아니다 — ani_lava 는 디컴프 참조 0건(우리 추가분)이고, ani_fire_new 는 원작 레이어 (1600,1085)+(140,0) 이지만 우리 화산 조각이 그 자리에 없어 어파인으로 옮기면 크게 빗나간다. ▶ 스파인 루트와 불꽃 아트 사이에 자체 오프셋이 있어 봉우리 좌표를 그대로 주면 우상단으로 뜬다 — 렌더 실측(글로우 화면 (1030,143) ↔ 봉우리 (978,157))으로 화면 (-52,+14) = bg (-65,+18) 보정."
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_cave_spine",
+      "anim": "bat",
+      "pos": [
+       235,
+       554
+      ],
+      "_why": "수중동굴 — 원작 initAnimation:5213 은 setVisible(false) 로 숨긴 채 시작해 rand()%10+10 초마다 한 번만 \"bat\" 를 재생하고 다시 숨긴다. 상시 루프가 아니다. setMapAnimation case 9 는 사운드뿐이라 클릭과도 무관.",
+      "cycle": "flash",
+      "gap_min": 10.0,
+      "gap_max": 19.0
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_veti_spine",
+      "pos": [
+       165,
+       248
+      ],
+      "_why": "도적의 이글루 — 원작 animationVeti@01b38da8 이 rand()%9 로 breath/walk/scratch/sleep/snowman 을 한 번씩만 재생하며 스스로 이어 부른다. walk 일 때만 5초 좌우 왕복 + 좌우반전.",
+      "id": "veti",
+      "cycle": "veti",
+      "_pos_note": "y +62(bg-아틀라스 px ≈ 화면 50px) 하향 — 사용자 지적(2026-07-29). 원작도 최초 배치 y=980 보다 왕복 구간 y=930 이 50pt 아래라 방향이 같다. 절대좌표 이식이 아니라 눈맞춤이므로 값은 조정 가능."
+     }
+    ],
+    "_ambient_spine_source": "원작 WorldMapYutakanLayer::initAnimation(:4496~5337)이 상시로 띄우는 스파인은 fire_new·cave·veti **3종뿐**이다. 종전에 여기 있던 7종(waterfall·lake·snow·shipwreck·treedungeon·lighttower·wind)은 setMapAnimation 의 **필드 터치 연출**이라 field_fx 로 옮겼다(2026-07-28). pos=ASSUMPTION: 원작 절대좌표는 조각앵커+어파인 변환이 필요해 대응 던전 조각의 검증된 bgtex 위치를 쓴다(애니명이 조각을 특정: bat=수중동굴, breath=예티). 미배치 2종: waves_new(전역 파도), kades_raid(레이드=솔로 재설계 대기).",
+    "sounds": [
+     {
+      "track": "effect_area_water",
+      "rect": [
+       184.8,
+       153.8,
+       332.5,
+       332.5
+      ],
+      "_orig": "원혼의 폭포 — ani_falls/ani_waterfall_spine 위치(351,333)/(351,290)에 앵커. 원작 CCRect(300,400,500,500)"
+     },
+     {
+      "track": "effect_area_village",
+      "rect": [
+       657.8,
+       254.2,
+       332.5,
+       199.5
+      ],
+      "_orig": "엘피스 — 조각 map004 슬롯(824,354)에 앵커. 원작 CCRect(900,700,500,300)"
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       974.0,
+       533.8,
+       532.0,
+       332.5
+      ],
+      "_orig": "우측 바다(난파선·바람의 신전 쪽 해안)에 앵커. 원작 CCRect(1200,0,800,500)"
+     }
+    ],
+    "_sounds_source": "원작 WorldMapYutakanLayer::initSound 3구역. ⚠️ 유타칸은 디컴프(후기판) 좌표가 우리 구판 background1_bg 와 어파인 정합되지 않아(16슬롯 잔차 ±80px) 좌표변환을 쓸 수 없다. rect 크기는 원작값×0.665(유타칸 축척), 중심은 대응 지형에 재앵커 — 중심만 ASSUMPTION.",
+    "field_fx": [
+     {
+      "field": 1,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 1",
+      "sound": "effect_yutakan_1_forest"
+     },
+     {
+      "field": 2,
+      "kind": "spine",
+      "scene": "ani_shipwreck_spine",
+      "anim": "shiptouch",
+      "pos": [
+       1020,
+       571
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 2",
+      "_why": "난파선",
+      "loop": false,
+      "_loop_basis": "원작 `setAnimation(\"shiptouch\", **false**, 0)` — 1회 재생. (WorldMapYutakanLayer::setMapAnimation 축자. 같은 함수에서 worldmap_lake·kal 만 true 다.)"
+     },
+     {
+      "field": 4,
+      "kind": "spine",
+      "scene": "ani_wind_spine",
+      "anim": "wind",
+      "pos": [
+       1186,
+       521
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 4",
+      "_why": "바람의 신전",
+      "sound": "effect_wind",
+      "loop": false,
+      "_loop_basis": "원작 `setAnimation(\"wind\", **false**, 0)` — 1회 재생. (WorldMapYutakanLayer::setMapAnimation 축자. 같은 함수에서 worldmap_lake·kal 만 true 다.)"
+     },
+     {
+      "field": 5,
+      "kind": "flip",
+      "base": "ani_skyeffect",
+      "n": 13,
+      "pos": [
+       1380,
+       389
+      ],
+      "_orig": "setMapAnimation case 5 — ani_skyeffect01 을 앵커(0,0)·위치(31,101)로 필드 노드에 붙이고 ani_skyeffect%02d 12프레임 애니를 CCRepeatForever(:5491~5512)",
+      "_pos_basis": "ASSUMPTION — 원작 (31,101)은 필드 노드 로컬 좌표라 노드 크기·앵커를 모르면 절대좌표로 못 옮긴다. 필드 5 조각 슬롯 중심에 둔다(유타칸 앰비언트 좌표 전반과 같은 근거 수준).",
+      "_why": "하늘의 신전"
+     },
+     {
+      "field": 6,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 6",
+      "sound": "effect_yutakan_6_skelett"
+     },
+     {
+      "field": 7,
+      "kind": "spine",
+      "scene": "ani_treedungeon_spine",
+      "anim": "treee",
+      "pos": [
+       694,
+       504
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 7",
+      "_why": "수목신의 묘지(anim=treee)",
+      "loop": false,
+      "_loop_basis": "원작 `setAnimation(\"treee\", **false**, 0)` — 1회 재생. (WorldMapYutakanLayer::setMapAnimation 축자. 같은 함수에서 worldmap_lake·kal 만 true 다.)"
+     },
+     {
+      "field": 8,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 8",
+      "sound": "effect_yutakan_8_chaos"
+     },
+     {
+      "field": 9,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 9",
+      "sound": "effect_metal_2_mountain"
+     },
+     {
+      "field": 10,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 10",
+      "sound": "effect_yutakan_10_crystal"
+     },
+     {
+      "field": 11,
+      "kind": "spine",
+      "scene": "ani_lake_spine",
+      "anim": "worldmap_lake",
+      "pos": [
+       365,
+       453
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 11",
+      "_why": "오색호수",
+      "loop": true,
+      "_loop_basis": "원작 `setAnimation(\"worldmap_lake\", **true**, 0)` — 이 둘만 반복이다."
+     },
+     {
+      "field": 12,
+      "kind": "spine",
+      "scene": "ani_waterfall_spine",
+      "anim": "animation",
+      "pos": [
+       351,
+       290
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 12",
+      "_why": "원혼의 폭포",
+      "sound": "effect_yutakan_12_waterfall",
+      "loop": false,
+      "_loop_basis": "원작 `setAnimation(\"animation\", **false**, 0)` — 1회 재생. (WorldMapYutakanLayer::setMapAnimation 축자. 같은 함수에서 worldmap_lake·kal 만 true 다.)"
+     },
+     {
+      "field": 13,
+      "kind": "sound",
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 0xd — getChildByTag(11)(예티) → stopAllActions → setAnimation(\"embarrassed\", loop=false) → CCDelayTime(14.3) → CCCallFuncN(animationVeti) 로 기본 사이클 복귀. + effect_yutakan_13_igroo.",
+      "sound": "effect_yutakan_13_igroo",
+      "ambient_touch": "veti"
+     },
+     {
+      "field": 14,
+      "kind": "spine",
+      "scene": "ani_snow_spine",
+      "anim": "kal",
+      "pos": [
+       447,
+       146
+      ],
+      "_orig": "WorldMapYutakanLayer::setMapAnimation case 14",
+      "_why": "칼바람의 산맥(anim=kal)",
+      "sound": "effect_yutakan_14_mountain",
+      "loop": true,
+      "_loop_basis": "원작 `setAnimation(\"kal\", **true**, 0)` — 이 둘만 반복이다."
+     },
+     {
+      "field": 15,
+      "kind": "spine",
+      "scene": "ani_lighttower_spine",
+      "anim": "appear",
+      "pos": [
+       1450.5,
+       164.5
+      ],
+      "anim_by_light_tower": true,
+      "_orig": "setMapAnimation case 15 → ani_lighttower_spine, 애니 이름이 touch_<속성>(:5920~) — light_tower 표의 지금 속성을 따른다",
+      "_why": "빛의 탑",
+      "_pos_basis": "원작 setMapAnimation case 15 는 필드 노드 상대가 아니라 **레이어 절대좌표** `CCPoint(1440,1132) + CCSize(280,0)*0.5` 로 붙인다(WorldMapYutakanLayer.c, ani_lighttower_spine 직전). 어파인 평행이동은 빛의 탑(오버레이 조각)에서 잔차가 가장 크므로 **조각 앵커 + 선형부만** 써서 옮겼다. 조각 앵커는 하단중앙이다(docs/ref/porting/WorldMapAmbient_ElfDwarf.md §3 실측): 원작 조각 (1346,890)=하단 ↔ 우리 조각 하단 = 중심(1380,195) + h/2(302/2) = (1380,346). Δlayer = (1440,1132) − (1346,890) = (+94,+242) → Δbgpx = (+70.5, −181.5) ⇒ (1380,346) + Δ = (1450.5, 164.5).",
+      "design_offset": [
+       -47.0,
+       23.0
+      ],
+      "_offset_basis": "사용자 검수 누적(2026-07-29, 디자인 px): 왼쪽30·아래20 → 왼쪽30·아래20 → 오른쪽10·위20 → 오른쪽3·아래3 = (-47, +23). 빛의 탑은 배경에 뚫린 슬롯이 아니라 지형 위에 덧얹은 오버레이 조각이라 조각 좌표에 실측 기준이 없고, 연출도 원작 절대좌표를 어파인 선형부로만 옮긴 값이라 잔차가 남는다 — `pos` 의 원작 유도값은 그대로 두고 이 값으로만 맞춘다.",
+      "loop": false,
+      "_loop_basis": "원작 `setAnimation(\"touch_<속성>\", **false**, 0)` — 1회 재생. (WorldMapYutakanLayer::setMapAnimation 축자. 같은 함수에서 worldmap_lake·kal 만 true 다.)"
+     }
+    ],
+    "_field_fx_source": "원작 WorldMap*Layer::setMapAnimation(int field) — 필드를 누르면 그 필드 노드(tag 0x3ed 계열) 밑에 z=12·tag=10 으로 붙였다가 WorldMapLayer::setMapAnimationRemove 로 뗀다. **상시 앰비언트가 아니다.** 종전에 유타칸 스파인 7종(waterfall·lake·snow·shipwreck·treedungeon·lighttower·wind)을 ambient 로 배선했던 것을 여기로 옮겼다 — initAnimation(상시)에 실제로 있는 유타칸 스파인은 fire_new·cave·veti 3종뿐이다(WorldMapYutakanLayer.c:4496~5337).",
+    "night_fx": {
+     "light2": {
+      "layer_pos": [
+       1566.0,
+       994.0
+      ],
+      "design_offset": [
+       -70.0,
+       20.0
+      ],
+      "_layer_pos_basis": "원작 WorldMapYutakanLayer::changeNightAndDay tag 0x1773 (WorldMapYutakanLayer.c:1497) 리터럴 그대로.",
+      "_offset_basis": "사용자 시각 보정(2026-07-29): 왼쪽 70 · 아래 20 (디자인 px). coord.layer 어파인이 원작 조각좌표↔슬롯 실측중심 대응이라 ±40 bg-px(≈29 디자인 px) 잔차를 갖는다 — 그 잔차를 눈으로 메우는 노브다. 원작 좌표 자체는 layer_pos 로 보존."
+     }
+    },
+    "_label_source": "필드 네임택 = 원작 WorldMapYutakanLayer::initLabel 의 WorldMapLabel::create(field, pos, align, color, special) 전량. label_pos=원작 레이어 좌표 · label_align(1=판 우상단을 pos 에 맞춤, 0=판 중심을 pos 에) · label_color(int=GetColor enum 1~6, \"#RRGGBB\"=원작 리터럴) · label_special=금테(9patch 대신 scene/worldmap/label_frame_special). label_offset=어파인 잔차 보정 노브(디자인 px, 없으면 0)."
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map_tower_water",
+     "frame_from": "light_tower",
+     "field": 15,
+     "type": "battle",
+     "label": "빛의 탑",
+     "target": "battle:15",
+     "pos": [
+      1380,
+      195
+     ],
+     "label_level": 45,
+     "label_pos": [
+      1475,
+      1145
+     ],
+     "label_align": 0,
+     "label_color": 2,
+     "label_offset": [
+      112,
+      81
+     ],
+     "_label_offset_note": "빛의 탑·콜로세움·불의 산은 슬롯이 아니라 **덧얹은 오버레이 조각**이라 어파인 잔차가 가장 크다(빛의 탑 -290px). 게다가 우리 지역뷰는 섬 전체를 692 높이에 맞춰 넣어 원작보다 축소돼 있어서, 섬 상단 라벨이 상단 재화 HUD 와 겹친다. 원작 스크린샷(Yutakan_main.png) 기준 탑 좌측으로 내렸다."
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map001",
+     "field": 4,
+     "type": "battle",
+     "label": "바람의 신전",
+     "target": "battle:4",
+     "pos": [
+      1186,
+      521
+     ],
+     "label_level": 15,
+     "label_pos": [
+      1670,
+      580
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map002",
+     "field": 2,
+     "type": "battle",
+     "label": "난파선",
+     "target": "battle:2",
+     "pos": [
+      1020,
+      571
+     ],
+     "label_level": 5,
+     "label_pos": [
+      1470,
+      300
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map003",
+     "field": 1,
+     "type": "battle",
+     "label": "희망의 숲",
+     "target": "battle:1",
+     "pos": [
+      1039,
+      396
+     ],
+     "label_level": 1,
+     "label_pos": [
+      1500,
+      750
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map004",
+     "field": 1002,
+     "type": "town",
+     "label": "엘피스",
+     "target": "town:elpis",
+     "pos": [
+      824,
+      354
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1200,
+      700
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map005",
+     "field": 0,
+     "type": "deco",
+     "label": "",
+     "target": "",
+     "pos": [
+      873,
+      222
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map006",
+     "field": 0,
+     "type": "deco",
+     "label": "",
+     "target": "",
+     "pos": [
+      639,
+      277
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map007",
+     "field": 1000,
+     "type": "deco",
+     "label": "콜로세움",
+     "target": "",
+     "pos": [
+      728,
+      129
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1125,
+      1125
+     ],
+     "label_align": 0,
+     "label_color": 5,
+     "label_offset": [
+      -16,
+      60
+     ],
+     "_label_offset_note": "콜로세움 — main.png 은 성 우상단 하늘에 얹지만 우리 뷰는 그 자리가 재화 HUD 다. 성 상단 벽면으로 내렸다."
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map008",
+     "field": 1001,
+     "type": "cave",
+     "label": "동굴",
+     "target": "cave",
+     "pos": [
+      850,
+      530
+     ],
+     "label_level": 0,
+     "label_hidden": true,
+     "_label_note": "원작 WorldMapYutakanLayer::initLabel 에 field 1001 항목이 없다 — 동굴은 하단바 원형 버튼으로 들어간다. 조각 클릭은 유지."
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map010",
+     "field": 3,
+     "type": "battle",
+     "label": "불의 산",
+     "target": "battle:3",
+     "pos": [
+      1155,
+      306
+     ],
+     "label_level": 10,
+     "label_pos": [
+      1630,
+      930
+     ],
+     "label_align": 0,
+     "label_color": 2,
+     "label_offset": [
+      -62,
+      39
+     ],
+     "_label_offset_note": "불의 산 — 조각 위치가 자작이라 라벨이 화산 우상단 바다로 나간다. 화산 상단으로 옮겼다."
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map012",
+     "field": 14,
+     "type": "battle",
+     "label": "칼바람의 산맥",
+     "target": "battle:14",
+     "pos": [
+      447,
+      146
+     ],
+     "label_level": 42,
+     "label_pos": [
+      550,
+      1000
+     ],
+     "label_align": 0,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map013",
+     "field": 12,
+     "type": "battle",
+     "label": "원혼의 폭포",
+     "target": "battle:12",
+     "pos": [
+      351,
+      290
+     ],
+     "label_level": 38,
+     "label_pos": [
+      560,
+      800
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map014",
+     "field": 13,
+     "type": "battle",
+     "label": "도적의 이글루",
+     "target": "battle:13",
+     "pos": [
+      165,
+      186
+     ],
+     "label_level": 40,
+     "label_pos": [
+      250,
+      850
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map015",
+     "field": 10,
+     "type": "battle",
+     "label": "몽환의 수정터",
+     "target": "battle:10",
+     "pos": [
+      541,
+      413
+     ],
+     "label_level": 33,
+     "label_pos": [
+      800,
+      580
+     ],
+     "label_align": 1,
+     "label_color": 6
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map016",
+     "field": 11,
+     "type": "battle",
+     "label": "오색호수",
+     "target": "battle:11",
+     "pos": [
+      365,
+      453
+     ],
+     "label_level": 36,
+     "label_pos": [
+      600,
+      650
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map017",
+     "field": 9,
+     "type": "battle",
+     "label": "수중동굴",
+     "target": "battle:9",
+     "pos": [
+      235,
+      554
+     ],
+     "label_level": 30,
+     "label_pos": [
+      380,
+      430
+     ],
+     "label_align": 1,
+     "label_color": 6
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map018",
+     "field": 7,
+     "type": "battle",
+     "label": "수목신의 묘지",
+     "target": "battle:7",
+     "pos": [
+      694,
+      504
+     ],
+     "label_level": 25,
+     "label_pos": [
+      1020,
+      475
+     ],
+     "label_align": 1,
+     "label_color": 5
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map019",
+     "field": 6,
+     "type": "battle",
+     "label": "해골 요새",
+     "target": "battle:6",
+     "pos": [
+      687,
+      696
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1000,
+      300
+     ],
+     "label_align": 1,
+     "label_color": 4,
+     "label_special": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map020",
+     "field": 8,
+     "type": "battle",
+     "label": "혼돈의 틈새",
+     "target": "battle:8",
+     "pos": [
+      457,
+      698
+     ],
+     "label_level": 0,
+     "label_pos": [
+      700,
+      255
+     ],
+     "label_align": 1,
+     "label_color": 4,
+     "label_special": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map009",
+     "field": 5,
+     "type": "battle",
+     "label": "하늘의 신전",
+     "target": "battle:5",
+     "pos": [
+      1380,
+      389
+     ],
+     "label_level": 20,
+     "label_pos": [
+      1900,
+      680
+     ],
+     "label_align": 1,
+     "label_color": 3
+    }
+   ],
+   "_notes": "map006(마을)은 원작서 field0+1005 두번 배치(동일 pos)→여기선 1개. colosseum(1000)/second-village(1005)는 PvP·이벤트성→deco(비클릭). 해골요새(f6)·혼돈틈새(f8) 레벨 미확정(ASSUMPTION 회피)."
+  },
+  {
+   "id": "elf",
+   "bgm": "bg_elysium",
+   "label_kr": "엘리시움",
+   "thumb": "scene_worldmap_map_world_map_elf",
+   "label_frame": "scene_worldmap_map_world_label_elf_kr",
+   "world": [
+    250,
+    420
+   ],
+   "unlocked": true,
+   "town": "",
+   "_node_source": "위키 dungeon_3(엘리시움/던전) 순서. 그림 대조 docs/ref/orig_image/worldmap_frames/map_elf/. 엘리시움은 town 에셋 없음(엘프 거주). elpis는 유타칸 소속이라 제거함.",
+   "_source": "원작 libgame.so WorldMapElfLayer::initBG 디컴파일(extract_recipe.py) + background1 슬롯 어파인정합(place_pieces.py) + 위키 던전명/레벨(extract_wiki.py). field↔던전=레벨오름차순 ASSUMPTION(이미지매칭 보정대상).",
+   "native": {
+    "atlas_dir": "worldmap_elf_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_elf_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.7138,
+     "center_x": true,
+     "bg_tex_center": [
+      547.0,
+      469.5
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -149.57,
+      "ty": 945.63,
+      "_residual": "|dx| 평균 21.2 최대 41.6 / |dy| 평균 12.9 최대 29.7 (5점)",
+      "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     }
+    },
+    "content_w": 1360,
+    "_coord_note": "pos=bg-아틀라스 px(프레임 중심). design = bg_design + (pos − bg_tex_center)×scale. scale = 0.9686×692/939 — 유타칸과 같은 세로 채움비(맵 전체가 한 화면에 들어온다). center_x=true → bg_design.x 는 런타임에 max(content_w, 화면폭)×0.5 로 재계산(해상도 무관 중앙정렬). 🔴 2026-07-28 이전 값(scale 0.92)은 맵이 화면(692)보다 높아 위쪽이 잘렸고, 그 바람에 위쪽 앰비언트(엘프 세계수·생명수 / 드워프 엘리베이터)가 화면 밖으로 밀려났다.",
+    "ambient_prefix": "scene_worldmap_map_elf_ani_new_",
+    "ambient": [
+     {
+      "base": "ani_elf_waterflow_spine",
+      "kind": "spine",
+      "scene": "ani_elf_waterflow_spine",
+      "anim": "animation",
+      "pos": [
+       685.0,
+       495.3
+      ],
+      "_orig": "WorldMapElfLayer::initAnimation CCPoint(1024,693) setAnimation('animation',true) z=11",
+      "scale": 0.70394,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+     },
+     {
+      "base": "ani_elf_wave_new_spine",
+      "kind": "spine",
+      "scene": "ani_elf_wave_new_spine",
+      "anim": "animation",
+      "pos": [
+       685.7,
+       495.3
+      ],
+      "_orig": "동 initAnimation CCPoint(1025,693) z=11",
+      "scale": 0.70394,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
+      "hide_slots": [
+       "w_elf_riverdustbook"
+      ],
+      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+     },
+     {
+      "base": "ani_elf_livingwaters_new_spine",
+      "kind": "spine",
+      "scene": "ani_elf_livingwaters_new_spine",
+      "anim": "animation",
+      "pos": [
+       612.5,
+       293.3
+      ],
+      "_orig": "동 initAnimation CCPoint(921,980) z=11",
+      "scale": 0.70394,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+     },
+     {
+      "base": "ani_elf_tree_spine",
+      "kind": "spine",
+      "scene": "ani_elf_tree_spine",
+      "anim": "animation",
+      "pos": [
+       601.9,
+       251.7
+      ],
+      "_orig": "동 initAnimation CCPoint(906,1039) z=11",
+      "scale": 0.70394,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
+      "hide_slots": [
+       "w_elf_treebook"
+      ],
+      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+     }
+    ],
+    "_ambient_source": "원작 WorldMapElfLayer::initAnimation 축자 이식. 좌표 = 원작 cocos → bg-아틀라스 px 균일변환(s=0.70394 tx=-35.85 ty=983.13, background1_bg 슬롯 실측 정합). 프레임딜레이 0.2s. 🔴 2026-07-28 재이식 — 종전 비균일 어파인(x/y 축척이 9~11% 달랐다)을 폐기.",
+    "sounds": [
+     {
+      "track": "effect_area_river",
+      "rect": [
+       456.9,
+       279.2,
+       281.6,
+       281.6
+      ],
+      "_orig": "WorldMapElfLayer::initSound CCRect(700,600,400,400)"
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       175.3,
+       701.6,
+       352.0,
+       281.6
+      ],
+      "_orig": "WorldMapElfLayer::initSound CCRect(300,0,500,400)"
+     },
+     {
+      "track": "effect_area_water",
+      "rect": [
+       738.5,
+       631.2,
+       352.0,
+       352.0
+      ],
+      "_orig": "WorldMapElfLayer::initSound CCRect(1100,0,500,500)"
+     }
+    ],
+    "_sounds_source": "원작 WorldMapLayer::setWorldMapSound(위치기반 구역 앰비언트) 축자 이식. rect=bg-아틀라스 px(y-down), 앰비언트와 같은 균일변환(s=0.70394 tx=-35.85 ty=983.13). 판정·볼륨·팬 공식은 audio.gd area_update 주석 / docs/ref/porting/WorldMapAreaSound.md.",
+    "_label_source": "필드 네임택 = 원작 WorldMapElfLayer::initLabel 의 WorldMapLabel::create(field, pos, align, color, special) 전량. label_pos=원작 레이어 좌표 · label_align(1=판 우상단을 pos 에 맞춤, 0=판 중심을 pos 에) · label_color(int=GetColor enum 1~6, \"#RRGGBB\"=원작 리터럴) · label_special=금테(9patch 대신 scene/worldmap/label_frame_special). label_offset=어파인 잔차 보정 노브(디자인 px, 없으면 0)."
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_elf_new_map002",
+     "field": 18,
+     "type": "battle",
+     "label": "고대 유적",
+     "target": "battle:18",
+     "pos": [
+      309.5,
+      635.5
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 35,
+     "label_pos": [
+      700,
+      400
+     ],
+     "label_align": 1,
+     "label_color": "#E3A14C"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map001",
+     "field": 16,
+     "type": "battle",
+     "label": "정령의 숲",
+     "target": "battle:16",
+     "pos": [
+      861.7,
+      482.2
+     ],
+     "_pos_basis": "initBG 좌표 균일변환(해당 조각은 지형 위에 얹혀 슬롯이 없다)",
+     "label_level": 25,
+     "label_pos": [
+      1500,
+      596
+     ],
+     "label_align": 1,
+     "label_color": "#76DF48"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map003",
+     "field": 17,
+     "type": "battle",
+     "label": "나무 계곡",
+     "target": "battle:17",
+     "pos": [
+      169.5,
+      454.5
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 30,
+     "label_pos": [
+      500,
+      700
+     ],
+     "label_align": 1,
+     "label_color": "#6CC99A"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map005",
+     "field": 1004,
+     "type": "deco",
+     "label": "엘리시움 성소",
+     "target": "",
+     "pos": [
+      746.0,
+      401.0
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 0,
+     "label_pos": [
+      1300,
+      800
+     ],
+     "label_align": 1,
+     "label_color": "#40E056"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map004",
+     "field": 19,
+     "type": "battle",
+     "label": "세계수",
+     "target": "battle:19",
+     "pos": [
+      413.3,
+      252.6
+     ],
+     "_pos_basis": "initBG 좌표 균일변환(해당 조각은 지형 위에 얹혀 슬롯이 없다)",
+     "label_level": 45,
+     "label_pos": [
+      925,
+      870
+     ],
+     "label_align": 1,
+     "label_color": "#2A86B9"
+    }
+   ],
+   "_pos_source": "조각 위치 = background1_bg 슬롯 실측 + WorldMapElfLayer::initBG 좌표 균일정합 (앵커 cocos (0.5,0)=하단중앙, s=0.70394 tx=-35.85 ty=983.13). 2026-07-28 재이식."
+  },
+  {
+   "id": "dwarf",
+   "bgm": "bg_metal_tower",
+   "label_kr": "메탈타워",
+   "thumb": "scene_worldmap_map_world_map_dwarf",
+   "label_frame": "scene_worldmap_map_world_label_dwarf_kr",
+   "world": [
+    250,
+    690
+   ],
+   "unlocked": true,
+   "town": "dwarf",
+   "_node_source": "위키 dungeon_2(메탈타워/던전) 순서. 그림 대조 docs/ref/orig_image/worldmap_frames/map_dwarf/. 거주=드워프, town=dwarf(map002 추정).",
+   "_source": "원작 libgame.so WorldMapDwarfLayer::initBG 디컴파일(extract_recipe.py) + background1 슬롯 어파인정합(place_pieces.py) + 위키 던전명/레벨(extract_wiki.py). field↔던전=레벨오름차순 ASSUMPTION(이미지매칭 보정대상).",
+   "native": {
+    "atlas_dir": "worldmap_dwarf_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_dwarf_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.7625,
+     "center_x": true,
+     "bg_tex_center": [
+      586.0,
+      439.5
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -117.43,
+      "ty": 895.62,
+      "_residual": "|dx| 평균 10.5 최대 22.3 / |dy| 평균 21.6 최대 38.1 (5점)",
+      "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     }
+    },
+    "content_w": 1360,
+    "_coord_note": "pos=bg-아틀라스 px(프레임 중심). design = bg_design + (pos − bg_tex_center)×scale. scale = 0.9686×692/879 — 유타칸과 같은 세로 채움비(맵 전체가 한 화면에 들어온다). center_x=true → bg_design.x 는 런타임에 max(content_w, 화면폭)×0.5 로 재계산(해상도 무관 중앙정렬). 🔴 2026-07-28 이전 값(scale 0.859)은 맵이 화면(692)보다 높아 위쪽이 잘렸고, 그 바람에 위쪽 앰비언트(엘프 세계수·생명수 / 드워프 엘리베이터)가 화면 밖으로 밀려났다.",
+    "ambient_prefix": "scene_worldmap_map_dwarf_ani_new_",
+    "ambient": [
+     {
+      "base": "ani_elevator_new_spine",
+      "kind": "spine",
+      "scene": "ani_elevator_new_spine",
+      "anim": "elevator",
+      "pos": [
+       414.6,
+       415.9
+      ],
+      "_orig": "WorldMapDwarfLayer::initAnimation CCPoint(571,730) setAnimation('elevator',true) z=11",
+      "scale": 0.7314,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
+      "hide_slots": [
+       "w_dwarf_elevator_book"
+      ],
+      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+     },
+     {
+      "base": "ani_cart_new_spine",
+      "kind": "spine",
+      "scene": "ani_cart_new_spine",
+      "anim": "mine",
+      "pos": [
+       844.6,
+       417.3
+      ],
+      "_orig": "동 initAnimation CCPoint(1159,728) setAnimation('mine',true) z=11",
+      "scale": 0.7314,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
+      "hide_slots": [
+       "w_dwarf_mine_book"
+      ],
+      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+     },
+     {
+      "base": "ani_fire",
+      "kind": "flip",
+      "n": 3,
+      "pos": [
+       568.2,
+       282.8
+      ],
+      "_orig": "동 initAnimation CCPoint(781,912) getMapAnimation('ani_fire%02d.png',3)+RepeatForever z=11"
+     },
+     {
+      "base": "ani_dwarfstatue_new_spine",
+      "kind": "spine",
+      "scene": "ani_dwarfstatue_new_spine",
+      "anim": "animation",
+      "pos": [
+       1013.6,
+       547.5
+      ],
+      "_orig": "동 initAnimation CCPoint(1390,550) z=13 tag=14",
+      "scale": 0.7314,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+     },
+     {
+      "base": "ani_ogre_spine",
+      "kind": "spine",
+      "scene": "ani_ogre_spine",
+      "anim": "breath",
+      "pos": [
+       925.8,
+       681.4
+      ],
+      "_orig": "동 initAnimation CCPoint(1270,367) setAnimation('breath',false)+setMix(...,0.4) z=13 tag=27. ⚪ animationOgre 의 breath↔walk 교대는 미이식",
+      "scale": 0.7314,
+      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+     }
+    ],
+    "_ambient_source": "원작 WorldMapDwarfLayer::initAnimation 축자 이식. 좌표 = 원작 cocos → bg-아틀라스 px 균일변환(s=0.73140 tx=-3.05 ty=949.80, background1_bg 슬롯 실측 정합). 프레임딜레이 0.2s. 🔴 2026-07-28 재이식 — 종전 비균일 어파인(x/y 축척이 9~11% 달랐다)을 폐기.",
+    "sounds": [
+     {
+      "track": "effect_area_rail",
+      "rect": [
+       728.3,
+       218.4,
+       292.6,
+       292.6
+      ],
+      "_orig": "WorldMapDwarfLayer::initSound CCRect(1000,600,400,400)"
+     },
+     {
+      "track": "effect_area_dor",
+      "rect": [
+       216.4,
+       145.3,
+       292.6,
+       292.6
+      ],
+      "_orig": "WorldMapDwarfLayer::initSound CCRect(300,700,400,400)"
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       216.4,
+       657.2,
+       585.1,
+       292.6
+      ],
+      "_orig": "WorldMapDwarfLayer::initSound CCRect(300,0,800,400)"
+     }
+    ],
+    "_sounds_source": "원작 WorldMapLayer::setWorldMapSound(위치기반 구역 앰비언트) 축자 이식. rect=bg-아틀라스 px(y-down), 앰비언트와 같은 균일변환(s=0.73140 tx=-3.05 ty=949.80). 판정·볼륨·팬 공식은 audio.gd area_update 주석 / docs/ref/porting/WorldMapAreaSound.md.",
+    "_label_source": "필드 네임택 = 원작 WorldMapDwarfLayer::initLabel 의 WorldMapLabel::create(field, pos, align, color, special) 전량. label_pos=원작 레이어 좌표 · label_align(1=판 우상단을 pos 에 맞춤, 0=판 중심을 pos 에) · label_color(int=GetColor enum 1~6, \"#RRGGBB\"=원작 리터럴) · label_special=금테(9patch 대신 scene/worldmap/label_frame_special). label_offset=어파인 잔차 보정 노브(디자인 px, 없으면 0)."
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map005",
+     "field": 20,
+     "type": "battle",
+     "label": "광물산맥",
+     "target": "battle:20",
+     "pos": [
+      219.5,
+      580.0
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 30,
+     "label_pos": [
+      579,
+      400
+     ],
+     "label_align": 1,
+     "label_color": "#26ADFE"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map002",
+     "field": 22,
+     "type": "battle",
+     "label": "거신의 입구",
+     "target": "battle:22",
+     "pos": [
+      821.5,
+      551.5
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 35,
+     "label_pos": [
+      1385,
+      556
+     ],
+     "label_align": 1,
+     "label_color": "#D7949D"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map003",
+     "field": 21,
+     "type": "battle",
+     "label": "기계무덤",
+     "target": "battle:21",
+     "pos": [
+      448.0,
+      520.5
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 25,
+     "label_pos": [
+      886,
+      650
+     ],
+     "label_align": 1,
+     "label_color": "#C79FB1"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map001",
+     "field": 23,
+     "type": "battle",
+     "label": "화룡의 둥지",
+     "target": "battle:23",
+     "pos": [
+      919.2,
+      355.5
+     ],
+     "_pos_basis": "initBG 좌표 균일변환(해당 조각은 지형 위에 얹혀 슬롯이 없다)",
+     "label_level": 45,
+     "label_pos": [
+      1509,
+      821
+     ],
+     "label_align": 1,
+     "label_color": "#CEA6C0"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map004",
+     "field": 1003,
+     "type": "town",
+     "label": "드워프 마을",
+     "target": "town:dwarf",
+     "pos": [
+      437.0,
+      185.0
+     ],
+     "_pos_basis": "background1_bg 투명슬롯 실측중심",
+     "label_level": 0,
+     "label_pos": [
+      875,
+      870
+     ],
+     "label_align": 1,
+     "label_color": "#8794B5"
+    }
+   ],
+   "_pos_source": "조각 위치 = background1_bg 슬롯 실측 + WorldMapDwarfLayer::initBG 좌표 균일정합 (앵커 cocos (0.5,0)=하단중앙, s=0.73140 tx=-3.05 ty=949.80). 2026-07-28 재이식."
+  },
+  {
+   "id": "uno",
+   "bgm": "uno_worldmap_bgm",
+   "label_kr": "우노",
+   "thumb": "scene_worldmap_map_world_map_uno",
+   "label_frame": "scene_worldmap_map_world_label_uno_kr",
+   "world": [
+    250,
+    900
+   ],
+   "unlocked": true,
+   "town": "",
+   "_bgm_source": "원작 자산 `music/uno_worldmap_bgm.mp3`(asset_index --grep uno, orig=WorldMapScene). 파일명이 지역을 특정한다.",
+   "_unlock_basis": "원작은 스토리 '지도 복원' 완수 후 에우로스를 통해 열린다(<TutorialUno_1>). 우리는 스토리 트리거 데이터가 유실이라 게이트를 걸면 영영 못 들어간다 ⇒ 상시 해금(사용자 확정 2026-07-28).",
+   "_town_basis": "원작 WorldMapUnoLayer::initBG 에 마을 노드(다른 지역의 0x3eb/0x3ec)가 **없다** — 우노에는 마을이 없다. 시설은 마모루딕 연구소뿐(<TutorialUno_5>).",
+   "_source": "원작 libgame.so `WorldMapUnoLayer`(738줄, [skip>8000] 0건) 축자 이식 — initBG(조각 2) · initLabel(라벨 2) · initAnimation(스파인 4) · showMamorudic(스파인 1, tag 0x22 → MamorudicLab::scene()). 던전 이름은 stringsData_KR.xml <TutorialUno_5> '우노에는 검은 섬, 미지의 터, 마모루딕 연구소가 있습니다'.",
+   "native": {
+    "atlas_dir": "worldmap_uno",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_uno_background_background1"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 1.0673,
+     "center_x": true,
+     "bg_tex_center": [
+      491.0,
+      314.0
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -131.62,
+      "ty": 744.62,
+      "_residual": "|dx| 14.9 / |dy| 15.2 (2점뿐 — 과적합 방지로 s 고정)",
+      "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     }
+    },
+    "content_w": 1360,
+    "_coord_note": "pos=bg-아틀라스 px(프레임 중심). design = bg_design + (pos − bg_tex_center)×scale. bg_tex_center = background1 프레임(982×628)의 절반. scale = 0.9686×692/628 — 유타칸·메탈타워와 같은 세로 채움비(맵 전체가 한 화면에 들어온다). 우노 배경은 다른 지역보다 작아 1보다 큰 값이 된다. center_x=true → bg_design.x 는 런타임에 max(content_w, 화면폭)×0.5 로 재계산.",
+    "ambient_prefix": "",
+    "ambient": [
+     {
+      "base": "bg_black_island1",
+      "kind": "spine",
+      "scene": "bg_black_island1",
+      "anim": "animation",
+      "pos": [
+       412.6,
+       227.6
+      ],
+      "scale": 0.74563,
+      "_orig": "WorldMapUnoLayer::initAnimation CCPoint(866,765) setAnimation('animation',true) z=11"
+     },
+     {
+      "base": "bg_black_island2",
+      "kind": "spine",
+      "scene": "bg_black_island2",
+      "anim": "animation",
+      "pos": [
+       665.4,
+       496.8
+      ],
+      "scale": 0.74563,
+      "_orig": "동 initAnimation CCPoint(1205,404) z=11"
+     },
+     {
+      "base": "bg_unknown_ground1",
+      "kind": "spine",
+      "scene": "bg_unknown_ground1",
+      "anim": "animation",
+      "pos": [
+       647.5,
+       88.9
+      ],
+      "scale": 0.74563,
+      "_orig": "동 initAnimation CCPoint(1181,951) z=11 — 미지의 터 신전"
+     },
+     {
+      "base": "bg_unknown_ground2",
+      "kind": "spine",
+      "scene": "bg_unknown_ground2",
+      "anim": "animation",
+      "pos": [
+       874.9,
+       101.6
+      ],
+      "scale": 0.74563,
+      "_orig": "동 initAnimation CCPoint(1486,934) z=11 — 미지의 터 폭포"
+     }
+    ],
+    "_ambient_source": "원작 WorldMapUnoLayer::initAnimation 축자 이식. 좌표 = 원작 cocos → bg-아틀라스 px 균일변환 (s=0.74563 tx=-233.12 ty=798.0). 이 변환은 조각 2개의 **실측 슬롯 중심**으로 최소자승 적합했다 — 미지수 3개에 식 4개라 자유도 1의 검증이 붙고, 잔차는 x 0.4px / y 1.2px 다. 의미 검증도 통과: unknown_ground1 이 배경의 하얀 신전 위, mamorudik 이 가운데 평지 발판 위, 라벨 2개가 각자의 섬 위에 떨어진다(docs/ref/porting/WorldMapUno.md). ⚠️ initBG 의 CCPoint 는 조각의 **좌하단**이다(중심이 아니다) — 그 가정에서만 4식이 맞는다.",
+    "facility": {
+     "scene": "worldmap_mamorudik",
+     "anim": "normal",
+     "pos": [
+      662.4,
+      381.9
+     ],
+     "scale": 0.74563,
+     "target": "mamorudiclab",
+     "label": "마모루딕 연구소",
+     "hit": [
+      150,
+      200
+     ],
+     "_orig": "WorldMapUnoLayer::showMamorudic — scene/worldmap/map_uno/worldmap_mamorudik.spine_json, setAnimation('normal', loop), CCPoint(1201,558), z=13 tag=0x22. ccTouchOne 이 tag 0x22 의 boundingBox 안이면 hidePopup 후 MamorudicLab::scene() 을 pushScene 한다."
+    },
+    "_label_source": "필드 네임택 = 원작 WorldMapUnoLayer::initLabel 의 WorldMapLabel::create(field, pos, align, color, special) 전량. label_pos=원작 레이어 좌표 · label_align(1=판 우상단을 pos 에 맞춤, 0=판 중심을 pos 에) · label_color(int=GetColor enum 1~6, \"#RRGGBB\"=원작 리터럴) · label_special=금테(9patch 대신 scene/worldmap/label_frame_special). label_offset=어파인 잔차 보정 노브(디자인 px, 없으면 0)."
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_uno_background_map001",
+     "field": 24,
+     "type": "battle",
+     "label": "검은 섬",
+     "target": "battle:24",
+     "pos": [
+      425.5,
+      255.0
+     ],
+     "_pos_basis": "background1 투명슬롯에 조각을 얹어 최적 정합(겹침 최소·채움 최대). 슬롯 bbox 436×324 ↔ 조각 453×338.",
+     "_orig": "initBG WorldMapBG::create(0x18, 'map001.png', CCPoint(580,500), CCPoint(866,765))",
+     "label_level": 50,
+     "label_pos": [
+      766,
+      855
+     ],
+     "label_align": 1,
+     "label_color": "#8794B5"
+    },
+    {
+     "frame": "scene_worldmap_map_uno_background_map002",
+     "field": 25,
+     "type": "battle",
+     "label": "미지의 터",
+     "target": "battle:25",
+     "pos": [
+      755.0,
+      215.0
+     ],
+     "_pos_basis": "동 — 슬롯 bbox 349×193 ↔ 조각 362×202.",
+     "_orig": "initBG WorldMapBG::create(0x19, 'map002.png', CCPoint(1082,648), CCPoint(1322,805))",
+     "label_level": 50,
+     "label_pos": [
+      1313,
+      788
+     ],
+     "label_align": 1,
+     "label_color": "#26ADFE"
+    }
+   ],
+   "_label_orig": "initLabel: WorldMapLabel::create(0x18, CCPoint(766,855), 1, 0xb59487, 0) / (0x19, CCPoint(1313,788), 1, 0xfead26, 0). 색은 지역별 라벨 틴트다 — 우리 라벨은 조각 중심에 붙으므로 좌표는 안 쓴다."
+  }
+ ]
+}

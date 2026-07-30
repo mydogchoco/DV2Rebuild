@@ -1,0 +1,2116 @@
+{
+ "_source": "나무위키 dungeon_*.pdf (extract_wiki.py). 값=위키 서술, 사용자 검수 대상. asset_id(스프라이트)=이미지 매칭 TODO.",
+ "monsters": [
+  {
+   "name": "핑크 슬라임",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 22,
+   "def": 12,
+   "hp": 78,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 1
+  },
+  {
+   "name": "나무괴물",
+   "form": "식물형",
+   "size": "중형",
+   "element": "무",
+   "att": 22,
+   "def": 12,
+   "hp": 78,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 2
+  },
+  {
+   "name": "숲 고릴라",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 22,
+   "def": 12,
+   "hp": 78,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 3
+  },
+  {
+   "name": "닌자 사슴",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 22,
+   "def": 12,
+   "hp": 78,
+   "skills": [
+    "맹수의 감각"
+   ],
+   "region": "yutakan",
+   "asset_id": 4
+  },
+  {
+   "name": "퀸즈 스네이크",
+   "form": "인간형",
+   "size": "대형",
+   "element": "땅",
+   "att": 29,
+   "def": 19,
+   "hp": 149,
+   "skills": [
+    "신경독소"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 5
+  },
+  {
+   "name": "건 프로그",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 39,
+   "def": 18,
+   "hp": 132,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 6
+  },
+  {
+   "name": "금발 인어",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 39,
+   "def": 18,
+   "hp": 132,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 7
+  },
+  {
+   "name": "심해 상어전사",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 39,
+   "def": 18,
+   "hp": 132,
+   "skills": [
+    "자연의 수호"
+   ],
+   "region": "yutakan",
+   "asset_id": 8
+  },
+  {
+   "name": "독문어",
+   "form": "동물형",
+   "size": "소형",
+   "element": "무",
+   "att": 39,
+   "def": 18,
+   "hp": 132,
+   "skills": [
+    "맹수의 감각"
+   ],
+   "region": "yutakan",
+   "asset_id": 9
+  },
+  {
+   "name": "드래이크 (Drake)",
+   "form": "언데드",
+   "size": "중형",
+   "element": "무",
+   "att": 45,
+   "def": 25,
+   "hp": 198,
+   "skills": [
+    "상처파악"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 10
+  },
+  {
+   "name": "불의 정령",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 55,
+   "def": 24,
+   "hp": 162,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 11
+  },
+  {
+   "name": "불의 수호자",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 55,
+   "def": 24,
+   "hp": 162,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 12
+  },
+  {
+   "name": "와일드 보어",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 55,
+   "def": 24,
+   "hp": 162,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 13
+  },
+  {
+   "name": "파이어 매직 버드",
+   "form": "동물형",
+   "size": "소형",
+   "element": "무",
+   "att": 55,
+   "def": 24,
+   "hp": 162,
+   "skills": [
+    "환각 효과"
+   ],
+   "region": "yutakan",
+   "asset_id": 14
+  },
+  {
+   "name": "파이어 레드스톤 (Fire Redstone)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 62,
+   "def": 31,
+   "hp": 248,
+   "skills": [
+    "필살 방어"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 15
+  },
+  {
+   "name": "산 아가씨",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 72,
+   "def": 30,
+   "hp": 228,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 16
+  },
+  {
+   "name": "괴조투사",
+   "form": "인갸형",
+   "size": "중형",
+   "element": "무",
+   "att": 72,
+   "def": 30,
+   "hp": 204,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 17
+  },
+  {
+   "name": "늑대검사",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 72,
+   "def": 30,
+   "hp": 204,
+   "skills": [
+    "무언의 압박"
+   ],
+   "region": "yutakan",
+   "asset_id": 18
+  },
+  {
+   "name": "이교술사",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 72,
+   "def": 30,
+   "hp": 228,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 19
+  },
+  {
+   "name": "골드 타이탄 (Gold Titan)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 78,
+   "def": 37,
+   "hp": 297,
+   "skills": [
+    "무언의 압박"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 20
+  },
+  {
+   "name": "미노타우루스",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 88,
+   "def": 36,
+   "hp": 246,
+   "skills": [
+    "약점파악"
+   ],
+   "region": "yutakan",
+   "asset_id": 21
+  },
+  {
+   "name": "글램위치",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 88,
+   "def": 36,
+   "hp": 246,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 22
+  },
+  {
+   "name": "그린 페어리",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 88,
+   "def": 36,
+   "hp": 246,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 23
+  },
+  {
+   "name": "켄타우로스",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 88,
+   "def": 36,
+   "hp": 246,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 24
+  },
+  {
+   "name": "제우스 주니어 (Zeus Jr.)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 95,
+   "def": 43,
+   "hp": 347,
+   "skills": [
+    "마비의 구름"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 25
+  },
+  {
+   "name": "실버 나이트",
+   "form": "언데드",
+   "size": "중형",
+   "element": "무",
+   "att": 105,
+   "def": 42,
+   "hp": 324,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 26
+  },
+  {
+   "name": "핑크 젤라틴",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 42,
+   "hp": 288,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 27
+  },
+  {
+   "name": "페어리 고스트",
+   "form": "언데드",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 42,
+   "hp": 288,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 28
+  },
+  {
+   "name": "다크 머더러",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 105,
+   "def": 42,
+   "hp": 288,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 29
+  },
+  {
+   "name": "타락한 미아메이스 (Corrupted Miameith)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 111,
+   "def": 49,
+   "hp": 396,
+   "skills": [
+    "돌격지시"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 30
+  },
+  {
+   "name": "촉수 슬라임",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 31
+  },
+  {
+   "name": "데스웜",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 32
+  },
+  {
+   "name": "커터 크랩",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 33
+  },
+  {
+   "name": "아이즈 데몬",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 372,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 34
+  },
+  {
+   "name": "데몬 쉘터 (Demon Shelter)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 128,
+   "def": 72,
+   "hp": 446,
+   "skills": [
+    "암흑의 사슬"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 35
+  },
+  {
+   "name": "크리퍼",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 131,
+   "def": 58,
+   "hp": 355,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 36
+  },
+  {
+   "name": "퍼플 라바",
+   "form": "동물형",
+   "size": "소형",
+   "element": "무",
+   "att": 131,
+   "def": 58,
+   "hp": 355,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 37
+  },
+  {
+   "name": "몽환술사",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 131,
+   "def": 58,
+   "hp": 355,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 38
+  },
+  {
+   "name": "만드라고낙",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 131,
+   "def": 58,
+   "hp": 355,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 39
+  },
+  {
+   "name": "기계 만드라고낙",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 11,
+   "def": 11,
+   "hp": 100,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 40
+  },
+  {
+   "name": "몽환의 파수꾼 (Fantasy Guard)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 76,
+   "hp": 475,
+   "skills": [
+    "환각 효과",
+    "암흑의 사슬"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 41
+  },
+  {
+   "name": "스파이크젤",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 42
+  },
+  {
+   "name": "레드스타",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [
+    "야누스의 계략"
+   ],
+   "region": "yutakan",
+   "asset_id": 43
+  },
+  {
+   "name": "렉쿠",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 44
+  },
+  {
+   "name": "크로커맨",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 45
+  },
+  {
+   "name": "정령 스파이크젤",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 11,
+   "def": 11,
+   "hp": 100,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 46
+  },
+  {
+   "name": "뎀프바논 (Damp Vernon)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 144,
+   "def": 78,
+   "hp": 495,
+   "skills": [
+    "어둠의 손길"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 47
+  },
+  {
+   "name": "쉐도우 고스트",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 144,
+   "def": 62,
+   "hp": 389,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 48
+  },
+  {
+   "name": "버닝 소울",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 144,
+   "def": 62,
+   "hp": 389,
+   "skills": [
+    "뼈 부수기"
+   ],
+   "region": "yutakan",
+   "asset_id": 49
+  },
+  {
+   "name": "포사이트",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 144,
+   "def": 62,
+   "hp": 389,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 50
+  },
+  {
+   "name": "블러드 토드",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 144,
+   "def": 62,
+   "hp": 389,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 51
+  },
+  {
+   "name": "카디모프스 (Kadimorphs)",
+   "form": "인간형",
+   "size": "대형",
+   "element": "무",
+   "att": 151,
+   "def": 80,
+   "hp": 515,
+   "skills": [
+    "뼈 부수기"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 52
+  },
+  {
+   "name": "씨프 고블린",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 154,
+   "def": 66,
+   "hp": 414,
+   "skills": [
+    "뼈 부수기"
+   ],
+   "region": "yutakan",
+   "asset_id": 53
+  },
+  {
+   "name": "카노프",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 154,
+   "def": 66,
+   "hp": 414,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 54
+  },
+  {
+   "name": "콜디베어",
+   "form": "동물형",
+   "size": "대형",
+   "element": "무",
+   "att": 154,
+   "def": 66,
+   "hp": 414,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 55
+  },
+  {
+   "name": "돔돔",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 154,
+   "def": 66,
+   "hp": 414,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 56
+  },
+  {
+   "name": "자카브로 (Jakabro)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 161,
+   "def": 84,
+   "hp": 545,
+   "skills": [
+    "교차막기",
+    "야수의 본능"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 57
+  },
+  {
+   "name": "아이스피릿",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 161,
+   "def": 66,
+   "hp": 540,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 58
+  },
+  {
+   "name": "설담비",
+   "form": "동물형",
+   "size": "소형",
+   "element": "무",
+   "att": 161,
+   "def": 66,
+   "hp": 540,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 59
+  },
+  {
+   "name": "샤프윙",
+   "form": "동물형",
+   "size": "중형",
+   "element": "무",
+   "att": 161,
+   "def": 66,
+   "hp": 540,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 60
+  },
+  {
+   "name": "도도루",
+   "form": "무형",
+   "size": "중형",
+   "element": "무",
+   "att": 161,
+   "def": 66,
+   "hp": 540,
+   "skills": [
+    "망각의 망치"
+   ],
+   "region": "yutakan",
+   "asset_id": 61
+  },
+  {
+   "name": "아스티탄 (Icetitan)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 161,
+   "def": 84,
+   "hp": 545,
+   "skills": [
+    "철갑 방패"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 62
+  },
+  {
+   "name": "스톤키퍼-이글",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 176,
+   "def": 90,
+   "hp": 588,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 63
+  },
+  {
+   "name": "스톤키퍼-베어",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 176,
+   "def": 90,
+   "hp": 588,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 64
+  },
+  {
+   "name": "스톤키퍼-라이온",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 176,
+   "def": 90,
+   "hp": 588,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 65
+  },
+  {
+   "name": "스톤키퍼-엘리펀트",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 176,
+   "def": 90,
+   "hp": 588,
+   "skills": [
+    "철갑 방패"
+   ],
+   "region": "yutakan",
+   "asset_id": 66
+  },
+  {
+   "name": "스톤키퍼-드래곤",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 176,
+   "def": 90,
+   "hp": 594,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 67
+  },
+  {
+   "name": "라이트 오브 (Light Orb)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 275,
+   "def": 180,
+   "hp": 880,
+   "skills": [
+    "신의 결계"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 68
+  },
+  {
+   "name": "심벌 몽키",
+   "form": "동물형",
+   "size": "소형",
+   "element": "무",
+   "att": 187,
+   "def": 144,
+   "hp": 564,
+   "skills": [
+    "뼈 부수기"
+   ],
+   "region": "yutakan",
+   "asset_id": 69
+  },
+  {
+   "name": "훔바",
+   "form": "인간형",
+   "size": "대형",
+   "element": "무",
+   "att": 209,
+   "def": 144,
+   "hp": 588,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 70
+  },
+  {
+   "name": "스테파니",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 198,
+   "def": 144,
+   "hp": 600,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 71
+  },
+  {
+   "name": "모프된 가고일",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 209,
+   "def": 144,
+   "hp": 504,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 72
+  },
+  {
+   "name": "G스컬 (Gskull)",
+   "form": "언데드",
+   "size": "대형",
+   "element": "무",
+   "att": 220,
+   "def": 144,
+   "hp": 572,
+   "skills": [
+    "무언의 압박"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 73
+  },
+  {
+   "name": "다크닉스 Dark Nix)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 176,
+   "def": 108,
+   "hp": 968,
+   "skills": [
+    "철갑 방패"
+   ],
+   "region": "yutakan",
+   "asset_id": 74
+  },
+  {
+   "name": "그리파르 (Griffar)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 176,
+   "def": 0,
+   "hp": 14850,
+   "skills": [
+    "복수의 거울"
+   ],
+   "region": "yutakan",
+   "asset_id": 75
+  },
+  {
+   "name": "발레포르 (Valefor)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 286,
+   "def": 360,
+   "hp": 1188,
+   "skills": [
+    "피의 갈증"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 76
+  },
+  {
+   "name": "실버 임프 (Silver Imp)",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 171,
+   "def": 66,
+   "hp": 456,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 123
+  },
+  {
+   "name": "골드 임프 (Gold Imp)",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 171,
+   "def": 66,
+   "hp": 456,
+   "skills": [],
+   "region": "yutakan",
+   "asset_id": 124
+  },
+  {
+   "name": "검은 로브의 사도 (Black Robe)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "혼돈",
+   "att": 275,
+   "def": 66,
+   "hp": 1680,
+   "skills": [
+    "야수의 본능",
+    "피의 갈증"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 125
+  },
+  {
+   "name": "포마스 (Fomas)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "어둠",
+   "att": 171,
+   "def": 66,
+   "hp": 2100,
+   "skills": [
+    "신경독소"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 126
+  },
+  {
+   "name": "아녹마 (Anogma)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "물",
+   "att": 198,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "치유의 빛",
+    "빛의 정화"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 127
+  },
+  {
+   "name": "디콘 (Decon)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "불",
+   "att": 352,
+   "def": 132,
+   "hp": 780,
+   "skills": [
+    "심판의 날개",
+    "야수의 본능"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 128
+  },
+  {
+   "name": "기모모 (Gimomo)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "땅",
+   "att": 193,
+   "def": 210,
+   "hp": 840,
+   "skills": [
+    "어둠의 손길",
+    "교차막기"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 129
+  },
+  {
+   "name": "듀마 (Duma)",
+   "form": "언데드",
+   "size": "중형",
+   "element": "어둠",
+   "att": 178,
+   "def": 132,
+   "hp": 720,
+   "skills": [
+    "망각의 망치"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 130
+  },
+  {
+   "name": "토라토스 (Toratos)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "땅",
+   "att": 171,
+   "def": 480,
+   "hp": 600,
+   "skills": [
+    "철갑 방패",
+    "신의 결계"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 131
+  },
+  {
+   "name": "고가 (Goga)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "물",
+   "att": 308,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "피의 갈증",
+    "복수의 거울"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 132
+  },
+  {
+   "name": "키보",
+   "form": "인간형",
+   "size": "중형",
+   "element": "바람",
+   "att": 275,
+   "def": 138,
+   "hp": 1020,
+   "skills": [
+    "시한폭탄"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 133
+  },
+  {
+   "name": "투바로 (Tubaro)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "혼돈",
+   "att": 171,
+   "def": 540,
+   "hp": 720,
+   "skills": [
+    "무언의 압박",
+    "자연의 수호"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 134
+  },
+  {
+   "name": "사스 (Sas)",
+   "form": "언데드",
+   "size": "대형",
+   "element": "어둠",
+   "att": 198,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "거신의 돌격",
+    "시한폭탄"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 135
+  },
+  {
+   "name": "고곤 (Gogon)",
+   "form": "동물형",
+   "size": "대형",
+   "element": "빛",
+   "att": 193,
+   "def": 210,
+   "hp": 900,
+   "skills": [
+    "상처 파악",
+    "신의 분노"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 136
+  },
+  {
+   "name": "아이스티톤 (Icetiton)",
+   "form": "무형",
+   "size": "대형",
+   "element": "물",
+   "att": 176,
+   "def": 216,
+   "hp": 900,
+   "skills": [
+    "철갑 방패",
+    "마비의 구름"
+   ],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 137
+  },
+  {
+   "name": "칼리고마가 (Caligo Maga)",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 264,
+   "def": 180,
+   "hp": 2400,
+   "skills": [],
+   "region": "yutakan",
+   "boss": true,
+   "asset_id": 138
+  },
+  {
+   "name": "고장난 소형 채굴 기계",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 285,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 77
+  },
+  {
+   "name": "지반 다지기 기계",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 285,
+   "skills": [
+    "보호의 장막"
+   ],
+   "region": "dwarf",
+   "asset_id": 78
+  },
+  {
+   "name": "중형 장구함 이동 기계",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 285,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 79
+  },
+  {
+   "name": "중형 지반 다지기 기계",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 285,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 80
+  },
+  {
+   "name": "대형 광맥 채굴 기계",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 111,
+   "def": 66,
+   "hp": 396,
+   "skills": [
+    "바위방어술"
+   ],
+   "region": "dwarf",
+   "boss": true,
+   "asset_id": 81
+  },
+  {
+   "name": "암석 거인",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 82
+  },
+  {
+   "name": "철광석 거인",
+   "form": "특수형",
+   "size": "소형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 83
+  },
+  {
+   "name": "수정 거인",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [
+    "최후의 수단"
+   ],
+   "region": "dwarf",
+   "asset_id": 84
+  },
+  {
+   "name": "큼강석 거인",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 85
+  },
+  {
+   "name": "스톤하트 거인",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 128,
+   "def": 72,
+   "hp": 446,
+   "skills": [
+    "최후의 수단"
+   ],
+   "region": "dwarf",
+   "boss": true,
+   "asset_id": 86
+  },
+  {
+   "name": "오우거",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 87
+  },
+  {
+   "name": "전투 오우거",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 88
+  },
+  {
+   "name": "기계 오우거",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [
+    "교차막기"
+   ],
+   "region": "dwarf",
+   "asset_id": 89
+  },
+  {
+   "name": "채광ㅈ오우거",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 90
+  },
+  {
+   "name": "붉은피의 칼로스 (Red-Blooded Carlos)",
+   "form": "인간형",
+   "size": "대형",
+   "element": "무",
+   "att": 144,
+   "def": 78,
+   "hp": 495,
+   "skills": [
+    "피의 갈증"
+   ],
+   "region": "dwarf",
+   "boss": true,
+   "asset_id": 91
+  },
+  {
+   "name": "그렘린",
+   "form": "인간형",
+   "size": "소형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 92
+  },
+  {
+   "name": "세뇌된 오우거",
+   "form": "인간형",
+   "size": "중형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 93
+  },
+  {
+   "name": "미믹",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [
+    "어둠의 손길"
+   ],
+   "region": "dwarf",
+   "asset_id": 94
+  },
+  {
+   "name": "바위지기",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "dwarf",
+   "asset_id": 95
+  },
+  {
+   "name": "데미리치 (Demi Rich)",
+   "form": "무형",
+   "size": "중형",
+   "element": "무",
+   "att": 177,
+   "def": 90,
+   "hp": 594,
+   "skills": [
+    "시간의 역행"
+   ],
+   "region": "dwarf",
+   "boss": true,
+   "asset_id": 96
+  },
+  {
+   "name": "화룡 카시즈",
+   "form": "특수형",
+   "size": "대형",
+   "element": "무",
+   "att": 440,
+   "def": 180,
+   "hp": 250,
+   "skills": [
+    "카시즈의 불꽃"
+   ],
+   "region": "dwarf",
+   "boss": true,
+   "asset_id": 97
+  },
+  {
+   "name": "타락한 불의 정령",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 288,
+   "skills": [
+    "어둠의 손길"
+   ],
+   "region": "elf",
+   "asset_id": 98
+  },
+  {
+   "name": "타락한 땅의 정령",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 288,
+   "skills": [
+    "어둠의 손길"
+   ],
+   "region": "elf",
+   "asset_id": 99
+  },
+  {
+   "name": "타락한 물의 정령",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 288,
+   "skills": [
+    "빙결의 표식"
+   ],
+   "region": "elf",
+   "asset_id": 100
+  },
+  {
+   "name": "타락한 바람의 정령",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 105,
+   "def": 48,
+   "hp": 288,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 101
+  },
+  {
+   "name": "검은 원혼",
+   "form": "무형",
+   "size": "대형",
+   "element": "무",
+   "att": 111,
+   "def": 66,
+   "hp": 396,
+   "skills": [],
+   "region": "elf",
+   "boss": true,
+   "asset_id": 102
+  },
+  {
+   "name": "식인나무",
+   "form": "식물형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [
+    "빙결의 표식"
+   ],
+   "region": "elf",
+   "asset_id": 103
+  },
+  {
+   "name": "외눈 나무형제",
+   "form": "식물형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 104
+  },
+  {
+   "name": "식충나무귀",
+   "form": "식물형",
+   "size": "중형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 105
+  },
+  {
+   "name": "폭탄 씨앗",
+   "form": "식물형",
+   "size": "소형",
+   "element": "무",
+   "att": 121,
+   "def": 54,
+   "hp": 330,
+   "skills": [
+    "이판사판"
+   ],
+   "region": "elf",
+   "asset_id": 106
+  },
+  {
+   "name": "칼바라기",
+   "form": "식물형",
+   "size": "대형",
+   "element": "무",
+   "att": 128,
+   "def": 72,
+   "hp": 446,
+   "skills": [
+    "고속이동"
+   ],
+   "region": "elf",
+   "boss": true,
+   "asset_id": 107
+  },
+  {
+   "name": "망령",
+   "form": "언데드",
+   "size": "소형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 108
+  },
+  {
+   "name": "플라잉 소드",
+   "form": "언데드",
+   "size": "소형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 109
+  },
+  {
+   "name": "망령 전사",
+   "form": "언데드",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 110
+  },
+  {
+   "name": "망령이 깃든 가고일",
+   "form": "특수형",
+   "size": "중형",
+   "element": "무",
+   "att": 138,
+   "def": 60,
+   "hp": 420,
+   "skills": [
+    "마비의 구름"
+   ],
+   "region": "elf",
+   "asset_id": 111
+  },
+  {
+   "name": "마리오네트 (Marionette)",
+   "form": "언데드",
+   "size": "중형",
+   "element": "무",
+   "att": 144,
+   "def": 78,
+   "hp": 495,
+   "skills": [
+    "망각의 망치"
+   ],
+   "region": "elf",
+   "boss": true,
+   "asset_id": 112
+  },
+  {
+   "name": "검은로모",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 113
+  },
+  {
+   "name": "외뿔검은로모",
+   "form": "무형",
+   "size": "소형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [
+    "시한폭탄"
+   ],
+   "region": "elf",
+   "asset_id": 114
+  },
+  {
+   "name": "쌍뿔 검은로모",
+   "form": "무형",
+   "size": "중형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 115
+  },
+  {
+   "name": "슬러브 로모",
+   "form": "무형",
+   "size": "중형",
+   "element": "무",
+   "att": 171,
+   "def": 72,
+   "hp": 516,
+   "skills": [],
+   "region": "elf",
+   "asset_id": 116
+  },
+  {
+   "name": "붓처 로모 (Butcher Romo)",
+   "form": "무형",
+   "size": "대형",
+   "element": "무",
+   "att": 177,
+   "def": 90,
+   "hp": 594,
+   "skills": [
+    "빙결의 표식"
+   ],
+   "region": "elf",
+   "boss": true,
+   "asset_id": 117
+  },
+  {
+   "name": "퍼플립스(Purple Lips)",
+   "form": "",
+   "size": "",
+   "element": "무",
+   "att": 25,
+   "def": 50,
+   "hp": 4500,
+   "skills": [],
+   "region": "uno",
+   "asset_id": 125,
+   "_asset_basis": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다."
+  },
+  {
+   "name": "블루라이트닝(Blue Lightning)",
+   "form": "",
+   "size": "",
+   "element": "물",
+   "att": 375,
+   "def": 150,
+   "hp": 2625,
+   "skills": [],
+   "region": "uno",
+   "asset_id": 124,
+   "_asset_basis": "🟦 사용자 확정 2026-07-30 — 미지의 터 **금요일** 보스. 스프라이트 #124(하늘빛 익룡, #120~125 블록의 6번째)는 2026-07-28 조립 실측으로 확인됐으나 **위키가 스탯을 적지 않아** 데이터에 없었다. 스탯(체 2625 / 공 375 / 방 150)·속성(물)은 사용자 제공값이다."
+  },
+  {
+   "name": "관문의 수호자 (Ancient Gate Keeper)",
+   "form": "",
+   "size": "",
+   "element": "혼돈",
+   "att": 180,
+   "def": 130,
+   "hp": 543,
+   "skills": [],
+   "region": "uno",
+   "boss": true,
+   "asset_id": 181,
+   "_asset_basis": "🟦 사용자 확정 2026-07-30 — 검은 섬 단독 보스. 스프라이트 **#181**(은빛 갑주 + 보랏빛 번개의 기계 구조물 = 위키 '뛰어난 마공학의 결정체'). 종전 `stages.json` 이 쓰던 #134 는 **레이드 몹**이었다(raid_thumb/box_thumb 보유 id = 130~136·175·178~180).",
+   "_stat_basis": "🟦 사용자 확정: 위 값은 **드래곤 1마리 출전 기준 기본값**이고, 실제 전투에서는 × (출전 드래곤 수)² 로 커진다(battle.gd `_apply_party_count_scaling`). 영웅 난이도에서만 **철갑 방패**(skills.json id 11)를 쓴다 — `stages.json` 24번 `skills_hero`."
+  },
+  {
+   "name": "골드 드래곤(Gold Dragon)",
+   "form": "",
+   "size": "",
+   "element": "무",
+   "att": 150,
+   "def": 75,
+   "hp": 5625,
+   "skills": [],
+   "region": "uno",
+   "asset_id": 123,
+   "_asset_basis": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다."
+  },
+  {
+   "name": "드라고노이드(Dragnoid)",
+   "form": "",
+   "size": "",
+   "element": "무",
+   "att": 150,
+   "def": 410,
+   "hp": 2250,
+   "skills": [],
+   "region": "uno",
+   "asset_id": 122,
+   "_asset_basis": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다."
+  },
+  {
+   "name": "윗치 드래곤(Witch Dragon)",
+   "form": "",
+   "size": "",
+   "element": "무",
+   "att": 225,
+   "def": 260,
+   "hp": 3000,
+   "skills": [],
+   "region": "uno",
+   "asset_id": 121,
+   "_asset_basis": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다."
+  },
+  {
+   "name": "볼케이노(Volcano)",
+   "form": "",
+   "size": "",
+   "element": "무",
+   "att": 175,
+   "def": 100,
+   "hp": 2500,
+   "skills": [],
+   "region": "uno",
+   "boss": true,
+   "asset_id": 120,
+   "_asset_basis": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다."
+  },
+  {
+   "name": "골드 임프 (Gold Imp)",
+   "form": "인간형",
+   "size": "소형",
+   "element": "none",
+   "att": 171,
+   "def": 66,
+   "hp": 456,
+   "skills": [],
+   "region": "yutakan_night",
+   "asset_id": 160,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "실버 임프 (Silver Imp)",
+   "form": "인간형",
+   "size": "소형",
+   "element": "none",
+   "att": 171,
+   "def": 66,
+   "hp": 456,
+   "skills": [],
+   "region": "yutakan_night",
+   "asset_id": 161,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "검은 로브의 사도 (Black Robe)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "chaos",
+   "att": 275,
+   "def": 66,
+   "hp": 1680,
+   "skills": [
+    "야수의 본능",
+    "피의 갈증"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 162,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "칼리고마가 (Caligo Maga)",
+   "form": "무형",
+   "size": "소형",
+   "element": "none",
+   "att": 264,
+   "def": 180,
+   "hp": 2400,
+   "skills": [],
+   "region": "yutakan_night",
+   "asset_id": 175,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "포마스 (Fomas)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "dark",
+   "att": 171,
+   "def": 66,
+   "hp": 2100,
+   "skills": [
+    "신경독소"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 163,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "아녹마 (Anogma)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "aqua",
+   "att": 198,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "치유의 빛",
+    "빛의 정화"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 164,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "디콘 (Decon)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "fire",
+   "att": 352,
+   "def": 132,
+   "hp": 780,
+   "skills": [
+    "심판의 날개",
+    "야수의 본능"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 165,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "기모모 (Gimomo)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "earth",
+   "att": 193,
+   "def": 210,
+   "hp": 840,
+   "skills": [
+    "어둠의 손길",
+    "교차막기"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 166,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "듀마 (Duma)",
+   "form": "언데드",
+   "size": "중형",
+   "element": "dark",
+   "att": 178,
+   "def": 132,
+   "hp": 720,
+   "skills": [
+    "망각의 망치"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 167,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "토라토스 (Toratos)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "earth",
+   "att": 171,
+   "def": 480,
+   "hp": 600,
+   "skills": [
+    "철갑 방패",
+    "신의 결계"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 168,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "고가 (Goga)",
+   "form": "특수형",
+   "size": "대형",
+   "element": "aqua",
+   "att": 308,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "피의 갈증",
+    "복수의 거울"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 169,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "키보 (Kibo)",
+   "form": "인간형",
+   "size": "중형",
+   "element": "wind",
+   "att": 275,
+   "def": 138,
+   "hp": 1020,
+   "skills": [
+    "시한폭탄"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 170,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "투바로 (Tubaro)",
+   "form": "특수형",
+   "size": "중형",
+   "element": "chaos",
+   "att": 171,
+   "def": 540,
+   "hp": 720,
+   "skills": [
+    "무언의 압박",
+    "자연의 수호"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 171,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "사스 (Sas)",
+   "form": "언데드",
+   "size": "대형",
+   "element": "dark",
+   "att": 198,
+   "def": 12,
+   "hp": 4560,
+   "skills": [
+    "거신의 돌격",
+    "시한폭탄"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 172,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "고곤 (Gogon)",
+   "form": "동물형",
+   "size": "대형",
+   "element": "light",
+   "att": 193,
+   "def": 210,
+   "hp": 900,
+   "skills": [
+    "상처 파악",
+    "신의 분노"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 173,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  },
+  {
+   "name": "아이스티톤 (Icetiton)",
+   "form": "무형",
+   "size": "대형",
+   "element": "aqua",
+   "att": 176,
+   "def": 216,
+   "hp": 900,
+   "skills": [
+    "철갑 방패",
+    "마비의 구름"
+   ],
+   "region": "yutakan_night",
+   "asset_id": 174,
+   "_source": "나무위키 dungeon_1 §1.2/§1.3/§2.1"
+  }
+ ],
+ "_asset_id_note": "asset_id=위키 낮던전 등장순서 순차부여(ASSUMPTION). monster_1=핑크슬라임 확정. 사용자 검수·보정 대상.",
+ "_uno_sprite_note": "2026-07-28 스프라이트 실측 정정. extract_wiki.py 가 순번으로 배정한 118~122 는 **틀렸다** — 조립 스파인(scripts/tools/shot_monsters.gd)으로 대조한 결과 #118=드워프 왕, #119=엘프 여왕이고, 위키가 말한 '전작 레이드 보스 드래곤' 6종은 **#120~#125 연속 블록**이었다. **2026-07-30 마감(🟦 사용자 확정)**: 검은 섬 보스 관문의 수호자 = **#181**(종전 후보 #134 는 레이드 몹이라 오배정 — raid_thumb/box_thumb 보유 id 는 130~136·175·178~180 뿐이고 위키 raid.pdf 1·2세대 7종과 개수·생김새가 맞는다), 블루라이트닝 = **#124** 에 스탯·속성까지 확정.",
+ "_frameset_note": "프레임 구성이 몬스터의 **역할**을 말해 준다(전 172종 스캔, 2026-07-30): `att+att_effect+hit` 만 = 일반몹(94종) · `+cutin+att_cri` = **보스급**(63종, 낮던전은 5마리 블록의 마지막이라 id 가 5의 배수 근처) · `+raid_thumb/box_thumb` = **레이드 몹**(130~136 · 175 · 178~180). 몬스터 번호를 검증할 때 이 신호를 먼저 보면 이름-순번 오배정을 빨리 잡을 수 있다.",
+ "_todo_yutakan_day_asset_id": "🔴 **미해결(우노 범위 밖)**: 낮 유타칸 블록의 asset_id 123~138(실버 임프·골드 임프·검은 로브의 사도·포마스…)은 extract_wiki 의 순번 배정 그대로라 **틀렸다** — 123·124·125 는 우노 6보스, 130~136 은 레이드 몹과 겹친다(같은 이름이 `region: yutakan_night` 로 #160~175 에도 있다). 도감/전투 스프라이트가 어긋나므로 별도 작업으로 재식별해야 한다. 판별 도구 = `shot_monsters.py`(조립 격자) + 위 `_frameset_note`.",
+ "_variant_note": "#160~#175 = 유타칸 밤 전용(랜덤 4 + 던전 보스 12). #182~#193 = 카데스 보스로 낮 보스의 색 변형이라 별도 도감 항목 없음(스프라이트만 다르다). 출처 = 나무위키 dungeon_1 §1.2/§1.3/§2.1, 번호 배정 = 사용자 확정 2026-07-29."
+}

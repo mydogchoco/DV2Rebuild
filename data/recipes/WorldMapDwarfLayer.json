@@ -1,0 +1,218 @@
+{
+  "_source": "docs/ref/orig_code/decomp/WorldMapDwarfLayer.c (extract_recipe.py). 좌표=cocos원작. 이식=design.gd.",
+  "class": "WorldMapDwarfLayer",
+  "methods": {
+    "initAnimation": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_elevator_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_elevator_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_elevator_new_spine.img_plist",
+        "pos": null,
+        "anim": "elevator"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_cart_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_cart_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_cart_new_spine.img_plist",
+        "pos": null,
+        "anim": "mine"
+      },
+      {
+        "kind": "sprite",
+        "frame": "scene_worldmap_map_dwarf_ani_new_ani_fire01",
+        "raw": "scene/worldmap/map_dwarf_ani_new/ani_fire01.png",
+        "pos": [
+          1270.0,
+          367.0
+        ]
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfstatue_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfstatue_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfstatue_new_spine.img_plist",
+        "pos": null,
+        "anim": null
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_ogre_spine_spine_json",
+        "raw": "scene/worldmap/ani_ogre_spine.spine_json",
+        "plist": "scene/worldmap/ani_ogre_spine.img_plist",
+        "pos": [
+          1270.0,
+          367.0
+        ],
+        "anim": "breath"
+      }
+    ],
+    "initBG": [
+      {
+        "kind": "piece",
+        "field": 23,
+        "frame": "scene_worldmap_map_dwarf_new_map001",
+        "raw": "scene/worldmap/map_dwarf_new/map001.png",
+        "ptA": [
+          1261.0,
+          630.0
+        ],
+        "ptB": [
+          1520.0,
+          900.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 22,
+        "frame": "scene_worldmap_map_dwarf_new_map002",
+        "raw": "scene/worldmap/map_dwarf_new/map002.png",
+        "ptA": [
+          1126.0,
+          374.0
+        ],
+        "ptB": [
+          1385.0,
+          556.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 21,
+        "frame": "scene_worldmap_map_dwarf_new_map003",
+        "raw": "scene/worldmap/map_dwarf_new/map003.png",
+        "ptA": [
+          668.0,
+          392.0
+        ],
+        "ptB": [
+          886.0,
+          650.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 1003,
+        "frame": "scene_worldmap_map_dwarf_new_map004",
+        "raw": "scene/worldmap/map_dwarf_new/map004.png",
+        "ptA": [
+          547.0,
+          803.0
+        ],
+        "ptB": [
+          872.0,
+          1050.0
+        ]
+      },
+      {
+        "kind": "piece",
+        "field": 20,
+        "frame": "scene_worldmap_map_dwarf_new_map005",
+        "raw": "scene/worldmap/map_dwarf_new/map005.png",
+        "ptA": [
+          309.0,
+          221.0
+        ],
+        "ptB": [
+          579.0,
+          519.0
+        ]
+      }
+    ],
+    "initWidget": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_waves_spine_spine_json",
+        "raw": "scene/worldmap/ani_waves_spine.spine_json",
+        "plist": "scene/worldmap/ani_waves_spine.img_plist",
+        "pos": null,
+        "anim": null
+      }
+    ],
+    "setMapAnimation": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_grave_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_grave_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_grave_new_spine.img_plist",
+        "pos": [
+          861.0,
+          670.5
+        ],
+        "anim": "animation"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraidtouch_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraidtouch_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfraidtouch_new_spine.img_plist",
+        "pos": [
+          1512.0,
+          745.0
+        ],
+        "anim": "animation"
+      }
+    ],
+    "showRaidWorldMonster": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraid_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraid_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfraid_new_spine.img_plist",
+        "pos": [
+          1512.0,
+          1028.0
+        ],
+        "anim": "random"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraid_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraid_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfraid_new_spine.img_plist",
+        "pos": [
+          1512.0,
+          1028.0
+        ],
+        "anim": "groggy"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraid_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraid_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfraid_new_spine.img_plist",
+        "pos": [
+          1512.0,
+          1028.0
+        ],
+        "anim": "groggy"
+      }
+    ],
+    "showRockFire": [
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraid_rock_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraid_rock_new_spine.spine_json",
+        "plist": "scene/worldmap/ani_dwarfraidfire_new_spine.img_plist",
+        "pos": [
+          1442.0,
+          735.0
+        ],
+        "anim": "appear"
+      },
+      {
+        "kind": "spine",
+        "spine": "scene_worldmap_ani_dwarfraid_rock_new_spine_spine_json",
+        "raw": "scene/worldmap/ani_dwarfraid_rock_new_spine.spine_json",
+        "plist": "",
+        "pos": [
+          1442.0,
+          735.0
+        ],
+        "anim": "red"
+      }
+    ]
+  },
+  "_count": 18
+}

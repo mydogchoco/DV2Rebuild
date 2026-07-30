@@ -1,0 +1,1796 @@
+{
+ "_source": "원작 title.img_plist(149종 _kr 프레임) + AchieveTitleLayer.",
+ "_re_basis": "화면=AchieveTitleLayer(CCTableView + common/checked.png + PopupTypeLayer). DB 스키마=`select title_no, name, comment, hidden from info_title_v`(디컴프 실재). 칭호 텍스트는 **이미지 자체**(title/<no>_kr.png)라 name 유실이 화면에 영향 없다.",
+ "_authored_note": "⚠️ HARD RULE 6 예외(사용자 승인 2026-07-27): 원작 획득 조건은 서버 소유(RequestTitle/ResponseTitle = NetworkManager)라 유실 → 오프라인용으로 자작했다. 튜닝 노브 = scripts/tools/build_titles.py UNLOCK_RULES. 각 칭호의 _authored_unlock:true 가 자작 표식.",
+ "atlas_dir": "title_ui",
+ "titles": [
+  {
+   "title_no": 1,
+   "frame": "title_1_kr",
+   "name": "",
+   "comment": "드래곤 1마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 2,
+   "frame": "title_2_kr",
+   "name": "",
+   "comment": "부화 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 3,
+   "frame": "title_3_kr",
+   "name": "",
+   "comment": "전투 승리 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 4,
+   "frame": "title_4_kr",
+   "name": "",
+   "comment": "드래곤 레벨 5 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 5,
+   "frame": "title_5_kr",
+   "name": "",
+   "comment": "골드 10000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 6,
+   "frame": "title_6_kr",
+   "name": "",
+   "comment": "드래곤 3마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 3
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 7,
+   "frame": "title_7_kr",
+   "name": "",
+   "comment": "부화 5회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 8,
+   "frame": "title_8_kr",
+   "name": "",
+   "comment": "전투 승리 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 9,
+   "frame": "title_9_kr",
+   "name": "",
+   "comment": "드래곤 레벨 10 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 10,
+   "frame": "title_10_kr",
+   "name": "",
+   "comment": "골드 50000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 50000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 11,
+   "frame": "title_11_kr",
+   "name": "",
+   "comment": "드래곤 5마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 12,
+   "frame": "title_12_kr",
+   "name": "",
+   "comment": "부화 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 13,
+   "frame": "title_13_kr",
+   "name": "",
+   "comment": "전투 승리 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 14,
+   "frame": "title_14_kr",
+   "name": "",
+   "comment": "드래곤 레벨 15 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 15,
+   "frame": "title_15_kr",
+   "name": "",
+   "comment": "골드 100000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 100000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 16,
+   "frame": "title_16_kr",
+   "name": "",
+   "comment": "드래곤 10마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 17,
+   "frame": "title_17_kr",
+   "name": "",
+   "comment": "부화 20회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 18,
+   "frame": "title_18_kr",
+   "name": "",
+   "comment": "전투 승리 60회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 60
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 19,
+   "frame": "title_19_kr",
+   "name": "",
+   "comment": "드래곤 레벨 20 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 20,
+   "frame": "title_20_kr",
+   "name": "",
+   "comment": "골드 300000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 300000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 21,
+   "frame": "title_21_kr",
+   "name": "",
+   "comment": "드래곤 15마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 22,
+   "frame": "title_22_kr",
+   "name": "",
+   "comment": "부화 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 23,
+   "frame": "title_23_kr",
+   "name": "",
+   "comment": "전투 승리 100회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 100
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 24,
+   "frame": "title_24_kr",
+   "name": "",
+   "comment": "드래곤 레벨 25 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 25
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 25,
+   "frame": "title_25_kr",
+   "name": "",
+   "comment": "골드 500000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 500000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 26,
+   "frame": "title_26_kr",
+   "name": "",
+   "comment": "드래곤 20마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 27,
+   "frame": "title_27_kr",
+   "name": "",
+   "comment": "부화 50회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 28,
+   "frame": "title_28_kr",
+   "name": "",
+   "comment": "전투 승리 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 29,
+   "frame": "title_29_kr",
+   "name": "",
+   "comment": "드래곤 레벨 30 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 30,
+   "frame": "title_30_kr",
+   "name": "",
+   "comment": "골드 1000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 1000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 31,
+   "frame": "title_31_kr",
+   "name": "",
+   "comment": "드래곤 30마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 32,
+   "frame": "title_32_kr",
+   "name": "",
+   "comment": "부화 80회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 80
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 33,
+   "frame": "title_33_kr",
+   "name": "",
+   "comment": "전투 승리 350회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 350
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 34,
+   "frame": "title_34_kr",
+   "name": "",
+   "comment": "드래곤 레벨 35 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 35
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 35,
+   "frame": "title_35_kr",
+   "name": "",
+   "comment": "골드 3000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 3000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 36,
+   "frame": "title_36_kr",
+   "name": "",
+   "comment": "드래곤 40마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 37,
+   "frame": "title_37_kr",
+   "name": "",
+   "comment": "부화 120회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 120
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 38,
+   "frame": "title_38_kr",
+   "name": "",
+   "comment": "전투 승리 500회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 500
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 39,
+   "frame": "title_39_kr",
+   "name": "",
+   "comment": "드래곤 레벨 40 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 40,
+   "frame": "title_40_kr",
+   "name": "",
+   "comment": "골드 5000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 5000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 41,
+   "frame": "title_41_kr",
+   "name": "",
+   "comment": "드래곤 50마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 42,
+   "frame": "title_42_kr",
+   "name": "",
+   "comment": "부화 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 43,
+   "frame": "title_43_kr",
+   "name": "",
+   "comment": "전투 승리 800회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 800
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 44,
+   "frame": "title_44_kr",
+   "name": "",
+   "comment": "드래곤 레벨 45 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 45
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 45,
+   "frame": "title_45_kr",
+   "name": "",
+   "comment": "골드 10000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 46,
+   "frame": "title_46_kr",
+   "name": "",
+   "comment": "드래곤 70마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 70
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 47,
+   "frame": "title_47_kr",
+   "name": "",
+   "comment": "부화 300회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 300
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 48,
+   "frame": "title_48_kr",
+   "name": "",
+   "comment": "전투 승리 1200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 49,
+   "frame": "title_49_kr",
+   "name": "",
+   "comment": "드래곤 레벨 50 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 50,
+   "frame": "title_50_kr",
+   "name": "",
+   "comment": "골드 20000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 20000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 51,
+   "frame": "title_51_kr",
+   "name": "",
+   "comment": "드래곤 1마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 52,
+   "frame": "title_52_kr",
+   "name": "",
+   "comment": "부화 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 53,
+   "frame": "title_53_kr",
+   "name": "",
+   "comment": "전투 승리 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 54,
+   "frame": "title_54_kr",
+   "name": "",
+   "comment": "드래곤 레벨 5 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 55,
+   "frame": "title_55_kr",
+   "name": "",
+   "comment": "골드 10000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 56,
+   "frame": "title_56_kr",
+   "name": "",
+   "comment": "드래곤 3마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 3
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 57,
+   "frame": "title_57_kr",
+   "name": "",
+   "comment": "부화 5회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 58,
+   "frame": "title_58_kr",
+   "name": "",
+   "comment": "전투 승리 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 59,
+   "frame": "title_59_kr",
+   "name": "",
+   "comment": "드래곤 레벨 10 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 60,
+   "frame": "title_60_kr",
+   "name": "",
+   "comment": "골드 50000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 50000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 61,
+   "frame": "title_61_kr",
+   "name": "",
+   "comment": "드래곤 5마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 62,
+   "frame": "title_62_kr",
+   "name": "",
+   "comment": "부화 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 63,
+   "frame": "title_63_kr",
+   "name": "",
+   "comment": "전투 승리 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 64,
+   "frame": "title_64_kr",
+   "name": "",
+   "comment": "드래곤 레벨 15 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 65,
+   "frame": "title_65_kr",
+   "name": "",
+   "comment": "골드 100000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 100000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 66,
+   "frame": "title_66_kr",
+   "name": "",
+   "comment": "드래곤 10마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 67,
+   "frame": "title_67_kr",
+   "name": "",
+   "comment": "부화 20회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 68,
+   "frame": "title_68_kr",
+   "name": "",
+   "comment": "전투 승리 60회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 60
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 69,
+   "frame": "title_69_kr",
+   "name": "",
+   "comment": "드래곤 레벨 20 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 70,
+   "frame": "title_70_kr",
+   "name": "",
+   "comment": "골드 300000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 300000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 71,
+   "frame": "title_71_kr",
+   "name": "",
+   "comment": "드래곤 15마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 72,
+   "frame": "title_72_kr",
+   "name": "",
+   "comment": "부화 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 73,
+   "frame": "title_73_kr",
+   "name": "",
+   "comment": "전투 승리 100회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 100
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 74,
+   "frame": "title_74_kr",
+   "name": "",
+   "comment": "드래곤 레벨 25 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 25
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 75,
+   "frame": "title_75_kr",
+   "name": "",
+   "comment": "골드 500000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 500000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 76,
+   "frame": "title_76_kr",
+   "name": "",
+   "comment": "드래곤 20마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 77,
+   "frame": "title_77_kr",
+   "name": "",
+   "comment": "부화 50회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 78,
+   "frame": "title_78_kr",
+   "name": "",
+   "comment": "전투 승리 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 79,
+   "frame": "title_79_kr",
+   "name": "",
+   "comment": "드래곤 레벨 30 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 80,
+   "frame": "title_80_kr",
+   "name": "",
+   "comment": "골드 1000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 1000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 81,
+   "frame": "title_81_kr",
+   "name": "",
+   "comment": "드래곤 30마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 82,
+   "frame": "title_82_kr",
+   "name": "",
+   "comment": "부화 80회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 80
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 83,
+   "frame": "title_83_kr",
+   "name": "",
+   "comment": "전투 승리 350회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 350
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 84,
+   "frame": "title_84_kr",
+   "name": "",
+   "comment": "드래곤 레벨 35 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 35
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 85,
+   "frame": "title_85_kr",
+   "name": "",
+   "comment": "골드 3000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 3000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 86,
+   "frame": "title_86_kr",
+   "name": "",
+   "comment": "드래곤 40마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 87,
+   "frame": "title_87_kr",
+   "name": "",
+   "comment": "부화 120회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 120
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 88,
+   "frame": "title_88_kr",
+   "name": "",
+   "comment": "전투 승리 500회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 500
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 89,
+   "frame": "title_89_kr",
+   "name": "",
+   "comment": "드래곤 레벨 40 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 90,
+   "frame": "title_90_kr",
+   "name": "",
+   "comment": "골드 5000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 5000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 91,
+   "frame": "title_91_kr",
+   "name": "",
+   "comment": "드래곤 50마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 92,
+   "frame": "title_92_kr",
+   "name": "",
+   "comment": "부화 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 93,
+   "frame": "title_93_kr",
+   "name": "",
+   "comment": "전투 승리 800회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 800
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 94,
+   "frame": "title_94_kr",
+   "name": "",
+   "comment": "드래곤 레벨 45 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 45
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 95,
+   "frame": "title_95_kr",
+   "name": "",
+   "comment": "골드 10000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 96,
+   "frame": "title_96_kr",
+   "name": "",
+   "comment": "드래곤 70마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 70
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 97,
+   "frame": "title_97_kr",
+   "name": "",
+   "comment": "부화 300회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 300
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 98,
+   "frame": "title_98_kr",
+   "name": "",
+   "comment": "전투 승리 1200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 99,
+   "frame": "title_99_kr",
+   "name": "",
+   "comment": "드래곤 레벨 50 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 100,
+   "frame": "title_100_kr",
+   "name": "",
+   "comment": "골드 20000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 20000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 101,
+   "frame": "title_101_kr",
+   "name": "",
+   "comment": "드래곤 1마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 102,
+   "frame": "title_102_kr",
+   "name": "",
+   "comment": "부화 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 103,
+   "frame": "title_103_kr",
+   "name": "",
+   "comment": "전투 승리 1회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 104,
+   "frame": "title_104_kr",
+   "name": "",
+   "comment": "드래곤 레벨 5 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 105,
+   "frame": "title_105_kr",
+   "name": "",
+   "comment": "골드 10000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 106,
+   "frame": "title_106_kr",
+   "name": "",
+   "comment": "드래곤 3마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 3
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 107,
+   "frame": "title_107_kr",
+   "name": "",
+   "comment": "부화 5회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 108,
+   "frame": "title_108_kr",
+   "name": "",
+   "comment": "전투 승리 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 109,
+   "frame": "title_109_kr",
+   "name": "",
+   "comment": "드래곤 레벨 10 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 110,
+   "frame": "title_110_kr",
+   "name": "",
+   "comment": "골드 50000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 50000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 111,
+   "frame": "title_111_kr",
+   "name": "",
+   "comment": "드래곤 5마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 5
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 112,
+   "frame": "title_112_kr",
+   "name": "",
+   "comment": "부화 10회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 113,
+   "frame": "title_113_kr",
+   "name": "",
+   "comment": "전투 승리 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 114,
+   "frame": "title_114_kr",
+   "name": "",
+   "comment": "드래곤 레벨 15 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 115,
+   "frame": "title_115_kr",
+   "name": "",
+   "comment": "골드 100000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 100000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 116,
+   "frame": "title_116_kr",
+   "name": "",
+   "comment": "드래곤 10마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 10
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 117,
+   "frame": "title_117_kr",
+   "name": "",
+   "comment": "부화 20회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 118,
+   "frame": "title_118_kr",
+   "name": "",
+   "comment": "전투 승리 60회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 60
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 119,
+   "frame": "title_119_kr",
+   "name": "",
+   "comment": "드래곤 레벨 20 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 120,
+   "frame": "title_120_kr",
+   "name": "",
+   "comment": "골드 300000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 300000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 121,
+   "frame": "title_121_kr",
+   "name": "",
+   "comment": "드래곤 15마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 15
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 122,
+   "frame": "title_122_kr",
+   "name": "",
+   "comment": "부화 30회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 123,
+   "frame": "title_123_kr",
+   "name": "",
+   "comment": "전투 승리 100회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 100
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 124,
+   "frame": "title_124_kr",
+   "name": "",
+   "comment": "드래곤 레벨 25 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 25
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 125,
+   "frame": "title_125_kr",
+   "name": "",
+   "comment": "골드 500000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 500000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 126,
+   "frame": "title_126_kr",
+   "name": "",
+   "comment": "드래곤 20마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 20
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 127,
+   "frame": "title_127_kr",
+   "name": "",
+   "comment": "부화 50회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 128,
+   "frame": "title_128_kr",
+   "name": "",
+   "comment": "전투 승리 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 129,
+   "frame": "title_129_kr",
+   "name": "",
+   "comment": "드래곤 레벨 30 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 130,
+   "frame": "title_130_kr",
+   "name": "",
+   "comment": "골드 1000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 1000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 131,
+   "frame": "title_131_kr",
+   "name": "",
+   "comment": "드래곤 30마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 30
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 132,
+   "frame": "title_132_kr",
+   "name": "",
+   "comment": "부화 80회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 80
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 133,
+   "frame": "title_133_kr",
+   "name": "",
+   "comment": "전투 승리 350회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 350
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 134,
+   "frame": "title_134_kr",
+   "name": "",
+   "comment": "드래곤 레벨 35 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 35
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 135,
+   "frame": "title_135_kr",
+   "name": "",
+   "comment": "골드 3000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 3000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 136,
+   "frame": "title_136_kr",
+   "name": "",
+   "comment": "드래곤 40마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 137,
+   "frame": "title_137_kr",
+   "name": "",
+   "comment": "부화 120회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 120
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 138,
+   "frame": "title_138_kr",
+   "name": "",
+   "comment": "전투 승리 500회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 500
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 139,
+   "frame": "title_139_kr",
+   "name": "",
+   "comment": "드래곤 레벨 40 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 40
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 140,
+   "frame": "title_140_kr",
+   "name": "",
+   "comment": "골드 5000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 5000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 141,
+   "frame": "title_141_kr",
+   "name": "",
+   "comment": "드래곤 50마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 50
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 142,
+   "frame": "title_142_kr",
+   "name": "",
+   "comment": "부화 200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 143,
+   "frame": "title_143_kr",
+   "name": "",
+   "comment": "전투 승리 800회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 800
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 144,
+   "frame": "title_144_kr",
+   "name": "",
+   "comment": "드래곤 레벨 45 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 45
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 145,
+   "frame": "title_145_kr",
+   "name": "",
+   "comment": "골드 10000000 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "gold",
+    "need": 10000000
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 146,
+   "frame": "title_146_kr",
+   "name": "",
+   "comment": "드래곤 70마리 보유",
+   "hidden": false,
+   "unlock": {
+    "stat": "dragons",
+    "need": 70
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 147,
+   "frame": "title_147_kr",
+   "name": "",
+   "comment": "부화 300회",
+   "hidden": false,
+   "unlock": {
+    "stat": "hatches",
+    "need": 300
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 148,
+   "frame": "title_148_kr",
+   "name": "",
+   "comment": "전투 승리 1200회",
+   "hidden": false,
+   "unlock": {
+    "stat": "battles",
+    "need": 1200
+   },
+   "_authored_unlock": true
+  },
+  {
+   "title_no": 149,
+   "frame": "title_149_kr",
+   "name": "",
+   "comment": "드래곤 레벨 50 달성",
+   "hidden": false,
+   "unlock": {
+    "stat": "max_level",
+    "need": 50
+   },
+   "_authored_unlock": true
+  }
+ ]
+}

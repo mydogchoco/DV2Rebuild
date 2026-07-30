@@ -1,0 +1,773 @@
+{
+  "_re_basis": "원작 info_dragon_team_buf(no/name/combine/effect/img). 로직=libgame.so 복원(docs/ref/design/team_buff_analysis.md, TeamBuff.c). **name·effect 는 유실이 아니라 원작 문자열 테이블에 실재** — DV2/string/stringsData_KR.xml <Combine1..30> + <Combine_Comment_1..30> 에서 그대로 가져왔다. img 는 TeamBuff::createIcon 이 쓰는 battle/<res>/combine_mark.png 폴더명(추출 에셋 24종 실재). ⚠️combine(조합 구성)만은 원작 데이터가 아니다 — 서버 유실 + 위키가 그 열을 이미지로만 실어 추출 불가. 사용자 승인(2026-07-27)으로 버프명·효과·아이콘 res명의 의미에서 **추론해 채웠다** (HARD RULE 6 예외). 각 행 _combine_basis 에 근거. 원작과 다를 수 있고 조정 대상 (docs/input/review/team_buff_sheet.md).",
+  "race_dim": "element",
+  "_race_dim_note": "ASSUMPTION: 원작 DragonRace id 유실. 후보=element(9속성). 원작 UI 문자열이 이 기능을 '조합(Combine)'으로 부르고 위키는 '속성 조합 버프'라 부른다 → element 가 유력.",
+  "effect_mode": "typed",
+  "_effect_mode_note": "effect[stat].mode: hp/att/def=pct(배수) · cri/evd/blk/cri_pow/awaken_rate/accuracy=point(퍼센트 포인트) · pure/depure=flat. 원작 툴팁은 전부 '+N%' 표기라 point/pct 구분은 ASSUMPTION.",
+  "_wiki_diff": [
+    "10 신의 사자: 원작 'CRT+5% DEF+15%' vs 나무위키 '방어력 15%, 크리티컬 확률 10%' → 원작 채택.",
+    "이름 표기 차이(원작 우선): 수퍼노바/물빛 섬광/헬파이어 (위키: 슈퍼노바/물빛섬광/헬 파이어).",
+    "25 이클립스 PURE 를 원작은 'PURE+10%'로 %까지 붙여 적었으나 관통은 고정수치라 flat 으로 해석."
+  ],
+  "buffs": [
+    {
+      "no": 1,
+      "name": "대홍수",
+      "combine": {
+        "aqua": 3
+      },
+      "_combine_basis": "대홍수 = 물 3",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 30
+        }
+      },
+      "effect_text": "HP+30%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine1>/<Combine_Comment_1>",
+      "img": "flood",
+      "icon_frames": [
+        "battle/flood/combine_mark.png",
+        "battle/flood/combine_outline.png"
+      ]
+    },
+    {
+      "no": 2,
+      "name": "아포칼립스",
+      "combine": {
+        "fire": 2,
+        "chaos": 1
+      },
+      "_combine_basis": "아포칼립스(종말) = 불2+혼돈1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 20
+        }
+      },
+      "effect_text": "HP+10% ATK+20%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine2>/<Combine_Comment_2>",
+      "img": "apocalypse",
+      "icon_frames": [
+        "battle/apocalypse/combine_mark.png",
+        "battle/apocalypse/combine_outline.png"
+      ]
+    },
+    {
+      "no": 3,
+      "name": "아마겟돈",
+      "combine": {
+        "light": 1,
+        "dark": 1,
+        "holy": 1
+      },
+      "_combine_basis": "아마겟돈(선악 최종전) = 빛·어둠·신성 각1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 10
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+10% ATK+10% CRT+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine3>/<Combine_Comment_3>",
+      "img": "amagethon",
+      "icon_frames": [
+        "battle/amagethon/combine_mark.png",
+        "battle/amagethon/combine_outline.png"
+      ]
+    },
+    {
+      "no": 4,
+      "name": "가이아",
+      "combine": {
+        "earth": 3
+      },
+      "_combine_basis": "가이아(대지신) = 대지 3",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 25
+        }
+      },
+      "effect_text": "DEF+25%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine4>/<Combine_Comment_4>",
+      "img": "gaia",
+      "icon_frames": [
+        "battle/gaia/combine_mark.png",
+        "battle/gaia/combine_outline.png"
+      ]
+    },
+    {
+      "no": 5,
+      "name": "코로나",
+      "combine": {
+        "fire": 3
+      },
+      "_combine_basis": "코로나(태양 대기) = 불 3",
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 25
+        }
+      },
+      "effect_text": "ATK+25%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine5>/<Combine_Comment_5>",
+      "img": "corona",
+      "icon_frames": [
+        "battle/corona/combine_mark.png",
+        "battle/corona/combine_outline.png"
+      ]
+    },
+    {
+      "no": 6,
+      "name": "지고의 영광",
+      "combine": {
+        "holy": 2,
+        "earth": 1
+      },
+      "_combine_basis": "지고의 영광 = 신성2+대지1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 20
+        }
+      },
+      "effect_text": "HP+10% DEF+20%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine6>/<Combine_Comment_6>",
+      "img": "highness",
+      "icon_frames": [
+        "battle/highness/combine_mark.png",
+        "battle/highness/combine_outline.png"
+      ]
+    },
+    {
+      "no": 7,
+      "name": "수퍼노바",
+      "combine": {
+        "fire": 2,
+        "light": 1
+      },
+      "_combine_basis": "수퍼노바(초신성) = 불2+빛1",
+      "effect": {
+        "evd": {
+          "mode": "point",
+          "value": 11
+        }
+      },
+      "effect_text": "EVD+11%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine7>/<Combine_Comment_7>",
+      "img": "supernova",
+      "icon_frames": [
+        "battle/supernova/combine_mark.png",
+        "battle/supernova/combine_outline.png"
+      ]
+    },
+    {
+      "no": 8,
+      "name": "허리케인",
+      "combine": {
+        "wind": 3
+      },
+      "_combine_basis": "허리케인 = 바람 3",
+      "effect": {
+        "blk": {
+          "mode": "point",
+          "value": 15
+        }
+      },
+      "effect_text": "BLK+15%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine8>/<Combine_Comment_8>",
+      "img": "hurricane",
+      "icon_frames": [
+        "battle/hurricane/combine_mark.png",
+        "battle/hurricane/combine_outline.png"
+      ]
+    },
+    {
+      "no": 9,
+      "name": "악의 군세",
+      "combine": {
+        "chaos": 3
+      },
+      "_combine_basis": "악의 군세 = 혼돈 3",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% ATK+15%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine9>/<Combine_Comment_9>",
+      "img": "legion",
+      "icon_frames": [
+        "battle/legion/combine_mark.png",
+        "battle/legion/combine_outline.png"
+      ]
+    },
+    {
+      "no": 10,
+      "name": "신의 사자",
+      "combine": {
+        "holy": 3
+      },
+      "_combine_basis": "신의 사자 = 신성 3",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 5
+        },
+        "def": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+5% DEF+15%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine10>/<Combine_Comment_10>",
+      "img": "avatar",
+      "icon_frames": [
+        "battle/avatar/combine_mark.png",
+        "battle/avatar/combine_outline.png"
+      ]
+    },
+    {
+      "no": 11,
+      "name": "레인보우 선샤인",
+      "combine": {
+        "light": 2,
+        "wind": 1
+      },
+      "_combine_basis": "레인보우 선샤인 = 빛2+바람1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+10% ATK+5% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine11>/<Combine_Comment_11>",
+      "img": "rainbow",
+      "icon_frames": [
+        "battle/rainbow/combine_mark.png",
+        "battle/rainbow/combine_outline.png"
+      ]
+    },
+    {
+      "no": 12,
+      "name": "태초의 어둠",
+      "combine": {
+        "dark": 3
+      },
+      "_combine_basis": "태초의 어둠 = 어둠 3",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% ATK+15%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine12>/<Combine_Comment_12>",
+      "img": "dark",
+      "icon_frames": [
+        "battle/dark/combine_mark.png",
+        "battle/dark/combine_outline.png"
+      ]
+    },
+    {
+      "no": 13,
+      "name": "태초의 빛",
+      "combine": {
+        "light": 3
+      },
+      "_combine_basis": "태초의 빛 = 빛 3",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% DEF+15%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine13>/<Combine_Comment_13>",
+      "img": "light",
+      "icon_frames": [
+        "battle/light/combine_mark.png",
+        "battle/light/combine_outline.png"
+      ]
+    },
+    {
+      "no": 14,
+      "name": "폭풍우의 밤",
+      "combine": {
+        "wind": 2,
+        "dark": 1
+      },
+      "_combine_basis": "폭풍우의 밤 = 바람2+어둠1",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "blk": {
+          "mode": "point",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+10% BLK+5% CRT+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine14>/<Combine_Comment_14>",
+      "img": "storm",
+      "icon_frames": [
+        "battle/storm/combine_mark.png",
+        "battle/storm/combine_outline.png"
+      ]
+    },
+    {
+      "no": 15,
+      "name": "물빛 섬광",
+      "combine": {
+        "aqua": 2,
+        "light": 1
+      },
+      "_combine_basis": "물빛 섬광 = 물2+빛1 (이름 그대로)",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "blk": {
+          "mode": "point",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+10% BLK+5% CRT+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine15>/<Combine_Comment_15>",
+      "img": "aqualight",
+      "icon_frames": [
+        "battle/aqualight/combine_mark.png",
+        "battle/aqualight/combine_outline.png"
+      ]
+    },
+    {
+      "no": 16,
+      "name": "아지랑이",
+      "combine": {
+        "fire": 2,
+        "earth": 1
+      },
+      "_combine_basis": "아지랑이(열기) = 불2+대지1",
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 15
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        }
+      },
+      "effect_text": "ATK+15% DEF+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine16>/<Combine_Comment_16>",
+      "img": "shimmer",
+      "icon_frames": [
+        "battle/shimmer/combine_mark.png",
+        "battle/shimmer/combine_outline.png"
+      ]
+    },
+    {
+      "no": 17,
+      "name": "산사태",
+      "combine": {
+        "earth": 2,
+        "wind": 1
+      },
+      "_combine_basis": "산사태 = 대지2+바람1",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 15
+        },
+        "blk": {
+          "mode": "point",
+          "value": 6
+        }
+      },
+      "effect_text": "DEF+15% BLK+6%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine17>/<Combine_Comment_17>",
+      "img": "landslide",
+      "icon_frames": [
+        "battle/landslide/combine_mark.png",
+        "battle/landslide/combine_outline.png"
+      ]
+    },
+    {
+      "no": 18,
+      "name": "흑풍",
+      "combine": {
+        "dark": 2,
+        "wind": 1
+      },
+      "_combine_basis": "흑풍(검은 바람) = 어둠2+바람1 (이름 그대로)",
+      "effect": {
+        "blk": {
+          "mode": "point",
+          "value": 8
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "BLK+8% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine18>/<Combine_Comment_18>",
+      "img": "blackwind",
+      "icon_frames": [
+        "battle/blackwind/combine_mark.png",
+        "battle/blackwind/combine_outline.png"
+      ]
+    },
+    {
+      "no": 19,
+      "name": "신의 눈물",
+      "combine": {
+        "holy": 2,
+        "aqua": 1
+      },
+      "_combine_basis": "신의 눈물 = 신성2+물1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 14
+        },
+        "blk": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "HP+14% BLK+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine19>/<Combine_Comment_19>",
+      "img": "tearsofagod",
+      "icon_frames": [
+        "battle/tearsofagod/combine_mark.png",
+        "battle/tearsofagod/combine_outline.png"
+      ]
+    },
+    {
+      "no": 20,
+      "name": "헬파이어",
+      "combine": {
+        "fire": 2,
+        "dark": 1
+      },
+      "_combine_basis": "헬파이어(지옥불) = 불2+어둠1",
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 15
+        },
+        "blk": {
+          "mode": "point",
+          "value": 8
+        }
+      },
+      "effect_text": "ATK+15% BLK+8%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine20>/<Combine_Comment_20>",
+      "img": "hellfire",
+      "icon_frames": [
+        "battle/hellfire/combine_mark.png",
+        "battle/hellfire/combine_outline.png"
+      ]
+    },
+    {
+      "no": 21,
+      "name": "용암폭풍",
+      "combine": {
+        "fire": 1,
+        "earth": 1,
+        "wind": 1
+      },
+      "_combine_basis": "용암폭풍 = 불·대지(용암)+바람(폭풍)",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 4
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+4% DEF+10% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine21>/<Combine_Comment_21>",
+      "img": "lavastorm",
+      "icon_frames": [
+        "battle/lavastorm/combine_mark.png",
+        "battle/lavastorm/combine_outline.png"
+      ]
+    },
+    {
+      "no": 22,
+      "name": "미리내",
+      "combine": {
+        "light": 2,
+        "shadow": 1
+      },
+      "_combine_basis": "미리내(은하수) = 빛2+그림자1",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 5
+        },
+        "blk": {
+          "mode": "point",
+          "value": 4
+        },
+        "cri": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "DEF+5% BLK+4% CRT+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine22>/<Combine_Comment_22>",
+      "img": "mirinae",
+      "icon_frames": [
+        "battle/mirinae/combine_mark.png",
+        "battle/mirinae/combine_outline.png"
+      ]
+    },
+    {
+      "no": 23,
+      "name": "아스가르드",
+      "combine": {
+        "holy": 2,
+        "wind": 1
+      },
+      "_combine_basis": "아스가르드(신들의 나라) = 신성2+바람1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 8
+        },
+        "att": {
+          "mode": "pct",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+8% ATK+10% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine23>/<Combine_Comment_23>",
+      "img": "asgard",
+      "icon_frames": [
+        "battle/asgard/combine_mark.png",
+        "battle/asgard/combine_outline.png"
+      ]
+    },
+    {
+      "no": 24,
+      "name": "죽음의 숨결",
+      "combine": {
+        "dark": 2,
+        "chaos": 1
+      },
+      "_combine_basis": "죽음의 숨결 = 어둠2+혼돈1",
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 8
+        },
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "blk": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "HP+8% ATK+5% BLK+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine24>/<Combine_Comment_24>",
+      "img": "dyingbreath",
+      "icon_frames": [
+        "battle/dyingbreath/combine_mark.png",
+        "battle/dyingbreath/combine_outline.png"
+      ]
+    },
+    {
+      "no": 25,
+      "name": "이클립스",
+      "combine": {
+        "dark": 2,
+        "light": 1
+      },
+      "_combine_basis": "이클립스(일식) = 어둠이 빛을 가림",
+      "effect": {
+        "evd": {
+          "mode": "point",
+          "value": 5
+        },
+        "pure": {
+          "mode": "flat",
+          "value": 10
+        }
+      },
+      "effect_text": "EVD+5% PURE+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine25>/<Combine_Comment_25>"
+    },
+    {
+      "no": 26,
+      "name": "심연의 그림자",
+      "combine": {
+        "shadow": 2,
+        "dark": 1
+      },
+      "_combine_basis": "심연의 그림자 = 그림자2+어둠1",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "cri_pow": {
+          "mode": "point",
+          "value": 30
+        }
+      },
+      "effect_text": "CRT+10% CRIPW+30%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine26>/<Combine_Comment_26>"
+    },
+    {
+      "no": 27,
+      "name": "빛과 그림자",
+      "combine": {
+        "shadow": 2,
+        "light": 1
+      },
+      "_combine_basis": "빛과 그림자 = 그림자2+빛1 (이름 그대로)",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        }
+      },
+      "effect_text": "CRT+10% DEF+10%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine27>/<Combine_Comment_27>"
+    },
+    {
+      "no": 28,
+      "name": "태초의 그림자",
+      "combine": {
+        "shadow": 3
+      },
+      "_combine_basis": "태초의 그림자 = 그림자 3",
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        },
+        "pure": {
+          "mode": "flat",
+          "value": 5
+        }
+      },
+      "effect_text": "ATK+5% CRT+5% PURE+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine28>/<Combine_Comment_28>"
+    },
+    {
+      "no": 29,
+      "name": "쉐도우 댄스",
+      "combine": {
+        "shadow": 2,
+        "wind": 1
+      },
+      "_combine_basis": "쉐도우 댄스 = 그림자2+바람1",
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "CRT+10% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine29>/<Combine_Comment_29>"
+    },
+    {
+      "no": 30,
+      "name": "신기루",
+      "combine": {
+        "earth": 2,
+        "light": 1
+      },
+      "_combine_basis": "신기루(사막 아지랑이) = 대지2+빛1",
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 15
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+15% EVD+5%",
+      "_source": "DV2/string/stringsData_KR.xml <Combine30>/<Combine_Comment_30>"
+    }
+  ]
+}

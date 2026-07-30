@@ -1,0 +1,1651 @@
+{
+ "_source": "scripts/tools/build_item_icons.py — 원본 아틀라스 프레임명 스캔",
+ "_note": "논리키 → {dir, frame}. render 층만 이 표를 보고 AtlasTexture 를 로드한다(§8.4).",
+ "_soul_note": "소울젬 4종 아이콘은 원작 후기 추가분이라 이 덤프에 없다 → 같은 축 일반젬 최고티어 아이콘으로 폴백(gem[SOUL*:n] 이 그것).",
+ "_bg_note": "equipment_bg = 아이콘 **뒤**에 깔고 희귀도 색을 입히는 흰 실루엣. 원작 `Equip::getGradeImageSmallSprite` 가 `<이름>_bg.png` 로 만들어 rarity(2~6)에 따라 setColor 한다(1=일반은 아예 안 그림). 논리키는 equipment_basic/artifact/event 와 같다.",
+ "equipment_basic": {
+  "깃털:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather1"
+  },
+  "깃털:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather2"
+  },
+  "깃털:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather3"
+  },
+  "깃털:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather4"
+  },
+  "깃털:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather5"
+  },
+  "깃털:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather6"
+  },
+  "깃털:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather7"
+  },
+  "발톱:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw1"
+  },
+  "발톱:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw2"
+  },
+  "발톱:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw3"
+  },
+  "발톱:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw4"
+  },
+  "발톱:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw5"
+  },
+  "발톱:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw6"
+  },
+  "발톱:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw7"
+  },
+  "부적:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman1"
+  },
+  "부적:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman2"
+  },
+  "부적:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman3"
+  },
+  "부적:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman4"
+  },
+  "부적:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman5"
+  },
+  "부적:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6"
+  },
+  "묘안석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye1"
+  },
+  "묘안석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye2"
+  },
+  "묘안석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye3"
+  },
+  "묘안석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye4"
+  },
+  "묘안석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye5"
+  },
+  "묘안석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye6"
+  },
+  "흑요석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian1"
+  },
+  "흑요석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian2"
+  },
+  "흑요석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian3"
+  },
+  "흑요석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian4"
+  },
+  "흑요석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian5"
+  },
+  "흑요석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian6"
+  },
+  "백금석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum1"
+  },
+  "백금석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum2"
+  },
+  "백금석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum3"
+  },
+  "백금석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum4"
+  },
+  "백금석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum5"
+  },
+  "백금석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum6"
+  }
+ },
+ "artifact": {
+  "이그니스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_1"
+  },
+  "이그니스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_2"
+  },
+  "이그니스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_3"
+  },
+  "이그니스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_4"
+  },
+  "이그니스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_5"
+  },
+  "이그니스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ignis_6"
+  },
+  "마리스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_1"
+  },
+  "마리스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_2"
+  },
+  "마리스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_3"
+  },
+  "마리스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_4"
+  },
+  "마리스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_5"
+  },
+  "마리스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_maris_6"
+  },
+  "벤투스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_1"
+  },
+  "벤투스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_2"
+  },
+  "벤투스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_3"
+  },
+  "벤투스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_4"
+  },
+  "벤투스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_5"
+  },
+  "벤투스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_ventus_6"
+  },
+  "루멘:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_1"
+  },
+  "루멘:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_2"
+  },
+  "루멘:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_3"
+  },
+  "루멘:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_4"
+  },
+  "루멘:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_5"
+  },
+  "루멘:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_lumen_6"
+  },
+  "옵스큐럼:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_1"
+  },
+  "옵스큐럼:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_2"
+  },
+  "옵스큐럼:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_3"
+  },
+  "옵스큐럼:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_4"
+  },
+  "옵스큐럼:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_5"
+  },
+  "옵스큐럼:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obscurum_6"
+  },
+  "테라:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_1"
+  },
+  "테라:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_2"
+  },
+  "테라:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_3"
+  },
+  "테라:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_4"
+  },
+  "테라:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_5"
+  },
+  "테라:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_terra_6"
+  }
+ },
+ "event": {
+  "크리스마스 별장식": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_star"
+  },
+  "눈사람 인형": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_snow"
+  },
+  "크리스마스 리본": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_ribbon"
+  },
+  "어린이 풍선": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_balloon"
+  },
+  "장난감 총": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_popgun"
+  },
+  "곰 인형": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_teddy"
+  }
+ },
+ "gem": {
+  "HP:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp0"
+  },
+  "HP:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp1"
+  },
+  "HP:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp2"
+  },
+  "HP:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp3"
+  },
+  "HP:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp4"
+  },
+  "HP:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp5"
+  },
+  "HP:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp6"
+  },
+  "HP:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp7"
+  },
+  "HP:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp8"
+  },
+  "HP:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp9"
+  },
+  "HP:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp10"
+  },
+  "HP:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp11"
+  },
+  "HP:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp12"
+  },
+  "HP:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp13"
+  },
+  "HP:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp14"
+  },
+  "HP:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp15"
+  },
+  "HP:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp16"
+  },
+  "HP:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp17"
+  },
+  "HP:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18"
+  },
+  "ATT:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att0"
+  },
+  "ATT:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att1"
+  },
+  "ATT:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att2"
+  },
+  "ATT:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att3"
+  },
+  "ATT:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att4"
+  },
+  "ATT:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att5"
+  },
+  "ATT:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att6"
+  },
+  "ATT:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att7"
+  },
+  "ATT:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att8"
+  },
+  "ATT:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att9"
+  },
+  "ATT:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att10"
+  },
+  "ATT:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att11"
+  },
+  "ATT:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att12"
+  },
+  "ATT:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att13"
+  },
+  "ATT:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att14"
+  },
+  "ATT:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att15"
+  },
+  "ATT:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att16"
+  },
+  "ATT:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att17"
+  },
+  "ATT:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18"
+  },
+  "DEF:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def0"
+  },
+  "DEF:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def1"
+  },
+  "DEF:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def2"
+  },
+  "DEF:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def3"
+  },
+  "DEF:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def4"
+  },
+  "DEF:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def5"
+  },
+  "DEF:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def6"
+  },
+  "DEF:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def7"
+  },
+  "DEF:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def8"
+  },
+  "DEF:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def9"
+  },
+  "DEF:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def10"
+  },
+  "DEF:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def11"
+  },
+  "DEF:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def12"
+  },
+  "DEF:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def13"
+  },
+  "DEF:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def14"
+  },
+  "DEF:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def15"
+  },
+  "DEF:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def16"
+  },
+  "DEF:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def17"
+  },
+  "DEF:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18"
+  },
+  "HPATT:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att0"
+  },
+  "HPATT:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att1"
+  },
+  "HPATT:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att2"
+  },
+  "HPATT:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att3"
+  },
+  "HPATT:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att4"
+  },
+  "HPATT:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att5"
+  },
+  "HPATT:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att6"
+  },
+  "HPATT:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att7"
+  },
+  "HPATT:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att8"
+  },
+  "HPATT:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att9"
+  },
+  "HPATT:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att10"
+  },
+  "HPATT:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att11"
+  },
+  "HPATT:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att12"
+  },
+  "HPATT:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att13"
+  },
+  "HPATT:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att14"
+  },
+  "HPATT:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att15"
+  },
+  "HPATT:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att16"
+  },
+  "HPATT:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att17"
+  },
+  "HPATT:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_att18"
+  },
+  "HPDEF:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def0"
+  },
+  "HPDEF:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def1"
+  },
+  "HPDEF:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def2"
+  },
+  "HPDEF:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def3"
+  },
+  "HPDEF:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def4"
+  },
+  "HPDEF:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def5"
+  },
+  "HPDEF:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def6"
+  },
+  "HPDEF:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def7"
+  },
+  "HPDEF:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def8"
+  },
+  "HPDEF:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def9"
+  },
+  "HPDEF:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def10"
+  },
+  "HPDEF:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def11"
+  },
+  "HPDEF:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def12"
+  },
+  "HPDEF:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def13"
+  },
+  "HPDEF:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def14"
+  },
+  "HPDEF:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def15"
+  },
+  "HPDEF:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def16"
+  },
+  "HPDEF:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def17"
+  },
+  "HPDEF:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp_def18"
+  },
+  "ATTHP:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp0"
+  },
+  "ATTHP:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp1"
+  },
+  "ATTHP:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp2"
+  },
+  "ATTHP:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp3"
+  },
+  "ATTHP:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp4"
+  },
+  "ATTHP:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp5"
+  },
+  "ATTHP:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp6"
+  },
+  "ATTHP:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp7"
+  },
+  "ATTHP:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp8"
+  },
+  "ATTHP:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp9"
+  },
+  "ATTHP:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp10"
+  },
+  "ATTHP:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp11"
+  },
+  "ATTHP:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp12"
+  },
+  "ATTHP:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp13"
+  },
+  "ATTHP:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp14"
+  },
+  "ATTHP:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp15"
+  },
+  "ATTHP:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp16"
+  },
+  "ATTHP:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp17"
+  },
+  "ATTHP:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_hp18"
+  },
+  "ATTDEF:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def0"
+  },
+  "ATTDEF:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def1"
+  },
+  "ATTDEF:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def2"
+  },
+  "ATTDEF:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def3"
+  },
+  "ATTDEF:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def4"
+  },
+  "ATTDEF:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def5"
+  },
+  "ATTDEF:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def6"
+  },
+  "ATTDEF:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def7"
+  },
+  "ATTDEF:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def8"
+  },
+  "ATTDEF:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def9"
+  },
+  "ATTDEF:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def10"
+  },
+  "ATTDEF:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def11"
+  },
+  "ATTDEF:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def12"
+  },
+  "ATTDEF:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def13"
+  },
+  "ATTDEF:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def14"
+  },
+  "ATTDEF:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def15"
+  },
+  "ATTDEF:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def16"
+  },
+  "ATTDEF:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def17"
+  },
+  "ATTDEF:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att_def18"
+  },
+  "DEFHP:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp0"
+  },
+  "DEFHP:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp1"
+  },
+  "DEFHP:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp2"
+  },
+  "DEFHP:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp3"
+  },
+  "DEFHP:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp4"
+  },
+  "DEFHP:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp5"
+  },
+  "DEFHP:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp6"
+  },
+  "DEFHP:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp7"
+  },
+  "DEFHP:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp8"
+  },
+  "DEFHP:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp9"
+  },
+  "DEFHP:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp10"
+  },
+  "DEFHP:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp11"
+  },
+  "DEFHP:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp12"
+  },
+  "DEFHP:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp13"
+  },
+  "DEFHP:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp14"
+  },
+  "DEFHP:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp15"
+  },
+  "DEFHP:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp16"
+  },
+  "DEFHP:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp17"
+  },
+  "DEFHP:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_hp18"
+  },
+  "DEFATT:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att0"
+  },
+  "DEFATT:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att1"
+  },
+  "DEFATT:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att2"
+  },
+  "DEFATT:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att3"
+  },
+  "DEFATT:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att4"
+  },
+  "DEFATT:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att5"
+  },
+  "DEFATT:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att6"
+  },
+  "DEFATT:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att7"
+  },
+  "DEFATT:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att8"
+  },
+  "DEFATT:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att9"
+  },
+  "DEFATT:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att10"
+  },
+  "DEFATT:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att11"
+  },
+  "DEFATT:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att12"
+  },
+  "DEFATT:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att13"
+  },
+  "DEFATT:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att14"
+  },
+  "DEFATT:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att15"
+  },
+  "DEFATT:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att16"
+  },
+  "DEFATT:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att17"
+  },
+  "DEFATT:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def_att18"
+  },
+  "ATTDEFHP:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white0"
+  },
+  "ATTDEFHP:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white1"
+  },
+  "ATTDEFHP:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white2"
+  },
+  "ATTDEFHP:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white3"
+  },
+  "ATTDEFHP:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white4"
+  },
+  "ATTDEFHP:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white5"
+  },
+  "ATTDEFHP:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white6"
+  },
+  "ATTDEFHP:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white7"
+  },
+  "ATTDEFHP:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white8"
+  },
+  "ATTDEFHP:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white9"
+  },
+  "ATTDEFHP:10": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white10"
+  },
+  "ATTDEFHP:11": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white11"
+  },
+  "ATTDEFHP:12": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white12"
+  },
+  "ATTDEFHP:13": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white13"
+  },
+  "ATTDEFHP:14": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white14"
+  },
+  "ATTDEFHP:15": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white15"
+  },
+  "ATTDEFHP:16": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white16"
+  },
+  "ATTDEFHP:17": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white17"
+  },
+  "ATTDEFHP:18": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18"
+  },
+  "SOULHP:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULHP:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_hp18",
+   "fallback": true
+  },
+  "SOULATT:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULATT:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_att18",
+   "fallback": true
+  },
+  "SOULDEF:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULDEF:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_def18",
+   "fallback": true
+  },
+  "SOULALL:0": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:1": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:2": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:3": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:4": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:5": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:6": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:7": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:8": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  },
+  "SOULALL:9": {
+   "dir": "item_gem",
+   "frame": "item_gem_gem_white18",
+   "fallback": true
+  }
+ },
+ "equipment_bg": {
+  "깃털:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather1_bg"
+  },
+  "깃털:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather2_bg"
+  },
+  "깃털:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather3_bg"
+  },
+  "깃털:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather4_bg"
+  },
+  "깃털:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather5_bg"
+  },
+  "깃털:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather6_bg"
+  },
+  "깃털:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_feather7_bg"
+  },
+  "발톱:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw1_bg"
+  },
+  "발톱:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw2_bg"
+  },
+  "발톱:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw3_bg"
+  },
+  "발톱:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw4_bg"
+  },
+  "발톱:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw5_bg"
+  },
+  "발톱:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw6_bg"
+  },
+  "발톱:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_claw7_bg"
+  },
+  "부적:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "부적:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "부적:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "부적:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "부적:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "부적:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg"
+  },
+  "부적:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_talisman6_bg",
+   "fallback": true
+  },
+  "묘안석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye1_bg"
+  },
+  "묘안석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye2_bg"
+  },
+  "묘안석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye3_bg"
+  },
+  "묘안석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye4_bg"
+  },
+  "묘안석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye5_bg"
+  },
+  "묘안석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye6_bg"
+  },
+  "묘안석:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_catseye6_bg",
+   "fallback": true
+  },
+  "흑요석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian1_bg"
+  },
+  "흑요석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian2_bg"
+  },
+  "흑요석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian3_bg"
+  },
+  "흑요석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian4_bg"
+  },
+  "흑요석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian5_bg"
+  },
+  "흑요석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian6_bg"
+  },
+  "흑요석:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_obsidian6_bg",
+   "fallback": true
+  },
+  "백금석:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum1_bg"
+  },
+  "백금석:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum2_bg"
+  },
+  "백금석:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum3_bg"
+  },
+  "백금석:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum4_bg"
+  },
+  "백금석:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum5_bg"
+  },
+  "백금석:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum6_bg"
+  },
+  "백금석:6": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_platinum6_bg",
+   "fallback": true
+  },
+  "이그니스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "이그니스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "이그니스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "이그니스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "이그니스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "이그니스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "마리스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "마리스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "마리스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "마리스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "마리스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "마리스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "벤투스:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "벤투스:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "벤투스:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "벤투스:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "벤투스:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "벤투스:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "루멘:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "루멘:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "루멘:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "루멘:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "루멘:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "루멘:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "옵스큐럼:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "옵스큐럼:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "옵스큐럼:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "옵스큐럼:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "옵스큐럼:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "옵스큐럼:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "테라:0": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact1_bg"
+  },
+  "테라:1": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact2_bg"
+  },
+  "테라:2": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact3_bg"
+  },
+  "테라:3": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact4_bg"
+  },
+  "테라:4": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact5_bg"
+  },
+  "테라:5": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_artifact6_bg"
+  },
+  "크리스마스 별장식": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_star_bg"
+  },
+  "눈사람 인형": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_snow_bg"
+  },
+  "크리스마스 리본": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_christmas_ribbon_bg"
+  },
+  "어린이 풍선": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_balloon_bg"
+  },
+  "장난감 총": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_popgun_bg"
+  },
+  "곰 인형": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_children_teddy_bg"
+  }
+ },
+ "shop": {
+  "equip_gacha_diamond": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_gooddeco"
+  },
+  "equip_gacha_gold": {
+   "dir": "item_accessory",
+   "frame": "item_accessory_olddeco"
+  }
+ }
+}

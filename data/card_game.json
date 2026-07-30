@@ -1,0 +1,146 @@
+{
+ "_re_basis": "탐험 카드 미니게임(원작 `CardMiniGameLayer` + `CardItem`). 규칙과 보상 종류는 커뮤니티 위키에서 확정했고, 개별 확률과 버프 수치만 자작이다. 상세 = docs/ref/porting/CardMiniGame.md.",
+ "_wiki": [
+  "map.pdf(유타칸/해골요새): '해골요새를 탐험하다보면 왼쪽 표시 칸에 카드가 그려진 그림이 있을 텐데, 그 칸에서는 아임이 나타난다는 것을 의미한다. 유저들과 카드게임을 해서 버프를 걸어주거나, 드래곤을 회복시켜주기도 100~200골드를 주기도 하고 꽝이면 얄짤없이 가 버리기도 하는 신비한 녀석.'",
+  "dungeon_1.pdf: '카드 아이콘은 아임이라는 캐릭터가 나와 카드게임을 한다. 2종류가 있는데 하나는 8개의 카드를 섞어 4번의 기회중 1번이라도 2개의 짝을 맞추면 성공, 다른 하나는 3개의 카드들 중 1~2개의 꽝이 있는데 그 꽝을 피하면 성공.'",
+  "dungeon_1.pdf: '보상은 체력 회복, 공격력 증가, 방어력 증가, 골드, 낮은 확률로 다이아, 데빌 드래곤, 네온 드래곤, 쉐도우 드래곤, 바이올렛 드래곤의 알이 나온다.'",
+  "raid.pdf(1세대 레이드): '패배 시 카드게임을 하게 되는데 … 한 드래곤의 짝을 맞출 시 그 드래곤은 부활한다. 드래곤 3마리 외에도 골드, 다이아, 삐에로 드래곤의 알이 있는데…' → 레이드 변형. §5 솔로 재설계 대상이라 후순위(미구현)."
+ ],
+ "_npc": "아임 — **해골 요새 전용** NPC. 근거: stringsData_KR `Tip_49` \"해골요새의 아임과 퐁은 다섯 현자로 알려진 로쿠난의 제자입니다\", `ScenarioTalk70_3` \"해골요새에 아임 이라는 임프 상인이\", `ShopWelcomeImp9`(임프 상점). 일반 스테이지에 등장시키지 않는다(사용자 확정 2026-07-28).",
+ "games": {
+  "match": {
+   "label": "짝 맞추기",
+   "cards": 8,
+   "chances": 4,
+   "_rule_basis": "위키 확정 — 8장, 4번의 기회, 1번이라도 짝을 맞추면 성공.",
+   "_note": "8장 = 4쌍. 한 번의 기회 = 2장 뒤집기. 짝이면 그 카드의 보상을 받고 성공으로 끝난다(위키 '1번이라도 … 성공'). 안 맞으면 되돌리고 기회 1 차감."
+  },
+  "avoid": {
+   "label": "꽝 피하기",
+   "cards": 3,
+   "blanks_min": 1,
+   "blanks_max": 2,
+   "chances": 1,
+   "_rule_basis": "위키 확정 — 3장 중 꽝 1~2개, 그 꽝을 피하면 성공."
+  }
+ },
+ "_reward_basis": "보상 **종류**는 위키 확정(체력회복·공격력↑·방어력↑·골드·저확률 다이아·드래곤 알 4종). 골드 범위 100~200 도 위키(map.pdf). **가중치는 자작 튜닝 노브** — 원작 확률표는 서버 유실이다. 위키가 '낮은 확률로 다이아'라고만 하므로 다이아·알을 낮게 뒀다.",
+ "rewards": [
+  {
+   "kind": "heal",
+   "weight": 26,
+   "frame": "heart_bg",
+   "label": "체력 회복",
+   "_effect": "item_effects.json heal_potion.heal_pct_of_max(30%) 재사용 — 새 수치를 만들지 않는다"
+  },
+  {
+   "kind": "buff_att",
+   "weight": 24,
+   "frame": "buf_atk",
+   "label": "공격력 증가",
+   "tier": 1,
+   "_effect": "item_effects.json drink 규칙 재사용 — pct_per_tier(5%) × tier, duration_turns(10)"
+  },
+  {
+   "kind": "buff_def",
+   "weight": 24,
+   "frame": "buf_def",
+   "label": "방어력 증가",
+   "tier": 1,
+   "_effect": "동상"
+  },
+  {
+   "kind": "gold",
+   "weight": 20,
+   "frame": "coin_small2",
+   "label": "골드",
+   "min": 100,
+   "max": 200,
+   "_basis": "위키 map.pdf '100~200골드'"
+  },
+  {
+   "kind": "diamond",
+   "weight": 4,
+   "frame": "diamond_big",
+   "label": "다이아",
+   "min": 1,
+   "max": 2,
+   "_basis": "위키 '낮은 확률로 다이아' — 수량은 자작"
+  },
+  {
+   "kind": "egg",
+   "weight": 2,
+   "frame": "dragon_bg",
+   "label": "드래곤 알",
+   "pool": [
+    100,
+    102,
+    83,
+    101
+   ],
+   "_pool_basis": "위키가 이름을 특정한다 — 데빌 드래곤(100)·네온 드래곤(102)·쉐도우 드래곤(83)·바이올렛 드래곤(101). dragons.json 이름 조회로 id 확정. 결과는 뽑기 알과 같은 가상 인벤 키 `egg:<id>`(EggGacha.key_for)"
+  }
+ ],
+ "blank": {
+  "kind": "none",
+  "frame": "fail",
+  "label": "꽝",
+  "_basis": "위키 map.pdf '꽝이면 얄짤없이 가 버리기도' + 자산 `card_game/fail.png`"
+ },
+ "_authored": "games.*.chances/cards 와 rewards[].kind/label/min/max/pool 은 위키 확정. rewards[].weight 와 diamond 수량은 자작(튜닝 노브). 버프·회복 수치는 새로 만들지 않고 data/item_effects.json 을 재사용한다.",
+ "_scope": "⚠️ 이 미니게임은 **해골 요새 전용**이다. 원작의 `Dungeon*` 은 우리가 쓰는 '던전'(일반 스테이지)이 아니라 **해골 요새의 층별 탐색 콘텐츠**를 가리킨다 — `scene/adventure/skeleton_fortress` 아틀라스가 그 시스템 전체를 담고 있다(칸 아이콘 icon_card/shop/treasurebox/monster/boss/gold/question, 층 floor_icon_bg·floor_stair, 성 지하 under_castle_*, 입퇴장 btn_join/btn_exit, 결과 result_rank_box, 버프 카드 buf_atk/buf_def). 클래스도 DungeonScene/DungeonStage/DungeonShuffleLayer/DungeonRewardLayer/DungeonFinishLayer/DungeonTutorialLayer/WeeklyDungeonScene 한 묶음이다. ⇒ setEventDungeonCardGame1/2 · setEventDungeonShop · setEventDungeonChoice 는 일반 스테이지에서 뜨면 안 된다(반면 setEventTreasure·setEventHealArea 는 Dungeon 키워드가 없다 = 일반 이벤트). 게이트 = `adventure.gd::_is_fortress()`.",
+ "talk": {
+  "_source": "원작 `DV2/string/stringsData_KR.xml` 전량 추출(유실 아님). 키 접두 `CardMiniGame_Dungeon_*` 이 곧 이 콘텐츠가 **해골 요새 전용**이라는 증거다 — `Ready4_2` \"그래서~ 무시무시한 해골요새 안에서도 힘을 발휘할 수 있는 거라고!\", `Ready6_1` \"해골요새에 온 건 수련의 목적도 있어!\".",
+  "_npc": "아임(NPC_aim). 동료 퐁(NPC_pong)은 대사에만 등장한다.",
+  "dungeon": {
+   "ready": [
+    [
+     "오잉?! 이곳을 헤메고 있는 바보가 나말고 또 있었구먼!\n그나저나~ 많이 지쳐 보이는걸? 낄낄낄낄!",
+     "흐흐흥~ 좋아! 나와 재미난 카드 승부를 해서 이긴다면!\n네게 도움이 될만한 선물을 주도록 하지! 자~ 시작하자고!"
+    ],
+    [
+     "크응~ 돈 떼먹고 달아난 퐁녀석! 대체 어디 있는 거야!\n오! 그래! 네가 퐁을 찾아주면 어떨까?!",
+     "그럼 내가 퐁을 찾기 수월하게 좋은 선물을 주도록 하지!\n물론~ 공짜는 없다고! 눈치껏! 요령껏! 카드를 맞춰보라고!"
+    ],
+    [
+     "사실 내가 가지고 노는 마법의 카드는 아주 오래된 문명의 유산이라고.\n그러니까 넌~ 이걸 만져볼 수 있는 것 자체를 감사히 여기라고!",
+     "믿지 않는 눈치로군~ 뭐 좋아! 카드놀이를 시작해볼까?\n난 봐주지 않으니까 최선을 다하라고! 실패하면 선물 따윈 없어! 우히히힛!"
+    ],
+    [
+     "쉿! 너에게만 알려줄게! 이 카드의 신비한 마력은 각종 마법과 물품을 만들 수 있지!\n스승님이 내게 주신 거니~ 위력은 확실하다고!",
+     "그래서~ 무시무시한 해골요새 안에서도 힘을 발휘할 수 있는 거라고!\n뭐~ 그럼 본론으로 들어가서 어서 카드놀이를 같이하자고!"
+    ],
+    [
+     "오호라~ 오랜만이군! 음~ 사실 퐁과 나는 다섯 현자 중 하나인 로쿠난의 수제자야!\n물론~ 퐁 녀석은 마음이 사악하다고 도중에 내쫓겼지만 말이야!",
+     "아~ 나도 마찬가지로 내쫓겼어~ 노력이 부족하다는 이유였지.\n뭐 하여튼! 만났으니까! 놀아보자고! 카드놀이를 말이야! 키키킥!"
+    ],
+    [
+     "으히힛! 안녕! 사실 말이야. 해골요새에 온 건 수련의 목적도 있어!\n비밀 수련을 통해 로쿠난 스승님을 깜짝 놀라게 해주고 싶거든!",
+     "뭐~ 아직 엉성한 마법이긴 하지만, 지금의 네게는 충분히 도움이 되겠지?\n물론~ 공짜는 없어! 자, 카드놀이를 시작하자고!"
+    ]
+   ],
+   "success": [
+    "꽤 재미있었어! 제법하는군! 그럼~ 이따가 다시~ 만나자고! 낄낄낄낄낄낄!"
+   ],
+   "fail": [
+    "난 갈 길 가겠어~! 수고하라고~ 으힛, 으히히히힛~!"
+   ]
+  },
+  "raid": {
+   "_note": "1세대 레이드 패배 시 변형(짝 맞춘 드래곤 부활). §5 솔로 재설계 대상이라 미구현 — 대사만 보존.",
+   "ready": [
+    [
+     "어라! 레이드 드래곤에게 패배해서 모든 드래곤이 행동불능이 돼버렸잖아!!",
+     "걱정~마! 이 마법 카드를 이용하면~다시 드래곤을 회복시킬 수 있을 거야!!",
+     "자!~어서 같은 짝의 카드를 맞추어 드래곤을 다시 회복시켜보자고!!"
+    ]
+   ],
+   "success": [
+    "좋았어~카드놀이에 성공했어! 축하해!!"
+   ],
+   "fail": [
+    "이런... 카드놀이에 실패했어... 우울해지는 걸"
+   ]
+  }
+ }
+}

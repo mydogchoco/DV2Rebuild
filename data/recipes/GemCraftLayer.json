@@ -1,0 +1,22 @@
+{
+  "_source": "docs/ref/orig_code/decomp/GemCraftLayer.c (init@012afec8, initWidget@012b0074, 젬박스배치@1953-2009, coin@3377)",
+  "_purpose": "GemCraftLayer(젬 강화) 1:1 렌더 레시피. UI 1:1 리팩터용. 좌표 cocos y-up(bg 로컬), popup4 650×480.",
+  "popup": {"frame": "9patch/popup4.png", "asset": "assets/converted/ninepatch_ui/9patch_popup4.tres",
+    "cap_insets_cocos": [130, 190, 40, 58], "ninepatch_margins_godot": {"left": 130, "top": 190, "right": 55, "bottom": 81},
+    "content_size": [650, 480], "_cite": "init:1677 Rect(130,190,40,58)+setContentSprite"},
+  "elements": [
+    {"name": "title_bar", "frame": "9patch/pop_title_bg.png", "asset": "assets/converted/ninepatch_ui/9patch_pop_title_bg.tres",
+     "pos_cocos": ["bgW*0.5", "top"], "_cite": "initWidget:2091 pop_title_bg"},
+    {"name": "info_btn", "frame": "common/btn_info.png", "_cite": "initWidget btn_info"},
+    {"name": "close", "frame": "common/close_btn.png", "_note": "PopupLayer 기본 우상단"},
+    {"name": "gem_box", "type": "ninepatch", "frame": "9patch/train_box3.png", "asset": "assets/converted/ninepatch_ui/9patch_train_box3.tres",
+     "size": [223, 43], "pos_cocos": ["bgW*0.5", "bgH-100"], "anchor": [0.5, 0.5],
+     "_note": "선택 젬의 스탯 표시 박스. 내부 라벨 (25, boxH*0.5+3) anchor(0,0.5) scale0.8.",
+     "_cite": "GemCraftLayer.c:1968-2009 Scale9('9patch/train_box3.png') size(223,43) pos(bgW*0.5,bgH-100)"},
+    {"name": "plus", "frame": "common/plus.png", "pos_cocos": ["bgW*0.5", "bgH*0.47"], "z": 5,
+     "_cite": "GemCraftLayer.c:1953-1962 CCSprite('common/plus.png') pos(bgW*0.5,bgH*0.47) z5"},
+    {"name": "coin_cost", "frame": "common/coin_small1.png", "_note": "강화 비용(updateGoldUI)", "_cite": "GemCraftLayer.c:3377 coin_small1"}
+  ],
+  "_lost": "강화 비용/성공확률/스탯증가=서버(NetworkManager 14, requestUpgrade). 우리=오프라인 비용식(_gem_craft_cost).",
+  "_our_gap": "⚠️원칙4 불일치: 우리 _open_gem_craft=StyleBox 3젬(hp/att/def) 리스트+행별 강화버튼. 원작=단일 선택젬 train_box3 상세+plus+coin. 진짜 1:1=원작 단일젬 뷰로 재구조화 필요(팝업 프레임+train_box3+plus+coin). 검증완료=이 레시피대로 재조립+스크린샷."
+}

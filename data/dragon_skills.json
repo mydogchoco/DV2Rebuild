@@ -1,0 +1,5 @@
+{
+  "_re_basis": "드래곤별 보유 스킬 매핑은 원작 서버데이터라 유실됨(dragons.json에도 스킬 필드 없음). 미지정 드래곤은 scripts/systems/loadout.gd의 id기반 결정적 기본배정(ASSUMPTION)을 사용. 아래 overrides에 도감ID(문자열)→스킬목록을 넣으면 그 드래곤은 정밀 배정으로 덮어쓴다(override 우선). 스킬 목록 형식: [[스킬ID, 레벨], ...] 예: [[21,3],[24,2]]. 스킬ID/이름/효과는 data/skills.json 참고. usable+active 스킬만 전투에서 발동.",
+  "overrides": {
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "_source": [
+    "구조 = docs/ref/orig_code/decomp/LaboratoryScene.c :: initMenu / changeLabLv / setTalker (+ docs/ref/audit/LaboratoryScene.md).",
+    "BGM = music/bg_laboratory.mp3 (LaboratoryScene.c:1979 builtin_strncpy).",
+    "기능 설명·수치 = docs/ref/orig_image/lab/labwiki.pdf(나무위키 '애니(드래곤빌리지2)' §2) + docs/ref/orig_image/lab/메인UI.webp 실측.",
+    "안내 문구 = DV2/string/stringsData_KR.xml <ToolTipUpgradeLabExplain> / <ToolTipLabInformationExplain>."
+  ],
+  "_menu_note": [
+    "원작 initMenu 가 부르는 아이콘 8종 중 `icon_streng`(드래곤 강화)·`icon_legendary`(한계돌파)는",
+    "추출 아틀라스(scene/laboratory.img_plist)에 **없다**(asset_index --grep → 0건).",
+    "레퍼런스 docs/ref/orig_image/lab/메인UI.webp 의 '한계돌파'에 NEW 뱃지가 붙어 있는 것으로 보아 후기 업데이트분이다.",
+    "→ 드래곤 강화는 보유 아이콘 `icon_material` 로 대체해 유지하고, 한계돌파는 미구현으로 둔다."
+  ],
+
+  "egg_upgrade": {
+    "_wiki": "labwiki.pdf §2.1 — 알+정령석+스톤하트+속성결정 조합. 강화 알의 부화 등급이 확정된다.",
+    "grades": {"1": 7.0, "2": 7.2, "3": 7.5, "4": 8.0},
+    "_grade4_note": "4강은 8.0 확정이지만 **강화로는 못 만들고 이벤트로만** 얻는다(wiki 각주 2) → 우리도 강화 상한은 3강.",
+    "max_step": 3,
+    "materials": [
+      {"step": 1, "spirit": "stone_spirit2", "heart": "stone_heart2"},
+      {"step": 2, "spirit": "stone_spirit3", "heart": "stone_heart3"},
+      {"step": 3, "spirit": "stone_spirit4", "heart": "stone_heart4"}
+    ],
+    "_materials_note": "1강=온전한 정령석/스톤하트, 2강=완벽한, 3강=완전무결한 (wiki 표). 하위 등급 환산은 조각난×12 → 온전 / 온전×6 → 완벽 / 완벽×3 → 완전무결(각주 3~8).",
+    "spirit_chain": ["stone_spirit1", "stone_spirit2", "stone_spirit3", "stone_spirit4"],
+    "heart_chain": ["stone_heart1", "stone_heart2", "stone_heart3", "stone_heart4"],
+    "chain_ratio": [12, 6, 3]
+  },
+
+  "lab_upgrade": {
+    "_wiki": "labwiki.pdf §2.8 — 하루 재료 30개까지 연구해 경험치를 얻는다. 최대 레벨 99. 레벨마다 스킬포인트 1.",
+    "_tooltip": "연구소에 필요한 물건들을 제공하고 연구소 경험치를 모아 레벨을 올릴 수 있습니다. 연구소 레벨마다 1개의 스킬포인트를 획득할 수 있습니다. 하루에 30개의 물건까지 연구하고 경험치를 얻을 수 있습니다. 일일 사용가능 재료 개수는 0시에 초기화 됩니다.",
+    "max_level": 99,
+    "daily_limit": 30,
+    "points": {
+      "_note": "wiki §2.8 확정치. '일반 결정'은 그림자를 뺀 속성 결정, 그림자의 결정만 100.",
+      "egg_normal": 15,
+      "egg_grade3": 1500,
+      "egg_grade4": 0,
+      "essence": 5,
+      "crystal": 4,
+      "crystal_shadow": 100
+    },
+    "rewards": {
+      "10": [["mall_question_egg", 1]],
+      "20": [["stone_spirit1", 3], ["stone_heart1", 3]],
+      "30": [["stone_spirit1", 6]],
+      "40": [["stone_heart1", 6]],
+      "50": [["stone_spirit2", 1]],
+      "60": [["stone_heart2", 1]],
+      "70": [["stone_spirit3", 1]],
+      "80": [["stone_heart3", 1]],
+      "90": [["stone_spirit4", 1]],
+      "99": [["stone_heart4", 1]]
+    },
+    "_exp_curve_note": "⚠️ 레벨당 필요 경험치는 위키에도 없다(서버 유실). 아래는 자작 곡선 — 하루 상한(그림자 결정 30개=3000p)으로 99까지 대략 3~4개월이 걸리도록 잡았다.",
+    "exp_per_level": {"base": 900, "growth": 1.045},
+    "skills": {
+      "_source": "docs/ref/Lab/연구소상세정보.png · 상세정보_렙업.png (원작 스크린샷 직접 관찰 2026-07-29) + LaboratorySkillLayer.c::addCell(아이콘=laboratory_upgrade_%d, 만렙 10 = curSkillLevel/10, needPoint 부족 시 회색).",
+      "_layout": "왼쪽 열 = 아이콘 1~4, 오른쪽 열 = 아이콘 5~8 (addCell param*4+i, 스크린샷과 일치).",
+      "max_step": 10,
+      "list": [
+        {"id": "crystal_time",     "name": "생산 시간 감소",        "icon": 1, "cost": 2, "base": 0.0,  "per": 0.02, "fmt": "pct0"},
+        {"id": "unique_bonus",     "name": "고유결정 생산확률 증가", "icon": 2, "cost": 1, "base": 0.5,  "per": 0.02, "fmt": "pct0"},
+        {"id": "crystal_bonus",    "name": "결정 추가 생산",        "icon": 3, "cost": 2, "base": 0,    "per": 1,    "fmt": "cnt"},
+        {"id": "mix_discount",     "name": "조합 가격 감소",        "icon": 4, "cost": 3, "base": 0.0,  "per": 0.04, "fmt": "pct_gold"},
+        {"id": "essence_bonus",    "name": "정기 추가 생산",        "icon": 5, "cost": 1, "base": 0,    "per": 1,    "fmt": "cnt"},
+        {"id": "essence_discount", "name": "정기 생산 가격 감소",   "icon": 6, "cost": 1, "base": 2500, "per": -100, "fmt": "gold"},
+        {"id": "extract_bonus",    "name": "추출시 결정 추가 생산", "icon": 7, "cost": 2, "base": 0.0,  "per": 0.02, "fmt": "pct1"},
+        {"id": "extract_grade",    "name": "추출 등급 감소",        "icon": 8, "cost": 3, "base": 1.0,  "per": -0.1, "fmt": "grade"}
+      ],
+      "_effect_note": "단계당 효과: unique_bonus +2%/단계만 원작 확정(상세정보_렙업.png 50%→52%). 스킬별 비용(2/1/2/3/1/1/2/3)·기본값(0%·50%·0개·0다이아·0개·2500원·0.0%·1.0)은 스크린샷 확정. 나머지 per 는 자작(ASSUMPTION). mix_discount 는 원작 '다이아 감소'지만 우리 조합가는 골드라 %할인으로 적용."
+    }
+  },
+
+  "egg_release": {
+    "_source": "docs/ref/Lab/알방생.png · 방생결과예상.png (원작 직접 관찰 2026-07-29): 알 ▶ 정기, 버튼 = 코인 2,500, 결과 '불의 정기 3 ~ 6개'. 원작 대사 <LabSmeltMsg> '방생 된 드래곤 알은 라테아로 다시 돌아가게 돼.'",
+    "cost_gold": 2500,
+    "essence_min": 3,
+    "essence_max": 6
+  },
+
+  "dragon_enhance": {
+    "_source": [
+      "docs/ref/Lab/드래곤강화{1,3,4,5,6,7,8}.png · 드래곤강화선택창{1,2}.png · 드래곤강화재료1.png (원작 직접 관찰 2026-07-29).",
+      "원작 클래스 = CrystalLayer::create(0x67) (LaboratoryScene::selectTab case 6 → changeFloor(-1, true, false)) — B1 층, 깃발 탭 없음.",
+      "화면 원문: 제목 '장비 슬롯 확장' / 행 라벨 '모든·전투형·보조형·아티펙트 장비 장착 가능' /",
+      "  주의문 '어떤 슬롯을 여는지 상관없이 슬롯을 확장할 때마다 요구하는 재료 드래곤 등급이 상승합니다.' /",
+      "  확인창 '해당 드래곤을 강화하시겠습니까? 강화시 [%s 장착 슬롯]이 확장됩니다.' + '*주의 재료로 사용되는 드래곤은 삭제됩니다.'"
+    ],
+    "_slot_note": "All 칸은 처음부터 열려 있고 나머지 3칸을 임의 순서로 연다(주의문 '어떤 슬롯을 여는지 상관없이'). 비용은 '슬롯 확장 횟수'로만 오른다.",
+    "slots": ["all", "battle", "support", "artifact"],
+    "material_grade_min": [0.0, 3.0, 6.0],
+    "_grade_note": "확장 n회차의 재료 드래곤 요구 등급(드래곤강화3.png 표: +1 → 0.0~2.9 · +2 → 3.0~5.9 · +3 → 6.0~+++). 화면은 '요구 등급 / 재료 등급'을 나란히 보여 주고 하한만 본다(재료1.png 목록에 0.0·3.0 이 함께 뜬다). 우리 등급 눈금도 같은 7.0 기준선이라(§K-10) 값을 그대로 쓴다.",
+    "cost": {
+      "_source": "드래곤강화재료1.png 카드 실측(1회차): 아니마 2292/10 · 보네르 857/10 · 아모르의 축복 10/1. 회차별 증가폭은 위키 etc.pdf §2.1.1 '아모르의 축복은 1개씩, 보네르·아니마는 둘 다 20개씩 늘어난다'.",
+      "bless_of_amor": {"base": 1, "per": 1},
+      "bonner": {"base": 10, "per": 20},
+      "anima": {"base": 10, "per": 20}
+    },
+    "_ticket_cut": "원작 재료 목록 첫 칸은 'n성 드래곤 강화권'(아이템 1장으로 드래곤 대체)인데 그 아이템이 우리 items.json 에 없다(추출분 부재) → 재료 드래곤 경로만 쓴다.",
+    "_icon_cut": "슬롯 종류 아이콘 `addimg/intension/icon_streng_{all,attack,help,artefact}` 은 `addimg/` 폴더 자체가 덤프에 없다 → 원작 All 칸처럼 텍스트 라벨로 그린다. 잠금은 보유 `common/lock`."
+  },
+
+  "crystal": {
+    "_source": "docs/ref/Lab B1 스크린샷 6장(원작 직접 관찰 2026-07-29). 조건문 원문 '육성 등급이 1.0 이상, 레벨 45 이상인 드래곤만 선택 할 수 있습니다.' 생산: 8.3등급→결과물 x8·22시간, 3.0등급→x3·32시간, 0.0등급→선택불가('-시간'). 잠금 슬롯 해금 = x75💎(initGenerateBtn 리터럴 0x4b=75 일치). 추출: 8.3→x830, 3.0→x300 ⇒ 등급×100.",
+    "produce": {
+      "min_grade": 1.0,
+      "min_level": 45,
+      "hours_base": 38,
+      "hours_per_grade": -2,
+      "_hours_note": "ASSUMPTION: 시간 = 38 - 2×floor(등급) — 관찰 2점(등급8→22h, 등급3→32h)을 지나는 자작 보간.",
+      "unique_star_min": 5,
+      "_unique_note": "ASSUMPTION: 고유결정(전용 결정 crystal2_*) 대상 = 5성 이상. 발동 확률 = unique_bonus 스킬(기본 50%).",
+      "slots_max": 3,
+      "slot_unlock_dia": 75
+    },
+    "extract": {
+      "min_grade": 1.0,
+      "yield_per_grade": 100,
+      "_note": "ASSUMPTION: 추출은 드래곤을 소모한다(결정 아이템 설명 '드래곤 하트에서 추출' + 등급 전량 ×100 환산). 결과 = floor(등급×100 × (1+extract_bonus)). extract_grade 스킬이 최소 등급 요구(1.0)를 낮춘다."
+    },
+    "_grade_note": "등급 눈금 주의: 원작은 0.0=미육성이지만 우리 등급은 7.0 기준 파생(§K-10). 화면에 보이는 등급 숫자를 그대로 쓴다."
+  }
+}

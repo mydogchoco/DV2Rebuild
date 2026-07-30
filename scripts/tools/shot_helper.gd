@@ -1,0 +1,1723 @@
+extends Node
+# 임시 오토로드: 지정 씬으로 이동한 뒤 뷰포트를 PNG로 저장한다.
+# 사용: godot --path . --script ... 대신 project.godot 오토로드에 등록 후 실행.
+#   godot --path . -- --shot=<key> --out=<png> --wait=<sec>
+
+func _ready() -> void:
+	# ⚠️ 2026-07-30: `--shot=` 인자가 **없으면 아무것도 하지 않는다**.
+	#   종전엔 shot 기본값이 "battle" 이라, 오토로드가 등록된 채로 게임을 그냥 실행하면
+	#   전투로 끌고 가 스크린샷을 찍고 **`get_tree().quit()` 으로 창을 닫아 버렸다**
+	#   (플레이 검수를 하려는데 3초 뒤 게임이 꺼졌다). 캡처 워크플로는 항상 `--shot=` 을
+	#   넘기므로 이 가드는 그쪽에 영향이 없다.
+	var has_shot := false
+	for a0 in OS.get_cmdline_user_args():
+		if a0.begins_with("--shot="):
+			has_shot = true
+			break
+	if not has_shot:
+		return
+
+	var shot := "battle"
+	var out := "user://shot.png"
+	var wait := 3.0
+	var stage := "1"
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--shot="): shot = a.substr(7)
+		elif a.begins_with("--out="): out = a.substr(6)
+		elif a.begins_with("--wait="): wait = float(a.substr(7))
+		elif a.begins_with("--stage="): stage = a.substr(8)
+
+	# ⚠️ 오토로드 _ready 는 main.gd 보다 먼저 돈다 — 닉네임을 여기서 미리 넣어야
+	#    main.gd 의 "최초 1회 강제 입력" 팝업이 뜨지 않는다. begin_batch = 디스크 미기록.
+	if not UserDB.has_user_nickname():
+		UserDB.begin_batch()
+		UserDB.set_user_nickname("계란")
+
+	for i in 20: await get_tree().process_frame
+	match shot:
+		"battle":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+		"skillfx":
+			# 스킬 이펙트 스파인 배치 검수 — 전투를 띄우고 이펙트를 강제 재생한다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var bs := get_tree().current_scene
+			if bs and bs.has_method("_play_skill_spine"):
+				var sid := 12
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--sid="): sid = int(a.split("=")[1])
+				# 0.7초면 사라지므로 캡처 타이밍을 맞추기 어렵다 → 계속 다시 켠다.
+				for rep in 20:
+					bs.call("_play_skill_spine", sid, bs.get("_views").get("E0", {}))
+					await get_tree().create_timer(0.4).timeout
+		"getitem":
+			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
+			Scenes.goto("shop", {"area": "elpis"})
+			for i in 20: await get_tree().process_frame
+			var gi := get_tree().current_scene
+			var gn := 3
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--n="): gn = int(a.split("=")[1])
+			var gitems: Array = []
+			# 키 5종을 섞어 resolve 분기를 눈으로 검수한다(아이템·젬·장비·알·스킬).
+			var gnm := ""
+			for gk in (Data.gems.get("gems", {}) as Dictionary):
+				gnm = String(gk); break
+			var cke := ""
+			for c in Equipment.catalog(Data.equipment):
+				cke = String(c); break
+			var pool := ["heal_potion1", "gem:%s:6" % gnm, Equipment.item_key(cke),
+				"egg:1", "skill:11:1", "food_fire_chicken"]
+			for i in gn:
+				gitems.append({"key": pool[i % pool.size()], "count": 1 + i})
+			var gp: GetItemPopup = null
+			if gn > 0:
+				gp = GetItemPopup.open(gi, gitems)
+			await get_tree().process_frame
+		"adventure":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+		"bossalert":
+			# 보스 조우 컷인(원작 setAlertMonster) 검수 — 마지막 조우로 바로 진입시킨다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			var ba_st: Dictionary = Data.stage(stage)
+			var last := maxi(0, int((ba_st.get("enemies", []) as Array).size()) - 1)
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": last,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var bav := _find_method_node(get_tree().root, "_monster_meet")
+			if bav != null: bav.call("_monster_meet")
+			else: print("SHOT: _monster_meet 노드 없음")
+		"lvresult":
+			# 탐험 중 레벨업 결과창(LevelUpResult) 검수.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			var lr_uid := UserDB.active_uid()
+			var lr_d: Dictionary = UserDB.get_dragon(lr_uid)
+			var lr_lv := int(lr_d.get("level", 10))
+			var lr_ms: Dictionary = Growth.tier_growth(
+				Data.get_dragon(int(lr_d.get("id", 1))), Data.stat_table)
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0,
+				"levelups": [{"uid": lr_uid, "name": String(lr_d.get("name", "드래곤")),
+					"from_lv": lr_lv - 1, "to_lv": lr_lv,
+					"gains": [{"hp": int(lr_ms.get("hp", 0)), "att": int(lr_ms.get("att", 0)),
+						"def": maxi(0, int(lr_ms.get("def", 0)) - 1),
+						"is_max": {"hp": true, "att": true, "def": false},
+						"tmax": {}}],
+					"max_stats": lr_ms}]})
+		"story":
+			# 스토리 재생 검수. --stage=<시나리오번호> 로 고른다(삽화 있는 편: 12·19·20·21·101).
+			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
+		"cave":
+			Scenes.goto("cave", {})
+		"status":
+			# 상태창(StatusLayer) 검수 — 원작 진입점 그대로 **월드맵 위**에서 띄운다.
+			# 젬/스킬/장비 칸이 실제 장착분을 그리는지 보려고 임시로 채운다(begin_batch = 디스크 미기록).
+			UserDB.begin_batch()
+			for sa in OS.get_cmdline_user_args():
+				if sa.begins_with("--uid="): UserDB.set_active(int(sa.split("=")[1]))
+			var su := UserDB.active_uid()
+			var sd := UserDB.get_dragon(su)
+			if int(sd.get("level", 1)) < 35:
+				UserDB.set_dragon_field(su, "level", 40)
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 12: await get_tree().process_frame
+			var sw := get_tree().current_scene
+			var sl := StatusLayer.open(sw)
+			sl.action_requested.connect(func(a, arg): print("SHOT status action: ", a, " ", arg))
+		"statuscave":
+			Scenes.goto("cave", {"open": "status"})
+		"dex":
+			# 도감(BookPopup 재이식) 검수. --sel=<종id> 로 우측 패널까지, --step=<i> 로 단계 선택.
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			var dx := _find_method_node(get_tree().root, "_open_dex")
+			if dx == null:
+				print("SHOT: _open_dex 노드 없음")
+			else:
+				dx.call("_open_dex")
+				for i in 10: await get_tree().process_frame
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--sel="):
+						dx.call("_dex_on_click_dragon", int(a.substr(6)))
+						for i in 10: await get_tree().process_frame
+					elif a.begins_with("--pick="):
+						dx.call("_dex_pick_step", int(a.substr(7)))
+					elif a.begins_with("--ele="):
+						# 속성 필터 강제(링 이동 검수) — 버튼 루트를 인덱스로 찾는다.
+						var ei := int(a.substr(6))
+						var els := ["all", "fire", "aqua", "earth", "wind",
+							"light", "dark", "holy", "chaos", "shadow"]
+						var btns: Array = dx.get("_dex_ele_btns")
+						if ei < btns.size():
+							dx.call("_dex_on_click_element", String(els[ei]), btns[ei])
+		"dexinfo":
+			# 도감 돋보기 전체화면(DragonBookInfoLayer 재이식). --sel=<종id> (기본 = 활성 드래곤 종).
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()
+			var di := _find_method_node(get_tree().root, "_open_dragon_book_info")
+			if di == null:
+				print("SHOT: cave 없음")
+			else:
+				var did := int(UserDB.get_dragon(UserDB.active_uid()).get("id", 1))
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--sel="): did = int(a.substr(6))
+				di.call("_open_dragon_book_info", did)
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--tap=1"):
+						for i in 15: await get_tree().process_frame
+						var subj := _find_node_named(get_tree().root, "subject")
+						if subj != null: di.call("_dbi_on_tap", subj)
+		"caveslot":
+			# 하단 스킬 칸 검수 — 0번칸은 **스킬 타입과 일치**시키고 1번칸은 일부러 어긋나게 둔다.
+			# 일치 칸에서 모양 프레임 + 스킬 아이콘이 **둘 다** 보여야 한다(원작 setDragonInfo).
+			# begin_batch = 디스크에 쓰지 않는다(사용자 세이브 보호).
+			UserDB.begin_batch()
+			var cs_uid := UserDB.active_uid()
+			# 칸에 그려지는 건 **장착분**이다(v9: 학습 풀과 분리) → 장착 번호로 타입을 맞춘다.
+			var cs_sk: Array = UserDB.dragon_skill_equip(cs_uid)
+			if cs_sk.size() >= 1 and int(cs_sk[0]) > 0:
+				var t0 := String(Data.skills.get(str(int(cs_sk[0])), {}).get("slot", "cir"))
+				var t1 := "star"
+				if cs_sk.size() >= 2 and int(cs_sk[1]) > 0:
+					# 1번칸은 그 스킬의 타입이 **아닌** 값으로 → 불일치(아이콘만) 케이스
+					var s1 := String(Data.skills.get(str(int(cs_sk[1])), {}).get("slot", "cir"))
+					t1 = "sq" if s1 != "sq" else "tri"
+				UserDB.set_dragon_field(cs_uid, "skill_slots", [t0, t1])
+				print("SHOT caveslot: skill_slots=", [t0, t1], " skills=", cs_sk)
+			# 레벨 35 미만이면 1번칸이 잠겨 있어 검수가 안 된다 → 임시로 올린다.
+			if int(UserDB.get_dragon(cs_uid).get("level", 1)) < 35:
+				UserDB.set_dragon_field(cs_uid, "level", 40)
+			Scenes.goto("cave", {})
+		"npc":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var av := _find_method_node(get_tree().root, "_show_npc")
+			if av != null:
+				av.call("_show_npc", "nuri", 1, "4_1", "3_2")
+				av.call("_narrate_npc", "누리", "탐색을 마쳤어요. 다시 길을 나서죠!")
+			else:
+				print("SHOT: _show_npc 노드 없음")
+		"loot":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var lv := _find_method_node(get_tree().root, "_show_loot")
+			if lv != null:
+				lv.call("_show_loot", "att_drink2", 181)
+			else:
+				print("SHOT: _show_loot 노드 없음")
+		"cutin":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 40: await get_tree().process_frame
+			var bt := _find_method_node(get_tree().root, "_critical_cutin")
+			if bt != null:
+				bt.call("_critical_cutin", bt.get("_party")[0])
+			else:
+				print("SHOT: _critical_cutin 노드 없음")
+		"worldmap":
+			# 지역 앰비언트 검수. 지역명은 --stage= 로 넘긴다(yutakan/elf/dwarf).
+			# 스크롤 위치는 --scroll= (0.0~1.0, 기본 0.5 = 가운데).
+			# 유타칸 변형은 --night=1 / --kades=1 (원작 getDBYutakanNight/Kades 대체 플래그).
+			var wm_p := {"region": stage}
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--night="): wm_p["night"] = a.substr(8) == "1"
+				elif a.begins_with("--kades="): wm_p["kades"] = a.substr(8) == "1"
+			Scenes.goto("worldmap", wm_p)
+			for i in 30: await get_tree().process_frame
+			# ⚠️ `current_scene` 은 Main(main.gd) 이다 — 월드맵은 그 자식이라 메서드로 찾아야 한다.
+			var wm := _find_method_node(get_tree().root, "_build_region_native")
+			var frac := 0.5
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--scroll="): frac = float(a.substr(9))
+			if wm and wm.get("_max_scroll") != null and wm.get("_content") != null:
+				var ms := float(wm.get("_max_scroll"))
+				var cn := wm.get("_content") as Node2D
+				if cn != null: cn.position.x = -ms * frac
+			# --notice=<문구> : 진입 불가 안내 토스트(원작 GameManager::showToast) 검수용.
+			for a3 in OS.get_cmdline_user_args():
+				if a3.begins_with("--notice=") and wm != null and wm.has_method("_notice"):
+					wm.call("_notice", a3.substr(9))
+				# --fieldfx=<필드번호> : 필드 터치 연출(원작 setMapAnimation) 검수.
+				elif a3.begins_with("--fieldfx=") and wm != null and wm.has_method("_play_field_fx"):
+					wm.call("_play_field_fx", int(a3.substr(10)))
+				# --goto=<target> : 진입 게이트 검수(예 town:elpis / battle:15). 막히면 토스트가 뜬다.
+				elif a3.begins_with("--goto=") and wm != null and wm.has_method("_goto_target"):
+					wm.call("_goto_target", a3.substr(7))
+		"town":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			var t_area := "elpis"
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--area="): t_area = a.substr(7)
+			# 밤 여부는 params 로 넘긴다 — town.gd `_resolve_night` 가 params → UserDB pmeta 순으로 본다.
+			# (종전엔 `_night` 를 직접 찔렀는데, 그러면 --night=0 이 "낮 강제"가 되지 않는다.)
+			var t_night := -1
+			for a2 in OS.get_cmdline_user_args():
+				if a2.begins_with("--night="): t_night = 1 if a2.substr(8) == "1" else 0
+			var t_p := {"area": t_area}
+			if t_night >= 0: t_p["night"] = (t_night == 1)
+			Scenes.goto("town", t_p)
+			# --scroll=0~1 로 가로 스크롤 위치 지정(마을 배치 검수용). --night=1 로 밤.
+			for i in 20: await get_tree().process_frame
+			# ⚠️ `_apply_scroll` 은 worldmap.gd 에도 있다 — 해제 중인 월드맵 노드를 잡으면
+			# 그쪽을 스크롤시키고(엉뚱한 화면) 이어서 오류로 캡처가 조용히 죽는다.
+			# 타운에만 있는 `_place_ambient` 로 특정한다.
+			var tn := _find_method_node(get_tree().root, "_place_ambient")
+			if tn != null:
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--scroll=") and tn != null:
+						tn.set("_scroll_x", float(tn.get("_max_scroll")) * float(a.substr(9)))
+						tn.call("_apply_scroll")
+				# --npc=<id> : 그 NPC 를 화면 안으로 스크롤하고 말풍선을 띄운다(대사 검수).
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--npc=") and tn != null:
+						var nid := a.substr(6)
+						for r in (tn.get("_npcs") as Array):
+							if String(r["id"]) == nid:
+								var nd := r["node"] as Node2D
+								tn.set("_scroll_x", clampf(nd.position.x - 600.0, 0.0,
+									float(tn.get("_max_scroll"))))
+								tn.call("_apply_scroll")
+								break
+						tn.call("_on_npc_click", nid)
+					# --qm=1 : 퀘스트 마크 보유 NPC 를 출력(검수용)
+					for qa in OS.get_cmdline_user_args():
+						if qa == "--qm=1" and tn != null:
+							for r in (tn.get("_npcs") as Array):
+								var st: String = tn.call("_npc_quest_state", int(r.get("qslot", -1)))
+								if st != "": print("QM ", r["id"], " slot=", r.get("qslot"), " -> ", st)
+					# --face=L|R : 모든 NPC 의 몸 방향을 강제(반전 부호 실측용).
+					for fa in OS.get_cmdline_user_args():
+						if fa.begins_with("--face=") and tn != null:
+							var f := -1 if fa.substr(7) == "L" else 1
+							for r in (tn.get("_npcs") as Array):
+								r["facing"] = f
+								tn.call("_npc_face", r)
+								tn.call("_npc_play", r, "walk")
+		"shop":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 12: await get_tree().process_frame
+			Scenes.goto("shop", {})
+		"unodaily":
+			# 하루 1회 던전 초과입장 확인창 검수 — 오늘 자 도장을 미리 찍고 던전 팝업을 연다.
+			Scenes.goto("worldmap", {"region": "uno"})
+			for i in 30: await get_tree().process_frame
+			var wu := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			if wu != null:
+				UserDB.begin_batch()          # ⚠️ 검수용 — 디스크에 쓰지 않는다
+				var sid := stage if stage != "1" else "24"
+				print("SHOT daily(before stamp) ok=", wu.call("_daily_ok", sid))
+				wu.call("_daily_stamp", sid)
+				print("SHOT daily(after  stamp) ok=", wu.call("_daily_ok", sid))
+				wu.call("_open_dungeon_popup", sid)
+				for i in 10: await get_tree().process_frame
+				# 팝업의 '일반'은 9patch 로 만든 커스텀 Control 이라 Button 검색으로 못 잡는다
+				# → 초과입장 확인창을 직접 띄워 그림만 검수한다.
+				wu.call("_confirm_daily_extra", Callable(), false)
+			else: print("SHOT: worldmap 아님")
+		"mamomenu":
+			# 후기판 메인 카드 메뉴(연구소메인.png) — 탭 인자 없이 진입(지역맵 경로와 동일).
+			Scenes.goto("mamorudiclab", {})
+		"mamolab":
+			# 마모루딕 연구소 탭 0(드래곤 각성) — 제단 스파인 + 각성 도감 + 제목/탭/재화/NPC.
+			Scenes.goto("mamorudiclab", {"tab": 0})
+		"mamostone":
+			# 탭 1(각성마석 제작) — 화로 스파인 + 손가락 + 진행 게이지.
+			# 5성 마석을 고른 상태로 만들어 게이지가 `10230/20000` 처럼 나오게 한다.
+			UserDB.begin_batch()          # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			UserDB.set_pmeta("awaken_stone", {"star": 5, "points": 10230})
+			Scenes.goto("mamorudiclab", {"tab": 1})
+		"mamostonemake":
+			# 각성의마석 제작 팝업 — 알 목록·포인트·"a + b / c" 머리글.
+			# --stage2=over : 목표 직전(19500/20000)까지 채운 상태에서 알을 넣고 `강화` →
+			#   초과 경고가 **한 번** 뜨고 확인하면 제작이 진행되는지 검수(2026-07-30 규칙 변경).
+			# --stage2=done : 그 경고까지 확인해 **제작 성공 팝업**(원작 MakeMasicStonePopup)까지 본다.
+			var over_case := false
+			var done_case := false
+			for a in OS.get_cmdline_user_args():
+				if a == "--stage2=over": over_case = true
+				elif a == "--stage2=done": over_case = true; done_case = true
+			UserDB.begin_batch()
+			UserDB.set_pmeta("awaken_stone", {"star": 5, "points": 19500 if over_case else 10230})
+			for did in [1, 54, 100]:
+				UserDB.add_item(EggGacha.key_for(did), 3)
+			Scenes.goto("mamorudiclab", {"tab": 1})
+			for i in 30: await get_tree().process_frame
+			var mm := _find_method_node(get_tree().root, "_open_stone_make")
+			if mm != null: mm.call("_open_stone_make")
+			else: print("SHOT: mamorudiclab 아님")
+			if over_case:
+				for i in 20: await get_tree().process_frame
+				# 우측 패널의 ▲(TextureButton)를 눌러 1개 투입 → 목표 초과 상태를 만든다.
+				# ⚠️ 트리 전체에서 찾으면 **씬의 뒤로가기 버튼**이 먼저 걸린다(월드맵으로 나가 버렸다)
+				#    → 팝업(OrigPopup = `add_action_button` 보유) 하위에서만 찾는다.
+				var spop := _find_method_node(get_tree().root, "add_action_button")
+				var ups: Array = []
+				if spop != null: _all_texture_buttons(spop, ups)
+				# 닫기(×)가 0번이므로 ▲ 는 그 다음이다.
+				if ups.size() >= 2: (ups[1] as TextureButton).emit_signal("pressed")
+				else: print("SHOT: ▲ 버튼 못 찾음 (", ups.size(), ")")
+				for i in 10: await get_tree().process_frame
+				# `강화` 는 OrigPopup.add_action_button = Label + 투명 Button 구조다.
+				_press_label_button(get_tree().root, "강화")
+				for i in 15: await get_tree().process_frame
+				if done_case:
+					# 초과 경고의 `확인` → commit → 제작 성공 팝업.
+					_press_label_button(get_tree().root, "확인")
+					for i in 30: await get_tree().process_frame
+		"mamoselect":
+			# 드래곤 선택(원작 DragonAwakeSelectLayer) — 카드 + 재료 충족표 + 안내문.
+			Scenes.goto("mamorudiclab", {"tab": 0})
+			for i in 30: await get_tree().process_frame
+			var ms := _find_method_node(get_tree().root, "_open_dragon_select")
+			if ms != null:
+				UserDB.begin_batch()
+				for k in ["anima", "bonner"]: UserDB.add_item(k, 200)
+				for g in [3, 4, 5, 6]: UserDB.add_item("evol_jewel_%d" % g, 2)
+				ms.call("_open_dragon_select")
+			else: print("SHOT: mamorudiclab 아님")
+		"mamodex":
+			# 각성 도감(원작 AwakenDragonLayer) — 격자 + 우측 상세 + 속성 필터.
+			Scenes.goto("mamorudiclab", {"tab": 0})
+			for i in 30: await get_tree().process_frame
+			var md := _find_method_node(get_tree().root, "_open_awaken_dex")
+			if md != null:
+				UserDB.begin_batch()
+				for d in UserDB.dragons():
+					if UserDB.is_egg(d): continue
+					var dno := Data.awaken_skill_of(int(d.get("id", 0)))
+					if dno > 0:
+						UserDB.set_dragon_field(int(d["uid"]), "awakened", true)
+						UserDB.set_dragon_field(int(d["uid"]), "awaken_skill", dno)
+				md.call("_open_awaken_dex")
+			else: print("SHOT: mamorudiclab 아님")
+		"unopop":
+			# 던전 정보 팝업 리팩토링 검수 — 보상 아이템 줄(개수 + 영웅 H) + 입장 횟수 줄.
+			Scenes.goto("worldmap", {"region": "uno"})
+			for i in 30: await get_tree().process_frame
+			var up := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			if up != null: up.call("_open_dungeon_popup", stage if stage != "1" else "24")
+			else: print("SHOT: worldmap 아님")
+		"awakenpop":
+			# 각성 확인 팝업(원작 AwakenPopup) 검수 — 마모루딕 연구소에서 대상 하나를 골라 연다.
+			# 재료 충족표(레벨/아니마/보네르/마석)가 ○✕ 로 나와야 한다.
+			Scenes.goto("mamorudiclab", {"from": "worldmap"})
+			for i in 30: await get_tree().process_frame
+			var ml := _find_method_node(get_tree().root, "_open_awaken_confirm")
+			if ml != null:
+				UserDB.begin_batch()      # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+				for k in ["anima", "bonner"]:
+					UserDB.add_item(k, 40)
+				UserDB.add_item("evol_jewel_5", 2)
+				var cand: Array = UserDB.dragons().filter(func(d):
+					return not UserDB.is_egg(d) and not bool(d.get("awakened", false)))
+				if cand.is_empty(): print("SHOT: 각성 대상 없음")
+				else: ml.call("_open_awaken_confirm", cand[0])
+			else: print("SHOT: mamorudiclab 아님")
+		"dragongate":
+			# 🔴 회귀: 던전 입장 검사는 **선택 중인 드래곤 한 마리만** 보고(원작
+			#   `WorldMapPopupLayer::getDragonStatus`), 불능이면 다른 드래곤으로 대체하지 않고
+			#   원작 팝업(`setDragonStun` 다이아 즉시부활 / `setDragonFood` 먹이)을 띄운다.
+			#   종전 버그: 굶거나 행동불능이면 멀쩡한 다른 드래곤이 대신 출전했다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			var dg := _find_method_node(get_tree().root, "_selected_gate")
+			if dg == null:
+				print("SHOT: worldmap 아님")
+			else:
+				UserDB.begin_batch()      # ⚠️ 검수용 조작 — 디스크에 쓰지 않는다
+				var duid := int(UserDB.active_uid())
+				var dfmax: int = ItemEffect.food_max(Data.item_effects)
+				var dpop := func() -> int:
+					var c := 0
+					for ch in dg.get_children():
+						if ch is CanvasLayer: c += 1
+					return c
+				UserDB.set_dragon_field(duid, "food", dfmax)
+				UserDB.set_cure_time(duid, 0)
+				var dbase: int = dpop.call()
+				print("SHOT dragongate 정상: gate=", dg.call("_selected_gate"),
+					" 팝업+", dpop.call() - dbase)
+				UserDB.set_cure_time(duid, int(Time.get_unix_time_from_system()) + 3600)
+				print("SHOT dragongate 행동불능: gate=", dg.call("_selected_gate"),
+					" 팝업+", dpop.call() - dbase,
+					" 비용=", Incapacitation.instant_cost(Data.incapacitation,
+						UserDB.cure_time(duid), int(Time.get_unix_time_from_system())), "다이아")
+				for t in _dump_texts(dg, dbase): print("   | ", t)
+				_free_popups(dg, dbase)
+				UserDB.set_cure_time(duid, 0)
+				UserDB.set_dragon_field(duid, "food", 0)
+				var del := String(Data.get_dragon(int(UserDB.get_dragon(duid)
+					.get("id", 0))).get("element", ""))
+				print("SHOT dragongate 허기(먹이없음): 속성=", del, " 보유먹이='",
+					ItemEffect.find_matching_feed(UserDB.inventory(), Data.items, del),
+					"' gate=", dg.call("_selected_gate"), " 팝업+", dpop.call() - dbase)
+				for t in _dump_texts(dg, dbase): print("   | ", t)
+				_free_popups(dg, dbase)
+				# 같은 속성 먹이를 지급하면 '상점 이동'이 아니라 '사용' 팝업이어야 한다.
+				var dfeed := ""
+				for dk in Data.items:
+					var didef: Dictionary = Data.items[dk]
+					if ItemEffect.is_feed(didef) and ItemEffect.feed_matches(didef, del):
+						dfeed = String(dk); break
+				if dfeed != "":
+					UserDB.add_item(dfeed, 1)
+					print("SHOT dragongate 허기(먹이있음): 먹이=", dfeed,
+						" gate=", dg.call("_selected_gate"), " 팝업+", dpop.call() - dbase)
+					for t in _dump_texts(dg, dbase): print("   | ", t)
+					# 확인을 눌러 실제로 먹는지(FOOD 회복 + 아이템 1개 소모) 확인한다.
+					var dhad := int(UserDB.inventory().get(dfeed, 0))
+					for db2 in _all_buttons(dg):
+						if (db2 as Button).text == "확인":
+							(db2 as Button).emit_signal("pressed"); break
+					print("SHOT dragongate 먹인 뒤: food=",
+						int(UserDB.get_dragon(duid).get("food", -1)), "/", dfmax,
+						" 먹이 ", dhad, "→", int(UserDB.inventory().get(dfeed, 0)))
+				UserDB.set_dragon_field(duid, "food", dfmax)
+		"cardgate":
+			# 🔴 회귀: 일반 스테이지(1)에서는 Dungeon 계열 이벤트가 **뜨면 안 된다**.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage if stage != "1" else "1",
+				"region": "yutakan", "enc": 0, "hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var gt := _find_method_node(get_tree().root, "_is_fortress")
+			if gt != null:
+				print("SHOT gate stage=", stage, " is_fortress=", gt.call("_is_fortress"),
+					" event_open=", gt.get("_event_open"))
+			else: print("SHOT: adventure 아님")
+		"cardadv":
+			# 탐험 이벤트로서의 카드게임 검수 — 진입 훅(_open_cardgame)을 직접 호출한다.
+			# --stage2=match|avoid 로 종류를 고른다(--stage 는 던전 id 로 이미 쓰인다).
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": "6", "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			# 게이트 검증도 함께 — 일반 스테이지에서는 _maybe_* 가 아무것도 안 띄워야 한다.
+			var cg_chk := _find_method_node(get_tree().root, "_is_fortress")
+			if cg_chk != null:
+				print("SHOT cardadv is_fortress=", cg_chk.call("_is_fortress"))
+			var ca := _find_method_node(get_tree().root, "_open_cardgame")
+			if ca != null:
+				var cmode := "match"
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--mode="): cmode = a.substr(7)
+				ca.call("_open_cardgame", cmode)
+			else: print("SHOT: adventure 아님")
+		"cardgame":
+			# 탐험 카드 미니게임 검수. --stage=match|avoid 로 두 종류를 고른다.
+			# 진입 훅(해골요새 카드 칸)은 아직 없으므로 여기서 직접 띄운다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			var cg_mode := stage if (stage == "match" or stage == "avoid") else "match"
+			var cg := CardMiniGame.open(get_tree().current_scene, cg_mode,
+				func(res): print("SHOT cardgame result=", res))
+			for i in 20: await get_tree().process_frame
+			# --pick=a,b 로 카드를 뒤집어 앞면·짝판정까지 검수한다.
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--pick="):
+					for sidx in a.substr(7).split(","):
+						if is_instance_valid(cg):
+							cg.call("_on_pick", int(sidx))
+							await get_tree().create_timer(0.7).timeout
+			# 덱 내용을 로그로도 남긴다(앞면이 무엇인지 눈으로 못 볼 때 대조용).
+			if is_instance_valid(cg):
+				var dk = cg.get("_deck")
+				if dk is Dictionary:
+					var ks: Array = []
+					for c in (dk.get("cards", []) as Array):
+						ks.append(String(c.get("label", "?")))
+					print("SHOT cardgame deck=", ks)
+		"shopbuy", "shopbuymax":
+			# 구매 수량 카운터(원작 ItemDetailLayer ◀ N ▶) 검수 — 첫 상품 카드를 눌러 팝업을 연다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("shop", {"tab": stage if stage != "1" else "food"})
+			for i in 30: await get_tree().process_frame
+			var sh := _find_method_node(get_tree().root, "_on_card")
+			if sh != null:
+				var ents: Array = sh.call("_entries")
+				if ents.is_empty(): print("SHOT: 진열 상품 없음")
+				else: sh.call("_on_card", ents[0])
+				# shopbuymax = MAX 버튼을 눌러 수량·총액이 실제로 바뀌는지 확인
+				if shot == "shopbuymax":
+					for i in 10: await get_tree().process_frame
+					var mb := _find_button_text(get_tree().root, "MAX")
+					if mb == null:
+						print("SHOT: MAX 버튼 없음")
+					else:
+						mb.emit_signal("pressed")
+						await get_tree().process_frame
+			else: print("SHOT: shop 씬 아님")
+		"shophot", "shopfood", "shopitem", "shopegg", "shopetc", "shopsell":
+			# 원작 ShopScene 탭별 검수. 탭 id = data/shop.json `tabs[].id`.
+			#   (구 `shopgem/shopequip/shopgacha` 는 젬·장비·뽑기가 ITEM 탭으로,
+			#    환전이 ETC 탭으로 접히면서 `shopitem`/`shopetc` 로 대체됐다.)
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 12: await get_tree().process_frame
+			Scenes.goto("shop", {"tab": shot.substr(4)})
+		"gachapull":
+			# 장비 10연속 뽑기 실행 → 결과 팝업 + 이벤트 장비가 실제로 인벤에 들어오는지.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 12: await get_tree().process_frame
+			Scenes.goto("shop", {"tab": "item"})
+			for i in 25: await get_tree().process_frame
+			var gp := _find_method_node(get_tree().root, "_confirm_gacha")
+			if gp == null:
+				print("SHOT: _confirm_gacha 노드 없음")
+			else:
+				UserDB.begin_batch()          # 검수용 — save() 안 함
+				UserDB.add_currency("diamond", 2000)
+				var before := 0
+				for k in UserDB.inventory().keys():
+					if String(k).begins_with("equip:event:"): before += int(UserDB.inventory()[k])
+				gp.call("_confirm_gacha", {"pool": "equip", "price": 0, "cur": "diamond",
+					"n": 10, "label": "장비 뽑기 10연속"})
+				for i in 6: await get_tree().process_frame
+				# 상세 팝업(원작 ItemDetailLayer)의 실행 버튼을 눌러 실제로 뽑는다.
+				# ⚠️ 2026-07-30 이식 후 버튼 문구는 '확인'이 아니라 동작명('뽑기')이고,
+				#    라벨과 투명 Button 이 분리돼 있어 `_find_label_button` 으로 잡는다.
+				var gb := _find_label_button(get_tree().root, "뽑기")
+				if gb != null: gb.emit_signal("pressed")
+				else: print("SHOT: 뽑기 버튼 없음")
+				for i in 25: await get_tree().process_frame
+				var after := 0
+				var kinds := {}
+				for k2 in UserDB.inventory().keys():
+					if String(k2).begins_with("equip:"):
+						kinds[String(k2)] = int(UserDB.inventory()[k2])
+						if String(k2).begins_with("equip:event:"): after += int(UserDB.inventory()[k2])
+				print("SHOT gacha event_equip ", before, "->", after, " total_equip_keys=", kinds.size())
+		"main", "main_night":
+			# 메인 화면(유타칸) — 좌상단 프로필 / 우상단 재화 / 하단 메뉴바 검수.
+			# ⚠️ 닉네임·칭호는 검수용으로만 채운다 — begin_batch 로 **디스크에 쓰지 않는다**.
+			UserDB.begin_batch()
+			if not UserDB.has_user_nickname():
+				UserDB.set_user_nickname("계란")
+			if UserDB.user_title_no() <= 0:
+				UserDB.set_pmeta("title_no", 1)
+			UserDB.set_pmeta("yutakan_night", shot == "main_night")
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 30: await get_tree().process_frame
+		"mainnav":
+			# 메인 하단 메뉴 → 각 씬 라우팅 검수. --stage=<action> (shop/laboratory/magicshop/
+			# breeding/dex/bag/quests/titles/status/cashshop/overview).
+			for i in 30: await get_tree().process_frame
+			var hud := _find_method_node(get_tree().root, "_act")
+			if hud == null:
+				print("SHOT: MainHud 없음")
+			else:
+				hud.call("_act", stage)
+				for i in 40: await get_tree().process_frame
+				print("SHOT nav -> state=", Scenes.current_state())
+		"nick":
+			# 닉네임 팝업(NickNameLayer) 검수. 세이브에 닉네임이 있으면 '변경' 모드로 강제한다.
+			for i in 20: await get_tree().process_frame
+			NickNamePopup.open(get_tree().root.get_node("Main"), false)
+		"status":
+			for i in 30: await get_tree().process_frame
+			var dv := _find_method_node(get_tree().root, "_open_dragon_detail")
+			if dv != null: dv.call("_open_dragon_detail")
+			else: print("SHOT: _open_dragon_detail 노드 없음")
+		"quests":
+			# 일일 퀘스트 탭 — 미션 창은 2026-07-30 부터 `MissionLayer`(어느 씬 위에서든) 다.
+			for i in 30: await get_tree().process_frame
+			MissionLayer.open(get_tree().current_scene, 0, "worldmap", {})
+			for i in 5: await get_tree().process_frame
+		"inven":
+			for i in 30: await get_tree().process_frame
+			var iv := _find_method_node(get_tree().root, "_open_inventory")
+			if iv != null: iv.call("_open_inventory")
+			else: print("SHOT: _open_inventory 노드 없음")
+		"custom_dragon":
+			# 자작 드래곤(666 샛별 · 777 한울) 인게임 검수 — 지급 → 각성 → 전투 진입.
+			# 아트 별칭(build_dragon_art_alias.py)과 각성스킬 효과가 실제로 붙는지 본다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 15: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			var cids: Array = []
+			for did in [666, 777]:
+				var rec := UserDB.add_dragon(did, 1)
+				var uid := int(rec.get("uid", 0))
+				if uid <= 0: continue
+				# 레벨업 롤을 실제로 태워 Lv50 까지 올린다 — add_dragon(did,50) 만 하면
+				# gain_log 가 비어 있어 **1레벨 기준선 스탯**만 남는다(스탯이 낮아 보이던 원인).
+				var lr := RandomNumberGenerator.new(); lr.seed = 7
+				var ldef := Data.get_dragon(did)
+				for _i in 49:
+					UserDB.level_up_with(uid, LevelSystem.roll_level(
+						Data.level_curve.get("roll", {}),
+						Growth.tier_growth(ldef, Data.stat_table), lr, 0.0, ""))
+				UserDB.set_dragon_field(uid, "awakened", true)
+				UserDB.set_dragon_field(uid, "awaken_skill", Data.awaken_skill_of(did))
+				cids.append(uid)
+				var dd := Data.get_dragon(did)
+				print("SHOT %s id=%d art_id=%s 스파인=%s 각성스킬=%d" % [
+					String(dd.get("name", "")), did, str(dd.get("art_id", did)),
+					str(dd.get("stages", {})), Data.awaken_skill_of(did)])
+				print("SHOT   씬 존재=%s  초상 존재=%s" % [
+					ResourceLoader.exists("res://scenes/dragons/dragon_%d_adult.tscn" % did),
+					ResourceLoader.exists("res://assets/converted/portrait_%d/dragon_dragon_%d_box_adult.tres" % [did, did])])
+			print("SHOT 지급 uid=", cids)
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0, "party_uids": cids})
+			for i in 40: await get_tree().process_frame
+			var cb := _find_method_node(get_tree().root, "_apply_awaken_skills")
+			if cb != null:
+				print("SHOT awaken_fired=", cb.get("_awaken_fired"))
+				for pv in (cb.get("_party") as Array):
+					var pd := pv as Dictionary
+					print("SHOT  %s  hp_max=%d  효과 %d건" % [String(pd.get("name", "")),
+						int(pd.get("hp_max", 0)), (pd.get("awaken_effects", []) as Array).size()])
+		"awaken":
+			# 각성 스킬 효과 배선 검수(2026-07-29). 파티를 강제로 각성시켜 전투에 넣고,
+			# `_awaken_fired`(실제 발동 목록)와 스탯 변화를 찍는다.
+			# --stage=<던전> 으로 필드 속성 조건(4·6~10)도 볼 수 있다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			var awk: Array = []
+			for d in UserDB.dragons():
+				var no := Data.awaken_skill_of(int(d["id"]))
+				if no <= 0: continue
+				UserDB.set_dragon_field(int(d["uid"]), "awakened", true)
+				UserDB.set_dragon_field(int(d["uid"]), "awaken_skill", no)
+				awk.append(int(d["uid"]))
+				if awk.size() >= 3: break
+			print("SHOT awaken 대상 uid=", awk)
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0, "party_uids": awk})
+			for i in 40: await get_tree().process_frame
+			var bsc := _find_method_node(get_tree().root, "_apply_awaken_skills")
+			if bsc == null:
+				print("SHOT battle 씬을 못 찾음")
+			else:
+				print("SHOT awaken_fired=", bsc.get("_awaken_fired"))
+				for pv in (bsc.get("_party") as Array):
+					var pd := pv as Dictionary
+					print("SHOT  %s  awaken_no=%d  hp_max=%d  효과 %d건" % [
+						String(pd.get("name", "")), int(pd.get("awaken_skill", 0)),
+						int(pd.get("hp_max", 0)), (pd.get("awaken_effects", []) as Array).size()])
+		"eggup":
+			# 연구소 알 강화 + 가방 재료 제련 검수(2026-07-30, docs/ref/porting/LaboratoryEggUpgrade.md).
+			#   --stage=lab     알 강화 팝업(알 선택 + 재료 3칸 충족)
+			#   --stage=empty   알 미선택 상태(원작 알강화.png 와 대조)
+			#   --stage=select  알 선택창(종류 × 강화 등급)
+			#   --stage=smelt   가방 → 조각난 정령석 → 제련 팝업
+			UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			for pair in [["mall_back_egg", 3], ["stone_spirit2", 30], ["stone_heart2", 30],
+					["crystal_light", 30], ["stone_spirit1", 40], ["stone_heart1", 40]]:
+				UserDB.add_item(String(pair[0]), int(pair[1]))
+			if stage == "run":
+				# 끝단 검증: 강화 실행 → 등급 곁 테이블 → 부화 시 확정 등급/배지까지.
+				Scenes.goto("laboratory")
+				for i in 30: await get_tree().process_frame
+				var rl := _find_method_node(get_tree().root, "_upgrade_egg")
+				if rl == null:
+					print("SHOT: _upgrade_egg 노드 없음")
+				else:
+					rl.set("_sel_egg_up", "mall_back_egg#0")
+					rl.call("_open_feature", 0)
+					for i in 5: await get_tree().process_frame
+					var g0 := UserDB.gold()
+					rl.call("_upgrade_egg")
+					print("SHOT eggup: counts=", UserDB.egg_grade_counts("mall_back_egg"),
+						" 알=", UserDB.item_count("mall_back_egg"),
+						" 정령석=", UserDB.item_count("stone_spirit2"),
+						" 골드차=", g0 - UserDB.gold())
+					rl.call("_upgrade_egg")     # 1강 → 2강 (연속 강화)
+					print("SHOT eggup2: counts=", UserDB.egg_grade_counts("mall_back_egg"),
+						" 완벽한정령석=", UserDB.item_count("stone_spirit3"))
+					Scenes.goto("worldmap", {"region": "yutakan"})   # 연구소 → 동굴은 허브 경유
+					for i in 20: await get_tree().process_frame
+					Scenes.goto("cave")
+					for i in 30: await get_tree().process_frame
+					var hc := _find_method_node(get_tree().root, "_start_hatch")
+					if hc == null:
+						print("SHOT: _start_hatch 노드 없음")
+					else:
+						hc.call("_start_hatch", "mall_back_egg")
+						for i in 5: await get_tree().process_frame
+						var eg := {}
+						for d in UserDB.dragons():
+							if UserDB.is_egg(d): eg = d
+						print("SHOT hatch: egg_grade=", eg.get("egg_grade"),
+							" enhance=", eg.get("egg_enhance"),
+							" 남은counts=", UserDB.egg_grade_counts("mall_back_egg"))
+			elif stage == "smelt":
+				Scenes.goto("cave")
+				for i in 30: await get_tree().process_frame
+				var sm := _find_method_node(get_tree().root, "_open_inventory")
+				if sm == null:
+					print("SHOT: _open_inventory 노드 없음")
+				else:
+					sm.call("_open_inventory")
+					for i in 10: await get_tree().process_frame
+					sm.call("_inventory_select", "stone_spirit1")
+					for i in 5: await get_tree().process_frame
+					sm.call("_open_smelt", "stone_spirit1")
+			else:
+				# 1강 알 1개를 미리 만들어 두고(등급 곁 테이블) 2강 재료가 보이게 한다.
+				UserDB.set_egg_grade_counts("mall_back_egg", {"1": 1})
+				Scenes.goto("laboratory")
+				for i in 30: await get_tree().process_frame
+				var lb := _find_method_node(get_tree().root, "_open_feature")
+				if lb == null:
+					print("SHOT: _open_feature 노드 없음")
+				else:
+					if stage == "select":
+						lb.call("_open_feature", 0)
+						for i in 10: await get_tree().process_frame
+						lb.call("_open_egg_select", func(_k): pass, true)
+					else:
+						if stage != "empty":
+							lb.set("_sel_egg_up", "mall_back_egg#1")
+						lb.call("_open_feature", 0)
+		"inven_use":
+			# 가방 상세의 **용도** 표기 검수(2026-07-29). docs/input/items/groups.csv 39분류 답이
+			# items.json `use` 로 들어갔고, 상세 패널이 "용도: …" 를 찍는다.
+			# --stage=<아이템키> 로 대상 지정(기본 = 원작에도 더미인 '에너지 드링크').
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			var uk: String = stage if stage != "1" else "energy_drink"
+			UserDB.add_item(uk, 3)
+			var ivu := _find_method_node(get_tree().root, "_open_inventory")
+			if ivu != null:
+				ivu.call("_open_inventory")
+				for i in 10: await get_tree().process_frame
+				ivu.call("_inventory_select", uk)
+			else: print("SHOT: _open_inventory 노드 없음")
+		"skillscroll":
+			# 에자녹 스크롤 → 스킬 아이템 → 습득 흐름 검수(2026-07-29, docs/ref/porting/SkillScroll.md).
+			#   --stage=scroll        무작위 스크롤 상세(확인 팝업까지)
+			#   --stage=book          선택 스크롤 → 스킬 목록 팝업
+			#   --stage=item          스킬 아이템 상세('스킬' 탭)
+			#   --stage=equip         스킬 칸 클릭 → 장착 목록
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			UserDB.add_item("scroll_gold", 3)
+			UserDB.add_item("s_skillbook3", 3)
+			UserDB.add_item(Loadout.item_key(11, 3), 2)
+			UserDB.add_item(Loadout.item_key(12, 5), 1)
+			var ss := _find_method_node(get_tree().root, "_open_inventory")
+			if ss == null:
+				print("SHOT: _open_inventory 노드 없음")
+			else:
+				match stage:
+					"book":
+						ss.set("_inv_tab", "doc")
+						ss.call("_open_inventory")
+						for i in 10: await get_tree().process_frame
+						ss.call("_inventory_select", "s_skillbook3")
+						for i in 5: await get_tree().process_frame
+						ss.call("_use_skill_scroll", "s_skillbook3")
+					"item":
+						ss.set("_inv_tab", "skill")
+						ss.call("_open_inventory")
+						for i in 10: await get_tree().process_frame
+						ss.call("_inventory_select", Loadout.item_key(11, 3))
+					"equip":
+						# 학습 풀을 채워 두고 0번 칸 장착 목록을 연다.
+						var su := UserDB.active_uid()
+						var sp: Array = UserDB.dragon_skills(su)
+						for pair in [[11, 3], [12, 5], [13, 1]]:
+							sp = Loadout.learn_from_item(sp, int(pair[0]), int(pair[1]), Data.skills)["skills"]
+						UserDB.set_dragon_skills(su, sp)
+						ss.call("_open_skill_select", 0)
+					_:
+						ss.set("_inv_tab", "doc")
+						ss.call("_open_inventory")
+						for i in 10: await get_tree().process_frame
+						ss.call("_inventory_select", "scroll_gold")
+						for i in 5: await get_tree().process_frame
+						ss.call("_use_skill_scroll", "scroll_gold")
+		"inven_m":
+			# 가방 알 탭 `M` 배지 검수. 배지 조건(오라성체 도달 기록)은 아직 세우는 곳이 없으므로
+			# (오라성체 진화 ⚪미구현) 여기서 직접 기록해 대조군과 함께 그린다:
+			#   54·175 = 기록 있음(M) / 34·4021 = 기록 없음 / chaos = 속성알(dragon_id 없음)
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 지급이므로 **디스크에 쓰지 않는다**(사용자 세이브 오염 금지)
+			for k in ["mall_back_egg", "mall_black_egg", "mall_darkpoll_egg",
+					"mall_bagma_egg", "mall_chaos_egg"]:
+				UserDB.add_item(k, 1)
+			UserDB.mark_dex_master(54)
+			UserDB.mark_dex_master(175)
+			var im := _find_method_node(get_tree().root, "_open_inventory")
+			if im != null:
+				im.set("_inv_tab", "egg")
+				im.call("_open_inventory")
+			else: print("SHOT: _open_inventory 노드 없음")
+		"eggopen":
+			# 뽑기 알 개봉 검수 — 가방 알 탭에서 '빛나는 의문의 알' 을 골라 사용한다.
+			# --stage=<아이템키> 로 다른 뽑기 알(의문의 알·속성알)도 볼 수 있다.
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			var ek: String = stage if stage != "1" else "mall_question_egg2"
+			UserDB.add_item(ek, 5)
+			var iv2 := _find_method_node(get_tree().root, "_open_inventory")
+			if iv2 != null:
+				iv2.set("_inv_tab", "egg")
+				iv2.call("_open_inventory")
+				for i in 10: await get_tree().process_frame
+				iv2.call("_inventory_select", ek)
+				for i in 5: await get_tree().process_frame
+				iv2.call("_open_gacha_egg", ek)
+			else: print("SHOT: _open_inventory 노드 없음")
+		"blackisland":
+			# 검은 섬(스테이지 24) 관문의 수호자 검수(2026-07-30) —
+			#   스탯 = 기본(543/180/130) × (출전 드래곤 수)² · 영웅에서만 철갑 방패(11).
+			#   --stage=<마리수>(1~3, 기본 3) · --stage2=hero → 영웅 난이도
+			var bi_n := clampi(int(stage), 1, 3)
+			var bi_hero := false
+			for a in OS.get_cmdline_user_args():
+				if a == "--stage2=hero": bi_hero = true
+			var bi_party: Array = []
+			for d in UserDB.dragons():
+				if UserDB.is_egg(d): continue
+				bi_party.append(int(d["uid"]))
+				if bi_party.size() >= bi_n: break
+			Scenes.goto("battle", {"stage": "24", "region": "uno", "enc": 0,
+				"hp_state": {}, "streak": 0, "party_uids": bi_party, "hero": bi_hero})
+			for i in 40: await get_tree().process_frame
+			var bsc := _find_method_node(get_tree().root, "_apply_party_count_scaling")
+			if bsc != null:
+				var en = bsc.get("_enemy")
+				print("SHOT blackisland n=%d hero=%s → %s" % [bi_party.size(), str(bi_hero), str(en)])
+			else: print("SHOT: battle 노드 없음")
+		"eggopen10":
+			# '10회 사용' 검수(2026-07-30) — 10개 이상 보유 시 상세창에 2번째 버튼이 붙고,
+			# 누르면 확인 → 결과가 원작 다건 팝업(GetItemPopup)에 한 번에 뜬다.
+			#   --stage=<아이템키>  기본 = 빛나는 의문의 알 / `jem_random` 도 같은 경로
+			#   --stage2=go        확인까지 눌러 결과창을 띄운다(생략하면 버튼만 확인)
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()   # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			var tk: String = stage if stage != "1" else "mall_question_egg2"
+			UserDB.add_item(tk, 12)
+			var go10 := false
+			for a in OS.get_cmdline_user_args():
+				if a == "--stage2=go": go10 = true
+			var iv3 := _find_method_node(get_tree().root, "_open_inventory")
+			if iv3 != null:
+				iv3.set("_inv_tab", "egg" if tk.ends_with("egg") or tk.ends_with("egg2") else "item")
+				iv3.call("_open_inventory")
+				for i in 10: await get_tree().process_frame
+				iv3.call("_inventory_select", tk)
+				for i in 5: await get_tree().process_frame
+				if go10:
+					iv3.call("_use_batch", tk, iv3.call("_batch_use_kind", tk, Data.get_item(tk)), 10)
+					for i in 5: await get_tree().process_frame
+					# 확인 팝업(PopupType)의 '확인' 버튼을 찾아 눌러 결과창까지 간다.
+					var okb := _find_button_text(get_tree().root, "확인")
+					if okb != null: okb.emit_signal("pressed")
+					else: print("SHOT: 확인 버튼 없음")
+					for i in 20: await get_tree().process_frame
+			else: print("SHOT: _open_inventory 노드 없음")
+		"gemequip":
+			# 가방 젬 탭 "장착" 검수(2026-07-30) — 원작 BagPopup::onClickConfirm case 2.
+			# 젬 목록을 다시 띄우지 않고 **그 자리에서** 맞는 칸에 들어가야 한다.
+			#   --stage=fit  : 칸 타입에 맞는 젬 → 장착 성공 + 토스트 + 가방 닫힘
+			#   --stage=miss : 칸 타입에 안 맞는 젬 → 안내 모달(1버튼), 장착 안 됨
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()      # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			var ge_uid := UserDB.active_uid()
+			# 3칸을 전부 ATT 로 고정하면 "맞는 젬 / 안 맞는 젬"을 확정적으로 만들 수 있다.
+			# --stage=full 은 3칸을 미리 채워 "칸이 다 찼다" 토스트 경로를 태운다.
+			var ge_pre = {"name": "공격의 젬", "tier": 1}
+			UserDB.set_dragon_field(ge_uid, "gems", {"types": ["ATT", "ATT", "ATT"],
+				"slots": [ge_pre, ge_pre, ge_pre] if stage == "full" else [null, null, null]})
+			var ge_fit := "gem:공격의 젬:3"      # ATT → ATT 칸 OK
+			var ge_miss := "gem:체력의 젬:0"     # HP  → ATT 칸 불가
+			UserDB.add_item(ge_fit, 2)
+			UserDB.add_item(ge_miss, 2)
+			var ge_key: String = ge_miss if stage == "miss" else ge_fit
+			var ge := _find_method_node(get_tree().root, "_open_inventory")
+			if ge == null:
+				print("SHOT: _open_inventory 노드 없음")
+			else:
+				ge.set("_inv_tab", "gem")
+				ge.call("_open_inventory")
+				for i in 15: await get_tree().process_frame
+				ge.call("_inventory_select", ge_key)
+				for i in 10: await get_tree().process_frame
+				var ge_btn := _find_label_button(get_tree().root, "장착")
+				print("SHOT gemequip key=", ge_key, " 장착버튼=", ge_btn != null,
+					" 보유=", UserDB.item_count(ge_key))
+				if ge_btn == null:
+					print("SHOT gemequip FAIL: '장착' 버튼 없음")
+				else:
+					ge_btn.emit_signal("pressed")
+					for i in 30: await get_tree().process_frame
+					var ge_names: Array = []
+					for e in Gem.entries(UserDB.get_dragon(ge_uid).get("gems", {})):
+						ge_names.append("(빈칸)" if e == null else String(e["name"]))
+					print("SHOT gemequip 칸=", ge_names,
+						" 남은보유=", UserDB.item_count(ge_key),
+						" 젬목록재개=", _find_label_button(get_tree().root, "젬 장착") != null,
+						" 안내모달확인=", _find_button_text(get_tree().root, "확인") != null,
+						" 취소버튼=", _find_button_text(get_tree().root, "취소") != null)
+		"inven_gem", "inven_gear", "gemsel", "eqsel":
+			# 젬/장비 인벤토리 검수. 기존 세이브엔 없으므로 여기서 지급한다 —
+			# ⚠️ begin_batch 로만 만지고 save() 하지 않는다(사용자 세이브 오염 금지).
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()
+			for k in ["gem:체력의 젬:0", "gem:공격의 젬:3", "gem:방어의 젬:18",
+					"gem:체공젬:7", "gem:샌즈의 젬:12", "gem:공격의 소울젬:2",
+					"equip:basic:깃털:6", "equip:basic:발톱:0", "equip:basic:부적:5",
+					"equip:basic:묘안석:2", "equip:basic:흑요석:4", "equip:basic:백금석:1",
+					"equip:artifact:루멘:5", "equip:event:눈사람 인형"]:
+				UserDB.add_item(k, 2)
+			match shot:
+				"inven_gem", "inven_gear":
+					var iw := _find_method_node(get_tree().root, "_open_inventory")
+					if iw != null:
+						iw.set("_inv_tab", "gem" if shot == "inven_gem" else "gear")
+						iw.call("_open_inventory")
+					else: print("SHOT: _open_inventory 노드 없음")
+				"gemsel":
+					# 동굴 하단 **빈 젬 칸**을 실제로 클릭 → 가방 '젬' 탭이 열려야 한다
+					# (2026-07-30 사용자 확정: 자작 젬선택 팝업 폐기). 칸을 비워 두고 히트를 찾는다.
+					Scenes.goto("cave")
+					for i in 30: await get_tree().process_frame
+					var gcv := _find_method_node(get_tree().root, "_open_gem_tab")
+					if gcv == null:
+						print("SHOT: _open_gem_tab 노드 없음")
+					else:
+						var guid := UserDB.active_uid()
+						UserDB.set_dragon_field(guid, "gems",
+							{"types": ["ATT", "DEF", "HP"], "slots": [null, null, null]})
+						gcv.call("_refresh")
+						for i in 10: await get_tree().process_frame
+						var ghit := _find_button_tooltip_prefix(get_tree().root, "1번 칸")
+						print("SHOT gemsel 빈칸히트=", ghit != null,
+							" tip=", ghit.tooltip_text.replace("
+", " / ") if ghit != null else "-")
+						if ghit != null:
+							ghit.emit_signal("pressed")
+							for i in 15: await get_tree().process_frame
+							print("SHOT gemsel 열린탭=", gcv.get("_inv_tab"),
+								" 가방열림=", _find_label_button(get_tree().root, "장착") != null,
+								" 자작팝업=", gcv.has_method("_open_gem_select"))
+				"eqsel":
+					var es := _find_method_node(get_tree().root, "_open_equip_select")
+					if es != null: es.call("_open_equip_select", "all")
+					else: print("SHOT: _open_equip_select 노드 없음")
+		"bless":
+			# 축복 아이템을 **가방에서** 쓰는 흐름 검증: 기타 탭 → 아모르의 축복 선택 →
+			# 버튼 라벨이 "사용" 인지 → 눌러서 대상 드래곤 목록이 뜨는지 → 적용 후 레벨이 올랐는지.
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()      # ⚠️ 검수용 — save() 하지 않는다
+			UserDB.add_item("bless_of_amor", 3)
+			var cv3 := _find_method_node(get_tree().root, "_open_inventory")
+			cv3.set("_inv_tab", "etc")
+			cv3.call("_open_inventory")
+			for i in 20: await get_tree().process_frame
+			cv3.call("_inventory_select", "bless_of_amor")
+			for i in 20: await get_tree().process_frame
+			var ub := _find_label_button(get_tree().root, "사용")
+			print("SHOT bless use_button=", ub != null, " count=", UserDB.item_count("bless_of_amor"))
+			if ub == null:
+				print("SHOT bless FAIL: '사용' 버튼 없음")
+			else:
+				ub.emit_signal("pressed")
+				for i in 25: await get_tree().process_frame
+				var uid0 := UserDB.active_uid()
+				var lv0 := int(UserDB.get_dragon(uid0).get("level", 0))
+				# 대상 목록의 첫 버튼(활성 드래곤이 아닐 수도 있으니 uid 를 다시 읽는다)
+				var first: BaseButton = null
+				var stack: Array = [get_tree().root]
+				while not stack.is_empty() and first == null:
+					var n: Node = stack.pop_front()
+					if n is Button and (n as Button).text.begins_with("Lv."): first = n
+					for c in n.get_children(): stack.append(c)
+				print("SHOT bless target_list=", first != null, " lv_before=", lv0)
+				if first != null:
+					first.emit_signal("pressed")
+					for i in 40: await get_tree().process_frame
+					print("SHOT bless after lv=", int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)),
+						" count=", UserDB.item_count("bless_of_amor"))
+		"storage":
+			# 드래곤의 고삐 → 보관소 이동 → 상태창 '보관소' 버튼 → 꺼내기.
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()
+			UserDB.add_item("bridle", 2)
+			var n_before := UserDB.dragon_count()
+			var cv4 := _find_method_node(get_tree().root, "_use_consumable")
+			cv4.call("_use_consumable", "bridle", "bridle")
+			for i in 20: await get_tree().process_frame
+			var f2: BaseButton = null
+			var st2: Array = [get_tree().root]
+			while not st2.is_empty() and f2 == null:
+				var n2: Node = st2.pop_front()
+				if n2 is Button and (n2 as Button).text.begins_with("Lv."): f2 = n2
+				for c in n2.get_children(): st2.append(c)
+			if f2 != null: f2.emit_signal("pressed")
+			for i in 30: await get_tree().process_frame
+			print("SHOT storage dragons ", n_before, "->", UserDB.dragon_count(),
+				" stored=", UserDB.storage_dragons().size(),
+				" bridle=", UserDB.item_count("bridle"))
+			var cv5 := _find_method_node(get_tree().root, "_open_dragon_storage")
+			if cv5 != null: cv5.call("_open_dragon_storage")
+			else: print("SHOT: _open_dragon_storage 노드 없음")
+		"ascend":
+			# 드래곤의 승천: 드래곤 삭제 + 다이아 지급(기본 5, 5레벨당 +5).
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()
+			UserDB.add_item("ascension", 2)
+			var n0 := UserDB.dragon_count()
+			var dia0 := UserDB.diamond()
+			var cv6 := _find_method_node(get_tree().root, "_use_consumable")
+			cv6.call("_use_consumable", "ascension", "ascension")
+			for i in 20: await get_tree().process_frame
+			var f3: BaseButton = null
+			var st3: Array = [get_tree().root]
+			while not st3.is_empty() and f3 == null:
+				var n3: Node = st3.pop_front()
+				if n3 is Button and (n3 as Button).text.begins_with("Lv."): f3 = n3
+				for c in n3.get_children(): st3.append(c)
+			print("SHOT ascend label=", f3.text if f3 != null else "(없음)")
+			if f3 != null: f3.emit_signal("pressed")
+			for i in 40: await get_tree().process_frame
+			print("SHOT ascend dragons ", n0, "->", UserDB.dragon_count(),
+				" diamond ", dia0, "->", UserDB.diamond(),
+				" item=", UserDB.item_count("ascension"))
+		"partycancel":
+			# 던전 팝업 → 일반 → 파티 편성 취소 → **던전 클릭 이전 상태로 복귀**하는지 검증.
+			# (취소 후 월드맵이 줌인+_busy 로 잠기던 버그 회귀 방지)
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 30: await get_tree().process_frame
+			var wmc := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			wmc.set("_busy", true)              # 실제 경로(_closeup_then_goto)와 동일한 상태
+			wmc.call("_open_dungeon_popup", stage)
+			for i in 20: await get_tree().process_frame
+			_press_label_button(get_tree().root, "일반")
+			for i in 20: await get_tree().process_frame
+			print("SHOT party_overlay_open=", _find_label_button(get_tree().root, "취소") != null)
+			_press_label_button(get_tree().root, "취소")
+			for i in 40: await get_tree().process_frame
+			print("SHOT busy=", wmc.get("_busy"),
+				" party_left=", _find_label_button(get_tree().root, "취소") != null,
+				" popup_left=", _find_label_button(get_tree().root, "일반") != null,
+				" scale=", wmc.get("_content").scale)
+		"partydim":
+			# 위와 같은 흐름이되 **화면 구석을 실제로 클릭**해서 빠져나오는지 검증
+			# (사용자 요청: "화면 아무 곳이나 터치하면 던전 클릭 전 상태로").
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 30: await get_tree().process_frame
+			var wmd := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			wmd.set("_busy", true)
+			wmd.call("_open_dungeon_popup", stage)
+			for i in 20: await get_tree().process_frame
+			# (1) 던전 팝업 단계에서 바깥 클릭
+			_click_at(Vector2(30, 30))
+			for i in 40: await get_tree().process_frame
+			print("SHOT popup_outside_click busy=", wmd.get("_busy"),
+				" popup_left=", _find_label_button(get_tree().root, "일반") != null,
+				" scale=", wmd.get("_content").scale)
+			# (2) 다시 열어 파티 편성까지 간 뒤 바깥 클릭
+			wmd.set("_busy", true)
+			wmd.call("_open_dungeon_popup", stage)
+			for i in 20: await get_tree().process_frame
+			_press_label_button(get_tree().root, "일반")
+			for i in 20: await get_tree().process_frame
+			_click_at(Vector2(30, 30))
+			for i in 40: await get_tree().process_frame
+			print("SHOT party_outside_click busy=", wmd.get("_busy"),
+				" party_left=", _find_label_button(get_tree().root, "취소") != null,
+				" scale=", wmd.get("_content").scale)
+		"dpopup":
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 40: await get_tree().process_frame
+			var wm := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			if wm != null: wm.call("_open_dungeon_popup", stage)
+			else: print("SHOT: _open_dungeon_popup 노드 없음")
+		"dpopupdrag":
+			# 던전 팝업 드래곤 슬롯 클릭 미리보기(onClickDragon) 검수.
+			# --slot=<0부터> 로 누를 슬롯을 고른다. 캡처는 클릭 후 wait 시점.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 40: await get_tree().process_frame
+			var wmp := _find_method_node(get_tree().root, "_open_dungeon_popup")
+			if wmp == null:
+				print("SHOT: _open_dungeon_popup 노드 없음")
+			else:
+				wmp.call("_open_dungeon_popup", stage)
+				for i in 25: await get_tree().process_frame
+				# --slot=3 또는 --slot=3,0 (쉼표 = 순서대로 클릭, 사이 0.5s — 교체 검증용)
+				var slot_list: Array = [0]
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--slot="):
+						slot_list = Array(a.substr(7).split(",")).map(func(x): return int(x))
+				# 팝업 레이어(layer=26)의 flat Button 중 슬롯 히트(정사각형 근처)만 모은다.
+				var hits: Array = []
+				var q: Array = [get_tree().root]
+				while not q.is_empty():
+					var n: Node = q.pop_front()
+					for c in n.get_children(): q.append(c)
+					if n is CanvasLayer and (n as CanvasLayer).layer == 26:
+						for c in n.get_children():
+							if c is Button and (c as Button).flat \
+									and absf((c as Button).size.x - (c as Button).size.y) < 20.0:
+								hits.append(c)
+				print("SHOT dpopupdrag slot_hits=", hits.size())
+				for si in slot_list:
+					if int(si) < hits.size():
+						(hits[int(si)] as Button).emit_signal("pressed")
+						await get_tree().create_timer(0.5).timeout
+					else: print("SHOT: 슬롯 없음 idx=", si)
+		"lvpanel":
+			for i in 30: await get_tree().process_frame
+			var cv2 := _find_method_node(get_tree().root, "_open_levelup")
+			if cv2 != null: cv2.call("_open_levelup")
+			else: print("SHOT: _open_levelup 노드 없음")
+		"awaken":
+			# 각성(원작 '진화') 결과 연출 = EvolLayer 이식 검증.
+			# `--at=<초>` 로 시퀀스의 특정 시점을 잡는다(날개가 솟는 구간은 2~4초).
+			# ⚠️ begin_batch = 디스크 미기록(검증용 각성이 세이브에 남지 않게).
+			UserDB.begin_batch()
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var aw_uid := UserDB.active_uid()
+			UserDB.set_dragon_field(aw_uid, "awakened", false)
+			var aw_cv := get_tree().current_scene
+			var aw_vis := get_viewport().get_visible_rect().size
+			EvolLayer.open(aw_cv, aw_uid, Vector2(aw_vis.x * 0.5, aw_vis.y * 0.5), Callable())
+			var aw_d: Dictionary = UserDB.get_dragon(aw_uid)
+			print("SHOT awaken: uid=", aw_uid, " id=", aw_d.get("id"), " lv=", aw_d.get("level"),
+				"  각성체씬=", ResourceLoader.exists("res://scenes/dragons/dragon_%d_e.tscn" % int(aw_d.get("id", 0))))
+		"lvevolve":
+			# 진화 즉시 반영 검증 — 성장 단계 경계(레벨 10) 직전으로 맞추고 레벨 아이템을 실제로 클릭해,
+			# 레벨업 화면의 좌측 드래곤 스파인이 **그 자리에서** 다음 단계로 바뀌는지 본다.
+			# ⚠️ begin_batch = 디스크 미기록(검증용 레벨 조작이 세이브에 남지 않게).
+			UserDB.begin_batch()
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var ev_cv := _find_method_node(get_tree().root, "_open_levelup")
+			if ev_cv == null:
+				print("SHOT: _open_levelup 노드 없음")
+			else:
+				var ev_uid := UserDB.active_uid()
+				# 경계 직전(9)로 맞춘다. gain_log 불변식(level==1+size)도 함께 맞춘다.
+				var ev_d: Dictionary = UserDB.get_dragon(ev_uid)
+				while int(UserDB.get_dragon(ev_uid).get("level", 1)) > 9:
+					UserDB.level_down(ev_uid)
+				while int(UserDB.get_dragon(ev_uid).get("level", 1)) < 9:
+					UserDB.level_up_with(ev_uid, {"hp": 3, "att": 1, "def": 1})
+				UserDB.add_item("level_up", 1)
+				ev_cv.call("_open_levelup")
+				for i in 20: await get_tree().process_frame
+				var ev_before := _spine_scene_of(ev_cv.get("_lvup_dragon_holder"))
+				var ev_btn := _find_button_tooltip_prefix(get_tree().root, Data.item_name("level_up"))
+				if ev_btn == null:
+					print("SHOT lvevolve: level_up 슬롯 버튼 없음")
+				else:
+					var ec := ev_btn as Control
+					_click_at(get_viewport().get_screen_transform() * ec.get_global_rect().get_center())
+					for i in 25: await get_tree().process_frame
+					var ev_lv := int(UserDB.get_dragon(ev_uid).get("level", 0))
+					var ev_after := _spine_scene_of(ev_cv.get("_lvup_dragon_holder"))
+					var ev_cave := _spine_scene_of(ev_cv.get("_stage"))
+					print("SHOT lvevolve: 레벨 9->", ev_lv,
+						"  화면드래곤 ", ev_before, " -> ", ev_after,
+						"  동굴받침대 ", ev_cave,
+						"  즉시반영=", ev_before != ev_after and ev_after.ends_with("child"))
+		"lvitem":
+			# 레벨 아이템 슬롯(아이콘 버튼) 실제 클릭 — 리롤과 같은 갱신 버그 계열이라 함께 검증한다.
+			for i in 30: await get_tree().process_frame
+			var li_cv := _find_method_node(get_tree().root, "_open_levelup")
+			if li_cv == null:
+				print("SHOT: _open_levelup 노드 없음")
+			else:
+				li_cv.call("_open_levelup")
+				for i in 20: await get_tree().process_frame
+				var li_uid := UserDB.active_uid()
+				var li_lv := int(UserDB.get_dragon(li_uid).get("level", 0))
+				var li_key := ""
+				for k in ["level_up", "bless_of_dragon", "bless_of_maia", "bless_of_dersa", "bless_of_amor"]:
+					if UserDB.item_count(k) > 0: li_key = k; break
+				var li_cnt := UserDB.item_count(li_key) if li_key != "" else 0
+				var li_btn := _find_button_tooltip_prefix(get_tree().root, Data.item_name(li_key)) if li_key != "" else null
+				if li_btn == null:
+					print("SHOT lvitem: 슬롯 버튼 없음 (보유 레벨아이템 없음)")
+				else:
+					var lc := li_btn as Control
+					var lscr := get_viewport().get_screen_transform() * lc.get_global_rect().get_center()
+					_click_at(lscr)
+					for i in 25: await get_tree().process_frame
+					var li_lv2 := int(UserDB.get_dragon(li_uid).get("level", 0))
+					var ltx: Array = []
+					_collect_labels(get_tree().root, "레벨", ltx)
+					print("SHOT lvitem: 레벨 ", li_lv, "->", li_lv2, "  아이템 ", li_cnt, "->",
+						UserDB.item_count("level_up"), "  갱신됨=", li_lv2 == li_lv + 1)
+		"lvtriple":
+			# 트리플맥스 컷인 검증 — 데르사의 축복(guarantee=triple)을 슬롯에서 실제로 클릭한다.
+			for i in 30: await get_tree().process_frame
+			var tp_cv := _find_method_node(get_tree().root, "_open_levelup")
+			if tp_cv == null:
+				print("SHOT: _open_levelup 노드 없음")
+			else:
+				tp_cv.call("_open_levelup")
+				for i in 20: await get_tree().process_frame
+				var tp_btn := _find_button_tooltip_prefix(get_tree().root, Data.item_name("bless_of_dersa"))
+				if tp_btn == null:
+					print("SHOT lvtriple: 데르사 슬롯 없음 (보유=", UserDB.item_count("bless_of_dersa"), ")")
+				else:
+					var tc := tp_btn as Control
+					_click_at(get_viewport().get_screen_transform() * tc.get_global_rect().get_center())
+					for i in 12: await get_tree().process_frame   # 컷인이 떠 있는 동안 캡처되도록 짧게
+					var tt: Array = []
+					_collect_labels(get_tree().root, "트리플", tt)
+					print("SHOT lvtriple: 컷인 문구=", tt, "  레벨=",
+						int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)))
+		"lvreroll":
+			# 리롤 버튼 재현 — 실제 마우스 이벤트를 주입해 "입력이 안 닿는가 / 표시가 안 바뀌는가"를 가른다.
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var rr_cv := _find_method_node(get_tree().root, "_open_levelup")
+			if rr_cv == null:
+				print("SHOT: _open_levelup 노드 없음")
+			else:
+				rr_cv.call("_open_levelup")
+				for i in 20: await get_tree().process_frame
+				var rr_uid := UserDB.active_uid()
+				var rr_before: Array = (UserDB.get_dragon(rr_uid).get("gain_log", []) as Array).duplicate(true)
+				var rr_dia := UserDB.diamond()
+				var rr_btn := get_tree().root.find_child("RerollButton", true, false) as Button
+				if rr_btn == null:
+					print("SHOT reroll: 버튼 자체를 못 찾음")
+				else:
+					# ⚠️ get_global_rect() 는 캔버스 좌표다. Input.parse_input_event 는 화면 좌표를
+					#    받으므로 스트레치 배율(창768 / 디자인692 ≈ 1.11)만큼 어긋난다 → get_screen_position().
+					var rc := rr_btn as Control
+					var canvas_c := rc.get_global_rect().get_center()
+					var scr := get_viewport().get_screen_transform() * canvas_c   # 캔버스→화면
+					print("SHOT reroll: canvas=", rc.get_global_rect(), " click(screen)=", scr,
+						" disabled=", rr_btn.disabled, " visible=", rc.is_visible_in_tree())
+					# 그 좌표에서 실제로 무엇이 입력을 먹는지(=히트테스트 승자) 이름을 찍는다.
+					var mm := InputEventMouseMotion.new()
+					mm.position = scr; mm.global_position = scr
+					Input.parse_input_event(mm)
+					for i in 3: await get_tree().process_frame
+					var hov := get_viewport().gui_get_hovered_control()
+					print("SHOT reroll: hovered=", hov.get_path() if hov else "<없음>",
+						" class=", hov.get_class() if hov else "-",
+						" filter=", hov.mouse_filter if hov else -1)
+					_click_at(scr)
+					for i in 20: await get_tree().process_frame
+					# 원작 DragonResetConfirm 확인창이 뜬다 → 확인을 눌러야 실제로 뽑힌다.
+					print("SHOT reroll: 확인창 떴나 = ", _find_label_button(get_tree().root, "확인") != null)
+					_press_label_button(get_tree().root, "확인")
+					for i in 20: await get_tree().process_frame
+					var rr_after: Array = UserDB.get_dragon(rr_uid).get("gain_log", [])
+					print("SHOT reroll: gain_log last  before=",
+						rr_before[rr_before.size() - 1] if not rr_before.is_empty() else "{}",
+						"  after=", rr_after[rr_after.size() - 1] if not rr_after.is_empty() else "{}")
+					print("SHOT reroll: 클릭으로 롤이 바뀌었나 = ", rr_before != rr_after,
+						" / dia ", rr_dia, "->", UserDB.diamond(), " gold=", UserDB.gold())
+					# 화면이 갱신됐는지 = 증가분 라벨 "(+d/m)" 이 새 롤을 반영하는가
+					var texts: Array = []
+					_collect_labels(get_tree().root, "(+", texts)   # 리롤 후 rr_btn 은 재생성돼 해제된다
+					print("SHOT reroll: 화면 증가분 라벨 = ", texts)
+		"lvup":
+			for i in 30: await get_tree().process_frame
+			var cv := _find_method_node(get_tree().root, "_open_training_result")
+			if cv != null:
+				cv.call("_open_training_result", 1, 10, 11)
+			else:
+				print("SHOT: _open_training_result 노드 없음")
+		"promote_select":
+			# 원작 TrainingSelectLayer 카드 목록 검수 — 훈련 캠프 1번을 눌러 선택창을 연다.
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("promote", {"tab": "train", "from": "town"})
+			for i in 30: await get_tree().process_frame
+			var ps := _find_method_node(get_tree().root, "_open_send")
+			if ps != null: ps.call("_open_send", 0)
+			else: print("SHOT: _open_send 노드 없음")
+		"promote_train":
+			# 원작 TrainingSelectCell(훈련 종류) 검수 — 드래곤 선택까지 진행한 뒤 캡처.
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("promote", {"tab": "train", "from": "town"})
+			for i in 30: await get_tree().process_frame
+			var pt := _find_method_node(get_tree().root, "_open_send")
+			if pt != null:
+				pt.call("_open_send", 0)
+				for i in 10: await get_tree().process_frame
+				for b in _all_buttons(get_tree().root):
+					if b.size.x > 300.0 and b.size.y > 300.0:   # 선택 카드
+						b.emit_signal("pressed"); break
+			else: print("SHOT: _open_send 노드 없음")
+		"mission":
+			# 미션 창(원작 MissionLayer) — --tab=0 미션 / 1 스토리, --ep=N 배너 회차.
+			# 원작대로 **메인 화면(월드맵) 위**에 띄운다(2026-07-30 이전에는 동굴 씬을 거쳤다).
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			var mt := 1
+			var mep := 0
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--tab="): mt = int(a.substr(6))
+				elif a.begins_with("--ep="): mep = int(a.substr(5))
+			var ml := MissionLayer.open(get_tree().current_scene, mt, "worldmap", {})
+			if mep > 0:
+				ml.set("_story_sel", mep)
+				ml.call("_rebuild", mt)
+			for i in 10: await get_tree().process_frame
+		"storymark":
+			# 월드맵 스토리 안내 화살표(원작 WorldMapLayer::setScenarioNotification, storyguide_arrow).
+			# 표는 회차 79~146 만 담으므로, 78화까지 관람한 상태를 **메모리에만** 만든다
+			# (begin_batch = 디스크 미기록 → 사용자 세이브 안전).
+			UserDB.begin_batch()
+			for n in range(1, 79): UserDB.set_progress("scenario_%d_0" % n, true)
+			UserDB.set_progress("story_sq_79", 0)
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 25: await get_tree().process_frame
+			print("SHOT storymark: active=", StoryProgress.active_episode(),
+				" spec=", StoryProgress.spec(StoryProgress.active_episode()),
+				" mark_field=", StoryProgress.mark_field())
+		"storyreward":
+			# 회차별 특별보상(원작 ScenarioSpecialRewardPopup) — 26·58·78화. --ep=N 으로 고른다.
+			# 지급은 멱등이라 이미 받았으면 안 뜨므로 검수용으로 수령 플래그를 지운다(begin_batch=디스크 미기록).
+			var rep := 78
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--ep="): rep = int(a.substr(5))
+			UserDB.begin_batch()
+			UserDB.set_progress("story_reward_%d" % rep, false)
+			Scenes.goto("story", {"no": rep, "part": 0, "back": "worldmap", "back_params": {}})
+			for i in 20: await get_tree().process_frame
+			# ⚠️ `current_scene` 은 Main 껍데기다 — 실제 스토리 노드는 그 자식이다.
+			var sv := _find_method_node(get_tree().root, "_show_special_reward")
+			if sv != null: sv.call("_finish")
+			else: print("SHOT: story 노드 없음")
+			for i in 20: await get_tree().process_frame
+		"sound":
+			# 구역 앰비언트 검수(원작 setWorldMapSound). 지역맵을 좌→우로 훑으며 어느 트랙이
+			# 켜지는지, 그리고 다른 씬으로 나갔을 때 **전부 꺼지는지**를 출력한다.
+			for rid in ["yutakan", "elf", "dwarf"]:
+				Scenes.goto("worldmap", {"region": rid})
+				for i in 20: await get_tree().process_frame
+				var wm := get_tree().current_scene
+				for f in [0.0, 0.25, 0.5, 0.75, 1.0]:
+					if wm and wm.get("_max_scroll") != null:
+						wm.set("_scroll", float(wm.get("_max_scroll")) * f)
+						wm.call("_apply_scroll")
+					await get_tree().process_frame
+					print("SOUND %-8s scroll=%.2f → %s" % [rid, f, _area_state()])
+			for dest in ["town", "shop", "cave"]:
+				if dest == "town": Scenes.goto("town", {"area": "elpis"})
+				else: Scenes.goto(dest, {"from": "town"})
+				for i in 10: await get_tree().process_frame
+				print("SOUND %-8s → %s" % [dest, _area_state()])
+		"promote", "promote_mate", "promote_nest":
+			# 육성(원작 PromoteScene) — 훈련 캠프 / 라티아(교배) / 하늘둥지 탭.
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 10: await get_tree().process_frame
+			var ptab: String = {"promote": "train", "promote_mate": "mate", "promote_nest": "nest"}[shot]
+			Scenes.goto("promote", {"tab": ptab, "from": "town"})
+		"magicshop", "laboratory", "shop", "mamorudiclab":
+			# 씬 매니저의 허용 전이(scene_manager ALLOWED)가 town 경유만 허락한다 →
+			# 바로 goto 하면 거부돼 동굴이 그대로 남는다(스크린샷이 조용히 엉뚱한 화면).
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto(shot, {"area": "elpis"})
+			for i in 10: await get_tree().process_frame
+			# --floor=N(점술집 층) · --item=N(메뉴 카드 index)
+			# ⚠️ 2026-07-28 구조 변경: 기능 화면은 이제 **원작대로 딤 팝업**이라
+			#    `_tab` 을 세우고 `_rebuild` 해도 안 열린다 → `_open_feature(N)` 을 부른다.
+			var sc := _find_method_node(get_tree().root, "_open_feature")
+			if sc == null:
+				print("SHOT: _open_feature 노드 없음")
+			else:
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--floor="):
+						sc.set("_floor", int(a.split("=")[1]))
+						sc.call("_rebuild")
+						for i in 10: await get_tree().process_frame
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--item="):
+						sc.call("_open_feature", int(a.split("=")[1]))
+						for i in 20: await get_tree().process_frame
+				# --summonpick=1 : 드래곤 소환(--item=4)의 **드래곤 선택 목록** 검수.
+				#   해금 플래그가 서 있어야 소환 본문이 그려진다(잠김이면 목록도 안 뜬다).
+				# --summonuid=<uid> : 그 개체를 고른 상태로 본문을 다시 그린다(받침대 위 초상 검수).
+				for a in OS.get_cmdline_user_args():
+					if a == "--summonpick=1":
+						sc.call("_open_summon_picker")
+						for i in 20: await get_tree().process_frame
+					elif a.begins_with("--summonuid="):
+						sc.set("_summon_uid", int(a.split("=")[1]))
+						sc.call("_refresh_feature")
+						for i in 20: await get_tree().process_frame
+				# --react=<N> : 반응 표정으로 대사 1줄 → 다음 대사에서 기본으로 돌아오는지 검수.
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--react="):
+						sc.call("_say", "반응 대사(표정 %s)" % a.substr(8), int(a.substr(8)))
+						for i in 20: await get_tree().process_frame
+						var npr = sc.get("_npc")
+						print("SHOT react: emotion=", npr.get("emotion") if npr else -1)
+						if OS.get_cmdline_user_args().has("--react2=1"):
+							sc.call("_say", "다음 대사")
+							for i in 20: await get_tree().process_frame
+							npr = sc.get("_npc")
+							print("SHOT react2: emotion=", npr.get("emotion") if npr else -1)
+				# --face=<N> : NPC 를 그 표정으로 다시 만든다(얼굴 파츠 정렬 검수).
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--face="):
+						var old = sc.get("_npc")
+						if old != null:
+							var par: Node = old.get_parent()
+							var opos = old.position
+							var oz = old.z_index
+							var nm: String = String(old.get("npc_name"))
+							par.remove_child(old)
+							old.queue_free()
+							var n2 = NpcPortrait.create(nm, int(a.split("=")[1]))
+							n2.position = opos
+							n2.z_index = oz
+							par.add_child(n2)
+							sc.set("_npc", n2)
+							for i in 10: await get_tree().process_frame
+				# --emo=<N> : NPC 말풍선(이모티콘) 위치 검수. 웃는 표정으로 강제한 뒤 띄운다.
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--emo="):
+						var np = sc.get("_npc")
+						if np != null:
+							np.set("emotion", 2)
+							NpcEmoticon.show_on(np, int(a.split("=")[1]))
+							for i in 30: await get_tree().process_frame
+						else:
+							print("SHOT: _npc 없음")
+				# --skill=1 : 연구소 스킬 트리 팝업 검수
+				for a in OS.get_cmdline_user_args():
+					if a == "--skill=1" and sc.has_method("_show_lab_info"):
+						sc.call("_show_lab_info")
+						for i in 20: await get_tree().process_frame
+				# --result=ok|fail : 젬 강화 결과 연출 검수
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--result=") and sc.has_method("_show_upgrade_result"):
+						sc.call("_show_upgrade_result", a.substr(9) == "ok",
+							"체력의 젬+104  체력 +104", "체력의 젬+108  체력 +108", null)
+						for i in 20: await get_tree().process_frame
+				# --sub=<아이템키> : 용액 상점 상품 상세 팝업 검수
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--sub=") and sc.has_method("_open_potion_buy"):
+						sc.call("_open_potion_buy", a.substr(6), 25, "diamond")
+						for i in 20: await get_tree().process_frame
+		"lvfx":
+			# 레벨업 연출 타임라인(원작 ExpLayer 안무) 검수 — 데르사 축복 = 트리플맥스 보장.
+			# 시계열 캡처: 워드아트 비행 → 숫자 롤 → MAX 뱃지 → 컷인 → 슬롯개방 → 최종.
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var fxcv := _find_method_node(get_tree().root, "_open_levelup")
+			if fxcv == null:
+				print("SHOT lvfx: _open_levelup 노드 없음")
+			else:
+				UserDB.begin_batch()
+				UserDB.add_item("bless_of_dersa", 1)
+				fxcv.call("_open_levelup")
+				for i in 20: await get_tree().process_frame
+				var lv0 := int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0))
+				fxcv.call("_lvup_use_item", "bless_of_dersa")
+				var times := [1.2, 2.6, 4.2, 5.6, 7.2, 9.0, 12.0]
+				var prev := 0.0
+				for ti in times.size():
+					await get_tree().create_timer(float(times[ti]) - prev).timeout
+					prev = float(times[ti])
+					await RenderingServer.frame_post_draw
+					var fimg := get_viewport().get_texture().get_image()
+					var fout := out.get_basename() + ("_%02d.png" % ti)
+					fimg.save_png(fout)
+					print("SHOT lvfx t=%.1f saved: %s" % [times[ti], fout])
+				print("SHOT lvfx: 레벨 ", lv0, " -> ",
+					int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)),
+					"  busy=", fxcv.get("_lvup_fx_busy"))
+				# 이어서 리롤(reset 안무) 경로 1회 — gain_log 가 생겼으니 활성이다.
+				var ok_rr: bool = fxcv.call("_lvup_do_reroll_once")
+				await get_tree().create_timer(3.0).timeout
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(out.get_basename() + "_rr.png")
+				print("SHOT lvfx reroll=", ok_rr, " busy@3s=", fxcv.get("_lvup_fx_busy"))
+				await get_tree().create_timer(6.0).timeout
+				print("SHOT lvfx reroll busy@9s=", fxcv.get("_lvup_fx_busy"))
+				get_tree().quit()
+		_:
+			Scenes.goto(shot, {})
+
+	await get_tree().create_timer(wait).timeout
+	print("SHOT bgm=", Bgm._cur)   # 씬별 BGM 선택 검증용(던전 BGM 회귀 잡기)
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png(out)
+	print("SHOT saved: ", out)
+	get_tree().quit()
+
+## 라벨 텍스트로 버튼 찾기(_popup_button 은 NinePatchRect + Label + 투명 Button 구조).
+## 화면 좌표에 실제 마우스 클릭을 주입한다(히트테스트까지 태워 검증).
+func _click_at(p: Vector2) -> void:
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = pressed
+		e.position = p
+		e.global_position = p
+		Input.parse_input_event(e)
+
+func _find_label_button(n: Node, text: String) -> BaseButton:
+	if n is Label and (n as Label).text == text:
+		for sib in n.get_parent().get_children():
+			if sib is BaseButton: return sib
+	if n is Button and (n as Button).text == text:   # TextureButton 엔 text 가 없다
+		return n
+	for c in n.get_children():
+		var r := _find_label_button(c, text)
+		if r != null: return r
+	return null
+
+func _press_label_button(n: Node, text: String) -> void:
+	var b := _find_label_button(n, text)
+	if b != null: b.emit_signal("pressed")
+	else: print("SHOT: 버튼 없음 — ", text)
+
+## sub 를 포함하는 Label 텍스트를 모은다(해제 예약된 노드는 제외 — 갱신 판정을 흐리지 않게).
+func _collect_labels(n: Node, sub: String, out: Array) -> void:
+	if n is Label and sub in (n as Label).text and not n.is_queued_for_deletion():
+		out.append((n as Label).text)
+	for c in n.get_children():
+		_collect_labels(c, sub, out)
+
+## 툴팁이 prefix 로 시작하는 첫 Button(아이콘 버튼은 text 가 없다).
+func _find_button_tooltip_prefix(n: Node, prefix: String) -> Button:
+	if n is Button and (n as Button).tooltip_text.begins_with(prefix):
+		return n
+	for c in n.get_children():
+		var r := _find_button_tooltip_prefix(c, prefix)
+		if r != null: return r
+	return null
+
+## 텍스트가 prefix 로 시작하는 첫 Button(비용 표기가 붙는 버튼을 라벨 전문 없이 잡기 위함).
+func _find_first_button_prefix(n: Node, prefix: String) -> Button:
+	if n is Button and (n as Button).text.begins_with(prefix):
+		return n
+	for c in n.get_children():
+		var r := _find_first_button_prefix(c, prefix)
+		if r != null: return r
+	return null
+
+## 서브트리에서 첫 드래곤 스파인 씬의 파일명(`dragon_<id>_<stage>`)을 찾는다.
+## 진화 검증용 — "지금 서 있는 게 어느 성장 단계인가"를 노드에서 직접 읽는다.
+func _spine_scene_of(n) -> String:
+	if not (n is Node): return "(없음)"
+	var node := n as Node
+	var p := node.scene_file_path
+	if p.contains("/dragons/dragon_"):
+		return p.get_file().get_basename()
+	for c in node.get_children():
+		var r := _spine_scene_of(c)
+		if r != "(없음)": return r
+	return "(없음)"
+
+## 지금 울리고 있는 구역 앰비언트(트랙 + 볼륨). "(없음)" 이면 전부 정지 상태.
+func _area_state() -> String:
+	var out: Array = []
+	for a in Bgm._areas:
+		var p: AudioStreamPlayer = a["player"]
+		if is_instance_valid(p) and p.playing:
+			out.append("%s %.0fdB" % [a["track"], p.volume_db])
+	return "(없음)" if out.is_empty() else ", ".join(out)
+
+func _find_button_text(n: Node, t: String) -> Button:
+	if n is Button and (n as Button).text == t:
+		return n as Button
+	for c in n.get_children():
+		var r := _find_button_text(c, t)
+		if r != null: return r
+	return null
+
+## 기준선 뒤에 새로 붙은 팝업(CanvasLayer)의 라벨·버튼 문구 — 팝업 내용 검수용.
+func _dump_texts(n: Node, base: int) -> Array:
+	var out: Array = []
+	var seen := 0
+	for ch in n.get_children():
+		if ch is CanvasLayer:
+			seen += 1
+			if seen > base:
+				out.append_array(_texts_of(ch))
+	return out
+
+func _texts_of(node: Node) -> Array:
+	var out: Array = []
+	for c in node.get_children():
+		if c is Label:
+			out.append((c as Label).text)
+		elif c is Button and (c as Button).text != "":
+			out.append("[%s]" % (c as Button).text)
+		elif c is Sprite2D and (c as Sprite2D).texture != null:
+			out.append("<%s>" % (c as Sprite2D).texture.resource_path.get_file())
+		out.append_array(_texts_of(c))
+	return out
+
+func _free_popups(n: Node, base: int) -> void:
+	var seen := 0
+	for ch in n.get_children():
+		if ch is CanvasLayer:
+			seen += 1
+			if seen > base:
+				n.remove_child(ch)
+				ch.free()
+
+func _find_method_node(n: Node, method: String) -> Node:
+	if n.has_method(method): return n
+	for c in n.get_children():
+		var r := _find_method_node(c, method)
+		if r != null: return r
+	return null
+
+func _find_node_named(n: Node, nm: String) -> Node:
+	if String(n.name) == nm: return n
+	for c in n.get_children():
+		var r := _find_node_named(c, nm)
+		if r != null: return r
+	return null
+
+## 트리 안의 모든 Button (검수용 클릭 시뮬레이션).
+func _all_buttons(n: Node, out: Array = []) -> Array:
+	if n is Button: out.append(n)
+	for c in n.get_children(): _all_buttons(c, out)
+	return out
+
+## 트리 안의 모든 TextureButton (▲▼ 처럼 라벨이 없는 버튼을 찾을 때).
+func _all_texture_buttons(n: Node, out: Array = []) -> Array:
+	if n is TextureButton: out.append(n)
+	for c in n.get_children(): _all_texture_buttons(c, out)
+	return out

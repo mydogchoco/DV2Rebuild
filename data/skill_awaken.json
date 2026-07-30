@@ -1,0 +1,3739 @@
+{
+ "_source": "docs/input/sheets/skill_awaken.csv (사용자 기입 2026-07-29) — 빌드: scripts/tools/build_skill_awaken.py",
+ "_re_basis": [
+  "스키마=클라 복원: SkillAwaken::setInfo `select name, comment from info_skill_awaken where no=%d` (docs/ref/orig_code/decomp/SkillAwaken.c) + getName/getComment.",
+  "행 값(이름·설명·효과·드래곤 배정)은 서버 소실 → 원작 경험자(사용자)가 시트로 복원.",
+  "아이콘은 원작 자산 `skill/evolution/1~18.png` (AwakenPopup.c :290). 원작 코드는 스킬 번호로 아이콘을 직접 불렀으나, 실제로는 서로 다른 스킬이 같은 아이콘을 쓰는 사례가 있어(사용자 확인 2026-07-29) `no` 와 `icon` 을 분리한다.",
+  "`comment` 는 효과의 **서술**이다. 전투 엔진에 태울 수치화(effect 딕셔너리)는 아직 하지 않았다 — 서술→수치 변환은 별도 작업(HARD RULE 6)."
+ ],
+ "_schema": {
+  "no": "int — 각성 스킬 번호(우리 번호). dragon 레코드의 awaken_skill 이 이 값",
+  "name": "string — 각성 스킬 이름 (원작 name 컬럼)",
+  "comment": "string — 각성 스킬 설명 (원작 comment 컬럼)",
+  "icon": "int 1~18 — assets/converted/skill_evolution/skill_evolution_<icon>.tres",
+  "dragons": "int[] — 이 각성스킬을 갖는 드래곤 도감 id (dragons.json)",
+  "dragon_names": "string[] — 시트에 적힌 원문 이름(대조용, id 매칭 실패분 포함)"
+ },
+ "by_dragon": {
+  "74": [
+   1
+  ],
+  "3002": [
+   1
+  ],
+  "3039": [
+   1
+  ],
+  "179": [
+   2
+  ],
+  "4009": [
+   2
+  ],
+  "4036": [
+   2
+  ],
+  "3020": [
+   3
+  ],
+  "4045": [
+   4
+  ],
+  "169": [
+   5
+  ],
+  "3011": [
+   6
+  ],
+  "3017": [
+   7
+  ],
+  "4041": [
+   8
+  ],
+  "3024": [
+   9
+  ],
+  "4052": [
+   10
+  ],
+  "4206": [
+   11
+  ],
+  "4179": [
+   12
+  ],
+  "4002": [
+   13
+  ],
+  "125": [
+   14
+  ],
+  "4038": [
+   15
+  ],
+  "4191": [
+   15
+  ],
+  "8": [
+   16
+  ],
+  "3034": [
+   16
+  ],
+  "4011": [
+   16
+  ],
+  "58": [
+   17
+  ],
+  "178": [
+   17
+  ],
+  "3026": [
+   18
+  ],
+  "4015": [
+   19
+  ],
+  "4059": [
+   20
+  ],
+  "3029": [
+   21
+  ],
+  "145": [
+   22
+  ],
+  "34": [
+   23
+  ],
+  "54": [
+   23
+  ],
+  "4012": [
+   23
+  ],
+  "4180": [
+   23
+  ],
+  "4190": [
+   23
+  ],
+  "4115": [
+   24
+  ],
+  "3014": [
+   25
+  ],
+  "4159": [
+   26
+  ],
+  "4162": [
+   27
+  ],
+  "92": [
+   28
+  ],
+  "4024": [
+   29
+  ],
+  "3018": [
+   30
+  ],
+  "4192": [
+   30
+  ],
+  "4195": [
+   30
+  ],
+  "67": [
+   31
+  ],
+  "69": [
+   32
+  ],
+  "3001": [
+   32
+  ],
+  "4": [
+   33
+  ],
+  "3013": [
+   34
+  ],
+  "4136": [
+   35
+  ],
+  "10": [
+   36
+  ],
+  "28": [
+   36
+  ],
+  "3032": [
+   36
+  ],
+  "4019": [
+   36
+  ],
+  "4181": [
+   36
+  ],
+  "4186": [
+   36
+  ],
+  "4194": [
+   36
+  ],
+  "4200": [
+   37
+  ],
+  "4144": [
+   38
+  ],
+  "65": [
+   39
+  ],
+  "4035": [
+   39
+  ],
+  "4050": [
+   39
+  ],
+  "4187": [
+   39
+  ],
+  "4205": [
+   40
+  ],
+  "4145": [
+   41
+  ],
+  "21": [
+   42
+  ],
+  "66": [
+   42
+  ],
+  "186": [
+   42
+  ],
+  "4099": [
+   43
+  ],
+  "5": [
+   44
+  ],
+  "4202": [
+   45
+  ],
+  "3030": [
+   46
+  ],
+  "4111": [
+   47
+  ],
+  "77": [
+   48
+  ],
+  "129": [
+   48
+  ],
+  "1": [
+   49
+  ],
+  "4210": [
+   50
+  ],
+  "4140": [
+   51
+  ],
+  "4120": [
+   52
+  ],
+  "14": [
+   53
+  ],
+  "9": [
+   54
+  ],
+  "6": [
+   55
+  ],
+  "51": [
+   56
+  ],
+  "133": [
+   57
+  ],
+  "141": [
+   57
+  ],
+  "4184": [
+   57
+  ],
+  "4204": [
+   58
+  ],
+  "4132": [
+   59
+  ],
+  "23": [
+   60
+  ],
+  "180": [
+   60
+  ],
+  "184": [
+   60
+  ],
+  "3019": [
+   60
+  ],
+  "4022": [
+   61
+  ],
+  "3005": [
+   62
+  ],
+  "4138": [
+   63
+  ],
+  "4212": [
+   64
+  ],
+  "4197": [
+   65
+  ],
+  "3033": [
+   66
+  ],
+  "4176": [
+   67
+  ],
+  "4044": [
+   68
+  ],
+  "104": [
+   69
+  ],
+  "4208": [
+   70
+  ],
+  "4199": [
+   71
+  ],
+  "4173": [
+   72
+  ],
+  "4209": [
+   73
+  ],
+  "4178": [
+   74
+  ],
+  "4203": [
+   75
+  ],
+  "35": [
+   76
+  ],
+  "3035": [
+   77
+  ],
+  "4139": [
+   78
+  ],
+  "4166": [
+   79
+  ],
+  "4211": [
+   80
+  ],
+  "4151": [
+   81
+  ],
+  "4049": [
+   82
+  ],
+  "4005": [
+   83
+  ],
+  "4008": [
+   83
+  ],
+  "4198": [
+   84
+  ],
+  "3036": [
+   85
+  ],
+  "4207": [
+   86
+  ],
+  "4053": [
+   87
+  ],
+  "137": [
+   88
+  ],
+  "4201": [
+   89
+  ],
+  "53": [
+   90
+  ],
+  "4189": [
+   91
+  ],
+  "3008": [
+   92
+  ],
+  "4142": [
+   93
+  ],
+  "4023": [
+   94
+  ],
+  "4175": [
+   95
+  ],
+  "4174": [
+   96
+  ],
+  "4020": [
+   97
+  ],
+  "3003": [
+   98
+  ],
+  "4018": [
+   99
+  ],
+  "4143": [
+   100
+  ],
+  "4135": [
+   101
+  ],
+  "4125": [
+   102
+  ],
+  "666": [
+   666
+  ],
+  "777": [
+   777
+  ],
+  "600": [
+   600
+  ],
+  "700": [
+   700
+  ]
+ },
+ "_by_dragon_note": "드래곤 도감 id → 각성스킬 no 목록. 각성 시 이 표에서 배정한다(Data.awaken_skill_of). 여러 개인 드래곤은 첫 번째를 기본으로 쓴다.",
+ "skills": [
+  {
+   "no": 1,
+   "name": "각성된 드래곤의 감각",
+   "comment": "해당 드래곤의 크리티컬 확률 10% 증가",
+   "icon": 14,
+   "dragons": [
+    74,
+    3002,
+    3039
+   ],
+   "dragon_names": [
+    "레드와이번",
+    "홀리",
+    "루드라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "cri",
+      "mode": "flat",
+      "value": 10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 2,
+   "name": "각성된 드래곤의 영혼",
+   "comment": "크리티컬 공격 시 상대 드래곤 최대 체력의 5%만큼의 추가 피해",
+   "icon": 7,
+   "dragons": [
+    179,
+    4009,
+    4036
+   ],
+   "dragon_names": [
+    "루미네스",
+    "옵타티오",
+    "저네르"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "crit",
+      "pct": 5
+     }
+    ],
+    "note": "크리 시 상대 **최대 체력**의 5% 를 추가 피해로 더한다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 3,
+   "name": "각성된 드래곤의 힘",
+   "comment": "해당 드래곤의 크리티컬 파워 50% 증가",
+   "icon": 15,
+   "dragons": [
+    3020
+   ],
+   "dragon_names": [
+    "라 솔라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "cri_pow",
+      "mode": "flat",
+      "value": 50
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 4,
+   "name": "각성된 땅의 힘",
+   "comment": "땅속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 4,
+   "dragons": [
+    4045
+   ],
+   "dragon_names": [
+    "포폰 드래곤"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "earth"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 5,
+   "name": "각성된 맹수의 발톱",
+   "comment": "해당 드래곤의 체력이 50% 이하일때 크리티컬 확률 100% 고정",
+   "icon": 15,
+   "dragons": [
+    169
+   ],
+   "dragon_names": [
+    "메갈로돈"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "self_hp_at_most",
+       "pct": 50
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "flag",
+        "flag": "crit_sure"
+       }
+      ]
+     }
+    ],
+    "note": "'크리티컬 확률 100% 고정' — 확률 상한(prob_cap 70)을 우회해야 '고정'이 되므로 확률이 아니라 플래그(crit_sure)로 표현한다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 6,
+   "name": "각성된 물의 힘",
+   "comment": "물속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 1,
+   "dragons": [
+    3011
+   ],
+   "dragon_names": [
+    "블리자드"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "aqua"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 7,
+   "name": "각성된 바람의 힘",
+   "comment": "바람속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 3,
+   "dragons": [
+    3017
+   ],
+   "dragon_names": [
+    "익시아"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "wind"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 8,
+   "name": "각성된 불의 힘",
+   "comment": "불속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 2,
+   "dragons": [
+    4041
+   ],
+   "dragon_names": [
+    "수라 드래곤"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "fire"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 9,
+   "name": "각성된 빛의 힘",
+   "comment": "빛속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 5,
+   "dragons": [
+    3024
+   ],
+   "dragon_names": [
+    "솔라"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "light"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 10,
+   "name": "각성된 어둠의 힘",
+   "comment": "어둠속성 지역 탐험 시 해당 드래곤의 능력치(체력, 공격력, 방어력) 20% 상승",
+   "icon": 6,
+   "dragons": [
+    4052
+   ],
+   "dragon_names": [
+    "프로스트랩터"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": {
+     "kind": "field_element",
+     "value": "dark"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 20
+     }
+    ]
+   }
+  },
+  {
+   "no": 11,
+   "name": "감시자의 눈",
+   "comment": "[상처 파악]을 제외한 디버프의 영향을 받는 동안 아군이 받는 데미지 25% 감소",
+   "icon": 17,
+   "dragons": [
+    4206
+   ],
+   "dragon_names": [
+    "워든"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "has_debuff",
+       "except_src": [
+        23
+       ]
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "dmg_taken",
+        "pct": -25
+       }
+      ]
+     }
+    ],
+    "note": "'[상처 파악]을 제외한' → except_src=[23] (상처 파악 = skills.json id 23).",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 12,
+   "name": "게으름의 화신",
+   "comment": "공격력이 20% 감소하고, 최대 체력이 50% 증가합니다. 현재 체력이 낮아질수록 공격력이 증가합니다. (실제 공격력=기본 공격력+추가 공격력+(기본 공격력+추가 공격력)×(잃은 체력/최대 체력)×2)",
+   "icon": 13,
+   "dragons": [
+    4179
+   ],
+   "dragon_names": [
+    "슬로스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": -20
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 50
+     }
+    ],
+    "dyn": [
+     {
+      "when": {
+       "kind": "lost_hp_ratio"
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "stat",
+        "stat": "att",
+        "mode": "pct",
+        "value": 200
+       }
+      ]
+     }
+    ],
+    "note": "실제 공격력 = (기본+추가) × (1 + 잃은체력/최대체력 × 2) ⇒ 잃은 비율 × 200%. 체력 +50% 는 라운드마다 불어나면 안 되므로 정적(ops).",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 13,
+   "name": "격류",
+   "comment": "자신의 현재 체력이 50% 초과 시 아군이 받는 데미지 (드래곤 등급 * 0.5)%만큼 감소, 50% 이하 시 아군이 주는 데미지가 (드래곤 등급 * 0.5)%만큼 증가",
+   "icon": 1,
+   "dragons": [
+    4002
+   ],
+   "dragon_names": [
+    "실러캔스"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "self_hp_above",
+       "pct": 50
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "stat",
+        "stat": "__dmg_taken",
+        "mode": "pct",
+        "from": {
+         "stat": "grade",
+         "ratio": -0.5
+        }
+       }
+      ]
+     },
+     {
+      "when": {
+       "kind": "self_hp_at_most",
+       "pct": 50
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "stat",
+        "stat": "__dmg_deal",
+        "mode": "pct",
+        "from": {
+         "stat": "grade",
+         "ratio": 0.5
+        }
+       }
+      ]
+     }
+    ],
+    "note": "'드래곤 등급' 의 눈금이 원작과 다르다 — 우리 등급은 7.0 기준(Growth.compute_grade), 원작은 0~6(위키 '최대 한계는 6.0등급'). 계수는 설명 그대로 쓰되 결과 크기는 그만큼 차이날 수 있다. 노브 = build_awaken_effects.py 의 grade() ratio.",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 14,
+   "name": "고요한 바람",
+   "comment": "받는 피해량 15 감소 (최소 피해량 1)",
+   "icon": 18,
+   "dragons": [
+    125
+   ],
+   "dragon_names": [
+    "라이오스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_taken_flat",
+      "value": 15
+     }
+    ],
+    "note": "'최소 피해량 1' 은 엔진 기본값과 같다(_apply_dmg 가 이미 1 미만으로 안 내려간다).",
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 15,
+   "name": "공격의 기운",
+   "comment": "모든 아군 드래곤의 공격력 10% 증가.",
+   "icon": 8,
+   "dragons": [
+    4038,
+    4191
+   ],
+   "dragon_names": [
+    "선셋 드래곤",
+    "즈믄"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 16,
+   "name": "공격의 날개",
+   "comment": "해당 드래곤이 공격 시 입히는 데미지 20% 증가",
+   "icon": 8,
+   "dragons": [
+    8,
+    3034,
+    4011
+   ],
+   "dragon_names": [
+    "피닉스",
+    "발레포르",
+    "애플칙"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_deal",
+      "pct": 20
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 17,
+   "name": "구드라의 가호",
+   "comment": "전설 난이도 지역에서 아티펙트 장신구 획득 확률 50% 증가",
+   "icon": 12,
+   "dragons": [
+    58,
+    178
+   ],
+   "dragon_names": [
+    "샤크곤",
+    "오르페우스"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": null,
+    "ops": [],
+    "explore": {
+     "artifact_chance_pct": 50
+    },
+    "note": "'전설 난이도 지역' = 카데스의 공간. 아티팩트가 나오는 유일한 곳이다(위키 etc.pdf §2.2 · dungeon_1.pdf §2)."
+   }
+  },
+  {
+   "no": 18,
+   "name": "권위의 팔라곤",
+   "comment": "아군 드래곤 중 자신의 등급이 가장 높으면, 자신의 방어력의 50%를 공격력에 추가한다. (1대 1에서는 무조건 발동)",
+   "icon": 9,
+   "dragons": [
+    3026
+   ],
+   "dragon_names": [
+    "팔라곤"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "grade_highest"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "flat",
+      "from": {
+       "stat": "def",
+       "ratio": 0.5
+      }
+     }
+    ],
+    "note": "'1대 1에서는 무조건 발동' — 아군이 자기뿐이면 자기가 최고 등급이라 grade_highest 가 자연히 참이다.",
+    "tier": "C",
+    "impl": true
+   }
+  },
+  {
+   "no": 19,
+   "name": "그림자 분신",
+   "comment": "파티 내에 그림자 속성 드래곤이 있을 시 해당 드래곤의 공격력 60% 상승",
+   "icon": 7,
+   "dragons": [
+    4015
+   ],
+   "dragon_names": [
+    "쿠르파"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "party_has_element",
+     "value": "shadow"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 60
+     }
+    ],
+    "tier": "B",
+    "impl": true
+   }
+  },
+  {
+   "no": 20,
+   "name": "그림자 수호신",
+   "comment": "해당 드래곤이 받는 데미지 20% 증가, 아군 드래곤의 공격 데미지 10% 상승. 혼자인 경우 적용되지 않는다. [공격의 날개]와 중첩 가능",
+   "icon": 7,
+   "dragons": [
+    4059
+   ],
+   "dragon_names": [
+    "사이커 드래곤"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "party_size_min",
+     "min": 2
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_taken",
+      "pct": 20
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 10
+     }
+    ],
+    "note": "'혼자인 경우 적용되지 않는다' → party_size_min 2. '[공격의 날개]와 중첩 가능' 은 서로 다른 no 라 자연히 중첩된다.",
+    "tier": "B",
+    "impl": true
+   }
+  },
+  {
+   "no": 21,
+   "name": "깨어난 방어 감각",
+   "comment": "1회 피격 시 마다 해당 드래곤의 방어력이 5% 증가 (누적 50%까지 증가)",
+   "icon": 9,
+   "dragons": [
+    3029
+   ],
+   "dragon_names": [
+    "다크나이트"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "hit_taken",
+      "do": "stack",
+      "stats": [
+       "def"
+      ],
+      "value": 5,
+      "max_total": 50,
+      "to": "self",
+      "mode": "pct"
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 22,
+   "name": "냉철한 암흑",
+   "comment": "자신의 각성게이지 상승률 15% 증가(백금석과 중첩 가능)",
+   "icon": 6,
+   "dragons": [
+    145
+   ],
+   "dragon_names": [
+    "발로드"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "gauge_rate",
+      "pct": 15
+     }
+    ],
+    "note": "'백금석과 중첩 가능' — 백금석(장비)은 아직 게이지에 배선돼 있지 않다.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 23,
+   "name": "다이즈의 가호",
+   "comment": "모든 아군 드래곤의 스킬 사용횟수 +1",
+   "icon": 11,
+   "dragons": [
+    34,
+    54,
+    4012,
+    4180,
+    4190
+   ],
+   "dragon_names": [
+    "흑룡",
+    "백룡",
+    "트로페우스",
+    "불나래",
+    "화이트 다이아몬드"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "skill_uses",
+      "value": 1
+     }
+    ],
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 24,
+   "name": "달의 비밀",
+   "comment": "자신의 크리티컬 확률만큼 공격력 증가 (최대 100%)",
+   "icon": 17,
+   "dragons": [
+    4115
+   ],
+   "dragon_names": [
+    "루너스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "from": {
+       "stat": "cri",
+       "ratio": 1.0
+      },
+      "max": 100
+     }
+    ],
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 25,
+   "name": "대양의 분노",
+   "comment": "공격 적중 시 마다, 3회에 한하여 상대 방어율을 7% 감소시키고, 자신의 크리티컬 확률을 7% 증가",
+   "icon": 1,
+   "dragons": [
+    3014
+   ],
+   "dragon_names": [
+    "포세이돈"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "적중마다 3회 한정 — 공격 훅 + 횟수 상태"
+   }
+  },
+  {
+   "no": 26,
+   "name": "대장군 완숙이",
+   "comment": "자신의 체력이 20% 이하가 되면, 다음 3회의 공격에 대해서 피해량이 1로 감소 (전투 당 1회 발동)",
+   "icon": 16,
+   "dragons": [
+    4159
+   ],
+   "dragon_names": [
+    "완숙이"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "체력 20% 이하 트리거, 다음 3회 피해 1 — 체력 훅 + 카운터"
+   }
+  },
+  {
+   "no": 27,
+   "name": "대지의 기둥",
+   "comment": "자신의 방어력이 500 이상이면 아군 땅, 빛 드래곤의 각성 게이지 회복량이 30% 증가",
+   "icon": 4,
+   "dragons": [
+    4162
+   ],
+   "dragon_names": [
+    "아틀라스"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "self_stat_min",
+     "stat": "def",
+     "min": 500
+    },
+    "ops": [
+     {
+      "to": "ally_element:earth",
+      "kind": "gauge_rate",
+      "pct": 30
+     },
+     {
+      "to": "ally_element:light",
+      "kind": "gauge_rate",
+      "pct": 30
+     }
+    ],
+    "tier": "C",
+    "impl": true
+   }
+  },
+  {
+   "no": 28,
+   "name": "대지의 시초",
+   "comment": "아군 땅속성 드래곤이 입는 피해량 25% 감소 (각성기 피해량에는 적용되지 않음)",
+   "icon": 4,
+   "dragons": [
+    92
+   ],
+   "dragon_names": [
+    "파이썬"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:earth",
+      "kind": "dmg_taken",
+      "pct": -25
+     }
+    ],
+    "note": "'각성기 피해량에는 적용되지 않음' — 우리 각성기(resolve_awaken)는 아직 dmg_taken 계수를 타지 않으므로 자연히 지켜진다.",
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 29,
+   "name": "대폭렬의 힘",
+   "comment": "아군 다르고스의 체력 25%, 공격력 25% 증가. [파괴의 힘]과 중첩 가능",
+   "icon": 6,
+   "dragons": [
+    4024
+   ],
+   "dragon_names": [
+    "가오론"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_dragon:4023",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 25
+     },
+     {
+      "to": "ally_dragon:4023",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 25
+     }
+    ],
+    "note": "'아군 다르고스' = 도감 id 4023. '[파괴의 힘]과 중첩 가능' 은 서로 다른 no 라 자연히 중첩된다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 30,
+   "name": "돌풍 포식자",
+   "comment": "모든 아군 드래곤이 받는 방어 관통 데미지 30 감소",
+   "icon": 3,
+   "dragons": [
+    3018,
+    4192,
+    4195
+   ],
+   "dragon_names": [
+    "허리케인",
+    "탈릿사",
+    "아스타테"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "depure",
+      "mode": "flat",
+      "value": 30
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 31,
+   "name": "동방의 신수",
+   "comment": "모든 아군 드래곤이 주는 피해량이 15% 증가",
+   "icon": 13,
+   "dragons": [
+    67
+   ],
+   "dragon_names": [
+    "현무"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 15
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 32,
+   "name": "매의 눈",
+   "comment": "공격 시 25의 방어무시 데미지를 추가한다.",
+   "icon": 17,
+   "dragons": [
+    69,
+    3001
+   ],
+   "dragon_names": [
+    "데몽과 가고일",
+    "루시퍼"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure",
+      "mode": "flat",
+      "value": 25
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 33,
+   "name": "몬스터 헌터",
+   "comment": "해당 드래곤이 보스 및 레이드 몬스터에게 추가 대미지 100%",
+   "icon": 17,
+   "dragons": [
+    4
+   ],
+   "dragon_names": [
+    "청룡"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "enemy_boss"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_deal",
+      "pct": 100
+     }
+    ],
+    "note": "'보스 및 레이드 몬스터' — 레이드는 아직 없으므로 보스만 걸린다.",
+    "tier": "B",
+    "impl": true
+   }
+  },
+  {
+   "no": 34,
+   "name": "물방울의 마력",
+   "comment": "자신의 방어율만큼 모든 아군 드래곤의 공격력 증가 (최대 50%)",
+   "icon": 1,
+   "dragons": [
+    3013
+   ],
+   "dragon_names": [
+    "운디네"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "from": {
+       "stat": "blk",
+       "ratio": 1.0
+      },
+      "max": 50
+     }
+    ],
+    "note": "'방어율' = 우리 blk(막기 확률).",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 35,
+   "name": "물의 보호막",
+   "comment": "해당 드래곤이 사망 시, 아군 물속성 드래곤들이 다음에 받는 3회의 데미지가 1로 고정 (각성기로 입는 피해는 1명당 1회, 전투 중 동일 효과 1회만 발동 가능)",
+   "icon": 1,
+   "dragons": [
+    4136
+   ],
+   "dragon_names": [
+    "아루루가"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "사망 시 아군에게 3회 피해 1 고정 — 사망 훅 + 카운터"
+   }
+  },
+  {
+   "no": 36,
+   "name": "바람의 날개",
+   "comment": "해당 드래곤의 회피율 10% 증가",
+   "icon": 18,
+   "dragons": [
+    10,
+    28,
+    3032,
+    4019,
+    4181,
+    4186,
+    4194
+   ],
+   "dragon_names": [
+    "네시",
+    "리프 드래곤",
+    "시타엘",
+    "팡팡 드래곤",
+    "센투라",
+    "리베티",
+    "하리카"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "evd",
+      "mode": "flat",
+      "value": 10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 37,
+   "name": "반항심",
+   "comment": "파티의 드래곤 체력이 0이 되면 자신 공격력 30%, 회피율 10% 증가",
+   "icon": 17,
+   "dragons": [
+    4200
+   ],
+   "dragon_names": [
+    "페이스리스"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "ally_dead_any"
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "stat",
+        "stat": "att",
+        "mode": "pct",
+        "value": 30
+       },
+       {
+        "to": "self",
+        "kind": "stat",
+        "stat": "evd",
+        "mode": "flat",
+        "value": 10
+       }
+      ]
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 38,
+   "name": "방출의 힘",
+   "comment": "막기 발동시 아군 각성 게이지가 5% 증가한다.",
+   "icon": 14,
+   "dragons": [
+    4144
+   ],
+   "dragon_names": [
+    "스트라"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "block",
+      "gauge_pct": 5
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 39,
+   "name": "보호의 날개",
+   "comment": "해당 드래곤이 받는 데미지 10% 감소",
+   "icon": 9,
+   "dragons": [
+    65,
+    4035,
+    4050,
+    4187
+   ],
+   "dragon_names": [
+    "프로스티",
+    "노웨마",
+    "에스티미아",
+    "칸타카"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_taken",
+      "pct": -10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 40,
+   "name": "복수의 까마귀",
+   "comment": "막기 혹은 회피에 실패하면 공격한 상대 드래곤은 혼란에 빠져 다음 턴에 자기 자신을 공격 (최대 2회)",
+   "icon": 8,
+   "dragons": [
+    4205
+   ],
+   "dragon_names": [
+    "크로우 드래곤"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "hit_unguarded",
+      "turns": 1,
+      "left": 2
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 41,
+   "name": "봉인의 힘",
+   "comment": "공격 스킬 발동 시 대상 적에게 무작위 효과가 적용된다. 효과: 상대 각성 게이지10% 감소/방어력 10% 감소/공격력 10% 감소",
+   "icon": 14,
+   "dragons": [
+    4145
+   ],
+   "dragon_names": [
+    "쉴로시"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": false,
+    "why": "공격 스킬 발동 시 상대 게이지/스탯 감소 — 스킬 발동 훅"
+   }
+  },
+  {
+   "no": 42,
+   "name": "부유한 기운",
+   "comment": "탐험시 골드 획득량 50% 증가",
+   "icon": 10,
+   "dragons": [
+    21,
+    66,
+    186
+   ],
+   "dragon_names": [
+    "엔젤 드래곤",
+    "다크프로스티",
+    "붐버 드래곤"
+   ],
+   "effect": {
+    "tier": "A",
+    "impl": true,
+    "cond": null,
+    "ops": [],
+    "explore": {
+     "gold_pct": 50
+    }
+   }
+  },
+  {
+   "no": 43,
+   "name": "불같은 성격",
+   "comment": "아군 전체의 데미지 10% 증가, 땅속성 적에 대한 아군 전체의 데미지 15% 추가 증가",
+   "icon": 14,
+   "dragons": [
+    4099
+   ],
+   "dragon_names": [
+    "루페스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 10
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 15,
+      "cond": {
+       "kind": "enemy_has_element",
+       "value": "earth"
+      }
+     }
+    ],
+    "note": "'땅속성 적에 대한 아군 전체의 데미지 15% 추가 증가' — 우리 PvE 는 적이 한 마리라 '상대에 땅속성이 있나' 와 '그 적이 땅속성인가' 가 같다. 다대다가 생기면 대상별 판정으로 옮겨야 한다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 44,
+   "name": "불의 원조",
+   "comment": "자신의 크리티컬 확률이 5% 증가. 크리티컬 공격 시 상대 드래곤 최대 체력의 3%만큼의 추가 피해",
+   "icon": 2,
+   "dragons": [
+    5
+   ],
+   "dragon_names": [
+    "파이어"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "cri",
+      "mode": "flat",
+      "value": 5
+     }
+    ],
+    "react": [
+     {
+      "on": "crit",
+      "pct": 3
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 45,
+   "name": "불타는 날개",
+   "comment": "자신의 받은 데미지를 누적 (최대 자신의 방어력만큼). 공격 시 누적된 수치의 1/3만큼 기본 데미지를 강화하여 공격하고 누적 수치를 초기화.",
+   "icon": 14,
+   "dragons": [
+    4202
+   ],
+   "dragon_names": [
+    "이카루스"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "hit_taken",
+      "do": "acc",
+      "cap_stat": "def"
+     },
+     {
+      "on": "attack_bonus",
+      "ratio": 0.3333333333333333
+     }
+    ],
+    "note": "받은 피해를 방어력만큼 누적했다가 공격 시 1/3 을 얹고 초기화한다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 46,
+   "name": "블랙홀의 마력",
+   "comment": "체력이 50% 이하일 때, 상대 드래곤에게 입힌 피해량의 일부를 흡수하여 체력 회복 및 공격력 상승 (5회 한정). [피의 갈증]과 중첩 불가",
+   "icon": 6,
+   "dragons": [
+    3030
+   ],
+   "dragon_names": [
+    "블랙홀"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "체력 50% 이하 흡혈 5회 — 체력 훅 + 카운터"
+   }
+  },
+  {
+   "no": 47,
+   "name": "빙결의 여왕",
+   "comment": "빙결의 힘으로 상대방의 회피확률을 15% 낮춘다.",
+   "icon": 1,
+   "dragons": [
+    4111
+   ],
+   "dragon_names": [
+    "글라시아"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "accuracy",
+      "mode": "flat",
+      "value": 15
+     }
+    ],
+    "note": "우리 모델에서 '상대 회피 −N%' 와 '자신 명중 +N%' 는 같은 식이다(_evade_chance = 방어자 evd − 공격자 accuracy).",
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 48,
+   "name": "빛의 기사",
+   "comment": "자신의 방어력에 비례하여 체력이 증가(방어력 500에서 최대치 50% 적용)",
+   "icon": 5,
+   "dragons": [
+    77,
+    129
+   ],
+   "dragon_names": [
+    "나이트 드래곤",
+    "바리안"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "from": {
+       "stat": "def",
+       "ratio": 0.1
+      },
+      "max": 50
+     }
+    ],
+    "note": "'방어력 500에서 최대치 50% 적용' ⇒ 방어력 1당 0.1%, 상한 50%.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 49,
+   "name": "빛의 수호자",
+   "comment": "모든 아군 빛속성 드래곤의 방어력 5%, 회피율 5% 증가.",
+   "icon": 5,
+   "dragons": [
+    1
+   ],
+   "dragon_names": [
+    "고대신룡"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:light",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 5
+     },
+     {
+      "to": "ally_element:light",
+      "kind": "stat",
+      "stat": "evd",
+      "mode": "flat",
+      "value": 5
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 50,
+   "name": "빛의 아버지",
+   "comment": "자신이 받는 추가 데미지 50% 감소, 아군 전체의 체력, 공격력, 방어력 10% 증가",
+   "icon": 5,
+   "dragons": [
+    4210
+   ],
+   "dragon_names": [
+    "고대신룡Ⅱ"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "depure_pct",
+      "mode": "flat",
+      "value": 50
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 10
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 10
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 10
+     }
+    ],
+    "note": "'받는 추가 데미지 50% 감소' = depure_pct 50 (근거는 86 정의집행의 낱말 대응)."
+   }
+  },
+  {
+   "no": 51,
+   "name": "빛의 환희",
+   "comment": "아군에 [신성] 속성 드래곤이 있으면, 자신은 공격을 하지 않는다.",
+   "icon": 5,
+   "dragons": [
+    4140
+   ],
+   "dragon_names": [
+    "설리반"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "party_has_element",
+     "value": "holy"
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "flag",
+      "flag": "no_attack"
+     }
+    ],
+    "note": "'아군에 [신성] 속성 드래곤이 있으면' — 조건은 전투 시작 시 1회 판정.",
+    "tier": "D",
+    "impl": true
+   }
+  },
+  {
+   "no": 52,
+   "name": "뼈갑옷",
+   "comment": "자신이 입는 피해를 40만큼 감소시키고, 피해를 입을 때 마다 다음 피해를 10%만큼 증가시킨다. 공격 시, 피해량 증가 효과가 초기화된다. (감소된 최소 피해량 30)",
+   "icon": 9,
+   "dragons": [
+    4120
+   ],
+   "dragon_names": [
+    "커스 리퍼"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "피격마다 **다음 피해 계수**를 누적하는 형태 — 지금 누적기(_stack_up)는 스탯만 다룬다. 피해 계수(dmg_taken) 누적을 추가하면 된다. 훅 자체는 이미 있다"
+   }
+  },
+  {
+   "no": 53,
+   "name": "사대신룡-땅",
+   "comment": "모든 아군 땅속성 드래곤의 방어력 15% 증가.",
+   "icon": 4,
+   "dragons": [
+    14
+   ],
+   "dragon_names": [
+    "파워 드래곤"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:earth",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 15
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 54,
+   "name": "사대신룡-물",
+   "comment": "모든 아군 물속성 드래곤의 체력 15% 증가.",
+   "icon": 1,
+   "dragons": [
+    9
+   ],
+   "dragon_names": [
+    "빙하고룡"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:aqua",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 15
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 55,
+   "name": "사대신룡-불",
+   "comment": "모든 아군 불속성 드래곤의 공격력 15% 증가.",
+   "icon": 2,
+   "dragons": [
+    6
+   ],
+   "dragon_names": [
+    "번개고룡"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:fire",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 15
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 56,
+   "name": "삼족오의 후예",
+   "comment": "모든 아군 빛속성 드래곤의 체력 7%, 공격력 7%, 명중률 7% 증가",
+   "icon": 7,
+   "dragons": [
+    51
+   ],
+   "dragon_names": [
+    "금오드래곤"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:light",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 7
+     },
+     {
+      "to": "ally_element:light",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 7
+     },
+     {
+      "to": "ally_element:light",
+      "kind": "stat",
+      "stat": "accuracy",
+      "mode": "flat",
+      "value": 7
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 57,
+   "name": "생명의 기운",
+   "comment": "모든 아군 드래곤의 체력이 10% 증가.",
+   "icon": 18,
+   "dragons": [
+    133,
+    141,
+    4184
+   ],
+   "dragon_names": [
+    "파프리온",
+    "에닉스",
+    "브리트라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 58,
+   "name": "생명의 빛",
+   "comment": "생존한 아군 빛 속성 드래곤 1마리마다 공격력 20% 증가 (최대 60%)",
+   "icon": 18,
+   "dragons": [
+    4204
+   ],
+   "dragon_names": [
+    "모노케로스"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "alive_ally_element",
+       "value": "light"
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "stat",
+        "stat": "att",
+        "mode": "pct",
+        "value": 20,
+        "max": 60
+       }
+      ]
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 59,
+   "name": "생존 본능",
+   "comment": "자신의 회피 확률이 40% 증가",
+   "icon": 18,
+   "dragons": [
+    4132
+   ],
+   "dragon_names": [
+    "아자크"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "evd",
+      "mode": "flat",
+      "value": 40
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 60,
+   "name": "선제 공격",
+   "comment": "전투 시에 아군이 항상 먼저 공격을 하도록 만든다. 상대방이 동일한 스킬을 보유 시 무효화된다.",
+   "icon": 16,
+   "dragons": [
+    23,
+    180,
+    184,
+    3019
+   ],
+   "dragon_names": [
+    "미니 드래곤",
+    "번네스",
+    "투탕카",
+    "데스리퍼"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": false,
+    "why": "선제 공격(턴 순서 고정) — 주도권 계산 훅"
+   }
+  },
+  {
+   "no": 61,
+   "name": "수호의 거목",
+   "comment": "아군 땅 속성 드래곤의 숫자만큼 진의 체력/공격력/방어력 10% 상승 (최대 30%)",
+   "icon": 9,
+   "dragons": [
+    4022
+   ],
+   "dragon_names": [
+    "진"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 10,
+      "per": "ally_element:earth",
+      "max": 30
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 10,
+      "per": "ally_element:earth",
+      "max": 30
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 10,
+      "per": "ally_element:earth",
+      "max": 30
+     }
+    ],
+    "note": "수호의 거목 — '진'은 이 스킬을 가진 드래곤 자신이다.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 62,
+   "name": "순백의 빛",
+   "comment": "해당 드래곤의 명중률을 25% 증가",
+   "icon": 5,
+   "dragons": [
+    3005
+   ],
+   "dragon_names": [
+    "프리스트"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "accuracy",
+      "mode": "flat",
+      "value": 25
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 63,
+   "name": "신뢰의 힘",
+   "comment": "자신이 공격할 때 마다, 자신의 공격력이 10%씩 증가합니다. (최대 100% 증가)",
+   "icon": 14,
+   "dragons": [
+    4138
+   ],
+   "dragon_names": [
+    "루키르"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "attack_done",
+      "do": "stack",
+      "stats": [
+       "att"
+      ],
+      "value": 10,
+      "max_total": 100,
+      "to": "self",
+      "mode": "pct"
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 64,
+   "name": "신비한 보호",
+   "comment": "자신이 막기 발동시 아군 드래곤의 공격력, 방어력 2% 증가 (최대 30%)",
+   "icon": 9,
+   "dragons": [
+    4212
+   ],
+   "dragon_names": [
+    "소라게 드래곤"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "block",
+      "do": "stack",
+      "stats": [
+       "att",
+       "def"
+      ],
+      "value": 2,
+      "max_total": 30,
+      "to": "ally",
+      "mode": "pct"
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 65,
+   "name": "신성 방패",
+   "comment": "막기에 성공할 때 마다 자신의 합계 방어력 5%를 누적. 공격 시 누적된 수치만큼 체력을 회복하고 누적 수치를 초기화 (최대 5회 발동). [피의 갈증]과 중첩 불가.",
+   "icon": 9,
+   "dragons": [
+    4197
+   ],
+   "dragon_names": [
+    "카일루스"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "막기 성공마다 누적 → 공격 시 회복 — 막기/공격 훅"
+   }
+  },
+  {
+   "no": 66,
+   "name": "신성한 유대",
+   "comment": "생존한 아군 신성 속성 드래곤 한마리당 자신의 공격력이 기본 공격력의 20%씩 증가, 자신을 제외한 아군 드래곤의 방어력이 기본 방어력의 20%씩 증가",
+   "icon": 13,
+   "dragons": [
+    3033
+   ],
+   "dragon_names": [
+    "아카이아"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "alive_ally_element",
+       "value": "holy"
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "stat",
+        "stat": "att",
+        "mode": "pct",
+        "value": 20
+       },
+       {
+        "to": "ally_others",
+        "kind": "stat",
+        "stat": "def",
+        "mode": "pct",
+        "value": 20
+       }
+      ]
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 67,
+   "name": "심연의 마수",
+   "comment": "자신의 방어력이 50% 증가합니다.",
+   "icon": 6,
+   "dragons": [
+    4176
+   ],
+   "dragon_names": [
+    "아르켈론"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 50
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 68,
+   "name": "아르카의 광풍",
+   "comment": "아군이 받는 데미지가 10% 증가하는 대신 아군이 주는 데미지 20% 증가",
+   "icon": 15,
+   "dragons": [
+    4044
+   ],
+   "dragon_names": [
+    "멜로우 드래곤"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "dmg_taken",
+      "pct": 10
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 20
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 69,
+   "name": "암흑 마법",
+   "comment": "아군이 주는 데미지가 (드래곤 등급+1)% 증가. 상대 팀 드래곤이 사망할 때 마다 드래곤 등급에 곱하는 배율 증가 (최대 3)",
+   "icon": 6,
+   "dragons": [
+    104
+   ],
+   "dragon_names": [
+    "블랙퀸"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "드래곤 등급 + 상대 사망마다 배율 증가 — 사망 훅"
+   }
+  },
+  {
+   "no": 70,
+   "name": "암흑의 수호자",
+   "comment": "아군이 받는 추가 데미지 50% 감소, 자신이 주는 추가 데미지 50% 증가.",
+   "icon": 6,
+   "dragons": [
+    4208
+   ],
+   "dragon_names": [
+    "다크닉스Ⅱ"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "depure_pct",
+      "mode": "flat",
+      "value": 50
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure_pct",
+      "mode": "flat",
+      "value": 50
+     }
+    ]
+   }
+  },
+  {
+   "no": 71,
+   "name": "약점 공략",
+   "comment": "해당 드래곤의 일반공격, 연속공격, 치명 공격에서 상대의 공격력 방어력 합이 자신의 공격력, 방어력 합보다 낮은 경우 그 차이만큼 추가 데미지 (최대 150)",
+   "icon": 16,
+   "dragons": [
+    4199
+   ],
+   "dragon_names": [
+    "디기"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "stat_gap",
+      "max": 150
+     }
+    ],
+    "note": "'일반공격·연속공격·치명 공격에서' — 우리 엔진의 평타/연속/스킬이 모두 같은 피해 경로(_deal_attack)를 지나므로 한 곳에서 걸린다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 72,
+   "name": "어둠 속의 빛",
+   "comment": "아군이 입는 모든 피해 10% 감소. 자신이 사망 시, 효과량이 2배로 증가한다. 같은 종류의 효과와 중첩 불가.",
+   "icon": 5,
+   "dragons": [
+    4173
+   ],
+   "dragon_names": [
+    "유리온"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "self_alive"
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "dmg_taken",
+        "pct": -10
+       }
+      ]
+     },
+     {
+      "when": {
+       "kind": "self_dead"
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "dmg_taken",
+        "pct": -20
+       }
+      ]
+     }
+    ],
+    "note": "'자신이 사망 시 효과량이 2배' → 살아 있을 때 −10%, 죽으면 −20%. '같은 종류의 효과와 중첩 불가' 는 아직 못 지킨다(효과 종류 식별 체계 필요).",
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 73,
+   "name": "어둠 습격자",
+   "comment": "아군의 바람 속성 드래곤 수에 따라 자신의 공격력 20% 증가, 아군의 어둠 속성 드래곤 수에 따라 공격 시 대상의 방어력 20% 무시",
+   "icon": 16,
+   "dragons": [
+    4209
+   ],
+   "dragon_names": [
+    "오울드라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 20,
+      "per": "ally_element:wind"
+     },
+     {
+      "to": "self",
+      "kind": "pen",
+      "value": 20,
+      "per": "ally_element:dark",
+      "max": 95
+     }
+    ],
+    "note": "'공격 시 대상의 방어력 20% 무시' → damage() 의 pen. 둘 다 마릿수 비례라 전투 시작 시 1회로 끝난다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 74,
+   "name": "어둠의 심판자",
+   "comment": "어둠의 힘으로 자신의 공격력이 15%, 치명타 확률이 10% 증가합니다.",
+   "icon": 6,
+   "dragons": [
+    4178
+   ],
+   "dragon_names": [
+    "쿠베라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 15
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "cri",
+      "mode": "flat",
+      "value": 10
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 75,
+   "name": "얼어붙은 날개",
+   "comment": "자신이 준 데미지의 1/3을 누적 (최대 자신의 공격력만큼). 방어 시 누적된 수치만큼 데미지를 감소하고 누적 수치를 초기화.",
+   "icon": 9,
+   "dragons": [
+    4203
+   ],
+   "dragon_names": [
+    "다이달로스"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "준 피해 누적 → 방어 시 방출 — 공격/피격 훅 + 누적"
+   }
+  },
+  {
+   "no": 76,
+   "name": "에메랄드의 힘",
+   "comment": "해당 드래곤이 받는 데미지 25% 감소",
+   "icon": 9,
+   "dragons": [
+    35
+   ],
+   "dragon_names": [
+    "에메랄드 드래곤"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_taken",
+      "pct": -25
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 77,
+   "name": "영원의 불길",
+   "comment": "자신의 각성 게이지 최소값이 15%로 변경",
+   "icon": 13,
+   "dragons": [
+    3035
+   ],
+   "dragon_names": [
+    "아가레스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "gauge_min",
+      "value": 15
+     }
+    ],
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 78,
+   "name": "용암의 노련함",
+   "comment": "자신의 스킬이 상대 드래곤의 방어율을 100% 무시",
+   "icon": 15,
+   "dragons": [
+    4139
+   ],
+   "dragon_names": [
+    "타로스"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": false,
+    "why": "우리 엔진은 **스킬 피해에 막기를 적용하지 않는다**(막기는 평타 경로에만 있다) — 이 스킬을 켜도 이득이 0이다. 스킬에도 막기를 넣을지 먼저 정해야 한다"
+   }
+  },
+  {
+   "no": 79,
+   "name": "우아한 날개짓",
+   "comment": "자신의 모든 공격이 연속공격이 되고, 바람속성 드래곤의 피해량이 10% 증가",
+   "icon": 3,
+   "dragons": [
+    4166
+   ],
+   "dragon_names": [
+    "일란"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "모든 공격이 연속공격 — 행동 선택 훅"
+   }
+  },
+  {
+   "no": 80,
+   "name": "원투박치기",
+   "comment": "연속 공격 후 자신의 공격력 30% 증가 (최대 120%)",
+   "icon": 7,
+   "dragons": [
+    4211
+   ],
+   "dragon_names": [
+    "세크라포"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "double",
+      "do": "stack",
+      "stats": [
+       "att"
+      ],
+      "value": 30,
+      "max_total": 120,
+      "to": "self",
+      "mode": "pct"
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 81,
+   "name": "자격을 갖춘 자",
+   "comment": "공격 스킬 발동 시, 다음 공격 무조건 회피 (전투 당 최대 5회)",
+   "icon": 18,
+   "dragons": [
+    4151
+   ],
+   "dragon_names": [
+    "헤네스"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "skill_cast",
+      "do": "self_flag",
+      "flag": "evade_sure",
+      "left": 5
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 82,
+   "name": "자외선 차단 30",
+   "comment": "아군 전체 방어율 15% 증가, 상대 팀에 빛속성이 있는 경우 효과가 30%로 증가",
+   "icon": 5,
+   "dragons": [
+    4049
+   ],
+   "dragon_names": [
+    "섬머샤인"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "blk",
+      "mode": "flat",
+      "value": 15,
+      "cond": {
+       "kind": "enemy_has_element",
+       "value": "light"
+      },
+      "negate": true
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "blk",
+      "mode": "flat",
+      "value": 30,
+      "cond": {
+       "kind": "enemy_has_element",
+       "value": "light"
+      }
+     }
+    ],
+    "note": "'방어율' = 우리 blk(막기 확률). 상대 팀에 빛속성이 있으면 15→30.",
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 83,
+   "name": "잠재력",
+   "comment": "전투 중에 스킬 사용시 25% 확률로 스킬 레벨+5 된 효과로 발동. 발동 확률에는 영향을 주지 않는다.",
+   "icon": 13,
+   "dragons": [
+    4005,
+    4008
+   ],
+   "dragon_names": [
+    "제피로스",
+    "데스퍼라티오"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "skill_level_proc",
+      "pct": 25,
+      "value": 5
+     }
+    ],
+    "note": "'발동 확률에는 영향을 주지 않는다' — 확률은 원래 레벨로 굴리고, 발동이 정해진 뒤 그 한 번의 효과 레벨만 올린다.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 84,
+   "name": "전사의 의식",
+   "comment": "전투 시작 시 자신의 방어율 1%당 바람 속성 드래곤의 피해량이 0.5% 증가 (최대 30%)",
+   "icon": 13,
+   "dragons": [
+    4198
+   ],
+   "dragon_names": [
+    "세로님"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:wind",
+      "kind": "stat",
+      "stat": "__dmg_deal",
+      "mode": "pct",
+      "from": {
+       "stat": "blk",
+       "ratio": 0.5
+      },
+      "max": 30
+     }
+    ],
+    "note": "전사의 의식 — '전투 시작 시' 라 정적이다. 대상 스탯이 아니라 피해량이라 stat 대신 __dmg_deal 로 표기한다(AwakenSkill 이 dmg_deal 로 옮긴다).",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 85,
+   "name": "절망의 번개",
+   "comment": "공격 스킬 발동 시, 상대는 혼란에 빠져 다음 턴에 자기 자신을 공격한다(전투당 3회)",
+   "icon": 6,
+   "dragons": [
+    3036
+   ],
+   "dragon_names": [
+    "푸르푸르"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "skill_cast",
+      "do": "confuse_target",
+      "turns": 1,
+      "left": 3
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 86,
+   "name": "정의집행",
+   "comment": "자신 합계 방어력의 10% 자신의 관통데미지 무시, 합계 공격력의 10% 자신의 추가데미지 증가",
+   "icon": 14,
+   "dragons": [
+    4207
+   ],
+   "dragon_names": [
+    "샤마쉬"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "depure",
+      "mode": "flat",
+      "from": {
+       "stat": "def",
+       "ratio": 0.1
+      }
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure",
+      "mode": "flat",
+      "from": {
+       "stat": "att",
+       "ratio": 0.1
+      }
+     }
+    ],
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 87,
+   "name": "즈믄의 친구",
+   "comment": "25% 확률로 해당 드래곤이 받는 데미지를 1로 고정 (최대 5회)",
+   "icon": 13,
+   "dragons": [
+    4053
+   ],
+   "dragon_names": [
+    "변종에그드래곤"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "pre_damage",
+      "chance": 25,
+      "fix": 1,
+      "left": 5
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 88,
+   "name": "지옥의 악귀",
+   "comment": "아군에 불속성 드래곤 1마리 당, 아군 드래곤 크리티컬 확률 8%씩 증가",
+   "icon": 2,
+   "dragons": [
+    137
+   ],
+   "dragon_names": [
+    "발칸"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "cri",
+      "mode": "flat",
+      "value": 8,
+      "per": "ally_element:fire"
+     }
+    ],
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 89,
+   "name": "지혜의 별빛",
+   "comment": "아군의 스킬이 1레벨 더 높은 효과로 적용",
+   "icon": 13,
+   "dragons": [
+    4201
+   ],
+   "dragon_names": [
+    "미르"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "skill_level",
+      "value": 1
+     }
+    ],
+    "note": "'1레벨 더 높은 **효과**' → 발동 확률(_proc_pct)에는 안 걸고 효과 계산에만.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 90,
+   "name": "칠흑의 지배자",
+   "comment": "모든 아군 어둠속성 드래곤의 공격력 5%, 크리티컬 확률 5% 증가. 중첩되는 각성스킬 효과에 대해서는 높은 수치만 적용됩니다.",
+   "icon": 6,
+   "dragons": [
+    53
+   ],
+   "dragon_names": [
+    "다크닉스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally_element:dark",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 5
+     },
+     {
+      "to": "ally_element:dark",
+      "kind": "stat",
+      "stat": "cri",
+      "mode": "flat",
+      "value": 5
+     }
+    ],
+    "note": "'중첩되는 각성스킬 효과에 대해서는 높은 수치만 적용' — 같은 no 가 파티에 둘 이상 있어도 한 번만 적용한다(AwakenSkill 이 no 단위로 1회 적용).",
+    "tier": "B",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 91,
+   "name": "타락한 드래곤",
+   "comment": "상대 팀 각성 스킬 [다이즈의 가호]를 무효화하고 자신의 기본 체력의 15%만큼 체력 증가",
+   "icon": 6,
+   "dragons": [
+    4189
+   ],
+   "dragon_names": [
+    "콜테일"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": false,
+    "why": "상대 각성스킬 무효화 — 각성스킬 간 상호작용"
+   }
+  },
+  {
+   "no": 92,
+   "name": "타오르는 바위",
+   "comment": "(드래곤 등급*2)% 자신이 주는 데미지 증가, (드래곤 등급*1)% 자신이 받는 데미지 증가",
+   "icon": 4,
+   "dragons": [
+    3008
+   ],
+   "dragon_names": [
+    "레이어스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "__dmg_deal",
+      "mode": "pct",
+      "from": {
+       "stat": "grade",
+       "ratio": 2.0
+      }
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "__dmg_taken",
+      "mode": "pct",
+      "from": {
+       "stat": "grade",
+       "ratio": 1.0
+      }
+     }
+    ],
+    "note": "'드래곤 등급' 의 눈금이 원작과 다르다 — 우리 등급은 7.0 기준(Growth.compute_grade), 원작은 0~6(위키 '최대 한계는 6.0등급'). 계수는 설명 그대로 쓰되 결과 크기는 그만큼 차이날 수 있다. 노브 = build_awaken_effects.py 의 grade() ratio.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 93,
+   "name": "태양의 불꽃",
+   "comment": "크리티컬 발동 시 상대 드래곤 방어율과 회피율의 절반을 무시",
+   "icon": 2,
+   "dragons": [
+    4142
+   ],
+   "dragon_names": [
+    "엔투라스"
+   ],
+   "effect": {
+    "tier": "D",
+    "impl": false,
+    "why": "크리 발동 시 방어율·회피율 절반 무시 — 우리 판정 순서가 회피→막기→크리라 크리가 정해질 때는 이미 둘 다 끝나 있다. 판정 순서를 바꿔야 한다"
+   }
+  },
+  {
+   "no": 94,
+   "name": "파괴의 힘",
+   "comment": "아군에 어둠속성 드래곤이 2명인 경우, 자신의 공격력을 50% 증가",
+   "icon": 6,
+   "dragons": [
+    4023
+   ],
+   "dragon_names": [
+    "다르고스"
+   ],
+   "effect": {
+    "cond": {
+     "kind": "party_element_count",
+     "value": "dark",
+     "min": 2
+    },
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 50
+     }
+    ],
+    "tier": "B",
+    "impl": true
+   }
+  },
+  {
+   "no": 95,
+   "name": "푸른 화염",
+   "comment": "해당 드래곤의 공격이 항상 유리한 상성으로 적용 (방어에는 영향 없음)",
+   "icon": 2,
+   "dragons": [
+    4175
+   ],
+   "dragon_names": [
+    "살라"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "flag",
+      "flag": "elem_advantage"
+     }
+    ],
+    "note": "'방어에는 영향 없음' — 우리도 공격자 쪽 배수만 바꾼다(_hit_damage).",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 96,
+   "name": "하얀 번개",
+   "comment": "자신이 공격을 회피하면, 상대는 혼란에 빠져 다음 턴에 자기 자신을 공격한다 (전투당 4회)",
+   "icon": 17,
+   "dragons": [
+    4174
+   ],
+   "dragon_names": [
+    "포메쿨"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "evade",
+      "turns": 1,
+      "left": 4
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 97,
+   "name": "하얀매의 친구",
+   "comment": "전투 시작 시, 아군 각성 게이지 30% 회복 (중첩 불가)",
+   "icon": 5,
+   "dragons": [
+    4020
+   ],
+   "dragon_names": [
+    "그라노스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "ally",
+      "kind": "gauge_add",
+      "value": 30
+     }
+    ],
+    "stack": "once",
+    "note": "'중첩 불가' → stack:once.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 98,
+   "name": "혼돈의 절대자",
+   "comment": "아군 혼돈 드래곤 숫자에 따라, 스킬 제한 횟수 1회씩 증가 (최대 3회)",
+   "icon": 6,
+   "dragons": [
+    3003
+   ],
+   "dragon_names": [
+    "카오스"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "skill_uses",
+      "value": 1,
+      "per": "ally_element:chaos",
+      "max": 3
+     }
+    ],
+    "note": "'아군 혼돈 드래곤 숫자에 따라' — 대상이 자신인지 아군 전체인지 설명이 가르지 않는다. 다른 '스킬 제한' 스킬(23)이 '모든 아군'을 명시하는 것과 대비돼 여기는 자신으로 읽는다.",
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 99,
+   "name": "혼돈의 힘",
+   "comment": "자신의 남은 체력이 50% 이하일 때, 피해량이 50% 증가",
+   "icon": 6,
+   "dragons": [
+    4018
+   ],
+   "dragon_names": [
+    "발록"
+   ],
+   "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "self_hp_at_most",
+       "pct": 50
+      },
+      "ops": [
+       {
+        "to": "self",
+        "kind": "dmg_deal",
+        "pct": 50
+       }
+      ]
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 100,
+   "name": "흡수의 힘",
+   "comment": "아군 드래곤 중 가장 등급이 높은 드래곤의 능력치를 30% 흡수해서 자신의 체/공/방에 합친다.",
+   "icon": 15,
+   "dragons": [
+    4143
+   ],
+   "dragon_names": [
+    "말덱"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "absorb_top",
+      "pct": 30,
+      "stats": [
+       "hp",
+       "att",
+       "def"
+      ]
+     }
+    ],
+    "tier": "C",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 101,
+   "name": "희생과 복수",
+   "comment": "해당 드래곤 사망 시, 아군 각성기 게이지를 50% 회복한다.",
+   "icon": 5,
+   "dragons": [
+    4135
+   ],
+   "dragon_names": [
+    "레지아나"
+   ],
+   "effect": {
+    "react": [
+     {
+      "on": "death",
+      "gauge_pct": 50
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
+   }
+  },
+  {
+   "no": 102,
+   "name": "가시와 못",
+   "comment": "자신이 받는 데미지가 (쏜 네일의 드래곤 등급 *1)% 감소, 자신을 제외한 아군이 주는 데미지가 (쏜 네일의 드래곤 등급 *1)% 증가",
+   "icon": 17,
+   "dragons": [
+    4125
+   ],
+   "dragon_names": [
+    "쏜 네일"
+   ],
+   "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "__dmg_taken",
+      "mode": "pct",
+      "from": {
+       "stat": "grade",
+       "ratio": -1.0
+      }
+     },
+     {
+      "to": "ally_others",
+      "kind": "stat",
+      "stat": "__dmg_deal",
+      "mode": "pct",
+      "from": {
+       "stat": "grade",
+       "ratio": 1.0
+      }
+     }
+    ],
+    "note": "'드래곤 등급' 의 눈금이 원작과 다르다 — 우리 등급은 7.0 기준(Growth.compute_grade), 원작은 0~6(위키 '최대 한계는 6.0등급'). 계수는 설명 그대로 쓰되 결과 크기는 그만큼 차이날 수 있다. 노브 = build_awaken_effects.py 의 grade() ratio. '쏜 네일의 드래곤 등급' = 이 스킬을 가진 드래곤 자신의 등급.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
+   }
+  },
+  {
+   "no": 666,
+   "name": "새벽을 가져오는 자",
+   "comment": "공격시 25의 방어무시 대미지를 추가한다. 자신이 받는 추가 대미지 66% 감소, 아군 전체의 체력, 공격력, 방어력 6% 증가, 자신이 공격을 회피하면 상대는 혼란에 빠져 다음 턴에 자기 자신을 공격한다(전투당 6회), 아군이 입는 모든 피해 6% 감소, 아군 드래곤의 공격 대미지 36% 증가",
+   "icon": 6,
+   "dragons": [
+    666
+   ],
+   "dragon_names": [
+    "샛별"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure",
+      "mode": "flat",
+      "value": 25
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "depure_pct",
+      "mode": "flat",
+      "value": 66
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 6
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 6
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 6
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_taken",
+      "pct": -6
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 36
+     }
+    ],
+    "react": [
+     {
+      "on": "evade",
+      "turns": 1,
+      "left": 6
+     }
+    ],
+    "note": "'자신이 공격을 회피하면 상대는 혼란 (전투당 6회)' = 96 하얀 번개와 같은 구조."
+   }
+  },
+  {
+   "no": 777,
+   "name": "성좌의 주권자",
+   "comment": "해당 드래곤의 크리티컬 파워 50% 증가, 크리티컬 발동 시 상대 방어율과 회피율의 절반을 무시, 자신이 주는 추가대미지 50% 증가, 모든 공격에 의해 입는 피해량이 최대 체력의 25%로 제한, 모든 상태이상 무시",
+   "icon": 5,
+   "dragons": [
+    777
+   ],
+   "dragon_names": [
+    "한울"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "cri_pow",
+      "mode": "flat",
+      "value": 50
+     },
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure_pct",
+      "mode": "flat",
+      "value": 50
+     },
+     {
+      "to": "self",
+      "kind": "dmg_cap_pct",
+      "pct": 25
+     },
+     {
+      "to": "self",
+      "kind": "status_immune"
+     }
+    ],
+    "partial": [
+     "크리티컬 발동 시 상대 방어율과 회피율의 절반을 무시 — 우리 판정 순서가 **회피 → 막기 → 크리** 라, 크리가 정해지는 시점엔 회피·막기가 이미 끝나 있다. 적용하려면 전투 판정 순서를 바꿔야 한다(93 태양의 불꽃도 같은 이유로 미이식)."
+    ],
+    "note": "'모든 공격에 의해 입는 피해량이 최대 체력의 25%로 제한' → dmg_cap_pct. '모든 상태이상 무시' → Battle.IMMUNE_FLAG. 막는 대상은 `Battle.DEBUFF_FLAGS` 5종(stun 기절 · confused 혼란 · no_evade 회피불가 · no_block 막기불가 · no_crit 크리불가)이다. **지속피해(dot)·시한폭탄(timed)·받는피해증가(상처 파악)·능력치 감소(무언의 압박 등)는 효과 종류가 달라 막지 않는다** — '모든 상태이상' 에 그것들까지 넣을지는 사용자 확인 대상."
+   }
+  },
+  {
+   "no": 600,
+   "name": "불굴의 기상",
+   "comment": "자신이 받는 추가 대미지 30% 감소, 아군 전체의 체력, 공격력, 방어력 5% 증가, 자신이 공격을 회피하면 상대는 혼란에 빠져 다음 턴에 자기 자신을 공격한다(전투당 4회), 아군이 입는 모든 피해 5% 감소, 아군 드래곤의 공격 대미지 50% 증가",
+   "icon": 12,
+   "dragons": [
+    600
+   ],
+   "dragon_names": [
+    "dragon id 600 전용스킬"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "depure_pct",
+      "mode": "flat",
+      "value": 30
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 5
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 5
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 5
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_taken",
+      "pct": -5
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 50
+     }
+    ],
+    "react": [
+     {
+      "on": "evade",
+      "turns": 1,
+      "left": 4
+     }
+    ],
+    "note": "666 새벽을 가져오는 자와 같은 구조의 자작 스킬(수치만 다르다)."
+   }
+  },
+  {
+   "no": 700,
+   "name": "각성하는 의지",
+   "comment": "크리티컬 발동 시 상대 방어율과 회피율의 절반을 무시, 자신이 주는 추가대미지 30% 증가, 모든 공격에 의해 입는 피해량이 최대 체력의 30%로 제한, 모든 상태이상 무시",
+   "icon": 11,
+   "dragons": [
+    700
+   ],
+   "dragon_names": [
+    "dragon id 700 전용스킬"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "pure_pct",
+      "mode": "flat",
+      "value": 30
+     },
+     {
+      "to": "self",
+      "kind": "dmg_cap_pct",
+      "pct": 30
+     },
+     {
+      "to": "self",
+      "kind": "status_immune"
+     }
+    ],
+    "partial": [
+     "크리티컬 발동 시 상대 방어율과 회피율의 절반을 무시 — 우리 판정 순서가 **회피 → 막기 → 크리** 라, 크리가 정해지는 시점엔 회피·막기가 이미 끝나 있다. 적용하려면 전투 판정 순서를 바꿔야 한다(93·777 과 같은 이유)."
+    ],
+    "note": "777 성좌의 주권자와 같은 구조의 자작 스킬(수치만 다르다)."
+   }
+  }
+ ],
+ "_effect_basis": "각 스킬의 `effect` = `comment`(사용자가 적은 서술)를 기계가 읽는 형태로 옮긴 것. 빌드: scripts/tools/build_awaken_effects.py (분류·번역이 전부 그 파일에 있다). **번역만 하고 값을 지어내지 않는다** — 설명 전체를 충족하지 못하면 impl:false 로 두고 `why` 에 무엇이 막고 있는지 적는다. 반쪽 구현은 '발동하는데 설명과 다르게 동작'이라 안 하느니만 못하다. 판정 = scripts/systems/awaken_skill.gd (순수 로직).",
+ "_effect_schema": {
+  "tier": "A 탐험 · B 정적 · C 파생/시스템훅 · D 조건부/누적",
+  "impl": "bool — 지금 엔진이 실제로 반영하는가",
+  "why": "impl:false 일 때 무엇이 막고 있는지(다음 작업의 입력)",
+  "partial": "impl:true 지만 **일부 조항이 아직 안 도는** 경우 그 조항들(자작 다중조항 스킬). 동굴 각성스킬 팝업이 이 목록을 그대로 보여 준다",
+  "cond": "스킬 전체 조건. field_element / party_has_element / party_element_count / enemy_has_element / party_size_min / enemy_boss",
+  "ops": "전투 시작 시 적용할 연산. to = self|ally|ally_element:<el>, kind = stat|dmg_deal|dmg_taken|dmg_taken_flat. per 를 붙이면 마릿수만큼 배수, cond 를 붙이면 그 연산만 조건부",
+  "explore": "전투 밖 — gold_pct(탐험 골드) / artifact_chance_pct(아티팩트 확률)"
+ },
+ "_effect_progress": {
+  "A_탐험": 8,
+  "B_정적": 31,
+  "C_파생시스템": 26,
+  "D_조건부누적": 41,
+  "_impl": 92,
+  "_partial": 2,
+  "_total": 106,
+  "_note": "_impl = 효과가 실제로 도는 스킬 수. _partial 은 그중 **일부 조항만** 도는 것(자작 다중조항 스킬) — 각 스킬의 `partial` 에 무엇이 아직 안 되는지 적혀 있다."
+ }
+}

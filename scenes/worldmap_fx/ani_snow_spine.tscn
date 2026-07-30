@@ -1,0 +1,227 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_snow_spine/ani_snow_spine.png" id="1_fl0ec"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_4auek"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3imxs"]
+atlas = ExtResource("1_fl0ec")
+region = Rect2(61, 2, 61, 56)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pvouc"]
+atlas = ExtResource("1_fl0ec")
+region = Rect2(124, 2, 50, 55)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cahld"]
+atlas = ExtResource("1_fl0ec")
+region = Rect2(2, 2, 57, 57)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_04d7r"]
+length = 3.0603
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/01:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2309, 0.4619, 0.6929, 0.9238, 1.761, 1.7611, 1.9921, 2.223, 2.454, 2.685),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.2933626371205493, 3.8960984892269415, 5.467243881872237, 7.030360759958358, 8.576547944300135, 8.576547944300135, 8.576547944300135, 10.179283796406528, 11.750429189051824, 13.313546067137946, 14.85973325147972]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/01:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.9238, 1.7611, 2.685),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(142.32, -401.62), Vector2(-11.06, -190.25), Vector2(161.47, -309.06), Vector2(46.4, -121.09)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/01:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.9238, 1.7611, 2.685),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.399, 0.399), Vector2(1.2, 1.2), Vector2(0.799, 0.799), Vector2(1.4, 1.4)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/03:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.5485, 0.8372, 1.0104, 1.2414, 1.4724, 2.1363, 2.1364, 2.4251, 2.5984, 2.8293, 3.0603),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [1.657190124768616, 3.760835472197382, 4.852364386394635, 6.396457175634018, 7.940375431948202, 7.940375431948202, 7.940375431948202, 10.044020779376968, 11.13554969357422, 12.679642482813604, 14.223560739127787]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/03:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.5485, 1.4724, 2.1364, 3.0603),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(180.1, -352.38), Vector2(24.78, -138.08), Vector2(106.98, -360.67), Vector2(-7.33, -179.79)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/03:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.5485, 1.4724, 2.1364, 3.0603),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.6, 0.6), Vector2(1, 1), Vector2(0.2, 0.2), Vector2(0.799, 0.799)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/02:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0.8523, 1.0707, 1.2891, 1.5075, 1.7502, 1.9686, 2.1871),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.908618408588248, 2.5467844445101258, 4.081801521639139, 5.9281853373239395, 7.263013149249203, 8.829969751689712, 10.364986828818726]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/02:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0.8523, 2.1871),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(187.49, -369.4), Vector2(42.23, -149.2)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/02:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0.8523, 2.1871),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.2, 0.2), Vector2(1.2, 1.2)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/01/worldmap_kal01_frame/worldmap_kal01:modulate")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.2309, 0.6928, 0.6929, 0.9238, 1.761, 1.7611, 1.9921, 2.4539, 2.454, 2.685),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/02/worldmap_kal02_frame/worldmap_kal02:modulate")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.8522, 0.8523, 1.0104, 1.8765, 1.8766, 2.1871),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/03/worldmap_kal03_frame/worldmap_kal03:modulate")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.5484, 0.5485, 0.8372, 1.2413, 1.2414, 1.4724, 2.1363, 2.1364, 2.4251, 2.8292, 2.8293, 3.0603),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_mrj0d"]
+_data = {
+&"kal": SubResource("Animation_04d7r")
+}
+
+[node name="Dragon_ani_snow_spine_scene" type="Node2D" unique_id=1345562903]
+
+[node name="root" type="Node2D" parent="." unique_id=39902939]
+scale = Vector2(0.5, 0.5)
+
+[node name="01" type="Node2D" parent="root" unique_id=1559103860]
+position = Vector2(142.32, -401.62)
+rotation = 2.2933626
+
+[node name="worldmap_kal01_frame" type="Node2D" parent="root/01" unique_id=2128686693]
+position = Vector2(-0.16, 0.23)
+rotation = -2.2933626
+scale = Vector2(0.515, 0.515)
+
+[node name="worldmap_kal01" type="Sprite2D" parent="root/01/worldmap_kal01_frame" unique_id=385356436]
+material = SubResource("CanvasItemMaterial_4auek")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3283582)
+texture = SubResource("AtlasTexture_3imxs")
+
+[node name="02" type="Node2D" parent="root" unique_id=505826877]
+position = Vector2(164.45, -382.86)
+rotation = 0.9086184
+
+[node name="worldmap_kal02_frame" type="Node2D" parent="root/02" unique_id=1192904537]
+position = Vector2(-0.52, -0.46)
+rotation = -0.9086184
+scale = Vector2(0.431, 0.431)
+
+[node name="worldmap_kal02" type="Sprite2D" parent="root/02/worldmap_kal02_frame" unique_id=1113533477]
+z_index = 1
+material = SubResource("CanvasItemMaterial_4auek")
+scale = Vector2(1.3392857, 1.3333334)
+texture = SubResource("AtlasTexture_pvouc")
+
+[node name="03" type="Node2D" parent="root" unique_id=157626288]
+position = Vector2(144.47, -373.43)
+rotation = 1.6571901
+
+[node name="worldmap_kal03_frame" type="Node2D" parent="root/03" unique_id=313057923]
+position = Vector2(-0.68, 0.28)
+rotation = -1.6571901
+scale = Vector2(0.591, 0.591)
+
+[node name="worldmap_kal03" type="Sprite2D" parent="root/03/worldmap_kal03_frame" unique_id=293345013]
+z_index = 2
+material = SubResource("CanvasItemMaterial_4auek")
+scale = Vector2(1.3278688, 1.3278688)
+texture = SubResource("AtlasTexture_cahld")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=58579200]
+libraries/ = SubResource("AnimationLibrary_mrj0d")

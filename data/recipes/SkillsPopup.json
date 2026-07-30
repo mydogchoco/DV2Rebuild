@@ -1,0 +1,37 @@
+{
+  "_source": "docs/ref/orig_code/decomp/SkillsPopup.c (init@00eeba10, initWidget@00eebbc8) + PopupLayer::setContentSprite@011f709c",
+  "_purpose": "SkillsPopup(장착 스킬 팝업) 1:1 렌더 레시피 — 원작 좌표/프레임/앵커. UI 1:1 리팩터용(gaps §8b).",
+  "_note": "좌표계 = 팝업 배경 노드(this+0x218, popup4) 로컬. 원점=중앙(cocos 기본), 여기선 bg 좌하단 기준 (x,y)로 환산 표기. bgW=650, bgH=480.",
+  "popup": {
+    "frame": "9patch/popup4.png",
+    "asset": "assets/converted/ninepatch_ui/9patch_popup4.tres",
+    "content_size": [650, 480],
+    "cap_insets_cocos": [130, 190, 40, 58],
+    "ninepatch_margins_godot": {"left": 130, "top": 190, "right": 55, "bottom": 81},
+    "tex_size": [225, 329],
+    "_cite": "SkillsPopup.c:800 setContentSprite('9patch/popup4.png', Rect(130,190,40,58)); PopupLayer.c:659 CCSize(650,480)"
+  },
+  "elements": [
+    {"name": "close_btn", "frame": "common/close_btn.png", "asset": "assets/converted/common_ui/common_close_btn.tres",
+     "pos": [600, 430], "anchor": [0.5, 0.5], "scale": 1.5, "action": "close",
+     "_cite": "SkillsPopup.c:811-826 (bgW-50, bgH-50)=(600,430)"},
+    {"name": "title", "type": "label_bmfont", "font": "subtitle", "string": "StringManager(장착 스킬 타이틀)",
+     "pos": [325, 435], "scale": 1.2, "_cite": "SkillsPopup.c:906-919 (bgW*0.5, bgH-45)=(325,435)"},
+    {"name": "info_btn", "frame": "common/btn_info.png", "asset": "assets/converted/common_ui/common_btn_info.tres",
+     "pos": [385, 435], "scale": 1.05, "action": "onClickInfo",
+     "_cite": "SkillsPopup.c:921-946 (bgW*0.5+60, bgH-45)=(385,435)"},
+    {"name": "scroll_box", "type": "ninepatch", "frame": "9patch/scroll_box.png",
+     "asset": "assets/converted/ninepatch_ui/9patch_scroll_box.tres",
+     "size": [220, 420], "pos": [40, 40], "anchor": [0, 0],
+     "cap_insets_cocos": [65, 65, 6, 6], "ninepatch_margins_godot": {"left": 65, "top": 65, "right": 31, "bottom": 31},
+     "_cite": "SkillsPopup.c:951-964 size(bgW-430,420)=(220,420) pos(40,40) anchor(0,0)"},
+    {"name": "skill_table", "type": "tableview", "parent": "scroll_box",
+     "size": [200, 410], "pos": [10, 5], "vertical_fill_order": "top_down",
+     "_cite": "SkillsPopup.c:995-1010 size(scrollW-20,scrollH-10) pos(10,5) setVerticalFillOrder(0)"},
+    {"name": "detail_panel", "type": "layer", "size": [350, 420], "pos": [620, 40], "anchor": [1, 0],
+     "_note": "우측 상세 패널(선택 스킬 정보). 내부 subtitle 라벨(초기 빈값).",
+     "_cite": "SkillsPopup.c:1011-1033 size(350,420) pos(bgW-30,40)=(620,40) anchor(1,0)"}
+  ],
+  "_lost": "스킬 습득/교체 규칙(Lv10/25/45 확정스킬)=서버소실. 셀 렌더(tableCellAtIndex)·상세 패널 내용은 skills.json으로 채움.",
+  "_our_gap": "현 _open_skills(cave.gd)=StyleBox 단일창+인라인효과+리롤(자작). 이 레시피로 2-pane(좌 리스트/우 상세)+popup4/scroll_box 프레임 재조립 필요."
+}

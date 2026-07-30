@@ -1,0 +1,3424 @@
+{
+ "_re_basis": "스테이지별 적 구성·스탯·배경·보상은 원작 서버데이터라 유실(전투공식·월드맵·스킬매핑과 동일). → 자작(ASSUMPTION). 사용자가 아래 stages를 채운다. battle 씬이 이 데이터로 전투를 구성한다. worldmap 노드가 target을 \"battle:<스테이지id>\"로 가리키면 해당 스테이지가 로드됨(비우면 기본 스텁).",
+ "_schema": {
+  "id": "스테이지 고유 id(문자열). worldmap 노드 target=\"battle:<id>\"로 참조.",
+  "name": "표시 이름",
+  "bg": "배경 번호(assets/converted/battle_bg/bg_<N>.jpg. 원본 DV2/480/scene/adventure/bg/<N>/bg.jpg, 1~53 존재)",
+  "enemies": "적 목록. 각 {id(몬스터 도감 DV2/480/monster/<id>), name, level, element(aqua/chaos/dark/earth/fire/light/water/wind/grass 등 data/skills·dragons 참고), hp_max, att, def}. 현재 battle은 첫 적만 렌더(다중적은 후속).",
+  "rewards": "승리 보상 {exp, gold, items:[아이템키...]}. 아이템키는 data/items.json 참고. (보상 지급 로직은 후속 — 현재는 표시만)",
+  "bgm": "던전 탐험(비전투) 배경음악 트랙명(assets/music/<bgm>.mp3). 원작 Field.getSoundPath에 해당하나 서버데이터 유실 → 사용자 매핑. 비우면 지역 bgm 폴백. 전투 중엔 bg_colosseum_battle_2(일반)/bg_battle_boss(보스) 고정."
+ },
+ "_example": {
+  "id": "dwarf_1",
+  "name": "크리스탈 동굴",
+  "bg": 1,
+  "enemies": [
+   {
+    "id": 1,
+    "name": "분홍 몬스터",
+    "level": 12,
+    "element": "grass",
+    "hp_max": 480,
+    "att": 55,
+    "def": 35
+   }
+  ],
+  "rewards": {
+   "exp": 120,
+   "gold": 300,
+   "items": []
+  }
+ },
+ "stages": {
+  "15": {
+   "name": "빛의 탑",
+   "region": "yutakan",
+   "bg": 15,
+   "level": 45,
+   "enemies": [
+    {
+     "id": 67,
+     "name": "스톤키퍼-이글",
+     "level": 45,
+     "element": "none",
+     "hp_max": 588,
+     "att": 176,
+     "def": 90,
+     "boss": false
+    },
+    {
+     "id": 68,
+     "name": "스톤키퍼-베어",
+     "level": 45,
+     "element": "none",
+     "hp_max": 588,
+     "att": 176,
+     "def": 90,
+     "boss": false
+    },
+    {
+     "id": 69,
+     "name": "스톤키퍼-라이온",
+     "level": 45,
+     "element": "none",
+     "hp_max": 588,
+     "att": 176,
+     "def": 90,
+     "boss": false
+    },
+    {
+     "id": 70,
+     "name": "스톤키퍼-엘리펀트",
+     "level": 45,
+     "element": "none",
+     "hp_max": 588,
+     "att": 176,
+     "def": 90,
+     "boss": false,
+     "skills": [
+      11
+     ]
+    },
+    {
+     "id": 71,
+     "name": "스톤키퍼-드래곤",
+     "level": 45,
+     "element": "none",
+     "hp_max": 594,
+     "att": 176,
+     "def": 90,
+     "boss": false
+    },
+    {
+     "id": 72,
+     "name": "라이트 오브 (Light Orb)",
+     "level": 45,
+     "element": "none",
+     "hp_max": 880,
+     "att": 275,
+     "def": 180,
+     "boss": true,
+     "skills": [
+      12
+     ]
+    }
+   ],
+   "boss": "라이트 오브 (Light Orb)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/15/bg.jpg + music/bg_15.mp3.",
+   "dragons": [
+    {
+     "id": 52
+    },
+    {
+     "id": 61
+    },
+    {
+     "id": 82
+    },
+    {
+     "id": 21,
+     "hero": true
+    },
+    {
+     "id": 77,
+     "hero": true
+    }
+   ],
+   "element": "light",
+   "desc": "창조신 아모르가 고대 신룡에게 계시를 내리던 신비로운 장소입니다. 태고의 비밀을 간직한 신비한 공간. 도전할 가치는 충분할 듯 합니다!"
+  },
+  "4": {
+   "name": "바람의 신전",
+   "region": "yutakan",
+   "bg": 4,
+   "level": 15,
+   "enemies": [
+    {
+     "id": 16,
+     "name": "산 아가씨",
+     "level": 15,
+     "element": "none",
+     "hp_max": 228,
+     "att": 72,
+     "def": 30,
+     "boss": false
+    },
+    {
+     "id": 17,
+     "name": "괴조투사",
+     "level": 15,
+     "element": "none",
+     "hp_max": 204,
+     "att": 72,
+     "def": 30,
+     "boss": false
+    },
+    {
+     "id": 18,
+     "name": "늑대검사",
+     "level": 15,
+     "element": "none",
+     "hp_max": 204,
+     "att": 72,
+     "def": 30,
+     "boss": false,
+     "skills": [
+      120
+     ]
+    },
+    {
+     "id": 19,
+     "name": "이교술사",
+     "level": 15,
+     "element": "none",
+     "hp_max": 228,
+     "att": 72,
+     "def": 30,
+     "boss": false
+    },
+    {
+     "id": 20,
+     "name": "골드 타이탄 (Gold Titan)",
+     "level": 15,
+     "element": "none",
+     "hp_max": 297,
+     "att": 78,
+     "def": 37,
+     "boss": true,
+     "skills": [
+      120
+     ]
+    }
+   ],
+   "boss": "골드 타이탄 (Gold Titan)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/4/bg.jpg + music/bg_4.mp3.",
+   "element": "wind",
+   "desc": "바람의 신전은 과거 생명들이 빛의 수호자 고대 신룡을 숭배한 대표적인 신전 중 하나입니다. 지금도 군데군데 고대 신룡을 본뜬 돌 석상이 남아있다고 하네요.",
+   "dragons": [
+    {
+     "id": 3
+    },
+    {
+     "id": 30
+    },
+    {
+     "id": 4,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 바람의 신전에는 기괴한 기모모가 출현한다고 합니다. 기모모는 위기의 순간 강력한 힘으로 방심한 드래곤들을 쓰러뜨린다고 합니다.",
+    "dragons": [
+     {
+      "id": 188
+     }
+    ],
+    "enemies": [
+     {
+      "id": 166,
+      "name": "기모모 (Gimomo)",
+      "level": 50,
+      "element": "earth",
+      "hp_max": 840,
+      "att": 193,
+      "def": 210,
+      "boss": true,
+      "skills": [
+       24,
+       28
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.4 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 185,
+      "name": "골드 타이탄 (Gold Titan)",
+      "level": 15,
+      "element": "none",
+      "hp_max": 297,
+      "att": 78,
+      "def": 37,
+      "boss": true,
+      "skills": [
+       120
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #185(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "2": {
+   "name": "난파선",
+   "region": "yutakan",
+   "bg": 2,
+   "level": 5,
+   "enemies": [
+    {
+     "id": 6,
+     "name": "건 프로그",
+     "level": 5,
+     "element": "none",
+     "hp_max": 132,
+     "att": 39,
+     "def": 18,
+     "boss": false
+    },
+    {
+     "id": 7,
+     "name": "금발 인어",
+     "level": 5,
+     "element": "none",
+     "hp_max": 132,
+     "att": 39,
+     "def": 18,
+     "boss": false
+    },
+    {
+     "id": 8,
+     "name": "심해 상어전사",
+     "level": 5,
+     "element": "none",
+     "hp_max": 132,
+     "att": 39,
+     "def": 18,
+     "boss": false,
+     "skills": [
+      70
+     ]
+    },
+    {
+     "id": 9,
+     "name": "독문어",
+     "level": 5,
+     "element": "none",
+     "hp_max": 132,
+     "att": 39,
+     "def": 18,
+     "boss": false,
+     "skills": [
+      100
+     ]
+    },
+    {
+     "id": 10,
+     "name": "드래이크 (Drake)",
+     "level": 5,
+     "element": "none",
+     "hp_max": 198,
+     "att": 45,
+     "def": 25,
+     "boss": true,
+     "skills": [
+      23
+     ]
+    }
+   ],
+   "boss": "드래이크 (Drake)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/2/bg.jpg + music/bg_2.mp3.",
+   "element": "water",
+   "desc": "파도가 넘실거리는 난파선은 많은 물고기와 해안 생물이 있습니다. 지역의 우두머리인 드래이크는 악명 높은 해적 마물이니 주의하세요!",
+   "dragons": [
+    {
+     "id": 17
+    },
+    {
+     "id": 29
+    },
+    {
+     "id": 58
+    },
+    {
+     "id": 10,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 난파선에는 카데스에게 영혼을 바친 마법사 아녹마가 출현한다고 합니다. 아녹마는 뛰어난 체력과 회복력을 지니고 있어, 테이머들을 곤경에 빠뜨린다고 합니다.",
+    "dragons": [
+     {
+      "id": 187
+     }
+    ],
+    "enemies": [
+     {
+      "id": 164,
+      "name": "아녹마 (Anogma)",
+      "level": 50,
+      "element": "aqua",
+      "hp_max": 4560,
+      "att": 198,
+      "def": 12,
+      "boss": true,
+      "skills": [
+       29,
+       26
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.2 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 183,
+      "name": "드래이크 (Drake)",
+      "level": 5,
+      "element": "none",
+      "hp_max": 198,
+      "att": 45,
+      "def": 25,
+      "boss": true,
+      "skills": [
+       23
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #183(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "1": {
+   "name": "희망의 숲",
+   "region": "yutakan",
+   "bg": 1,
+   "level": 1,
+   "enemies": [
+    {
+     "id": 1,
+     "name": "핑크 슬라임",
+     "level": 1,
+     "element": "none",
+     "hp_max": 78,
+     "att": 22,
+     "def": 12,
+     "boss": false
+    },
+    {
+     "id": 2,
+     "name": "나무괴물",
+     "level": 1,
+     "element": "none",
+     "hp_max": 78,
+     "att": 22,
+     "def": 12,
+     "boss": false
+    },
+    {
+     "id": 3,
+     "name": "숲 고릴라",
+     "level": 1,
+     "element": "none",
+     "hp_max": 78,
+     "att": 22,
+     "def": 12,
+     "boss": false
+    },
+    {
+     "id": 4,
+     "name": "닌자 사슴",
+     "level": 1,
+     "element": "none",
+     "hp_max": 78,
+     "att": 22,
+     "def": 12,
+     "boss": false,
+     "skills": [
+      100
+     ]
+    },
+    {
+     "id": 5,
+     "name": "퀸즈 스네이크",
+     "level": 1,
+     "element": "earth",
+     "hp_max": 149,
+     "att": 29,
+     "def": 19,
+     "boss": true,
+     "skills": [
+      32
+     ]
+    }
+   ],
+   "boss": "퀸즈 스네이크",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/1/bg.jpg + music/bg_1.mp3.",
+   "intro": "숲의 으슥한 곳에서 시선이 느껴집니다.",
+   "element": "ground",
+   "desc": "푸르름이 어울려진 희망의 숲은 많은 동식물이 거주하는 지역입니다. 아름다운 숲의 모습 사이로는 무시무시한 마물들이 숨어 있습니다.",
+   "dragons": [
+    {
+     "id": 25
+    },
+    {
+     "id": 28
+    },
+    {
+     "id": 117
+    },
+    {
+     "id": 14,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이 된 희망의 숲에는 강력한 독을 품은 포마스가 출현한다고 합니다. 포마스가 뿜어내는 독에 맞으면 치명적이라고 합니다.",
+    "dragons": [
+     {
+      "id": 187
+     }
+    ],
+    "enemies": [
+     {
+      "id": 163,
+      "name": "포마스 (Fomas)",
+      "level": 50,
+      "element": "dark",
+      "hp_max": 2100,
+      "att": 171,
+      "def": 66,
+      "boss": true,
+      "skills": [
+       32
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.1 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 182,
+      "name": "퀸즈 스네이크",
+      "level": 1,
+      "element": "earth",
+      "hp_max": 149,
+      "att": 29,
+      "def": 19,
+      "boss": true,
+      "skills": [
+       32
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #182(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "3": {
+   "name": "불의 산",
+   "region": "yutakan",
+   "bg": 3,
+   "level": 10,
+   "enemies": [
+    {
+     "id": 11,
+     "name": "불의 정령",
+     "level": 10,
+     "element": "fire",
+     "hp_max": 162,
+     "att": 55,
+     "def": 24,
+     "boss": false
+    },
+    {
+     "id": 12,
+     "name": "불의 수호자",
+     "level": 10,
+     "element": "fire",
+     "hp_max": 162,
+     "att": 55,
+     "def": 24,
+     "boss": false
+    },
+    {
+     "id": 13,
+     "name": "와일드 보어",
+     "level": 10,
+     "element": "fire",
+     "hp_max": 162,
+     "att": 55,
+     "def": 24,
+     "boss": false
+    },
+    {
+     "id": 14,
+     "name": "파이어 매직 버드",
+     "level": 10,
+     "element": "fire",
+     "hp_max": 162,
+     "att": 55,
+     "def": 24,
+     "boss": false,
+     "_skill": "환각",
+     "skills": [
+      22
+     ]
+    },
+    {
+     "id": 15,
+     "name": "파이어 레드스톤",
+     "level": 10,
+     "element": "fire",
+     "hp_max": 248,
+     "att": 62,
+     "def": 31,
+     "boss": true,
+     "skills": [
+      50
+     ]
+    }
+   ],
+   "boss": "디콘 (Decon)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "element": "fire",
+   "desc": "불의 산의 불은 태초부터 타올랐습니다. 타오름의 원인은 누구도 모르지만 최근 정보에 의하면 불타는 혜성이 떨어진 장소라는 이야기가 있다네요!",
+   "dragons": [
+    {
+     "id": 5
+    },
+    {
+     "id": 7
+    },
+    {
+     "id": 8
+    },
+    {
+     "id": 6,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 불의산에는 불의 화신 디콘이 출현 한다고합니다. 디콘의 강력한 공격력에 쓰러진 드래곤이 셀수없다고 합니다.",
+    "dragons": [
+     {
+      "id": 187
+     }
+    ],
+    "enemies": [
+     {
+      "id": 165,
+      "name": "디콘 (Decon)",
+      "level": 50,
+      "element": "fire",
+      "hp_max": 780,
+      "att": 352,
+      "def": 132,
+      "boss": true,
+      "skills": [
+       21,
+       60
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.3 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 184,
+      "name": "파이어 레드스톤",
+      "level": 10,
+      "element": "fire",
+      "hp_max": 248,
+      "att": 62,
+      "def": 31,
+      "boss": true,
+      "skills": [
+       50
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #184(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "14": {
+   "name": "칼바람의 산맥",
+   "region": "yutakan",
+   "bg": 14,
+   "level": 42,
+   "enemies": [
+    {
+     "id": 62,
+     "name": "아이스피릿",
+     "level": 45,
+     "element": "aqua",
+     "hp_max": 540,
+     "att": 161,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 63,
+     "name": "설담비",
+     "level": 45,
+     "element": "aqua",
+     "hp_max": 540,
+     "att": 161,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 64,
+     "name": "샤프윙",
+     "level": 45,
+     "element": "wind",
+     "hp_max": 540,
+     "att": 161,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 65,
+     "name": "도도루",
+     "level": 45,
+     "element": "aqua",
+     "hp_max": 540,
+     "att": 161,
+     "def": 66,
+     "boss": false,
+     "_sprite_uncertain": true,
+     "skills": [
+      56
+     ]
+    },
+    {
+     "id": 66,
+     "name": "아스티탄",
+     "level": 45,
+     "element": "aqua",
+     "hp_max": 600,
+     "att": 161,
+     "def": 66,
+     "boss": true,
+     "skills": [
+      11
+     ]
+    }
+   ],
+   "boss": "아스티탄 (Icetitan)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "story_monsters": [
+    {
+     "id": 75,
+     "name": "다크프로스티",
+     "level": 45,
+     "element": "dark",
+     "hp_max": 700,
+     "att": 170,
+     "def": 75,
+     "boss": false,
+     "_story_only": true
+    }
+   ],
+   "intro": "거세게 몰아치는 바람 뒤로 불길한 존재가 아른거립니다.",
+   "bgm": "bg_12",
+   "_bgm_basis": "사용자 지정(2026-07-27) — 원본 music/bg_14.mp3 미추출이라 다른 곡 유용.",
+   "element": "wind",
+   "night": {
+    "level": 50,
+    "desc": "밤이된 칼바람산맥에는 아스티탄의 선조격인 몬스터 아이스티톤이 출현한다고 합니다. 아이스티톤은 자신을 보호하기 위한 강력한 기술을 사용해서, 많은 테이머들이 어려움을 겪는다고 합니다.",
+    "dragons": [
+     {
+      "id": 3038
+     }
+    ],
+    "enemies": [
+     {
+      "id": 174,
+      "name": "아이스티톤 (Icetiton)",
+      "level": 50,
+      "element": "aqua",
+      "hp_max": 900,
+      "att": 176,
+      "def": 216,
+      "boss": true,
+      "skills": [
+       11,
+       160
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.12 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "dragons": [
+    {
+     "id": 2
+    },
+    {
+     "id": 50
+    },
+    {
+     "id": 57
+    },
+    {
+     "id": 9,
+     "hero": true
+    }
+   ],
+   "desc": "매서운 칼 바람이 부는 지역입니다. 이곳의 수장 아스티탄은 칼과 불도 통하지 않는 무시무시 한 마물로 많은 드래곤 테이머가 패배했답니다. 하지만 용기를 가지고 도전하세요!",
+   "kades": {
+    "enemies": [
+     {
+      "id": 193,
+      "name": "아스티탄",
+      "level": 45,
+      "element": "aqua",
+      "hp_max": 600,
+      "att": 161,
+      "def": 66,
+      "boss": true,
+      "skills": [
+       11
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #193(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "12": {
+   "name": "원혼의 폭포",
+   "region": "yutakan",
+   "bg": 12,
+   "level": 38,
+   "enemies": [
+    {
+     "id": 52,
+     "name": "쉐도우 고스트",
+     "level": 38,
+     "element": "none",
+     "hp_max": 389,
+     "att": 144,
+     "def": 62,
+     "boss": false
+    },
+    {
+     "id": 53,
+     "name": "버닝 소울",
+     "level": 38,
+     "element": "none",
+     "hp_max": 389,
+     "att": 144,
+     "def": 62,
+     "boss": false,
+     "skills": [
+      46
+     ]
+    },
+    {
+     "id": 54,
+     "name": "포사이트",
+     "level": 38,
+     "element": "none",
+     "hp_max": 389,
+     "att": 144,
+     "def": 62,
+     "boss": false
+    },
+    {
+     "id": 55,
+     "name": "블러드 토드",
+     "level": 38,
+     "element": "none",
+     "hp_max": 389,
+     "att": 144,
+     "def": 62,
+     "boss": false
+    },
+    {
+     "id": 56,
+     "name": "카디모프스 (Kadimorphs)",
+     "level": 38,
+     "element": "none",
+     "hp_max": 515,
+     "att": 151,
+     "def": 80,
+     "boss": true,
+     "skills": [
+      46
+     ]
+    }
+   ],
+   "boss": "카디모프스 (Kadimorphs)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/12/bg.jpg + music/bg_12.mp3.",
+   "intro": "저주받은 원혼들이 사방을 헤메며 웃고 있습니다.",
+   "element": "fire",
+   "desc": "죽은 자들이 머문다는 공포의 공간! 헛소문이라 여기던 여행자들이 모두가 하나 둘 이곳에서 행방불명이 되었죠! 조심하세요! 이곳의 망령들은 그 어떤 마물보다 위험하니까요!!",
+   "dragons": [
+    {
+     "id": 37
+    },
+    {
+     "id": 39
+    },
+    {
+     "id": 35,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 원혼의 폭포에는 사스가 출현한다고 합니다. 사스는 뛰어난 체력을 지니고 있으며, 이를 활용한 기술로 드래곤을 공격한다고 합니다.",
+    "dragons": [
+     {
+      "id": 3038
+     }
+    ],
+    "enemies": [
+     {
+      "id": 172,
+      "name": "사스 (Sas)",
+      "level": 50,
+      "element": "dark",
+      "hp_max": 4560,
+      "att": 198,
+      "def": 12,
+      "boss": true,
+      "skills": [
+       53,
+       54
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.10 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 191,
+      "name": "카디모프스 (Kadimorphs)",
+      "level": 38,
+      "element": "none",
+      "hp_max": 515,
+      "att": 151,
+      "def": 80,
+      "boss": true,
+      "skills": [
+       46
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #191(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "13": {
+   "name": "도적의 이글루",
+   "region": "yutakan",
+   "bg": 13,
+   "level": 40,
+   "enemies": [
+    {
+     "id": 57,
+     "name": "씨프 고블린",
+     "level": 40,
+     "element": "none",
+     "hp_max": 414,
+     "att": 154,
+     "def": 66,
+     "boss": false,
+     "skills": [
+      46
+     ]
+    },
+    {
+     "id": 58,
+     "name": "카노프",
+     "level": 40,
+     "element": "none",
+     "hp_max": 414,
+     "att": 154,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 59,
+     "name": "콜디베어",
+     "level": 40,
+     "element": "none",
+     "hp_max": 414,
+     "att": 154,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 60,
+     "name": "돔돔",
+     "level": 40,
+     "element": "none",
+     "hp_max": 414,
+     "att": 154,
+     "def": 66,
+     "boss": false
+    },
+    {
+     "id": 61,
+     "name": "자카브로 (Jakabro)",
+     "level": 40,
+     "element": "none",
+     "hp_max": 545,
+     "att": 161,
+     "def": 84,
+     "boss": true,
+     "skills": [
+      28,
+      60
+     ]
+    }
+   ],
+   "boss": "자카브로 (Jakabro)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/13/bg.jpg + music/bg_13.mp3.",
+   "intro": "새하얀 눈 뒤로 정체불명의 움직임이 포착됩니다.",
+   "bgm": "bg_12",
+   "_bgm_basis": "사용자 지정(2026-07-27) — 원본 music/bg_13.mp3 미추출이라 다른 곡 유용.",
+   "night": {
+    "level": 50,
+    "desc": "밤이된 도적의 이글루에는 도적들이 만든 파수꾼 고곤이 출현한다고 합니다. 고곤은 특별한 기술을 가지고 있지는 않지만, 뛰어난 공격력과 방어력을 지니고 있다고 합니다.",
+    "dragons": [
+     {
+      "id": 3038
+     }
+    ],
+    "enemies": [
+     {
+      "id": 173,
+      "name": "고곤 (Gogon)",
+      "level": 50,
+      "element": "light",
+      "hp_max": 900,
+      "att": 193,
+      "def": 210,
+      "boss": true,
+      "skills": [
+       23,
+       36
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.11 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "dragons": [
+    {
+     "id": 38
+    },
+    {
+     "id": 61
+    },
+    {
+     "id": 115
+    },
+    {
+     "id": 124,
+     "hero": true
+    }
+   ],
+   "element": "ground",
+   "desc": "산맥을 건너는 행상인 여럿이 빈털터리가 되는 이유가 있다면 분명 도적들의 소행일 겁니다. 최근 그들의 소굴은 비밀리에 알려졌다고합니다...",
+   "kades": {
+    "enemies": [
+     {
+      "id": 192,
+      "name": "자카브로 (Jakabro)",
+      "level": 40,
+      "element": "none",
+      "hp_max": 545,
+      "att": 161,
+      "def": 84,
+      "boss": true,
+      "skills": [
+       28,
+       60
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #192(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "10": {
+   "name": "몽환의 수정터",
+   "region": "yutakan",
+   "bg": 10,
+   "level": 33,
+   "enemies": [
+    {
+     "id": 42,
+     "name": "크리퍼",
+     "level": 33,
+     "element": "dark",
+     "hp_max": 355,
+     "att": 131,
+     "def": 58,
+     "boss": false
+    },
+    {
+     "id": 43,
+     "name": "퍼플 라바",
+     "level": 33,
+     "element": "dark",
+     "hp_max": 355,
+     "att": 131,
+     "def": 58,
+     "boss": false
+    },
+    {
+     "id": 44,
+     "name": "몽환술사",
+     "level": 33,
+     "element": "dark",
+     "hp_max": 355,
+     "att": 131,
+     "def": 58,
+     "boss": false
+    },
+    {
+     "id": 45,
+     "name": "만드라고낙",
+     "level": 33,
+     "element": "wind",
+     "hp_max": 355,
+     "att": 131,
+     "def": 58,
+     "boss": false
+    },
+    {
+     "id": 46,
+     "name": "몽환의 파수꾼",
+     "level": 33,
+     "element": "dark",
+     "hp_max": 480,
+     "att": 140,
+     "def": 70,
+     "boss": true,
+     "skills": [
+      22,
+      15
+     ]
+    }
+   ],
+   "boss": "몽환의 파수꾼 (Fantasy Guard)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "story_monsters": [
+    {
+     "id": 73,
+     "name": "기계 만드라고낙",
+     "level": 33,
+     "element": "wind",
+     "hp_max": 388,
+     "att": 131,
+     "def": 58,
+     "boss": false,
+     "_story_only": true
+    }
+   ],
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "intro": "신비로운 수정들 사이로 불길한 그림자가 아른거립니다.",
+   "element": "ground",
+   "desc": "아련한 꿈속의 공간이라 여기면 큰 화를 입는 무시무시한 지역입니다. 이곳의 마물들은 과거 악신을 모시던 악한 마물들로 그 사악한 마음씨는 그 어떤 무기보다 무섭습니다.",
+   "dragons": [
+    {
+     "id": 119
+    },
+    {
+     "id": 120
+    },
+    {
+     "id": 121
+    },
+    {
+     "id": 122,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 몽환의 수정터에는 어둠의 암살자 키보가 출현한다고 합니다. 키보의 숨겨진 칼날은 드래곤에게 치명적이라고합니다.",
+    "dragons": [
+     {
+      "id": 3021
+     }
+    ],
+    "enemies": [
+     {
+      "id": 170,
+      "name": "키보 (Kibo)",
+      "level": 50,
+      "element": "wind",
+      "hp_max": 1020,
+      "att": 275,
+      "def": 138,
+      "boss": true,
+      "skills": [
+       54
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.8 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 189,
+      "name": "몽환의 파수꾼",
+      "level": 33,
+      "element": "dark",
+      "hp_max": 480,
+      "att": 140,
+      "def": 70,
+      "boss": true,
+      "skills": [
+       22,
+       15
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #189(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "11": {
+   "name": "오색호수",
+   "region": "yutakan",
+   "bg": 11,
+   "level": 36,
+   "enemies": [
+    {
+     "id": 47,
+     "name": "스파이크젤",
+     "level": 36,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 48,
+     "name": "레드스타",
+     "level": 36,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false,
+     "skills": [
+      57
+     ]
+    },
+    {
+     "id": 49,
+     "name": "렉쿠",
+     "level": 36,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 50,
+     "name": "크로커맨",
+     "level": 36,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 51,
+     "name": "뎀프바논 (Damp Vernon)",
+     "level": 36,
+     "element": "none",
+     "hp_max": 495,
+     "att": 144,
+     "def": 78,
+     "boss": true,
+     "skills": [
+      24
+     ]
+    }
+   ],
+   "boss": "뎀프바논 (Damp Vernon)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "story_monsters": [
+    {
+     "id": 74,
+     "name": "정령 스파이크젤",
+     "level": 36,
+     "element": "none",
+     "hp_max": 100,
+     "att": 11,
+     "def": 11,
+     "boss": false,
+     "_story_only": true
+    }
+   ],
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/11/bg.jpg + music/bg_11.mp3.",
+   "intro": "호수가 밝게 빛나며 다섯 가지 색을 발산하고 있습니다.",
+   "element": "water",
+   "desc": "하루에 여러번 색이 변한다 알려진 신비한 공간 오색 호수입니다. 많은 관광업자들이 이 호수를 이용해 돈벌이를 하고자 했지만...마물들의 무시무시한 힘에는 소용없었다네요.",
+   "dragons": [
+    {
+     "id": 11
+    },
+    {
+     "id": 12
+    },
+    {
+     "id": 42
+    },
+    {
+     "id": 33,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 오색호수에는 사람의 얼굴을 가진 몬스터 투바로가 출현한다고 합니다. 투바로는 생긴것과 달리 뛰어난 방어력을 지니고 있어, 많은 테이머들을 당황스럽게 한다고 합니다.",
+    "dragons": [
+     {
+      "id": 3021
+     }
+    ],
+    "enemies": [
+     {
+      "id": 171,
+      "name": "투바로 (Tubaro)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 720,
+      "att": 171,
+      "def": 540,
+      "boss": true,
+      "skills": [
+       120,
+       70
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.9 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 190,
+      "name": "뎀프바논 (Damp Vernon)",
+      "level": 36,
+      "element": "none",
+      "hp_max": 495,
+      "att": 144,
+      "def": 78,
+      "boss": true,
+      "skills": [
+       24
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #190(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "9": {
+   "name": "수중동굴",
+   "region": "yutakan",
+   "bg": 9,
+   "level": 30,
+   "enemies": [
+    {
+     "id": 37,
+     "name": "촉수 슬라임",
+     "level": 30,
+     "element": "aqua",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 38,
+     "name": "데스웜",
+     "level": 30,
+     "element": "aqua",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 39,
+     "name": "커터 크랩",
+     "level": 30,
+     "element": "aqua",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 40,
+     "name": "아이즈 데몬",
+     "level": 30,
+     "element": "dark",
+     "hp_max": 372,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 41,
+     "name": "데몬 쉘터",
+     "level": 30,
+     "element": "dark",
+     "hp_max": 446,
+     "att": 128,
+     "def": 72,
+     "boss": true,
+     "skills": [
+      15
+     ]
+    }
+   ],
+   "boss": "데몬 쉘터 (Demon Shelter)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "intro": "수면 위로 떨어지는 물방울 소리가 스산하게 울려 퍼집니다.",
+   "element": "water",
+   "desc": "결계가 약해지면서 알려진 지역 수년간 물로 인해 구멍 난 동굴에는 사악한 마물과 동식물이 가득합니다. 마음을 단단히 먹고 탐험하세요!",
+   "dragons": [
+    {
+     "id": 16
+    },
+    {
+     "id": 27
+    },
+    {
+     "id": 118
+    },
+    {
+     "id": 56,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 수중동굴에는 거대 물고기 고가가 출현한다고 합니다. 고가는 뛰어난 체력을 가지고 있으며, 드래곤들의 피로 자신의 체력을 채운다고 합니다.",
+    "dragons": [
+     {
+      "id": 3021
+     }
+    ],
+    "enemies": [
+     {
+      "id": 169,
+      "name": "고가 (Goga)",
+      "level": 50,
+      "element": "aqua",
+      "hp_max": 4560,
+      "att": 308,
+      "def": 12,
+      "boss": true,
+      "skills": [
+       14,
+       13
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.7 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 188,
+      "name": "데몬 쉘터",
+      "level": 30,
+      "element": "dark",
+      "hp_max": 446,
+      "att": 128,
+      "def": 72,
+      "boss": true,
+      "skills": [
+       15
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #188(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "7": {
+   "name": "수목신의 묘지",
+   "region": "yutakan",
+   "bg": 7,
+   "level": 25,
+   "enemies": [
+    {
+     "id": 31,
+     "name": "실버 나이트",
+     "level": 25,
+     "element": "none",
+     "hp_max": 324,
+     "att": 105,
+     "def": 42,
+     "boss": false
+    },
+    {
+     "id": 32,
+     "name": "핑크 젤라틴",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 42,
+     "boss": false
+    },
+    {
+     "id": 33,
+     "name": "페어리 고스트",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 42,
+     "boss": false
+    },
+    {
+     "id": 34,
+     "name": "다크 머더러",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 42,
+     "boss": false
+    },
+    {
+     "id": 35,
+     "name": "타락한 미아메이스 (Corrupted Miameith)",
+     "level": 25,
+     "element": "none",
+     "hp_max": 396,
+     "att": 111,
+     "def": 49,
+     "boss": true,
+     "skills": [
+      80
+     ]
+    }
+   ],
+   "boss": "타락한 미아메이스 (Corrupted Miameith)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/7/bg.jpg + music/bg_7.mp3.",
+   "intro": "저주받은 나무들의 비명이 허공에서 메아리칩니다.",
+   "element": "dark",
+   "desc": "과거 수호자였던 미아메이스가 마물들에게 타락하여 만들어진 장소 찬란하고 아름답던 숲의 노래도 생명의 흔적도 남아 있지 않습니다. 오직 공포와 고요만이 감돌 뿐이죠..",
+   "dragons": [
+    {
+     "id": 46
+    },
+    {
+     "id": 48
+    },
+    {
+     "id": 49
+    },
+    {
+     "id": 47,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 수목신의 묘지에는 미아메이스를 타락시킨 사악한 토라토스가 출현한다고 합니다. 토라토스는 두꺼운 껍질을 가지고 있어서, 일반적인 공격은 통하지 않는다고 합니다.",
+    "dragons": [
+     {
+      "id": 188
+     }
+    ],
+    "enemies": [
+     {
+      "id": 168,
+      "name": "토라토스 (Toratos)",
+      "level": 50,
+      "element": "earth",
+      "hp_max": 600,
+      "att": 171,
+      "def": 480,
+      "boss": true,
+      "skills": [
+       11,
+       12
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.6 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 187,
+      "name": "타락한 미아메이스 (Corrupted Miameith)",
+      "level": 25,
+      "element": "none",
+      "hp_max": 396,
+      "att": 111,
+      "def": 49,
+      "boss": true,
+      "skills": [
+       80
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #187(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "6": {
+   "name": "해골 요새",
+   "region": "yutakan",
+   "bg": 6,
+   "level": 22,
+   "enemies": [
+    {
+     "id": 26,
+     "name": "심벌 몽키",
+     "level": 22,
+     "element": "none",
+     "hp_max": 285,
+     "att": 96,
+     "def": 39,
+     "boss": false,
+     "skills": [
+      46
+     ]
+    },
+    {
+     "id": 27,
+     "name": "훔바",
+     "level": 22,
+     "element": "none",
+     "hp_max": 285,
+     "att": 96,
+     "def": 39,
+     "boss": false
+    },
+    {
+     "id": 28,
+     "name": "스테파니",
+     "level": 22,
+     "element": "none",
+     "hp_max": 285,
+     "att": 96,
+     "def": 39,
+     "boss": false
+    },
+    {
+     "id": 29,
+     "name": "모프된 가고일",
+     "level": 22,
+     "element": "none",
+     "hp_max": 285,
+     "att": 96,
+     "def": 39,
+     "boss": false
+    },
+    {
+     "id": 30,
+     "name": "G스컬 (Gskull)",
+     "level": 22,
+     "element": "none",
+     "hp_max": 370,
+     "att": 103,
+     "def": 46,
+     "boss": true,
+     "skills": [
+      120
+     ]
+    }
+   ],
+   "boss": "G스컬 (Gskull)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_stat_basis": "ASSUMPTION: 해골요새는 위키 미수록. 레벨/스탯 = stage5(lv20)~stage7(lv25) 보간. 로스터·스프라이트는 사용자 확인 정확.",
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/6/bg.jpg + music/bg_6.mp3.",
+   "_level_basis": "적 레벨 최빈값(Field.levelMin 재현, stage6/8 level=null 보정 2026-07-25)",
+   "intro": "어둡고 뜨거운 기운이 감도는 곳입니다.",
+   "element": "dark",
+   "desc": "과거 마물들이 가장 많은 이주를 해온 장소는 던전입니다. 그중 해골요새는 마물의 앞잡이인 사악한 G스컬이 머무는 장소로 끔찍한 마물들이 많이 모여있습니다.",
+   "dragons": [
+    {
+     "id": 104
+    },
+    {
+     "id": 43
+    },
+    {
+     "id": 44
+    },
+    {
+     "id": 102
+    }
+   ]
+  },
+  "8": {
+   "name": "혼돈의 틈새",
+   "region": "yutakan",
+   "bg": 8,
+   "level": 28,
+   "enemies": [
+    {
+     "level": 28,
+     "att": 176,
+     "def": 108,
+     "hp_max": 968,
+     "element": "none",
+     "id": 36,
+     "name": "다크닉스 (Dark Nix)",
+     "boss": true
+    },
+    {
+     "id": 138,
+     "name": "그리파르 (Griffar)",
+     "level": 28,
+     "element": "none",
+     "hp_max": 980,
+     "att": 176,
+     "def": 100,
+     "boss": true,
+     "skills": [
+      13
+     ]
+    },
+    {
+     "id": 139,
+     "name": "발레포르 (Valefor)",
+     "level": 28,
+     "element": "none",
+     "hp_max": 1188,
+     "att": 286,
+     "def": 140,
+     "boss": true,
+     "skills": [
+      14
+     ]
+    }
+   ],
+   "boss": "발레포르 (Valefor)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "random_boss": true,
+   "_sprite_verified": true,
+   "_stat_basis": "ASSUMPTION: 혼돈의틈새 보스 스탯=서버유실. lv28=stage7~9 보간. #138 def=0·hp=14850(깨진값)→#36 정합으로 보정, #139 def 360→140. 로스터(다크닉스/그리파르/발레포르)=사용자 확인.",
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/8/bg.jpg + music/bg_8.mp3.",
+   "_level_basis": "적 레벨 최빈값(Field.levelMin 재현, stage6/8 level=null 보정 2026-07-25)",
+   "intro": "어둡고 뜨거운 기운이 감도는 곳입니다.",
+   "element": "dark",
+   "desc": "또 하나의 수호자 다크닉스가 봉인되어 있는 장소입니다. 죽음과 공포의 불길이 타오르며 마신 다크닉스가 자신에게 도전할 무모한 드래곤 테이머를 기다립니다.",
+   "dragons": [
+    {
+     "id": 53
+    },
+    {
+     "id": 4037
+    },
+    {
+     "id": 3034
+    }
+   ]
+  },
+  "5": {
+   "name": "하늘의 신전",
+   "region": "yutakan",
+   "bg": 5,
+   "level": 20,
+   "enemies": [
+    {
+     "id": 21,
+     "name": "미노타우루스",
+     "level": 20,
+     "element": "none",
+     "hp_max": 246,
+     "att": 88,
+     "def": 36,
+     "boss": false,
+     "skills": [
+      130
+     ]
+    },
+    {
+     "id": 22,
+     "name": "글램위치",
+     "level": 20,
+     "element": "none",
+     "hp_max": 246,
+     "att": 88,
+     "def": 36,
+     "boss": false
+    },
+    {
+     "id": 23,
+     "name": "그린 페어리",
+     "level": 20,
+     "element": "none",
+     "hp_max": 246,
+     "att": 88,
+     "def": 36,
+     "boss": false
+    },
+    {
+     "id": 24,
+     "name": "켄타우로스",
+     "level": 20,
+     "element": "none",
+     "hp_max": 246,
+     "att": 88,
+     "def": 36,
+     "boss": false
+    },
+    {
+     "id": 25,
+     "name": "제우스 주니어 (Zeus Jr.)",
+     "level": 20,
+     "element": "none",
+     "hp_max": 347,
+     "att": 95,
+     "def": 43,
+     "boss": true,
+     "skills": [
+      160
+     ]
+    }
+   ],
+   "boss": "제우스 주니어 (Zeus Jr.)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/5/bg.jpg + music/bg_5.mp3.",
+   "element": "light",
+   "desc": "하늘의 신전은 창조신 아모르가 고대 신룡을 내려보낸 장소입니다. 아름다운 금색 석상은 과거 태초의 고대 신룡을 본떠 만든 작품이라고만 추측되고 있습니다.",
+   "dragons": [
+    {
+     "id": 40
+    },
+    {
+     "id": 36
+    },
+    {
+     "id": 84
+    },
+    {
+     "id": 1,
+     "hero": true
+    }
+   ],
+   "night": {
+    "level": 50,
+    "desc": "밤이된 하늘의 신전에는 사악한 듀마가 출현한다고 합니다. 듀마는 뛰어난 몸놀림때문에 왠만한 공격은 우습게 피한다고 합니다.",
+    "dragons": [
+     {
+      "id": 188
+     }
+    ],
+    "enemies": [
+     {
+      "id": 167,
+      "name": "듀마 (Duma)",
+      "level": 50,
+      "element": "dark",
+      "hp_max": 720,
+      "att": 178,
+      "def": 132,
+      "boss": true,
+      "skills": [
+       56
+      ],
+      "weight": 7
+     },
+     {
+      "id": 160,
+      "name": "골드 임프 (Gold Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 161,
+      "name": "실버 임프 (Silver Imp)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 456,
+      "att": 171,
+      "def": 66,
+      "boss": false,
+      "weight": 1
+     },
+     {
+      "id": 162,
+      "name": "검은 로브의 사도 (Black Robe)",
+      "level": 50,
+      "element": "chaos",
+      "hp_max": 1680,
+      "att": 275,
+      "def": 66,
+      "boss": false,
+      "skills": [
+       60,
+       14
+      ],
+      "weight": 1
+     },
+     {
+      "id": 175,
+      "name": "칼리고마가 (Caligo Maga)",
+      "level": 50,
+      "element": "none",
+      "hp_max": 2400,
+      "att": 264,
+      "def": 180,
+      "boss": false,
+      "weight": 1
+     }
+    ],
+    "random_boss": true,
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §1.2.5 보스 1종 + §1.2 머리말·§1.3 지역 무관 랜덤 4종. 몬스터 번호=사용자 확정(#163~174 던전순 보스 / #160~162·175 랜덤). 밤은 한 번만 탐험할 수 있고(위키) 조우도 1회다 → random_boss 로 1마리만 뽑는다. weight 는 '보통은 보스, 가끔 다른 몬스터' 를 옮긴 자작 노브(위키에 확률 없음)."
+   },
+   "kades": {
+    "enemies": [
+     {
+      "id": 186,
+      "name": "제우스 주니어 (Zeus Jr.)",
+      "level": 20,
+      "element": "none",
+      "hp_max": 347,
+      "att": 95,
+      "def": 43,
+      "boss": true,
+      "skills": [
+       160
+      ]
+     }
+    ],
+    "_enemies_basis": "나무위키 dungeon_1 §1.2/§1.3/§2.1 §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, 스프라이트만 #186(사용자 확정 #182~193 던전순). 레벨은 진입 시 120~200 을 굴리고(data/kades.json boss_level) battle.gd::_apply_kades_enemy 가 보스 레벨곡선으로 스탯을 끌어올린다. 일반 몬스터는 등장하지 않는다(사용자 확정)."
+   }
+  },
+  "18": {
+   "name": "고대 유적",
+   "region": "elf",
+   "bg": 18,
+   "level": 35,
+   "enemies": [
+    {
+     "id": 86,
+     "name": "망령",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 87,
+     "name": "플라잉 소드",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 88,
+     "name": "망령 전사",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 89,
+     "name": "망령이 깃든 가고일",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false,
+     "skills": [
+      160
+     ]
+    },
+    {
+     "id": 90,
+     "name": "마리오네트 (Marionette)",
+     "level": 35,
+     "element": "none",
+     "hp_max": 495,
+     "att": 144,
+     "def": 78,
+     "boss": true,
+     "skills": [
+      56
+     ]
+    }
+   ],
+   "boss": "마리오네트 (Marionette)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/18/bg.jpg + music/bg_18.mp3.",
+   "dragons": [
+    {
+     "id": 174
+    },
+    {
+     "id": 178
+    },
+    {
+     "id": 185,
+     "hero": true
+    }
+   ],
+   "element": "water",
+   "desc": "많은 비밀을 간직한 체 잠든 유적 행상인의 소문에 의하면 밤마다 무서운 존재가 나온다고 하네요! 설.. 설마 귀.. 귀신은 아니겠죠?!"
+  },
+  "16": {
+   "name": "정령의 숲",
+   "region": "elf",
+   "bg": 16,
+   "level": 25,
+   "enemies": [
+    {
+     "id": 76,
+     "name": "타락한 불의 정령",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 48,
+     "boss": false,
+     "skills": [
+      24
+     ]
+    },
+    {
+     "id": 77,
+     "name": "타락한 땅의 정령",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 48,
+     "boss": false,
+     "skills": [
+      24
+     ]
+    },
+    {
+     "id": 78,
+     "name": "타락한 물의 정령",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 48,
+     "boss": false,
+     "skills": [
+      150
+     ]
+    },
+    {
+     "id": 79,
+     "name": "타락한 바람의 정령",
+     "level": 25,
+     "element": "none",
+     "hp_max": 288,
+     "att": 105,
+     "def": 48,
+     "boss": false
+    },
+    {
+     "id": 80,
+     "name": "검은 원혼",
+     "level": 25,
+     "element": "none",
+     "hp_max": 396,
+     "att": 111,
+     "def": 66,
+     "boss": true
+    }
+   ],
+   "boss": "검은 원혼",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_sprite_verified": true,
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/16/bg.jpg + music/bg_16.mp3.",
+   "dragons": [
+    {
+     "id": 24
+    },
+    {
+     "id": 170
+    },
+    {
+     "id": 3021,
+     "hero": true
+    }
+   ],
+   "element": "ground",
+   "desc": "꿈에서 나올 것 같은 정령들이 살아 숨 쉬는 아름다운 공간입니다 다만... 이 아름다운 공간에도 아직 알지 못할 위협이 도사리고 있습니다"
+  },
+  "17": {
+   "name": "나무 계곡",
+   "region": "elf",
+   "bg": 17,
+   "level": 30,
+   "enemies": [
+    {
+     "id": 81,
+     "name": "식인나무",
+     "level": 30,
+     "element": "none",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false,
+     "skills": [
+      150
+     ]
+    },
+    {
+     "id": 82,
+     "name": "외눈 나무형제",
+     "level": 30,
+     "element": "none",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 83,
+     "name": "식충나무귀",
+     "level": 30,
+     "element": "none",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 84,
+     "name": "폭탄 씨앗",
+     "level": 30,
+     "element": "none",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false,
+     "skills": [
+      55
+     ]
+    },
+    {
+     "id": 85,
+     "name": "칼바라기",
+     "level": 30,
+     "element": "none",
+     "hp_max": 446,
+     "att": 128,
+     "def": 72,
+     "boss": true,
+     "skills": [
+      110
+     ]
+    }
+   ],
+   "boss": "칼바라기",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_sprite_verified": true,
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/17/bg.jpg + music/bg_17.mp3.",
+   "dragons": [
+    {
+     "id": 31
+    },
+    {
+     "id": 171
+    },
+    {
+     "id": 169,
+     "hero": true
+    }
+   ],
+   "element": "wind",
+   "desc": "수많은 나무들이 서로를 기대며 거대한 계곡을 만들어낸 공간입니다 희미 한 빛이 감도는 이곳에 어두운 그림자가 하나 둘 모여들고 있습니다!"
+  },
+  "19": {
+   "name": "세계수",
+   "region": "elf",
+   "bg": 19,
+   "level": 45,
+   "enemies": [
+    {
+     "id": 91,
+     "name": "검은로모",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 92,
+     "name": "외뿔검은로모",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false,
+     "skills": [
+      54
+     ]
+    },
+    {
+     "id": 93,
+     "name": "쌍뿔 검은로모",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 94,
+     "name": "슬러브 로모",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 95,
+     "name": "붓처 로모 (Butcher Romo)",
+     "level": 45,
+     "element": "none",
+     "hp_max": 594,
+     "att": 177,
+     "def": 90,
+     "boss": true,
+     "skills": [
+      150
+     ]
+    }
+   ],
+   "boss": "붓처 로모 (Butcher Romo)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/19/bg.jpg + music/bg_19.mp3.",
+   "dragons": [
+    {
+     "id": 73
+    },
+    {
+     "id": 26
+    },
+    {
+     "id": 173,
+     "hero": true
+    }
+   ],
+   "element": "light",
+   "desc": "요정과 동물들이 어머니인 대자연 그 심장이라고 불리는 세계수 과거에 아름다웠던 이 공간은 못된 로모라는 마물이 점령했다는데요.. 어서 빨리 세계수를 구해주죠!"
+  },
+  "20": {
+   "name": "광물산맥",
+   "region": "dwarf",
+   "bg": 20,
+   "level": 30,
+   "enemies": [
+    {
+     "id": 101,
+     "name": "암석 거인",
+     "level": 30,
+     "element": "earth",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 105,
+     "name": "철광석 거인",
+     "level": 30,
+     "element": "earth",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 102,
+     "name": "수정 거인",
+     "level": 30,
+     "element": "earth",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false,
+     "skills": [
+      31
+     ]
+    },
+    {
+     "id": 103,
+     "name": "큼강석 거인",
+     "level": 30,
+     "element": "earth",
+     "hp_max": 330,
+     "att": 121,
+     "def": 54,
+     "boss": false
+    },
+    {
+     "id": 104,
+     "name": "스톤하트 거인",
+     "level": 30,
+     "element": "earth",
+     "hp_max": 450,
+     "att": 130,
+     "def": 66,
+     "boss": true,
+     "skills": [
+      31
+     ]
+    }
+   ],
+   "boss": "스톤하트 거인",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24) → **몬스터 배정 재확인 완료** (2026-07-29, docs/input/sheets/monster_mapping.csv 117행 전부 O). 종전의 _a(추정) 표기를 해제한다.",
+   "_sprite_verified": true,
+   "element": "wind",
+   "desc": "형형색색으로 빛을 발하는 광물들 그 귀한 광물이 널린 지역 광물 산맥 하지만 이곳은 마력의 돌거인들이 지배하는 무시무시한 지역입니다 신중히 판단하고 모험을 준비하세요!",
+   "dragons": [
+    {
+     "id": 45
+    },
+    {
+     "id": 63
+    },
+    {
+     "id": 184,
+     "hero": true
+    }
+   ]
+  },
+  "22": {
+   "name": "거신의 입구",
+   "region": "dwarf",
+   "bg": 22,
+   "level": 35,
+   "enemies": [
+    {
+     "id": 106,
+     "name": "오우거",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 107,
+     "name": "전투 오우거",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 108,
+     "name": "기계 오우거",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false,
+     "skills": [
+      28
+     ]
+    },
+    {
+     "id": 109,
+     "name": "채광ㅈ오우거",
+     "level": 35,
+     "element": "none",
+     "hp_max": 420,
+     "att": 138,
+     "def": 60,
+     "boss": false
+    },
+    {
+     "id": 110,
+     "name": "붉은피의 칼로스 (Red-Blooded Carlos)",
+     "level": 35,
+     "element": "none",
+     "hp_max": 495,
+     "att": 144,
+     "def": 78,
+     "boss": true,
+     "skills": [
+      14
+     ]
+    }
+   ],
+   "boss": "붉은피의 칼로스 (Red-Blooded Carlos)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/22/bg.jpg + music/bg_22.mp3.",
+   "dragons": [
+    {
+     "id": 182
+    },
+    {
+     "id": 176
+    },
+    {
+     "id": 103,
+     "hero": true
+    }
+   ],
+   "element": "ground",
+   "desc": "전설의 화룡을 막고 쓰러진 용감한 드워프 형제의 거대한 석상 허나..최근에는 사악한 오우거들이 이곳을 점령하여 살아가고 있다네요 오우거를 물리쳐 평화를 되찾으세요!"
+  },
+  "21": {
+   "name": "기계무덤",
+   "region": "dwarf",
+   "bg": 21,
+   "level": 25,
+   "enemies": [
+    {
+     "id": 96,
+     "name": "고장난 소형 채굴 기계",
+     "level": 25,
+     "element": "earth",
+     "hp_max": 285,
+     "att": 105,
+     "def": 48,
+     "boss": false
+    },
+    {
+     "id": 97,
+     "name": "지반 다지기 기계",
+     "level": 25,
+     "element": "earth",
+     "hp_max": 285,
+     "att": 105,
+     "def": 48,
+     "boss": false,
+     "skills": [
+      20
+     ]
+    },
+    {
+     "id": 98,
+     "name": "중형 장구함 이동 기계",
+     "level": 25,
+     "element": "earth",
+     "hp_max": 285,
+     "att": 105,
+     "def": 48,
+     "boss": false
+    },
+    {
+     "id": 99,
+     "name": "중형 지반 다지기 기계",
+     "level": 25,
+     "element": "earth",
+     "hp_max": 285,
+     "att": 105,
+     "def": 48,
+     "boss": false
+    },
+    {
+     "id": 100,
+     "name": "대형 광맥 채굴 기계",
+     "level": 25,
+     "element": "earth",
+     "hp_max": 400,
+     "att": 115,
+     "def": 58,
+     "boss": true,
+     "_sprite_uncertain": true,
+     "skills": [
+      38
+     ]
+    }
+   ],
+   "boss": "대형 광맥 채굴 기계",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24) → **몬스터 배정 재확인 완료** (2026-07-29, docs/input/sheets/monster_mapping.csv 117행 전부 O). 종전의 _a(추정) 표기를 해제한다.",
+   "bgm": "bg_24",
+   "_bgm_basis": "사용자 지정(2026-07-27) — 원본 music/bg_21.mp3 미추출이라 다른 곡 유용.",
+   "element": "fire",
+   "desc": "고철의 소리가 귀를 자극하고 철과 오물의 냄새가 진동하는 장소 과거와 다르게 이곳은 무법천지인데요 이 험난한 곳을 탐험하기 위해서는 역시 강인한 용기가 필요할 듯 합니다",
+   "dragons": [
+    {
+     "id": 62
+    },
+    {
+     "id": 76
+    },
+    {
+     "id": 186,
+     "hero": true
+    }
+   ]
+  },
+  "23": {
+   "name": "화룡의 둥지",
+   "region": "dwarf",
+   "bg": 23,
+   "level": 45,
+   "enemies": [
+    {
+     "id": 111,
+     "name": "그렘린",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 112,
+     "name": "세뇌된 오우거",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 113,
+     "name": "미믹",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false,
+     "skills": [
+      24
+     ]
+    },
+    {
+     "id": 114,
+     "name": "바위지기",
+     "level": 45,
+     "element": "none",
+     "hp_max": 516,
+     "att": 171,
+     "def": 72,
+     "boss": false
+    },
+    {
+     "id": 115,
+     "name": "데미리치 (Demi Rich)",
+     "level": 45,
+     "element": "none",
+     "hp_max": 594,
+     "att": 177,
+     "def": 90,
+     "boss": true,
+     "skills": [
+      170
+     ]
+    }
+   ],
+   "boss": "데미리치 (Demi Rich)",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "_sprite_verified": true,
+   "_sprite_note": "사용자 전체 매핑 시트 확정(2026-07-24).",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/23/bg.jpg + music/bg_23.mp3.",
+   "bgm": "bg_22",
+   "_bgm_basis": "사용자 지정(2026-07-27) — 원본 music/bg_23.mp3 미추출이라 다른 곡 유용.",
+   "dragons": [
+    {
+     "id": 167
+    },
+    {
+     "id": 74
+    },
+    {
+     "id": 116,
+     "hero": true
+    }
+   ],
+   "element": "dark",
+   "desc": "전설의 화룡 카시즈가 잠든 장소 지옥을 연상케 하는 불이 타오르고 지하에는 비명이 메아리칩니다 이 무시무시한 공간으로의 모험.. 최선을 다해 임해주세요!!",
+   "_dragons_note": "가운데 슬롯(74 레드와이번)은 레퍼런스 실루엣 미식별 → 사용자 지시로 미배정 불 3성 중 임의 배정(ASSUMPTION)"
+  },
+  "24": {
+   "name": "검은 섬",
+   "region": "uno",
+   "bg": 24,
+   "level": 50,
+   "enemies": [
+    {
+     "id": 181,
+     "name": "관문의 수호자 (Ancient Gate Keeper)",
+     "level": 50,
+     "element": "chaos",
+     "hp_max": 543,
+     "att": 180,
+     "def": 130,
+     "boss": true,
+     "skills_hero": [11]
+    }
+   ],
+   "boss": "관문의 수호자 (Ancient Gate Keeper)",
+   "scale_by_party_count": {
+    "power": 2
+   },
+   "_scale_basis": "🟦 **사용자 확정 2026-07-30**: 기본 스탯(체 543 / 공 180 / 방 130) × (출전 드래곤 수)². 1마리=×1 · 2마리=×4 · 3마리=×9 ⇒ 위키 §4.1 의 '여러 마리를 쓰면 난이도가 급등' · '한 마리만 쓰는 하메' 서술과 일치한다. ⚠️ 종전의 `scale_to_party`(파티 평균 스탯 × 자작 계수)는 위키 서술('드래곤의 스펙에 의해 스탯이 결정')을 우리가 파티 **스탯** 연동으로 해석한 자작이었다 — 실제 규칙은 **마리 수** 제곱이다. 구현 = `battle.gd::_apply_party_count_scaling`.",
+   "_skills_basis": "🟦 사용자 확정 2026-07-30: **영웅 난이도에서만** 철갑 방패(skills.json id 11)를 쓴다. 위키 §4.1 표기도 '철갑 방패[영웅]' 이다 ⇒ `skills_hero` = 영웅 진입(`hero` 파라미터)일 때만 실리는 스킬 목록.",
+   "once_per_day": true,
+   "_once_basis": "위키 §4 '하루에 한번씩 할 수 있으며, 이를 무시하고 한 번 더하려면 50 다이아를 지불해야 한다'.",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "drops": [
+    {
+     "item": "anima",
+     "min": 5,
+     "max": 10,
+     "hero_min": 15,
+     "hero_max": 20,
+     "rate": 100
+    }
+   ],
+   "_drops_basis": "위키 §4.1 '아니마를 얻을수 있는 신비한 검은 섬' + item.pdf '[검은섬]에서 획득 가능'. 위키 item.pdf 각주 [40] **확정**: '일반은 5~10개, 영웅은 15~20개를 얻을 수 있다.' 종전의 1~3 은 자작 추정값이었다(2026-07-29 정정). 확률 100% 도 같은 각주가 근거 — 우노 두 던전은 이 재료를 얻으러 가는 곳이라 확정 드롭이다. 위키는 '보네르 역시 이곳에서도 나오는 것으로 보인다'고 하지만 추측형 서술이라 넣지 않았다.",
+   "_sprite_verified": true,
+   "_sprite_note": "🟦 **사용자 확정 2026-07-30: #181**(은빛 갑주 + 보랏빛 번개/화염의 기계 구조물 — 위키 '뛰어난 마공학의 결정체'와 일치). 종전의 **#134 는 오배정**이었다 — #130~136 은 `raid_thumb`/`box_thumb` 프레임을 가진 **레이드 몹 블록**이고(전 몬스터 중 130~136·175·178~180 만 보유), 위키 raid.pdf 의 1·2세대 7종(핑크벨·샤먼·실러캔스·파이거·프레데터·데바·켈베로스)과 개수·생김새가 맞는다. 그 앞의 #120~125 는 미지의 터 6보스, #116~119 는 엘프/드워프 가디언·여왕·왕이다.",
+   "_bg_basis": "원작 필드 id 그대로(= 스테이지 키). scene/adventure/bg/24 실재.",
+   "bgm": "bg_22",
+   "_bgm_basis": "우노 던전 전용 BGM 은 추출분에 없다 — 메탈타워 최종과 같은 곡을 유용(ASSUMPTION).",
+   "_source": "원작 WorldMapUnoLayer::initBG field 0x18. 이름 = stringsData_KR <TutorialUno_5>. 내용 = 위키 dungeon_4.pdf §4.1.",
+   "desc": "아니마를 얻을수 있는 신비한 검은섬\n드래곤들의 힘을 흡수해서 사용한다는\n관문의 수호자가 출현한다고 한다.",
+   "_desc_basis": "던전 설명문은 원작 서버 데이터(`info_field` 의 desc)라 유실이지만, 레퍼런스 스크린샷에 **원문 그대로 찍혀 있다** — `docs/ref/uno/던전1.png` · `던전2.png` 의 정보 팝업 본문. 글자를 옮겨 적은 것이고 지어낸 문장이 아니다(줄바꿈도 스크린샷 그대로)."
+  },
+  "25": {
+   "name": "미지의 터",
+   "region": "uno",
+   "bg": 25,
+   "level": 50,
+   "enemies": [
+    {
+     "id": 125,
+     "name": "퍼플립스(Purple Lips)",
+     "level": 50,
+     "element": "none",
+     "hp_max": 4500,
+     "att": 25,
+     "def": 50,
+     "boss": true
+    },
+    {
+     "id": 124,
+     "name": "블루라이트닝(Blue Lightning)",
+     "level": 50,
+     "element": "aqua",
+     "hp_max": 2625,
+     "att": 375,
+     "def": 150,
+     "boss": true
+    },
+    {
+     "id": 123,
+     "name": "골드 드래곤(Gold Dragon)",
+     "level": 50,
+     "element": "none",
+     "hp_max": 5625,
+     "att": 150,
+     "def": 75,
+     "boss": true
+    },
+    {
+     "id": 122,
+     "name": "드라고노이드(Dragnoid)",
+     "level": 50,
+     "element": "none",
+     "hp_max": 2250,
+     "att": 150,
+     "def": 410,
+     "boss": true
+    },
+    {
+     "id": 121,
+     "name": "윗치 드래곤(Witch Dragon)",
+     "level": 50,
+     "element": "none",
+     "hp_max": 3000,
+     "att": 225,
+     "def": 260,
+     "boss": true
+    },
+    {
+     "id": 120,
+     "name": "볼케이노(Volcano)",
+     "level": 50,
+     "element": "none",
+     "hp_max": 2500,
+     "att": 175,
+     "def": 100,
+     "boss": true
+    }
+   ],
+   "boss": "요일별 교대",
+   "boss_by_weekday": {
+    "1": 5,
+    "2": 4,
+    "3": 3,
+    "4": 2,
+    "5": 1,
+    "6": 0,
+    "7": -1
+   },
+   "_weekday_basis": "위키 dungeon_4.pdf §4.2 요일 표기 그대로 — 월=볼케이노 · 화=윗치 드래곤 · 수=드라고노이드 · 목=골드 드래곤 · **금=블루라이트닝** · 토=퍼플립스, 그리고 **일요일은 전부 등장**(-1 = 목록에서 무작위). 키 1=월 … 7=일 (Godot Time weekday 0=일 → +1 보정은 battle.gd). enemies 순서는 위키 서술 순서(=스프라이트 id 내림차순 125→120)와 같게 두었다 — 인덱스가 어긋나면 요일 보스가 통째로 밀리므로 순서를 바꿀 때 이 표도 함께 고칠 것.",
+   "no_skills": true,
+   "_no_skills_basis": "위키 §4.2 '알수없는 기운으로 인해 드래곤들이 스킬을 사용할수 없다' — 이 던전에서는 스킬 발동을 막는다.",
+   "once_per_day": true,
+   "_once_basis": "위키 §4 '하루에 한번씩'.",
+   "rewards": {
+    "exp": null,
+    "gold": null,
+    "items": []
+   },
+   "drops": [
+    {
+     "item": "bonner",
+     "min": 5,
+     "max": 10,
+     "hero_min": 15,
+     "hero_max": 20,
+     "rate": 100
+    }
+   ],
+   "_drops_basis": "위키 §4.2 '보네르를 얻을수 있는 미지의 터' + item.pdf '[미지의터]에서 획득 가능'. 위키 item.pdf 각주 [40] **확정**: '일반은 5~10개, 영웅은 15~20개를 얻을 수 있다.' 종전의 1~3 은 자작 추정값이었다(2026-07-29 정정). 확률 100% 도 같은 각주가 근거 — 우노 두 던전은 이 재료를 얻으러 가는 곳이라 확정 드롭이다.",
+   "_sprite_verified": true,
+   "_sprite_note": "2026-07-28 조립 스파인 실측으로 확정(scripts/tools/shot_monsters.gd). #125 퍼플립스(보라 몸통·흰 배·도드라진 주둥이) · #124 블루라이트닝(하늘빛 익룡) · #123 골드 드래곤(보물상자 위 금룡) · #122 드라고노이드(청록 기계 몸체·케이블 팔) · #121 윗치 드래곤(지팡이를 든 연보라룡) · #120 볼케이노(붉은 익룡). **#120~125 가 정확히 위키의 6보스와 연속 블록**을 이룬다 — extract_wiki 의 순번 배정(118~122)은 틀렸다. #118·#119 는 드워프 왕·엘프 여왕이고, 위키 §4.2 가 말한 '우호도 max 시 미지의 터에 등장하는' 그 둘이다. **2026-07-30: 6번째 블루라이트닝(#124)을 로스터에 넣었다** — 스탯(체 2625 / 공 375 / 방 150)·속성(물)은 위키 미기재분으로 🟦 사용자 확정이다.",
+   "_bg_basis": "원작 필드 id 그대로. scene/adventure/bg/25 실재.",
+   "bgm": "bg_22",
+   "_bgm_basis": "24번과 같음(ASSUMPTION).",
+   "_source": "원작 WorldMapUnoLayer::initBG field 0x19. 이름 = <TutorialUno_5>. 내용·스탯 = 위키 dungeon_4.pdf §4.2.",
+   "_blue_lightning": "위키가 스탯을 안 적은 6번째 보스. 스프라이트는 **#124** 로 확정했으나 공/방/체를 지어내지 않기 위해 enemies 에 넣지 않았다(금요일은 목록에서 무작위). 수치가 확인되면 여기 추가할 것.",
+   "_favor_bosses": "위키 §4.2: '상대 측 우호도를 max로 찍으면 엘프/드워프 가디언들처럼 미지의 터에서 엘프 여왕/드워프 왕이 보스 몹으로 등장한다. … 실제 관측 사례는 전무하고 파일을 뜯었을 때 나오는 스프라이트로만 존재를 확신할 수 있다.' → 스프라이트 #119(엘프 여왕) · #118(드워프 왕) 실재 확인. 우호도 시스템 자체가 ⚪미구현이라 편성에는 넣지 않았다.",
+   "desc": "보네르를 얻을수 있는 미지의 터. 구시대의 유물을\n지키는 드래곤들이 출현한다고한다. 알수없는\n기운으로 인해 드래곤들이 스킬을 사용할수\n없다고 한다.",
+   "_desc_basis": "던전 설명문은 원작 서버 데이터(`info_field` 의 desc)라 유실이지만, 레퍼런스 스크린샷에 **원문 그대로 찍혀 있다** — `docs/ref/uno/던전1.png` · `던전2.png` 의 정보 팝업 본문. 글자를 옮겨 적은 것이고 지어낸 문장이 아니다(줄바꿈도 스크린샷 그대로)."
+  }
+ },
+ "_generated": "stages는 gen_stages.py로 위키(monsters/stages_wiki)+worldmap 조인 생성. id=field번호. enemy id(몬스터에셋)·bg·rewards=TODO. 사용자 검수.",
+ "_re_basis_v2": "몬스터↔스프라이트 매핑: stage 1-5·7-10 검증완료(_sprite_verified). 나머지=순차배정 ASSUMPTION(_sprite_assumption). 스프라이트 id는 던전순서와 무관히 스크램블돼 사용자 확인 필요. 이름/레벨/스탯은 dungeon_*.pdf(위키) 기반. 도구: docs/input/review/.",
+ "_bgm_basis": "던전 BGM = music/bg_<필드id>.mp3 (배경과 같은 번호). 원본에 없는 5종은 사용자 지정으로 대체: 13·14=bg_12 / 21=bg_24 / 23=bg_22. 20(광물산맥)은 미지정 → 지역 BGM(bg_metal_tower) 폴백 중.",
+ "_intro_basis": "stages.<id>.intro = 탐험 배회 텍스트박스 2번째 줄(던전별 분위기 문장). 원작에서는 서버 시나리오 데이터라 유실 → 사용자가 docs/input/review/lost_text_sheet.md §1 에 작성한 값. 던전 매칭은 시트의 id 열이 아니라 **이름**으로 했다(시트 id는 표 skeleton의 일련번호였다). 미기입 던전은 필드 없음 = 1줄만 출력(문장 생성 금지).",
+ "_bg_basis": "던전 배경 = 원작 `scene/adventure/bg/<필드id>/bg.jpg` (WorldMapPopupLayer.c:9066 등). 필드 id = 이 파일의 스테이지 키 = 원작 stringsData `AdventureField_<id>`(1=희망의 숲 … 23=화룡의 둥지). 따라서 bg = 스테이지 키(사용자 확인, 2026-07-27). override 슬롯으로 남겨 둔다 — 500+id=밤 / 600+id=보라(오염) 변형 배경도 원본에 있다. BGM 도 같은 번호 체계(music/bg_<필드id>.mp3)라 adventure.gd 가 자동 배정한다(bg_13/14/20/21/23 은 원본 음원 미추출 → 지역 폴백).",
+ "_popup_basis": "dragons/element/desc/night = docs/ref/adventure_popup/*.png (2016 방송 캡처) 전사 — 원작 WorldMapPopupLayer(setDragonImage/setAttribute/setDesc)가 서버 Field 로 그리던 값. hero=true = 영웅모드 전용(H 뱃지, info_hero_dragon_frame). night = 유타칸 밤(+500) 변형: 레벨 50(스크린샷 3장 교차확인)·단일 드래곤·전용 설명문. 혼돈의틈새(8) 슬롯 = 사용자 직접 확인(2026-07-29: 다크닉스/그리파르/발레포르). 빛의 탑(15)은 스크린샷 전사(5칸 3+2, 엔젤·나이트 H). 화룡의둥지(23) 가운데=레드와이번(74, 사용자 지시 임의배정). 필드 3 레벨 50→10 정정(스크린샷 '레벨 10 불의 산'). 포팅 카드 = docs/ref/porting/WorldMapPopupLayer.md",
+ "_variant_basis": "유타칸 밤(501~514)·카데스(601~614) 편성 = scripts/tools/build_yutakan_variants.py 가 기입. 각 스테이지의 night/kades 블록 참조. 변형이 있는 필드는 1~14 중 6·8 을 뺀 12종뿐이다.",
+ "_monster_skills_basis": "몬스터 보유 스킬 = 위키 dungeon_*.pdf(data/monsters.json) 를 이름으로 조인해 skills.json 의 스킬 id 로 옮긴 것. 원작 근거 = BattleMonster::setReadySkill/callReadySkill/setAnimatedReadySkill + FightManager::getActorSkillNumber(진영 무관). 생성 도구 = scripts/tools/build_monster_skills.py. # ASSUMPTION: 몬스터 스킬 **레벨**은 원작 표가 서버와 함께 유실됐다 → 전투에서 1로 쓴다(scripts/ui/battle.gd `_enemy_skills`).",
+ "_variant_rules": {
+  "night_min_level": 50,
+  "_night_min_level_basis": "원작 문자열 <AdventureNightMinLv>('선택한 드래곤의 레벨이 부족하여 진입할 수 없습니다')의 기준값. 위키 dungeon_1.pdf 목차 §1.2.1~1.2.12 가 밤 던전 12종을 **전부 Lv.50** 으로 적고 (낮은 Lv.1~45), 사용자도 '밤은 레벨제한 일괄 50레벨'로 확정했다(2026-07-30). 참고: 일반 레벨상한 45 · 각성 50(Growth.level_cap) 이므로 밤은 사실상 각성 드래곤 전용이다."
+ }
+}

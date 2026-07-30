@@ -1,0 +1,1713 @@
+extends Control
+## Adventure(던전 탐험) 씬 — worldmap↔battle 사이 "탐험" 단계. render 층(§10).
+## 원작 AdventureScene::setAdventureWalk 기반: 진행바(scene/adventure/bar.png) 위를 파티가 자동보행하며
+## 조우 지점에서 전투. 최소 구현: 탐험 진행바 채움 → boss 조우 → battle. (다중 조우·회복샘·보상=후속 TODO)
+## 좌표: 692 고정높이. 전환은 Scenes.goto()만.
+
+const FLOOR := 692.0
+
+var _pma: CanvasItemMaterial
+var _adv: Dictionary = {}
+var _params: Dictionary = {}
+var _stage: Dictionary = {}
+var _speed := 1.0
+var _t := 0.0
+var _dur := 1.8                  # 조우까지 배회할 시간(초). 한 배회 사이클 = 7×0.3 = 2.1s
+var _done := false
+var _healed := false
+var _event_open := false         # 이벤트(회복샘·보물·갈림길·상점·카드·레벨업) 진행 중 = 보행 정지
+# 원작 탐험 보행은 아바타 없이 1인칭 — 배경 사본이 확대·이동하며 전진한다(setAdventureWalk).
+var _cam: Camera2D               # setAllViewShake(Shake 액션) 전용 카메라
+var _walking := false
+var _speed_btn: Button
+
+func enter(params: Dictionary = {}) -> void:
+	_params = params
+	if _pma != null:
+		_rebuild()
+
+func _ready() -> void:
+	_pma = CanvasItemMaterial.new()
+	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	_adv = _man("adventure_ui")
+	_rebuild()
+	# 원작 BattleTextBox: 스테이지 진입 스토리 대사. 대사 텍스트=유실(서버/시나리오 데이터) → stages.json "intro"
+	# (사용자 작성)가 있을 때만 첫 진입에 표시. 없으면 미표시(지어내지 않음, 원칙2).
+	if int(_params.get("enc", 0)) == 0:
+		var intro := String(_stage.get("intro", ""))
+		if intro != "":
+			_open_dialogue(intro)
+
+## 던전 탐험(비전투) BGM: stages.json "bgm"(명시 override) → **bg_<필드id>** → 지역 bgm → yutakan 폴백.
+## 원작 음원 `music/bg_<n>.mp3` 는 배경 `scene/adventure/bg/<n>/bg.jpg` 와 **같은 번호 체계**다
+## (n = 필드 id, 1=희망의 숲…). 보유 원본은 bg_1~12·15~19·22·24·25 — 13/14/20/21/23 은 음원이
+## 추출 덤프에 없어 지역 폴백으로 떨어진다(CLAUDE.md §10 판본 불일치).
+## 사용자 지정분: 13·14=bg_12 / 21=bg_24 / 23=bg_22 (stages.json 의 "bgm"). 20 광물산맥만 미지정.
+func _explore_bgm() -> String:
+	var b := String(_stage.get("bgm", ""))
+	if b != "": return b
+	var fid := DungeonBG.field_id(_stage)
+	if fid > 0 and ResourceLoader.exists("res://assets/music/bg_%d.mp3" % fid):
+		return "bg_%d" % fid
+	# 변형 필드(밤 501+ / 카데스 601+)는 전용 음원이 없다(원본 music/ 에 bg_5xx·bg_6xx 부재)
+	# → 기본 필드의 곡을 그대로 쓴다.
+	var bfid := DungeonBG.base_field(fid)
+	if bfid != fid and bfid > 0 and ResourceLoader.exists("res://assets/music/bg_%d.mp3" % bfid):
+		return "bg_%d" % bfid
+	# 지역은 스테이지 정의가 우선 — params.region 은 "어느 지도에서 눌렀나"라서 비거나 다를 수 있다.
+	var region := String(_stage.get("region", ""))
+	if region == "":
+		region = String(_params.get("region", "yutakan"))
+	for r in Data.worldmap_regions():
+		if String(r.get("id", "")) == region:
+			var rb := String(r.get("bgm", ""))
+			if rb != "": return rb
+	return "bg_yutakan"
+
+
+## ── 출전 인원 (원작 구조) ───────────────────────────────────────────────────────
+## 원작 일반 탐험은 **파티가 없다** — `AdventureScene::initMainDragon` 이 `Dragon::isSelected`
+## 로 고른 **리더 1마리**(동굴에서 선택 중인 드래곤)가 혼자 나선다. 드래곤 추가는 입장 **후**
+## `clickAddDragon` → `setAddDragonPopupLayer` 로 한다.
+## 3마리가 함께 싸우는 건 **레이드 · 영웅 단계 · 유타칸 밤 · 카데스의 공간 · 혼돈의 틈새** 뿐이다
+## (2026-07-27 사용자 확정).
+##
+## 판정: 영웅 난이도(`hero`) · 랜덤보스 스테이지(혼돈의 틈새 = `random_boss`) · stages.json 의
+## `party3: true`(유타칸 밤·카데스의 공간처럼 아직 미이식인 곳을 표시하는 자리) 중 하나면 3마리.
+func _party_capacity() -> int:
+	if bool(_params.get("hero", false)):
+		return 3
+	if bool(_stage.get("random_boss", false)) or bool(_stage.get("party3", false)):
+		return 3
+	return 1
+
+## 이번 탐험에 나가는 uid 목록. 1인 탐험이면 리더만.
+var _run_party: Array = []
+
+## 리더 1마리 — 원작 `initMainDragon` 이 `Dragon::isSelected` 로 고르는 그 드래곤.
+## **대체하지 않는다**(2026-07-30 수정). 원작 `WorldMapPopupLayer::getDragonStatus` 는 선택 중인
+## 드래곤이 기절/허기면 **입장 자체를 취소**하지, 다른 드래곤을 대신 내보내지 않는다 —
+## 그 검사는 월드맵 팝업(`worldmap.gd::_selected_block`)이 하고, 여기서는 선택 개체를 그대로 쓴다.
+## (종전엔 여기서 멀쩡한 다음 드래곤으로 갈아치워, 유저가 고른 것과 다른 개체가 나갔다.)
+## 굶은 개체로 들어온 경우는 `_check_starving_end` 가 즉시 종료시킨다.
+func _leader_party() -> Array:
+	var uid := UserDB.active_uid()
+	if uid > 0 and not UserDB.get_dragon(uid).is_empty():
+		return [uid]
+	return []
+
+## 3인 단계 편성창 — 입장 후에 뜬다(원작 `clickAddDragon` → `setAddDragonPopupLayer`).
+var _pending_levelup_after_party := false
+func _open_party_select() -> void:
+	_event_open = true                     # 편성 중 보행 정지
+	PartySelect.open_run(self, _run_party, func(picked: Array):
+		_run_party = picked
+		_params["party_ready"] = true
+		_event_open = false
+		if _pending_levelup_after_party:
+			_pending_levelup_after_party = false
+			_open_levelup_result())
+
+var _rboss_enc := -1   # 랜덤 보스 스테이지: 이번 진입에 선택된 보스 인덱스(-1=일반)
+func _rebuild() -> void:
+	for c in get_children():
+		c.queue_free()
+	_done = false; _t = 0.0
+	_stage = Data.stage(String(_params.get("stage", "")))
+	if _stage.get("bg") != null and not _params.has("bg"):
+		_params["bg"] = int(_stage["bg"])
+	# 원작: 비전투 탐험 = 던전 고유 BGM(Field.getSoundPath, setIsBasicBg=true). 전투 진입 시 battle이 bg_colosseum_battle_2로 전환.
+	# 던전별 값은 서버데이터 유실 → stages.json "bgm"(사용자 매핑), 없으면 bg_<필드id>, 그다음 지역 폴백. 근거: AdventureScene.c:48371.
+	# ⚠️ 반드시 `_stage` 를 채운 **뒤에** 부를 것 — 먼저 부르면 _stage가 비어 있어 필드 BGM이
+	#    영영 선택되지 않고 지역 BGM만 나온다(2026-07-27 수정한 실제 버그).
+	Bgm.play(_explore_bgm())
+	# 랜덤 보스 스테이지(혼돈의 틈새 등): 보스 목록서 랜덤 1마리 선택 → 단발 보스전.
+	# 유타칸 밤(501~514)도 같은 구조다 — 위키 "밤에는 … 한번밖에 탐험할 수 없으며 보통은
+	# 처음부터 보스를 마주하지만 … 다른 몬스터가 나올 수도 있다". 편성의 `weight` 로
+	# 그 '보통/가끔' 을 표현한다(없으면 1 = 균등, 종전 동작 그대로).
+	_rboss_enc = -1
+	if bool(_stage.get("random_boss", false)):
+		var bosses: Array = _stage.get("enemies", [])
+		if not bosses.is_empty():
+			var rr := RandomNumberGenerator.new(); rr.randomize()
+			_rboss_enc = _pick_weighted(bosses, rr)
+	_build_bg()
+	_build_walk()
+	_build_topinfo()
+	_build_narration()   # 원작 BattleTextBox: 탐험 서사가 흐르는 하단 전폭 텍스트박스
+	if _rboss_enc < 0:
+		_build_fountain()
+		_maybe_treasure()   # 원작 setEventTreasure: 조우 전 가끔 보물상자
+		_maybe_choice()   # 원작 setEventDungeonChoice: 조우 전 가끔 갈림길 선택
+		_maybe_shop()   # 원작 setEventDungeonShop: 조우 전 가끔 떠돌이 상점
+		_maybe_cardgame()   # 원작 setEventDungeonCardGame: 조우 전 가끔 카드 뽑기
+	_build_hud()
+	_maybe_dungeon_tutorial()   # 원작 DungeonTutorialLayer: 최초 던전 진입 시 튜토리얼
+	# 출전 인원 확정 — 원작은 **입장 후**에 편성한다(월드맵 팝업에는 편성 단계가 없다).
+	#   1인 탐험: 리더(동굴 선택 드래곤) 그대로 시작.
+	#   3인 단계: 편성창을 띄우고, 확정 전까지 보행을 멈춘다.
+	_run_party = _leader_party()
+	# 허기(FOOD) 소진 → **즉시 탐험 종료**(사용자 확정 2026-07-30). 전투마다 줄고, 이 씬은
+	# 전투가 끝날 때마다 다시 지어지므로(`battle.gd` → `Scenes.goto("adventure")`) 여기가
+	# 매 조우 뒤 통과하는 지점이다. 원작 `AdventureScene::checkNightHungry` → `onClickCantPlay` 대응.
+	if _check_starving_end():
+		return
+	if _party_capacity() == 3 and not bool(_params.get("party_ready", false)):
+		_pending_levelup_after_party = true   # 편성 → 레벨업창 순서로 하나씩(둘 다 배회를 멈춘다)
+		_open_party_select()
+	else:
+		_open_levelup_result()   # 직전 전투에서 오른 레벨 → 결과창(닫기 전까지 배회 정지)
+
+## 출전 인원 중 굶은 드래곤이 있으면 안내 후 월드맵으로 돌려보낸다. 종료했으면 true.
+## 문구는 사용자 확정(2026-07-30). 판정은 `ItemEffect`(logic 층).
+func _check_starving_end() -> bool:
+	var starved := ItemEffect.starving_uids(Data.item_effects, _run_party,
+		func(uid: int): return UserDB.get_dragon(uid))
+	if starved.is_empty():
+		return false
+	Toast.show(self, "드래곤이 배고파합니다. 상점에서 먹이를 구입하세요.", 2.0)
+	# 토스트를 읽을 시간을 준 뒤 나간다(즉시 전환하면 문구가 안 보인다).
+	var t := get_tree().create_timer(2.2)
+	t.timeout.connect(func():
+		if is_instance_valid(self):
+			Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")}))
+	return true
+
+## 직전 전투에서 넘어온 레벨업 결과창. 열려 있는 동안 `_event_open` 으로 배회를 멈춘다
+## (사용자 지시 2026-07-27). 원작에는 이 창이 없었고 하단 텍스트박스 한 줄뿐이었다 —
+## 근거·판단은 `scripts/ui/levelup_result.gd` 헤더에 정리해 뒀다.
+func _open_levelup_result() -> void:
+	var q: Array = _params.get("levelups", [])
+	if q.is_empty():
+		return
+	_params.erase("levelups")          # 씬이 재빌드돼도 두 번 뜨지 않게
+	_event_open = true
+	LevelUpResult.open(self, q, func(): _event_open = false)
+
+## 원작 DungeonTutorialLayer: 최초 던전 진입 시 튜토리얼 이미지 페이지(dungeon_tutorial_N_KR.jpg) + next.
+## 근거: DungeonTutorialLayer.c initWidget(VisibleRect 전체 + dungeon_tutorial_%d_%s.jpg + btn_arrow2 setNext).
+const _TUT_PAGES := 2
+func _maybe_dungeon_tutorial() -> void:
+	if not _is_fortress():
+		return                             # DungeonTutorialLayer 도 해골 요새 콘텐츠다
+	if bool(UserDB.get_pmeta("dungeon_tut_seen", false)):
+		return
+	UserDB.set_pmeta("dungeon_tut_seen", true)
+	_open_dungeon_tutorial(0)
+
+func _open_dungeon_tutorial(page: int) -> void:
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 40; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.82); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var p := "res://assets/converted/tutorial_ui/dungeon_tutorial_%d_KR.jpg" % (page + 1)
+	if ResourceLoader.exists(p):
+		var tr := TextureRect.new(); tr.texture = load(p)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(tr)
+	var last := page + 1 >= _TUT_PAGES
+	# 다음/닫기(원작 btn_arrow2 setNext). 마지막 페이지=시작하기.
+	var nb := Button.new()
+	nb.text = "시작하기" if last else "다음 ▶"
+	nb.add_theme_font_size_override("font_size", 22); nb.size = Vector2(160, 48)
+	nb.position = Vector2(vis.x - 184, vis.y - 68)
+	nb.pressed.connect(func():
+		if is_instance_valid(layer): layer.queue_free()
+		if not last: _open_dungeon_tutorial(page + 1))
+	layer.add_child(nb)
+	# 페이지 표시
+	var pg := Label.new(); pg.text = "%d / %d" % [page + 1, _TUT_PAGES]
+	pg.add_theme_font_size_override("font_size", 18); pg.add_theme_color_override("font_color", Color(1, 0.95, 0.7))
+	pg.position = Vector2(24, vis.y - 60); layer.add_child(pg)
+
+## 🔴 **"Dungeon" 키워드 = 해골 요새 전용이다** (사용자 확정 2026-07-28)
+##
+## 우리는 모든 스테이지를 "던전"이라 부르지만, **원작에서 `Dungeon*` 은 해골 요새의 층별 탐색
+## 콘텐츠**를 가리킨다. 근거는 자산 쪽이 더 분명하다 — `scene/adventure/skeleton_fortress`
+## 아틀라스 39프레임이 곧 그 시스템 전체다:
+##   칸 아이콘 `icon_card_on/off` · `icon_shop_on/off` · `icon_treasurebox_on/off` ·
+##   `icon_monster/boss/gold/question_on/off` · 층 `floor_icon_bg` · `floor_stair` ·
+##   성 지하 `under_castle_top/bot_bar` · `icon_under_castle` · `money_bg_castle` ·
+##   입장/퇴장 `btn_join` · `btn_exit` · `btn_tuto` · 결과 `result_bg` · `result_rank_box` ·
+##   버프 카드 `buf_atk` · `buf_def`
+## 클래스도 한 묶음이다: `DungeonScene` · `DungeonStage(Layer)` · `DungeonShuffleLayer` ·
+##   `DungeonRewardLayer` · `DungeonFinishLayer` · `DungeonTutorialLayer` · `WeeklyDungeonScene`.
+##
+## ⇒ `setEventDungeonCardGame1/2` · `setEventDungeonShop` · `setEventDungeonChoice` 는
+##   **일반 스테이지에서 뜨면 안 된다.** (반면 `setEventTreasure`·`setEventHealArea` 는
+##   Dungeon 키워드가 없다 = 일반 탐험 이벤트다.)
+## ⚠️ NPC **아임**도 해골 요새 전용이다 — `Tip_49` "해골요새의 아임과 퐁은 다섯 현자로 알려진
+##   로쿠난의 제자입니다", `ShopWelcomeImp9`(임프 상점). 일반 탐험에 등장시키지 않는다.
+##
+## 우리는 층 구조 던전 콘텐츠를 아직 안 만들었으므로, 그때까지는 **해골 요새 스테이지**에서만
+## 이 이벤트들을 띄운다 — 위키 map.pdf 도 "해골요새를 탐험하다보면 … 카드가 그려진 그림이
+## 있을 텐데" 라고 그 위치를 특정한다.
+const FORTRESS_STAGE := "6"      # data/stages.json 6 = 해골 요새
+
+func _is_fortress() -> bool:
+	return String(_params.get("stage", "")) == FORTRESS_STAGE
+
+## 카데스의 공간(유타칸 전설 모드)인가. 진입 자체가 **변형 필드 id(601~614)** 로 이뤄지므로
+## 스테이지 id 만 보면 알 수 있다 — `params.kades` 는 테스트/직접호출용 override 로만 남긴다.
+## 근거: 원작 `WorldMapPopupLayer::init` 이 kades 일 때 fieldNo = 600 + field (DungeonBG).
+func _is_kades() -> bool:
+	if _params.has("kades"):
+		return bool(_params.get("kades"))
+	return String(_stage.get("variant", "")) == "kades"
+
+## 기본 필드 id(1~15). 카데스 변형이면 600을 뺀 값. 아티팩트 배정표 조회에 쓴다.
+func _base_field() -> int:
+	return DungeonBG.base_field(DungeonBG.field_id(_stage))
+
+## 이번 탐험에 나선 드래곤들의 각성 스킬 **탐험 보너스** 합 {gold_pct, artifact_chance_pct}.
+## 42 부유한 기운(골드 +50%) · 17 구드라의 가호(아티팩트 확률 +50%). 판정=AwakenSkill(logic).
+func _awaken_explore() -> Dictionary:
+	var lst: Array = []
+	for uid in _run_party:
+		var d := UserDB.get_dragon(int(uid))
+		if d.is_empty() or not bool(d.get("awakened", false)):
+			continue
+		lst.append({"awaken_no": int(d.get("awaken_skill", 0))})
+	return AwakenSkill.explore_bonus(lst, Data.skill_awaken)
+
+## 탐험 중 얻는 골드는 **전부 여기를 지난다** — 각성 스킬 '부유한 기운'이 한 곳에서 걸리게.
+## 반환 = 실제로 지급한 금액(표시 문구에 그대로 쓸 것).
+func _grant_gold(amount: int) -> int:
+	var g := int(round(float(amount) * AwakenSkill.mult_of(_awaken_explore(), "gold_pct")))
+	UserDB.add_currency("gold", g)
+	return g
+
+## 원작 카드게임 — `AdventureScene` 이벤트 분기의 **0x18 `setEventDungeonCardGame1`** ·
+## **0x19 `setEventDungeonCardGame2`** 두 종류다(AdventureScene.c:18009/18012).
+## 위키 dungeon_1.pdf 도 "2종류가 있는데 하나는 8개의 카드를 섞어 4번의 기회중 1번이라도 2개의
+## 짝을 맞추면 성공, 다른 하나는 3개의 카드들 중 1~2개의 꽝이 있는데 그 꽝을 피하면 성공" 이라고
+## 적는다. 규칙·보상 = `data/card_game.json`, 판정 = `CardGame`(logic), 화면 = `CardMiniGame`(render).
+##
+## 🟠 정정(2026-07-28): 종전 구현은 "3장 중 1장을 골라 골드/아이템" 이라는 **자작**이었다.
+##   원작이 2종이라는 것도, 짝맞추기가 있다는 것도 반영돼 있지 않았다. 전면 교체한다.
+##   등장 확률 13%(타 이벤트 배타)는 그대로 둔다 — 원작 값은 서버 소유라 유실이다.
+func _maybe_cardgame() -> void:
+	if not _is_fortress():
+		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
+	if _healed or _event_open:
+		return
+	var enc := int(_params.get("enc", 0))
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total > 0 and enc + 1 >= total:
+		return
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("card_%s_%d" % [String(_params.get("stage", "")), enc])
+	if r.randf() >= 0.13:
+		return
+	# 어느 종류인지도 서버가 정했다(0x18/0x19) → 유실. 반반으로 고른다. # ASSUMPTION
+	_open_cardgame("match" if r.randf() < 0.5 else "avoid")
+
+func _open_cardgame(mode: String) -> void:
+	_event_open = true
+	Bgm.sfx("effect_card_shuffle")
+	var vis := _vis()
+	# 원작 카드게임 시작 아트 `txt_go`(191×78) — 미니게임 위로 팝했다 사라진다.
+	var golayer := CanvasLayer.new()
+	golayer.layer = 90
+	add_child(golayer)
+	var go := _spr("card_game", "scene_adventure_card_game_txt_go", _man("card_game"),
+		Design.ASSET_SCALE)
+	if go:
+		go.position = Vector2(vis.x * 0.5, vis.y * 0.13)
+		golayer.add_child(go)
+		go.scale *= 0.4
+		var gt := go.create_tween()
+		gt.tween_property(go, "scale", go.scale * 2.5, 0.22).set_trans(Tween.TRANS_BACK)
+		gt.tween_interval(0.7)
+		gt.tween_property(go, "modulate:a", 0.0, 0.3)
+		gt.tween_callback(golayer.queue_free)
+	else:
+		golayer.queue_free()
+	# 원작 인트로 대사 — `CardMiniGame_Dungeon_Ready1~6`(각 2줄) 중 한 세트.
+	# 어느 세트인지는 서버가 정했다(유실) → 스테이지·조우 시드로 고른다.
+	var rr := RandomNumberGenerator.new()
+	rr.seed = hash("cardtalk_%s_%d" % [String(_params.get("stage", "")), int(_params.get("enc", 0))])
+	var ready: Array = Data.card_game.get("talk", {}).get("dungeon", {}).get("ready", [])
+	if not ready.is_empty():
+		var set_: Array = ready[rr.randi_range(0, ready.size() - 1)]
+		for line in set_:
+			_narrate_npc("아임", String(line))
+	CardMiniGame.open(self, mode, func(res): _on_cardgame_done(res))
+
+## 미니게임 결과 → 보상 지급. **지급은 여기(호출자)에서 한다** — CardMiniGame 은 규칙도
+## 인벤토리도 모른다(§8.3). 보상 종류는 위키 확정분이고 수치는 data/card_game.json.
+func _on_cardgame_done(res: Dictionary) -> void:
+	var win := bool(res.get("win", false))
+	var rw: Dictionary = res.get("reward", {})
+	var msg := "꽝!"
+	if win and not rw.is_empty():
+		msg = _grant_card_reward(rw)
+	# NPC **아임은 해골 요새 전용**이다(`Tip_49` "해골요새의 아임과 퐁은 … 로쿠난의 제자입니다",
+	# `ShopWelcomeImp9` 임프 상점). 그 밖에서는 이름을 붙이지 않는다 — 사용자 확정 2026-07-28.
+	if _is_fortress():
+		# 원작 `CardMiniGame_Dungeon_Success_1` / `Fail_1` 그대로. 얻은 것은 뒤에 덧붙인다.
+		var tk: Dictionary = Data.card_game.get("talk", {}).get("dungeon", {})
+		var pool: Array = tk.get("success" if win else "fail", [])
+		var line := String(pool[0]) if not pool.is_empty() else ("좋았어!" if win else "다음 기회에!")
+		_narrate_npc("아임", ("%s
+(%s)" % [line, msg]) if win else line)
+	else:
+		_narrate("%s" % msg if win else "꽝!")
+	_event_open = false
+
+## 카드 보상 1건 지급. 반환 = 표시 문구.
+##   heal/buff 는 **이번 탐험의 전투 상태**에 얹고(물약과 같은 통로), gold/diamond/egg 는 UserDB.
+func _grant_card_reward(rw: Dictionary) -> String:
+	match String(rw.get("kind", "")):
+		"gold":
+			var g := _grant_gold(int(rw.get("amount", 0)))
+			return "골드 +%d" % g
+		"diamond":
+			var dm := int(rw.get("amount", 0))
+			UserDB.add_currency("diamond", dm)
+			return "다이아 +%d" % dm
+		"egg":
+			# 뽑기 알과 같은 가상 인벤 키로 넣는다(EggGacha 소유 규약).
+			var did := int(rw.get("dragon_id", 0))
+			if did > 0:
+				UserDB.add_item(EggGacha.key_for(did), 1)
+				return "%s의 알" % String(Data.get_dragon(did).get("name", "드래곤"))
+			return "알"
+		"heal":
+			# 원작 map.pdf "드래곤을 회복시켜주기도" — 회복샘(setEventHealArea)과 **같은 통로**를 쓴다.
+			# `_healed = true` 면 다음 전투를 풀피로 시작한다(_go_battle 이 hp_state 를 비운다).
+			_healed = true
+			return "체력 회복"
+		"buff_att", "buff_def":
+			# 드링크와 **같은 통로**(UserDB 드래곤의 `drink_buffs`) — battle.gd 가 그걸 읽는다.
+			# 수치도 새로 만들지 않고 item_effects.json 의 drink 규칙을 그대로 쓴다.
+			var stat := "att" if String(rw.get("kind", "")) == "buff_att" else "def"
+			var per := int(Data.item_effects.get("drink", {}).get("pct_per_tier", 5))
+			var turns := int(Data.item_effects.get("drink", {}).get("duration_turns", 10))
+			var tier := int(rw.get("tier", 1))
+			var eff := {"stat": stat, "tier": tier, "pct": per * tier, "turns": turns}
+			for uid in _run_party:
+				var cur: Dictionary = UserDB.get_dragon(int(uid)).get("drink_buffs", {})
+				UserDB.set_dragon_field(int(uid), "drink_buffs",
+					ItemEffect.apply_drink(cur, eff))
+			return "%s +%d%% (%d턴)" % ["공격력" if stat == "att" else "방어력",
+				per * tier, turns]
+	return "꽝"
+
+## 원작 setEventDungeonShop: 조우 전 ~15%(타 이벤트 배타) 떠돌이 상인 → 아이템 3종 판매(골드).
+func _maybe_shop() -> void:
+	if not _is_fortress():
+		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
+	if _healed or _event_open:
+		return
+	var enc := int(_params.get("enc", 0))
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total > 0 and enc + 1 >= total:
+		return
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("shop_%s_%d" % [String(_params.get("stage", "")), enc])
+	if r.randf() >= 0.15:
+		return
+	_open_shop(r)
+
+func _open_shop(r: RandomNumberGenerator) -> void:
+	# 원작 DungeonShopScene 1:1(순수 클라). 근거: DungeonShopScene.c playBackground(1378)="music/bg_shop.mp3",
+	#   setTalker(상인 NPC), common/item_bg 아이템셀 + coin_small1 + money_bg_castle. 오버레이 적응(전용씬 아님).
+	_event_open = true
+	Bgm.play("bg_shop")   # 원작 DungeonShopScene BGM(DungeonShopScene.c:1378)
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 20; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.75); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	# 상인 스파인(배회 상인 재활용)
+	if ResourceLoader.exists("res://scenes/npc/wonder.tscn"):
+		var mh := Node2D.new(); mh.position = Vector2(vis.x * 0.22, vis.y * 0.55); mh.scale = Vector2(0.7, 0.7)
+		layer.add_child(mh)
+		var mi = (load("res://scenes/npc/wonder.tscn") as PackedScene).instantiate(); mh.add_child(mi)
+		var ap := mi.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if ap and ap.get_animation_list().size() > 0:
+			ap.get_animation(ap.get_animation_list()[0]).loop_mode = Animation.LOOP_LINEAR
+			ap.play(ap.get_animation_list()[0])
+	var title := Label.new(); title.text = "떠돌이 상인  —  필요한 것을 사세요"
+	title.add_theme_font_size_override("font_size", 24); title.add_theme_color_override("font_color", Color(1, 0.92, 0.6))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.size = Vector2(vis.x, 34); title.position = Vector2(0, vis.y * 0.16)
+	layer.add_child(title)
+	# 보유 골드(원작 money_bg_castle + coin_small1). 우상단.
+	var cman := _man("common_ui")
+	var gcoin := _spr("common_ui", "common_coin_small1", cman, 1.0)
+	if gcoin: gcoin.position = Vector2(vis.x * 0.5 - 96, vis.y * 0.24); layer.add_child(gcoin)
+	var glabel := Label.new()
+	glabel.add_theme_font_size_override("font_size", 20); glabel.add_theme_color_override("font_color", Color(1, 0.9, 0.4))
+	glabel.size = Vector2(160, 26); glabel.position = Vector2(vis.x * 0.5 - 78, vis.y * 0.24 - 12)
+	layer.add_child(glabel)
+	var upd_gold := func(): glabel.text = "%d" % UserDB.gold()
+	upd_gold.call()
+	# 판매 아이템 3종(소비/재료 풀서 시드추첨). 원작 common/item_bg 셀 + 아이콘 + 이름 + coin 가격.
+	var pool: Array = Data.items_by("consumable") + Data.items_by("material")
+	for i in 3:
+		if pool.is_empty(): break
+		var key: String = pool[r.randi() % pool.size()]
+		var price := 150 + r.randi() % 350
+		var cx := vis.x * 0.5; var cy := vis.y * 0.36 + i * 92.0
+		# 원작 common/item_bg 슬롯 프레임.
+		var slot := _spr("common_ui", "common_item_bg", cman, 1.0)
+		if slot: slot.position = Vector2(cx - 150, cy); layer.add_child(slot)
+		var ip := Data.item_icon_path(key)
+		if ResourceLoader.exists(ip):
+			var icon := Sprite2D.new(); icon.texture = load(ip); icon.material = _pma
+			icon.scale = Vector2(0.62, 0.62); icon.position = Vector2(cx - 150, cy); layer.add_child(icon)
+		var nm := Label.new(); nm.text = Data.item_name(key)
+		nm.add_theme_font_size_override("font_size", 20); nm.add_theme_color_override("font_color", Color(0.95, 0.92, 0.85))
+		nm.position = Vector2(cx - 110, cy - 16); nm.size = Vector2(200, 24); layer.add_child(nm)
+		var pcoin := _spr("common_ui", "common_coin_small1", cman, 0.8)
+		if pcoin: pcoin.position = Vector2(cx + 96, cy); layer.add_child(pcoin)
+		var pl := Label.new(); pl.text = "%d" % price
+		pl.add_theme_font_size_override("font_size", 18); pl.add_theme_color_override("font_color", Color(1, 0.9, 0.4))
+		pl.position = Vector2(cx + 108, cy - 12); pl.size = Vector2(70, 22); layer.add_child(pl)
+		var buy := Button.new(); buy.text = "구매"; buy.size = Vector2(80, 40); buy.position = Vector2(cx + 150, cy - 20)
+		layer.add_child(buy)
+		buy.pressed.connect(func():
+			if UserDB.spend("gold", price):
+				UserDB.add_item(key, 1); Bgm.sfx("effect_coin")
+				buy.text = "✓"; buy.disabled = true; upd_gold.call()
+			else:
+				buy.text = "부족")
+	var leave := Button.new(); leave.text = "떠나기"; leave.size = Vector2(160, 44)
+	leave.position = Vector2(vis.x * 0.5 - 80, vis.y * 0.36 + 3 * 92.0)
+	leave.pressed.connect(func():
+		_event_open = false
+		Bgm.play(_explore_bgm())   # 원작 던전 BGM 복귀
+		if is_instance_valid(layer): layer.queue_free())
+	layer.add_child(leave)
+
+## 원작 setEventDungeonChoice: 조우 전 ~18% 갈림길(다른 이벤트와 배타). 두 길 중 선택 → 즉시 결과.
+func _maybe_choice() -> void:
+	if not _is_fortress():
+		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
+	if _healed or _event_open:
+		return
+	var enc := int(_params.get("enc", 0))
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total > 0 and enc + 1 >= total:
+		return
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("choice_%s_%d" % [String(_params.get("stage", "")), enc])
+	if r.randf() >= 0.18:
+		return
+	_open_choice(r)
+
+func _open_choice(r: RandomNumberGenerator) -> void:
+	_event_open = true
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 20; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.72); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var title := Label.new(); title.text = "갈림길  —  어느 길로 갈까요?"
+	title.add_theme_font_size_override("font_size", 24); title.add_theme_color_override("font_color", Color(1, 0.95, 0.7))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.size = Vector2(vis.x, 34); title.position = Vector2(0, vis.y * 0.2)
+	layer.add_child(title)
+	# 두 길: 안전(작은 확정 보상) vs 위험(큰 확률 보상 or 꽝). 결과는 시드로 미리 롤.
+	var paths := [
+		{"name": "안전한 길", "desc": "확정 소량 보상", "col": Color(0.4, 0.7, 0.9)},
+		{"name": "위험한 길", "desc": "큰 보상 or 꽝", "col": Color(0.9, 0.5, 0.4)},
+	]
+	# 원작 버튼 프레임: `scene/adventure/btn1.png` / `btn2.png` (262x94).
+	# 근거: AdventureScene.c 리터럴 + docs/ref/orig_image/battle/화면 캡처 2026-07-26 024440.png
+	# (탐험 중 "그만하기"(적)/"계속하기"(녹) 2버튼). 자작 StyleBox 박스를 원작 프레임으로 교체.
+	var BTN_W := 262.0
+	var BTN_H := 94.0
+	for i in 2:
+		var p: Dictionary = paths[i]
+		var holder := Control.new()
+		holder.size = Vector2(BTN_W, BTN_H)
+		holder.position = Vector2(vis.x * 0.5 + (-BTN_W - 24.0 if i == 0 else 24.0), vis.y * 0.40)
+		layer.add_child(holder)
+		var frame := _spr("adventure_ui", "scene_adventure_btn%d" % (2 if i == 0 else 1), _adv, 1.0)
+		if frame:
+			frame.position = Vector2(BTN_W * 0.5, BTN_H * 0.5)
+			holder.add_child(frame)
+		var lb := Label.new()
+		lb.text = String(p["name"])
+		lb.add_theme_font_size_override("font_size", 26)
+		lb.add_theme_color_override("font_color", Color.WHITE)
+		lb.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0, 0.9))
+		lb.add_theme_constant_override("outline_size", 4)
+		lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lb.size = Vector2(BTN_W, 30); lb.position = Vector2(0, 16)
+		holder.add_child(lb)
+		var sub := Label.new()
+		sub.text = String(p["desc"])
+		sub.add_theme_font_size_override("font_size", 15)
+		sub.add_theme_color_override("font_color", Color(1, 0.97, 0.85, 0.92))
+		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub.size = Vector2(BTN_W, 22); sub.position = Vector2(0, 50)
+		holder.add_child(sub)
+		var hit := Button.new(); hit.flat = true
+		hit.size = Vector2(BTN_W, BTN_H)
+		holder.add_child(hit)
+		hit.pressed.connect(_choose_path.bind(i, r, title, layer))
+
+func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: CanvasLayer) -> void:
+	if not is_instance_valid(layer): return
+	var msg := ""
+	if idx == 0:   # 안전: 확정 소량 골드
+		var g := _grant_gold(60 + r.randi() % 90)
+		msg = "안전한 길 — +골드 %d" % g
+	else:   # 위험: 60% 큰 보상, 40% 꽝
+		if r.randf() < 0.6:
+			var g := _grant_gold(200 + r.randi() % 300)
+			var pool: Array = Data.items_by("consumable") + Data.items_by("material")
+			var it := ""
+			if not pool.is_empty():
+				var key: String = pool[r.randi() % pool.size()]
+				UserDB.add_item(key, 1); it = " / %s" % Data.item_name(key)
+			Bgm.sfx("effect_coin"); msg = "위험한 길 — 대박!  +골드 %d%s" % [g, it]
+		else:
+			msg = "위험한 길 — 아무것도 없었다…"
+	title.text = msg
+	# 버튼 제거(하위 Button만)
+	for c in layer.get_children():
+		if c is Button: c.queue_free()
+	get_tree().create_timer(1.2).timeout.connect(func():
+		_event_open = false
+		if is_instance_valid(layer): layer.queue_free())
+
+## 원작 setEventTreasure: 조우 전 ~22% 보물상자 등장(회복샘·탐색과 배타). 클릭해서 열면 골드+아이템.
+func _maybe_treasure() -> void:
+	if _healed or _event_open:
+		return
+	var enc := int(_params.get("enc", 0))
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total > 0 and enc + 1 >= total:
+		return   # 보스 조우 제외
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("treasure_%s_%d" % [String(_params.get("stage", "")), enc])
+	if r.randf() >= 0.22:
+		return
+	_open_treasure(r)
+
+func _open_treasure(r: RandomNumberGenerator) -> void:
+	_event_open = true   # 보행 정지
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 20; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.72); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var title := Label.new(); title.text = "보물상자 발견!  —  클릭해서 열기"
+	title.add_theme_font_size_override("font_size", 24); title.add_theme_color_override("font_color", Color(1, 0.9, 0.45))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.size = Vector2(vis.x, 34); title.position = Vector2(0, vis.y * 0.22)
+	layer.add_child(title)
+	var chest := Sprite2D.new()
+	var cp := "res://assets/converted/common_ui/common_box_gold.tres"
+	if ResourceLoader.exists(cp): chest.texture = load(cp)
+	chest.scale = Vector2(2.4, 2.4); chest.position = Vector2(vis.x * 0.5, vis.y * 0.52)
+	layer.add_child(chest)
+	# 상자 흔들림(대기)
+	var wob := chest.create_tween().set_loops()
+	wob.tween_property(chest, "rotation", 0.08, 0.35).set_trans(Tween.TRANS_SINE)
+	wob.tween_property(chest, "rotation", -0.08, 0.35).set_trans(Tween.TRANS_SINE)
+	var btn := Button.new(); btn.flat = true; btn.size = Vector2(260, 220)
+	btn.position = chest.position - Vector2(130, 110)
+	layer.add_child(btn)
+	var opened := {"v": false}
+	btn.pressed.connect(func():
+		if opened["v"]: return
+		opened["v"] = true
+		wob.kill()
+		Bgm.sfx("effect_box_peong")
+		var gold := _grant_gold(100 + r.randi() % 220)
+		# 젬·장비 드롭(사용자 확정 2026-07-27): **보물상자는 일반몹보다 좋은 것**이 나온다
+		# (일반몹 < 보물상자 < 보스). 판정=Drops(logic) · 표=data/drops.json.
+		# 카데스의 공간이면 아티팩트도 나온다 — 종류는 던전마다 다르다(위키 §2, 배정=자작).
+		var grng := RandomNumberGenerator.new(); grng.randomize()
+		var got := Drops.roll_exploration(Data.drops, int(_stage.get("level", 1)),
+			Drops.SOURCE_CHEST, Data.equipment, grng, _is_kades(), _base_field(),
+			# 각성 스킬 '구드라의 가호'(17) — 전설 난이도 지역 아티팩트 확률 50% 증가.
+			AwakenSkill.mult_of(_awaken_explore(), "artifact_chance_pct"))
+		if got != "":
+			UserDB.add_item(got, 1)
+		else:
+			# 젬/장비가 안 나오면 기존 소비/재료 풀에서(ASSUMPTION — 상자 개봉표 유실).
+			var pool: Array = Data.items_by("consumable") + Data.items_by("material")
+			if not pool.is_empty():
+				got = pool[r.randi() % pool.size()]
+				UserDB.add_item(got, 1)
+		title.text = "보물!  +골드 %d" % gold
+		var t := chest.create_tween()
+		t.tween_property(chest, "scale", Vector2(2.9, 2.9), 0.14).set_trans(Tween.TRANS_BACK)
+		t.parallel().tween_property(chest, "rotation", 0.0, 0.14)
+		t.tween_interval(0.7)
+		t.tween_callback(func():
+			_event_open = false
+			layer.queue_free()
+			if got != "": _show_loot(got)))
+
+## 회복샘(원작 setEventHealArea): 다친 파티(hp_state 존재)일 때 enc>0 비보스 조우에서 ~1/3 확률 발동 → 파티 회복.
+func _build_fountain() -> void:
+	var enc := int(_params.get("enc", 0))
+	var total := int((_stage.get("enemies", []) as Array).size())
+	var hurt: Dictionary = _params.get("hp_state", {})
+	if enc <= 0 or (total > 0 and enc + 1 >= total) or hurt.is_empty():
+		return
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("fountain_%s_%d" % [String(_params.get("stage", "")), enc])
+	if r.randf() >= 0.34:
+		return
+	_healed = true    # 이 조우 전투는 풀피로 시작(hp_state 초기화)
+	_show_fountain()
+
+## 회복샘 시각 연출(그래픽 + 초록 힐 발광 + 상승 파티클 + 안내). _build_fountain 게이트 통과 시 호출.
+func _show_fountain() -> void:
+	var vis := _vis()
+	# 회복샘 그래픽(원작 scene/adventure/fountain). 없으면 힐 크로스 아이콘.
+	var f := _spr("adventure_ui", "scene_adventure_fountain_dv2_fountain_base", _adv, 0.7)
+	if f == null:
+		f = _spr("common_ui", "common_icon_greencross", _man("common_ui"), 1.2)
+	if f:
+		f.position = Vector2(vis.x * 0.5, FLOOR * 0.5); add_child(f)
+	# 초록 힐 발광(그라디언트) + 상승 파티클(원작 회복 연출 강화).
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.4, 1.0, 0.5, 0.5)); grad.set_color(1, Color(0.4, 1.0, 0.5, 0.0))
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad; gtex.fill = GradientTexture2D.FILL_RADIAL
+	gtex.fill_from = Vector2(0.5, 0.5); gtex.fill_to = Vector2(1.0, 0.5); gtex.width = 360; gtex.height = 360
+	var glow := Sprite2D.new(); glow.texture = gtex
+	var addm := CanvasItemMaterial.new(); addm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = addm; glow.position = Vector2(vis.x * 0.5, FLOOR * 0.5); glow.z_index = -1
+	add_child(glow)
+	var pgrad := Gradient.new(); pgrad.set_color(0, Color(1, 1, 1, 1)); pgrad.set_color(1, Color(1, 1, 1, 0))
+	var ptex := GradientTexture2D.new()
+	ptex.gradient = pgrad; ptex.fill = GradientTexture2D.FILL_RADIAL
+	ptex.fill_from = Vector2(0.5, 0.5); ptex.fill_to = Vector2(1.0, 0.5); ptex.width = 24; ptex.height = 24
+	var heal := CPUParticles2D.new()
+	heal.texture = ptex; heal.position = Vector2(vis.x * 0.5, FLOOR * 0.5 + 60)
+	heal.amount = 20; heal.lifetime = 2.0
+	heal.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE; heal.emission_rect_extents = Vector2(120, 20)
+	heal.direction = Vector2(0, -1); heal.spread = 16.0; heal.gravity = Vector2(0, -18)
+	heal.initial_velocity_min = 40.0; heal.initial_velocity_max = 90.0
+	heal.scale_amount_min = 6.0; heal.scale_amount_max = 14.0; heal.color = Color(0.5, 1.0, 0.6, 0.9)
+	add_child(heal)
+	var t := Label.new()
+	t.text = "회복의 샘!  파티가 회복되었습니다"
+	t.add_theme_font_size_override("font_size", 22)
+	t.add_theme_color_override("font_color", Color(0.6, 1, 0.7))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.size = Vector2(vis.x, 28); t.position = Vector2(0, vis.y * 0.34)
+	add_child(t)
+
+var _bg_node: Control            # 정지 배경 — 배회 사본을 이 **바로 위**에 넣는다
+
+func _build_bg() -> void:
+	# 던전 배경(DungeonBG) — 원작 scene/adventure/bg/<필드id>/ 의 원경 bg.jpg + 전경 bg_item.
+	# battle과 동일 리졸버라 탐험/전투 배경이 일치한다.
+	_bg_node = DungeonBG.build(self, _stage)
+	if _bg_node != null:
+		return
+	var bg := TextureRect.new()
+	var p := "res://assets/converted/battle_bg/bg_%d.jpg" % int(_params.get("bg", 1))
+	if ResourceLoader.exists(p):
+		bg.texture = load(p)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	_bg_node = bg
+
+# ---------- 배회(1인칭 전진) — 원작 setAdventureWalk 축자 이식 ----------
+## 🔴 2026-07-27 전면 교체. 이전 구현은 Camera2D 상하 bob + 자작 먼지 파티클이었는데
+##   **원작에는 둘 다 없다**. 원작 `AdventureScene::setAdventureWalk`(AdventureScene.c:33530-34110,
+##   특히 :34043-34090 의 액션 시퀀스)는 이렇게 한다:
+##
+##   1. 정지 배경 위에 **배경 이미지 사본을 한 장 더** 만든다
+##      (`CCSprite::create(<Field 문자열로 조립한 경로>)`, 앵커(0.5,0.5) @ `VisibleRect::center`,
+##       `addChild(sprite, 1)`).  ← 사본이라서 확대·이동해도 정지 배경이 뒤를 메운다
+##   2. 그 사본에 아래 시퀀스를 건다(스텝시간 t = `InfoEventData[0x128]`, 기본 **0.3s**):
+##        Spawn(FadeIn(t), ScaleBy(t,1.1),   MoveBy(t, (   0,-20)))
+##        Spawn(          ScaleBy(t,1.05),   MoveBy(t, ( -50,+10)))   → CallFunc
+##        Spawn(          ScaleBy(t,1.05),   MoveBy(t, (   0,-20)))
+##        Spawn(          ScaleBy(t,1.055),  MoveBy(t, (+100,+10)))   → CallFunc
+##        Spawn(          ScaleBy(t,1.05),   MoveBy(t, (   0,-20)))
+##        Spawn(          ScaleBy(t,1.055),  MoveBy(t, ( -50,+10)))   → CallFunc
+##        FadeOut(t) → removeFromParent → **setAdventureWalk 재호출(무한 루프)**
+##      ⇒ 누적 배율 1.1×1.05×1.05×1.055×1.05×1.055 = **1.4173**, 한 사이클 7t = 2.1s.
+##   3. 던전 모드면 사본 중앙에 `skeleton_fortress/gate_light.png` 를
+##      RepeatForever(FadeTo(1.0,255) → FadeTo(1.25,0)) 로 겹친다.
+##
+##   ⚠️ Cocos 는 y-up 이라 MoveBy 의 y 부호를 뒤집어 Godot 좌표로 옮겼다.
+##   Camera2D 는 남기되 **흔들림 전용**이다(원작 setAllViewShake = Shake 액션).
+const _WALK_STEP := 0.3                       # InfoEventData[0x128] 기본값
+## 각 스텝의 **누적** 배율/오프셋(Godot 좌표, y 부호 반전 완료).
+const _WALK_SCALES := [1.1, 1.155, 1.21275, 1.279456, 1.343429, 1.417316]
+const _WALK_OFFS := [Vector2(0, 20), Vector2(-50, 10), Vector2(-50, 30),
+	Vector2(50, 20), Vector2(50, 40), Vector2(0, 30)]
+
+var _walk_layer: TextureRect     # 전진하는 배경 사본(매 사이클 새로 만들고 버린다)
+var _walk_tw: Tween
+
+func _build_walk() -> void:
+	var vis := _vis()
+	_cam = Camera2D.new()          # setAllViewShake 전용 — 보행 bob 은 원작에 없다
+	_cam.position = vis * 0.5
+	add_child(_cam); _cam.make_current()
+	_walking = true
+	_start_walk_cycle()
+
+## 배경 사본 한 장 = 한 사이클. 끝나면 스스로 다음 사이클을 걸거나(원작 재귀) 조우로 넘어간다.
+func _start_walk_cycle() -> void:
+	if _done or not _walking:
+		return
+	var vis := _vis()
+	var p := DungeonBG.path_for(_stage)
+	if p == "":
+		p = "res://assets/converted/battle_bg/bg_%d.jpg" % int(_params.get("bg", 1))
+	if not ResourceLoader.exists(p):
+		return
+	var tr := TextureRect.new()
+	tr.texture = load(p)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	tr.size = vis
+	tr.position = Vector2.ZERO
+	tr.pivot_offset = vis * 0.5      # 원작 앵커(0.5,0.5) @ VisibleRect::center
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.modulate.a = 0.0
+	# ⚠️ z_index 는 0으로 둔다. 원작의 `addChild(sprite, 1)` 은 "UI(z 수백~)보다 훨씬 아래"라는 뜻인데,
+	#    Godot 에서 z_index=1 을 주면 뒤에 추가되는 HUD(z=0) 를 **덮어버린다**(던전명·로드맵·나가기가 사라졌다).
+	#    형제 순서만으로 정지 배경 바로 위에 놓는다.
+	tr.z_index = 0
+	add_child(tr)
+	# 🔴 2026-07-27: 종전엔 `move_child(tr, 1)` 로 **인덱스 1**에 넣었다. 씬이 두 번 지어지던
+	#   시절(scene_manager 순서 버그) 1차 자식들이 아직 queue_free 대기 중이라 인덱스 1이
+	#   **2차 정지 배경보다 아래**였고, 전진하는 배경 사본이 정지 배경에 완전히 가려
+	#   "배회 모션이 없다"로 보였다(사용자 신고). 이제 배경 노드 기준으로 바로 위에 꽂는다.
+	if is_instance_valid(_bg_node) and _bg_node.get_parent() == self:
+		move_child(tr, _bg_node.get_index() + 1)
+	else:
+		move_child(tr, 1)
+	DungeonBG.add_overlay(tr, _stage)   # 전경 오버레이도 함께 전진
+	_walk_layer = tr
+	var t := _WALK_STEP
+	_walk_tw = tr.create_tween()
+	for i in 6:
+		var st := float(_WALK_SCALES[i])
+		var of: Vector2 = _WALK_OFFS[i]
+		if i == 0:
+			_walk_tw.tween_property(tr, "modulate:a", 1.0, t)
+			_walk_tw.parallel().tween_property(tr, "scale", Vector2(st, st), t)
+			_walk_tw.parallel().tween_property(tr, "position", of, t)
+		else:
+			_walk_tw.tween_property(tr, "scale", Vector2(st, st), t)
+			_walk_tw.parallel().tween_property(tr, "position", of, t)
+	_walk_tw.tween_property(tr, "modulate:a", 0.0, t)
+	_walk_tw.set_speed_scale(_speed)          # ▶x2/x3 = 보행 가속
+	_walk_tw.finished.connect(func() -> void:
+		if is_instance_valid(tr):
+			tr.queue_free()
+		if _done or not _walking:
+			return
+		if _t >= _dur:                        # 한 사이클을 마치고 조우로
+			_done = true
+			_monster_meet()
+		else:
+			_start_walk_cycle())
+
+# ---------- 상단 정보(던전명 + 로드맵 + 보스 경고) ----------
+# 🔴 2026-07-26 정정: 이 함수는 원래 화면 하단에 `scene/adventure/bar.png` + `bar_deco_*_move` +
+#   진행 토큰으로 **빨간 진행바**를 그렸다. 원작 탐험 화면에는 그런 바가 없다 —
+#   레퍼런스 4장(docs/ref/orig_image/battle/배회1인칭.png, 화면 캡처 …024440 / …024622 / …024723.png)
+#   어디에도 하단 진행바가 없고, 하단은 전부 **전폭 텍스트박스**다.
+#   그리고 `bar.png`/`bar_deco_*_move`의 원작 용처는 진행바가 아니라 **몬스터 조우 경고 스윕**이다:
+#   `AdventureScene::setAlertMonster`(AdventureScene.c:34291-34470)가 VisibleRect::center 기준
+#   화면 밖(±w)에서 중앙으로 밀고 들어오는 가로 띠로 쓴다. → _alert_mark 로 옮겼다.
+func _build_topinfo() -> void:
+	var vis := _vis()
+	# 던전 이름 + 조우 진행(N/전체)
+	var total := int((_stage.get("enemies", []) as Array).size())
+	var enc := int(_params.get("enc", 0))
+	var is_boss := (total > 0 and enc + 1 >= total) or _rboss_enc >= 0   # 랜덤보스=보스취급
+	var nm := Label.new()
+	nm.text = String(_stage.get("name", "던전"))
+	var vlab := String(_stage.get("variant_label", ""))   # 밤 / 카데스의 공간
+	if vlab != "": nm.text += " — %s" % vlab
+	if total > 0: nm.text += "   (%d/%d)" % [enc + 1, total]
+	nm.add_theme_font_size_override("font_size", 22)
+	nm.add_theme_color_override("font_color", Color.WHITE)
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.size = Vector2(400, 28); nm.position = Vector2(vis.x * 0.5 - 200, 24)
+	add_child(nm)
+	# 원작 AdventureMapLayer(road_map): 조우 진행을 스팟 점으로 표시(setMapItem/setKing/setSpotToMove).
+	if total > 1 and _rboss_enc < 0:
+		_build_roadmap(total, enc)
+	# 보스 경고는 조우 순간의 `setAlertMonster` 컷인이 담당한다(_alert_monster).
+	# 상단에 txt_danger 를 미리 띄우던 자작 배지는 제거 — 원작에 없고 컷인과 중복이다.
+
+# ---------- 하단 서사 텍스트박스(원작 BattleTextBox) + EXP 게이지 ----------
+## 원작 탐험 화면의 하단은 **전폭 텍스트박스 하나**다. 레퍼런스 4장 모두 동일:
+##   docs/ref/orig_image/battle/배회1인칭.png("당신은 수중동굴로 모험을 떠났습니다…"),
+##   화면 캡처 …024440("탐험을 계속 이어가시겠습니까?"), …024622(NPC 대사 `[바루스]`),
+##   …024723("마모된 발톱을 획득하였습니다." + 우측 ▶).
+## 사양: BattleTextBox.c:167-205 — 9patch/dialogue_box(capInsets 10,10,4,4), contentSize(폭-10, 120),
+##   Thonburi 28 흰색 좌정렬, 좌패딩 10. 다음 화살표 = `common/btn_arrow2`(tag 0xc9, :718).
+const _NARR_H := 120.0
+var _narr_label: Label
+var _narr_arrow: Sprite2D
+func _build_narration() -> void:
+	var vis := _vis()
+	var lay := CanvasLayer.new(); lay.layer = 6
+	add_child(lay)
+	var box := NinePatchRect.new()
+	box.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
+	box.patch_margin_left = 10; box.patch_margin_right = 10
+	box.patch_margin_top = 4; box.patch_margin_bottom = 4
+	box.size = Vector2(vis.x - 10.0, _NARR_H)
+	box.position = Vector2(5.0, vis.y - _NARR_H)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(box)
+	_narr_label = Label.new()
+	_narr_label.add_theme_font_size_override("font_size", 28)
+	_narr_label.add_theme_color_override("font_color", Color.WHITE)
+	_narr_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_narr_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_narr_label.size = Vector2(box.size.x - 20.0, _NARR_H - 8.0)
+	_narr_label.position = Vector2(10.0, 4.0)
+	_narr_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_narr_label)
+	# 다음 화살표(원작 common/btn_arrow2) — 우측 하단, 깜빡임.
+	_narr_arrow = _spr("common_ui", "common_btn_arrow2", _man("common_ui"), Design.ASSET_SCALE)
+	if _narr_arrow:
+		_narr_arrow.position = Vector2(box.size.x - 40.0, _NARR_H * 0.5)
+		box.add_child(_narr_arrow)
+		var at := _narr_arrow.create_tween().set_loops()
+		at.tween_property(_narr_arrow, "modulate:a", 0.25, 0.5)
+		at.tween_property(_narr_arrow, "modulate:a", 1.0, 0.5)
+	# 진입 서사 — 원작 배회1인칭.png 형식("당신은 <던전>로 모험을 떠났습니다.").
+	var nm := String(_stage.get("name", "던전"))
+	var line := "당신은 %s%s 모험을 떠났습니다." % [nm, _josa_ro(nm)]
+	# 원작은 2줄이다(레퍼런스 배회1인칭.png). 2번째 줄 = 던전별 분위기 문장인데 시나리오
+	# 서버데이터라 유실 → `data/stages.json` 의 `"intro"`. 유타칸 10던전은 사용자가 작성해 채웠고
+	# (docs/input/review/lost_text_sheet.md §1), 나머지는 필드가 없어 1줄만 나온다(문장 생성 금지).
+	# ⚠️ 줄바꿈은 반드시 `\n` 이스케이프로. 이 저장소는 CRLF 라서 **문자열 리터럴 안에 실제 개행을
+	#    넣으면 `\r\n` 이 되고**, Label 이 `\r` 을 줄바꿈으로 한 번 더 세어 3줄이 되어 잘렸다.
+	var intro := String(_stage.get("intro", ""))
+	if intro != "":
+		line += "\n" + intro
+	_narrate(line)
+
+func _narrate(text: String) -> void:
+	if is_instance_valid(_narr_label):
+		_narr_label.text = text
+
+## NPC 대사 — 원작 형식(레퍼런스 docs/ref/orig_image/battle/화면 캡처 2026-07-26 024622.png):
+##   1행 `[ 이름 ]`, 2행 대사. 같은 하단 텍스트박스를 쓴다.
+func _narrate_npc(display_name: String, line: String) -> void:
+	_narrate("[ %s ]\n%s" % [display_name, line])
+
+## 원작 NPC 파츠 합성 — body + mouth + eye.
+## ⚠️ 2026-07-27 현재 **호출부 없음**. 원래는 탐색(seek) 종료 시 안내 NPC 누리를 띄웠는데,
+##   탐색 미니게임을 걷어내면서 함께 빠졌다(사용자 확인: 누리는 탐험 중 등장하지 않는다).
+##   레이아웃 이식분은 §7-b 백로그의 "NPC 대화 초상" 작업에 쓰려고 남겨 둔다.
+## 근거: PopSeekFinishLayer.c:191-217 — `npc/nuri/body_1.png` 를 VisibleRect 기준
+##   **화면 하단 중앙**(앵커 (w*0.5, 0))에 두고, 그 자식으로 `mouth_3_2` @(103,310),
+##   `eye_4_1` @(104,346) 를 붙인다(=body 로컬, Cocos y-up).
+## `asset_index.py --gap npc` 가 83건 전량 미사용이라고 알려준 카테고리다 — 여기서 처음 쓴다.
+var _npc_node: Node2D
+func _show_npc(npc: String, body := 1, eye := "4_1", mouth := "3_2") -> void:
+	_hide_npc()
+	var dir := "npc_%s" % npc
+	var man := _man(dir)
+	if man.is_empty(): return
+	var bkey := "npc_%s_body_%d" % [npc, body]
+	var bi: Dictionary = man.get(bkey, {})
+	if bi.is_empty(): return
+	var S := Design.ASSET_SCALE
+	var bw := float(bi.get("w", 219)) * S
+	var bh := float(bi.get("h", 351)) * S
+	var vis := _vis()
+	_npc_node = Node2D.new()
+	# Cocos 앵커(0.5, 0) @ (visW*0.5, 0) → Godot: 몸통 하단이 텍스트박스 윗변에 닿게.
+	_npc_node.position = Vector2(vis.x * 0.5, vis.y - _NARR_H)
+	_npc_node.z_index = 4
+	add_child(_npc_node)
+	var b := _spr(dir, bkey, man, S)
+	if b == null: return
+	b.position = Vector2(0, -bh * 0.5)
+	_npc_node.add_child(b)
+	# 파츠 좌표계 변환.
+	#   원작: body 로컬 = **포인트** 공간(=픽셀÷0.75), 원점 좌하단, y-up, 자식 앵커 기본 (0.5,0.5).
+	#   Godot: body 스프라이트는 텍스처 픽셀 공간(219×351)에 중앙 앵커, 자식은 body의 scale을 상속.
+	#   ⇒ godot_x = pos.x/S - w_px/2 ,  godot_y = h_px/2 - pos.y/S   (S로 나눠 포인트→픽셀)
+	var bw_px := float(bi.get("w", 219))
+	var bh_px := float(bi.get("h", 351))
+	for part in [["mouth", mouth, Vector2(103, 310)], ["eye", eye, Vector2(104, 346)]]:
+		var key := "npc_%s_%s_%s" % [npc, part[0], part[1]]
+		if not man.has(key): continue
+		var ps := _spr(dir, key, man, 1.0)   # body의 scale을 상속 → 여기서 또 곱하지 않는다
+		if ps == null: continue
+		var pos: Vector2 = part[2]
+		ps.position = Vector2(pos.x / S - bw_px * 0.5, bh_px * 0.5 - pos.y / S)
+		b.add_child(ps)
+	# 등장: 아래에서 스윽 올라옴.
+	_npc_node.position.y += bh
+	create_tween().tween_property(_npc_node, "position:y", vis.y - _NARR_H, 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _hide_npc() -> void:
+	if is_instance_valid(_npc_node):
+		_npc_node.queue_free()
+	_npc_node = null
+
+## 전리품 획득 오버레이 — 원작 레퍼런스 docs/ref/orig_image/battle/화면 캡처 2026-07-26 024723.png 구성:
+##   · 상단 중앙: 큰 주황 제목("장착 아이템 획득!")
+##   · 중앙 좌: 아이템 아이콘 + 방사형 백라이트(`common/backlight3`, AdventureScene 리터럴 프레임)
+##   · 중앙 우: 이름(흰) / 효과(연두, 대괄호) / 설명(흰 다단)
+##   · 좌하단: `EXP +N` 아트 + 게이지(`scene/laboratory/upgrade_gauge_bg` + `upgrade_gauge_bar`,
+##            둘 다 AdventureScene 리터럴 프레임)
+##   · 하단 텍스트박스: "<이름>을(를) 획득하였습니다."
+## ⚠️ 아이템 효과·설명 문자열은 서버데이터 유실분이 많다 → data/items.json 에 있는 것만 쓰고
+##    없으면 그 줄을 생략한다(문장 생성 금지).
+func _show_loot(item_key: String, exp_gain := 0) -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var lay := CanvasLayer.new(); lay.layer = 22
+	add_child(lay)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT); lay.add_child(dim)
+	var item: Dictionary = Data.get_item(item_key)
+	# 젬/장비 드롭은 가상 인벤 키다(items.json 에 없다) → 이름은 Drops.display_name 이 만든다.
+	var gear_name := ""
+	if Gem.parse_item_key(item_key).size() > 0 or Equipment.parse_item_key(item_key) != "":
+		gear_name = Drops.display_name(item_key, Data.gems, Data.equipment)
+	# 제목 — 장비면 "장착 아이템 획득!", 그 외 "아이템 획득!" (레퍼런스 문구)
+	var is_equip := String(item.get("category", "")) in ["accessory", "equip", "equipment"] \
+		or Equipment.parse_item_key(item_key) != "" or Gem.parse_item_key(item_key).size() > 0
+	var title := Label.new()
+	title.text = "장착 아이템 획득!" if is_equip else "아이템 획득!"
+	title.add_theme_font_size_override("font_size", 46)
+	title.add_theme_color_override("font_color", Color(1.0, 0.55, 0.10))
+	title.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.0, 0.95))
+	title.add_theme_constant_override("outline_size", 8)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size = Vector2(vis.x, 60); title.position = Vector2(0, vis.y * 0.07)
+	lay.add_child(title)
+	# 아이콘 + 백라이트
+	var ix := vis.x * 0.36
+	var iy := vis.y * 0.42
+	var bl := _spr("common_ui", "common_backlight3", _man("common_ui"), S)
+	if bl:
+		bl.position = Vector2(ix, iy); bl.modulate = Color(1, 0.95, 0.6, 0.9)
+		lay.add_child(bl)
+		var rt := bl.create_tween().set_loops()
+		rt.tween_property(bl, "rotation", TAU, 6.0).from(0.0)
+	var icon := _item_icon_sprite(item_key, 1.6 * S)
+	if icon:
+		icon.position = Vector2(ix, iy); lay.add_child(icon)
+	# 이름 / 효과 / 설명
+	var tx := vis.x * 0.52
+	var nm := Label.new()
+	nm.text = gear_name if gear_name != "" else Data.item_name(item_key)
+	nm.add_theme_font_size_override("font_size", 30)
+	nm.add_theme_color_override("font_color", Color.WHITE)
+	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	nm.add_theme_constant_override("outline_size", 5)
+	nm.position = Vector2(tx, iy - 90); nm.size = Vector2(vis.x - tx - 40, 40)
+	lay.add_child(nm)
+	var eff := String(item.get("effect_text", ""))
+	if eff != "":
+		var el := Label.new()
+		el.text = "[%s]" % eff
+		el.add_theme_font_size_override("font_size", 22)
+		el.add_theme_color_override("font_color", Color(0.55, 1.0, 0.45))
+		el.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		el.add_theme_constant_override("outline_size", 4)
+		el.position = Vector2(tx, iy - 46); el.size = Vector2(vis.x - tx - 40, 32)
+		lay.add_child(el)
+	var desc := String(item.get("desc", ""))
+	if desc != "":
+		var dl := Label.new()
+		dl.text = desc
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl.add_theme_font_size_override("font_size", 20)
+		dl.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+		dl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		dl.add_theme_constant_override("outline_size", 4)
+		dl.position = Vector2(tx, iy - 4); dl.size = Vector2(vis.x - tx - 40, 130)
+		lay.add_child(dl)
+	# EXP 게이지(좌하단) — 원작 자산 그대로.
+	if exp_gain > 0:
+		var ey := vis.y - _NARR_H - 60.0
+		var wing := _spr("adventure_ui", "scene_adventure_bonus_exp_mini", _adv, S)
+		if wing: wing.position = Vector2(70, ey); lay.add_child(wing)
+		var ge := Label.new()
+		ge.text = "+%d" % exp_gain
+		ge.add_theme_font_size_override("font_size", 26)
+		ge.add_theme_color_override("font_color", Color.WHITE)
+		ge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		ge.add_theme_constant_override("outline_size", 4)
+		ge.position = Vector2(124, ey - 18); ge.size = Vector2(160, 34)
+		lay.add_child(ge)
+		var gbg := _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bg", _man("laboratory_ui"), S)
+		if gbg: gbg.position = Vector2(160, ey + 40); lay.add_child(gbg)
+		# 게이지 채움 비율 = 활성 드래곤의 현재 레벨 경험치 진행도(레퍼런스의 "487 / 729").
+		var frac := 0.0
+		var cur_exp := 0
+		var need_exp := 0
+		var act := UserDB.get_dragon(UserDB.active_uid())
+		if not act.is_empty():
+			cur_exp = int(act.get("exp", 0))
+			need_exp = LevelSystem.exp_to_next(Data.level_curve, int(act.get("level", 1)))
+			if need_exp > 0: frac = clampf(float(cur_exp) / float(need_exp), 0.0, 1.0)
+		var gbar := _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bar", _man("laboratory_ui"), S)
+		if gbar:
+			# 왼쪽 정렬로 잘라 채운다(중앙앵커 → 좌단 고정 후 폭만 축소).
+			var gw := float(_man("laboratory_ui").get("scene_laboratory_upgrade_gauge_bar", {}).get("w", 200))
+			gbar.centered = false
+			gbar.position = Vector2(160.0 - gw * S * 0.5, ey + 40.0 - 6.0 * S)
+			gbar.region_enabled = true
+			gbar.region_rect = Rect2(Vector2.ZERO, Vector2(gw * frac, 12))
+			var at2: AtlasTexture = gbar.texture as AtlasTexture
+			if at2:
+				gbar.region_enabled = false
+				gbar.scale.x = S * frac      # 아틀라스 텍스처는 region 재지정 대신 가로 축소
+			lay.add_child(gbar)
+		if need_exp > 0:
+			var gt := Label.new()
+			gt.text = "%d / %d" % [cur_exp, need_exp]
+			gt.add_theme_font_size_override("font_size", 16)
+			gt.add_theme_color_override("font_color", Color.WHITE)
+			gt.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+			gt.add_theme_constant_override("outline_size", 3)
+			gt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			gt.size = Vector2(200, 22); gt.position = Vector2(60, ey + 52)
+			lay.add_child(gt)
+	var loot_nm := gear_name if gear_name != "" else Data.item_name(item_key)
+	_narrate("%s%s 획득하였습니다." % [loot_nm, _josa(loot_nm, "을", "를")])
+	# 탭하면 닫힘(원작 텍스트박스 진행과 동일). 안전상 자동 닫힘도 건다.
+	var close := Button.new(); close.flat = true
+	close.set_anchors_preset(Control.PRESET_FULL_RECT)
+	close.pressed.connect(func(): if is_instance_valid(lay): lay.queue_free())
+	lay.add_child(close)
+	var at := create_tween()
+	at.tween_interval(3.5)
+	at.tween_callback(func(): if is_instance_valid(lay): lay.queue_free())
+
+## 아이템 아이콘 스프라이트(data/items.json 의 icon 경로 → 변환 아틀라스 키).
+## 젬/장비 가상 인벤 키 → 아이콘 텍스처. 젬/장비가 아니면 null.
+func _gear_texture(key: String) -> Texture2D:
+	var g := Gem.parse_item_key(key)
+	if not g.is_empty():
+		return Icons.gem_texture(
+			String(Gem.gem_def(String(g["name"]), Data.gems).get("code", "")), int(g["tier"]))
+	var ck := Equipment.parse_item_key(key)
+	if ck != "":
+		return Icons.equip_texture(Equipment.catalog(Data.equipment).get(ck, {}))
+	return null
+
+func _item_icon_sprite(key: String, scale: float) -> Sprite2D:
+	# 젬/장비 드롭은 items.json 이 아니라 논리키로 아이콘을 찾는다(Icons = 에셋 카탈로그 계층 §8.4).
+	var vt := _gear_texture(key)
+	if vt != null:
+		var vs := Sprite2D.new()
+		vs.texture = vt
+		vs.material = _pma
+		vs.scale = Vector2(scale, scale)
+		return vs
+	var path := String(Data.item_icon_path(key))   # 이미 "res://assets/converted/<dir>/<name>.tres"
+	if path == "" or not ResourceLoader.exists(path): return null
+	var sp := Sprite2D.new()
+	sp.texture = load(path)
+	sp.material = _pma
+	# 회전 아틀라스 보정을 위해 dir/name 을 다시 뽑아 매니페스트 조회.
+	var rel := path.trim_prefix("res://assets/converted/").trim_suffix(".tres")
+	var parts := rel.split("/")
+	# 회전 보정 불필요 — 변환 단계가 흡수(scripts/tools/fix_rotated_frames.py)
+	sp.scale = Vector2(scale, scale)
+	return sp
+
+## 한글 조사 선택: 받침 없음/ㄹ 받침 → "로", 그 외 → "으로". (원작 문장 "수중동굴로 모험을 떠났습니다")
+func _josa_ro(word: String) -> String:
+	if word.is_empty(): return "로"
+	var c := word.unicode_at(word.length() - 1)
+	if c < 0xAC00 or c > 0xD7A3: return "로"
+	var jong := (c - 0xAC00) % 28
+	return "로" if (jong == 0 or jong == 8) else "으로"
+
+## 받침 유무로 은/는 · 이/가 · 을/를 선택.
+func _josa(word: String, with_batchim: String, without: String) -> String:
+	if word.is_empty(): return without
+	var c := word.unicode_at(word.length() - 1)
+	if c < 0xAC00 or c > 0xD7A3: return without
+	return with_batchim if ((c - 0xAC00) % 28) != 0 else without
+
+# ---------- HUD(속도 토글 + 나가기) ----------
+func _build_hud() -> void:
+	var vis := _vis()
+	_speed_btn = Button.new()
+	_speed_btn.text = "▶ x1"; _speed_btn.position = Vector2(vis.x - 90, 12); _speed_btn.size = Vector2(74, 30)
+	_speed_btn.pressed.connect(_cycle_speed)
+	add_child(_speed_btn)
+	var out := Button.new()
+	out.text = "나가기"; out.position = Vector2(16, 12); out.size = Vector2(74, 30)
+	out.pressed.connect(func(): Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")}))
+	add_child(out)
+	_build_objective(int(_params.get("enc", 0)), int((_stage.get("enemies", []) as Array).size()))
+
+## 원작 QuestAndBattleLabel 1:1: 던전 목표 라벨 — quest_shadow 패널 + profile_bg 아이콘 + 텍스트 + 카운트 + checked(완료).
+## 근거: QuestAndBattleLabel::initWidget (QuestAndBattleLabel.c:462 CCScale9Sprite 'scene/adventure/quest_shadow.png'
+##   capInsets Rect(10,10,4,4) 앵커(0.0,0.5); contentSize(…+300, 60); CCLabelTTF 'Thonburi' 22(:483);
+##   common/profile_bg.png @(40,h/2)(:598); common/checked.png @(80,h/2) 완료시(:606); CCLabelBMFont 카운트(:567)).
+## ⚠️ 목표 텍스트 문자열=시나리오/미션 서버데이터 유실 → 스테이지명(사용자작성)+조우수로 구성(지어내지 않음). count=조우 진행.
+func _build_objective(enc: int, total: int) -> void:
+	if total <= 0: return
+	var done := (enc + 1) >= total
+	const H := 48.0
+	var bw := 250.0
+	var panel := NinePatchRect.new()   # 원작 quest_shadow Scale9(capInsets 10,10,4,4)
+	panel.texture = load("res://assets/converted/adventure_ui/scene_adventure_quest_shadow.tres")
+	panel.patch_margin_left = 12; panel.patch_margin_top = 12; panel.patch_margin_right = 12; panel.patch_margin_bottom = 12
+	panel.size = Vector2(bw, H); panel.position = Vector2(16, 50)   # 좌상단(앵커 0.0,0.5 → 좌측정렬)
+	add_child(panel)
+	# profile_bg 아이콘 + quest 아이콘(원작 @x40). 우리 quest 아이콘 세트(icon_quest1) 사용.
+	var pbg := _spr("common_ui", "common_profile_bg", _man("common_ui"), 0.5)
+	if pbg: pbg.position = Vector2(28, H * 0.5); panel.add_child(pbg)
+	var qic := _spr("adventure_ui", "scene_adventure_icon_quest1", _man("adventure_ui"), 0.5)
+	if qic: qic.position = Vector2(28, H * 0.5); panel.add_child(qic)
+	# checked(원작 @x80, 완료시만).
+	if done:
+		var chk := _spr("common_ui", "common_checked", _man("common_ui"), 0.6)
+		if chk: chk.position = Vector2(28, H * 0.5); panel.add_child(chk)
+	# Thonburi 22 목표 텍스트 = 스테이지명(사용자작성) 기반.
+	var lbl := Label.new()
+	lbl.text = String(_stage.get("name", "던전")) if not done else (String(_stage.get("name", "던전")) + " 완료")
+	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_color_override("font_color", Color(1, 0.97, 0.85))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7)); lbl.add_theme_constant_override("outline_size", 3)
+	lbl.position = Vector2(56, 4); lbl.size = Vector2(bw - 110, H - 8)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; panel.add_child(lbl)
+	# 카운트(원작 CCLabelBMFont setCountNumberIncrease) — 조우 진행 X/Y.
+	var cnt := Label.new(); cnt.text = "%d/%d" % [mini(enc + 1, total), total]
+	cnt.add_theme_font_size_override("font_size", 20)
+	cnt.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	cnt.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7)); cnt.add_theme_constant_override("outline_size", 3)
+	cnt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cnt.position = Vector2(bw - 60, 4); cnt.size = Vector2(48, H - 8)
+	cnt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; panel.add_child(cnt)
+	_build_story_objective(H)
+
+
+## 스토리 서브퀘스트 진행 라벨 — 이 던전이 지금 진행 중인 회차의 서브퀘스트 대상일 때만 뜬다.
+## 원작도 같은 `QuestAndBattleLabel` 로 **스토리 퀘스트**를 표시했다(`QuestManager::getQuest` →
+## `QuestData::getTitle()` + `getCount()/getMax()`, `AdventureScene::setEventScenario`).
+## 우리 첫 줄은 던전 조우 목표(자작)라 스토리 줄은 **그 아래 한 칸**에 같은 프레임으로 얹는다.
+func _build_story_objective(h: float) -> void:
+	var no := StoryProgress.active_episode()
+	var sp := StoryProgress.spec(no)
+	var field := DungeonBG.base_field(DungeonBG.field_id(_stage))
+	var is_night := bool(UserDB.get_pmeta("yutakan_night", false))
+	var variant := {"kades": 1 if _is_kades() else 0}
+	if not StoryQuest.counts_for(sp, field, is_night, variant):
+		return
+	var cur := StoryProgress.count(no)
+	var need := int(sp["need"])
+	var bw := 250.0
+	var panel := NinePatchRect.new()
+	panel.texture = load("res://assets/converted/adventure_ui/scene_adventure_quest_shadow.tres")
+	panel.patch_margin_left = 12; panel.patch_margin_top = 12
+	panel.patch_margin_right = 12; panel.patch_margin_bottom = 12
+	panel.size = Vector2(bw, h); panel.position = Vector2(16, 50 + h + 6)
+	add_child(panel)
+	var pbg := _spr("common_ui", "common_profile_bg", _man("common_ui"), 0.5)
+	if pbg: pbg.position = Vector2(28, h * 0.5); panel.add_child(pbg)
+	var qic := _spr("adventure_ui", "scene_adventure_icon_quest2", _man("adventure_ui"), 0.5)
+	if qic == null:
+		qic = _spr("adventure_ui", "scene_adventure_icon_quest1", _man("adventure_ui"), 0.5)
+	if qic: qic.position = Vector2(28, h * 0.5); panel.add_child(qic)
+	if cur >= need:
+		var chk := _spr("common_ui", "common_checked", _man("common_ui"), 0.6)
+		if chk: chk.position = Vector2(28, h * 0.5); panel.add_child(chk)
+	var lbl := Label.new()
+	lbl.text = "%d화 서브미션" % no
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(0.85, 0.95, 1))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	lbl.add_theme_constant_override("outline_size", 3)
+	lbl.position = Vector2(56, 4); lbl.size = Vector2(bw - 110, h - 8)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; panel.add_child(lbl)
+	var cnt := Label.new(); cnt.text = "%d/%d" % [mini(cur, need), need]
+	cnt.add_theme_font_size_override("font_size", 20)
+	cnt.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	cnt.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	cnt.add_theme_constant_override("outline_size", 3)
+	cnt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cnt.position = Vector2(bw - 70, 4); cnt.size = Vector2(58, h - 8)
+	cnt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; panel.add_child(cnt)
+
+## 원작 AdventureMapLayer road_map: 조우 수 N에 맞는 경로 지도 `roadmap_spot{N}`(450×315) 한 장 +
+## 지나간 스팟에 `roadmap_x_icon`(53×53). 스팟 좌표는 아트에서 추출(build_roadmap_spots.py →
+## data/roadmap_spots.json) — 이전 구현은 "에셋 부재" 오판으로 색 점을 자작했었다.
+## 등장 애니는 원작 setMapItem 그대로: delay (i%6+1)*0.1 → fade255+rot10°+scale1.05+moveBy(0,+25)
+## 0.5s → rot-5°+scale1.0+moveBy(0,-25) 0.25s → rot-2°+(0,+15) → rot3°+(0,-15) → rot0.
+## (Cocos y-up → Godot y-down: moveBy y 부호 반전)
+## ASSUMPTION: 스팟의 **진행 순서**는 원작에서 서버 데이터였다(유실) → 최근접 이웃 경로 순서.
+func _build_roadmap(total: int, cur: int) -> void:
+	var spots_db: Dictionary = {}
+	var f := FileAccess.open("res://data/roadmap_spots.json", FileAccess.READ)
+	if f: spots_db = JSON.parse_string(f.get_as_text())
+	var entry: Dictionary = spots_db.get(str(total), {})
+	if entry.is_empty():
+		return   # 해당 조우 수의 원작 지도 프레임 없음 → 자작 대체 금지(그리지 않음)
+
+	var vis := _vis()
+	var art := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_spot%d" % total, _man("roadmap_ui"), 1.0)
+	if art == null:
+		return
+	var tw_: float = float(entry.get("w", 332))
+	var th_: float = float(entry.get("h", 215))
+	var scl := 0.46                                   # 탐험 HUD에 얹는 축소 배율
+	var road := Node2D.new(); road.position = Vector2(vis.x * 0.5, 124.0); add_child(road)
+	art.scale = Vector2(scl, scl)
+	art.modulate = Color(1, 1, 1, 0.85)
+	road.add_child(art)
+
+	# 스팟 로컬좌표(텍스처 좌상단 기준) → road 로컬(스프라이트 중앙 기준)
+	var spots: Array = entry.get("spots", [])
+	for i in mini(total, spots.size()):
+		var sp: Array = spots[i]
+		var local := (Vector2(float(sp[0]), float(sp[1])) - Vector2(tw_, th_) * 0.5) * scl
+		if i < cur:
+			var x := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_x_icon", _man("roadmap_ui"), scl * 1.1)
+			if x:
+				x.position = local; road.add_child(x)
+				_anim_map_item(x, i)                  # 원작 setMapItem 등장 애니
+		elif i == cur:
+			var mk := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_q_icon", _man("roadmap_ui"), scl * 1.1)
+			if mk:
+				mk.position = local; road.add_child(mk)
+				_anim_map_item(mk, i)
+				var pulse := mk.create_tween().set_loops()
+				pulse.tween_property(mk, "scale", Vector2(scl * 1.35, scl * 1.35), 0.6)
+				pulse.tween_property(mk, "scale", Vector2(scl * 1.1, scl * 1.1), 0.6)
+	road.modulate.a = 0.0
+	road.create_tween().tween_property(road, "modulate:a", 1.0, 0.4)
+
+## 원작 AdventureMapLayer::setMapItem 등장 연출(디컴파일 축자 복원).
+func _anim_map_item(n: Node2D, i: int) -> void:
+	n.modulate.a = 0.0
+	var base := n.position
+	var t := n.create_tween()
+	t.tween_interval(float(i % 6 + 1) * 0.1)
+	t.tween_property(n, "modulate:a", 1.0, 0.25)
+	t.parallel().tween_property(n, "rotation_degrees", 10.0, 0.5)
+	t.parallel().tween_property(n, "position", base + Vector2(0, -25) * 0.46, 0.5)
+	t.tween_property(n, "rotation_degrees", -5.0, 0.25)
+	t.parallel().tween_property(n, "position", base, 0.25)
+	t.tween_property(n, "rotation_degrees", -2.0, 0.25)
+	t.parallel().tween_property(n, "position", base + Vector2(0, -15) * 0.46, 0.25)
+	t.tween_property(n, "rotation_degrees", 3.0, 0.25)
+	t.parallel().tween_property(n, "position", base, 0.25)
+	t.tween_property(n, "rotation_degrees", 0.0, 0.2)
+
+func _cycle_speed() -> void:
+	_speed = 2.0 if _speed == 1.0 else (3.0 if _speed == 2.0 else 1.0)
+	_speed_btn.text = "▶ x%d" % int(_speed)
+	if is_instance_valid(_walk_tw):
+		_walk_tw.set_speed_scale(_speed)   # 배회 사이클도 같이 가속
+
+# ---------- 진행 ----------
+## 배회 시간만 누적한다. **조우 시점은 배회 사이클 끝**(원작도 walk 액션의 마지막 CallFunc 가
+## 다음 이벤트를 부른다) — _start_walk_cycle 의 finished 콜백이 _monster_meet 을 호출한다.
+func _process(delta: float) -> void:
+	if _done or not _walking:
+		return
+	if _event_open:                        # 이벤트 진행 중 = 보행 정지
+		if is_instance_valid(_walk_tw) and _walk_tw.is_running():
+			_walk_tw.pause()
+		return
+	if is_instance_valid(_walk_tw) and not _walk_tw.is_running():
+		_walk_tw.play()
+	_t += delta * _speed
+
+## 몬스터 조우 연출 — 원작 3단 구성 축자 이식.
+##   1. 보스면 `setAlertMonster`(AdventureScene.c:34281-34590) : 검은 막이 맥동하고
+##      **보스 컷인 아트**가 우측에서 밀려들어오며 DANGER 스트라이프 2줄이 흐른다(약 3초).
+##   2. `showMonsterShadow`(:62000-62077) : `scene/adventure/shadow.png` 지면 그림자를
+##      RepeatForever(ScaleTo(1.0, s-0.1) → ScaleTo(1.0, s)) 로 숨쉬게 한다.
+##   3. `showMonster`(:61736-62000) : `music/effect_monster_in.mp3` +
+##        Spawn(ScaleTo(0.3,1.2),  MoveBy(0.3,(0,+130)))       ← 위로 튀어오르며 커짐
+##        Spawn(ScaleTo(0.15,0.8), MoveBy(0.15,(0,-120)), ScaleTo(0.15,(0.9,0.8)))  ← 급강하+찌그러짐
+##        CallFuncN → **setAllViewShake**(Shake 액션)          ← 착지 순간 화면 흔들림
+##        Spawn(ScaleTo(0.2,1.0),  MoveBy(0.2,(0,+20)))        ← 반동 복귀
+##      (Cocos y-up → Godot y-down 이라 y 부호를 반전했다. 순 이동 = 시작점보다 30px 위)
+##
+## 🔴 이전 구현(실루엣이 작게 등장 → 커지며 밝아짐)은 **원작에 없는 자작 연출**이었다.
+##    원작의 실루엣 조우는 별개 이벤트(`setIsMonsterShadowMode` / `setMonsterShadowMeet` +
+##    `txt_shadow_kr.png` + `ShadowMonsterLayer`)이고, 일반/보스 조우는 위 점프-착지다.
+func _monster_meet() -> void:
+	var vis := _vis()
+	var mid := _enemy_id_for_enc()
+	var total := int((_stage.get("enemies", []) as Array).size())
+	var enc := int(_params.get("enc", 0))
+	var is_boss := (total > 0 and enc + 1 >= total) or _rboss_enc >= 0   # 랜덤보스=보스취급
+	# 보행 정지 — 전진하던 배경 사본을 정리한다.
+	_walking = false
+	if is_instance_valid(_walk_tw): _walk_tw.kill()
+	if is_instance_valid(_walk_layer):
+		var wl := _walk_layer
+		var wt := wl.create_tween()
+		wt.tween_property(wl, "modulate:a", 0.0, 0.2)
+		wt.tween_callback(wl.queue_free)
+		_walk_layer = null
+	# 원작 조우 서사(레퍼런스 docs/ref/orig_image/battle/몬스터싸움.png 하단).
+	var enemies: Array = _stage.get("enemies", [])
+	var ei := _rboss_enc if _rboss_enc >= 0 else enc
+	var mn := "몬스터"
+	if ei >= 0 and ei < enemies.size():
+		mn = String((enemies[ei] as Dictionary).get("name", "몬스터"))
+	_narrate("길을 잃고 헤매던 중 %s의 으슥한 곳에서\n%s%s 만났다."
+		% [String(_stage.get("name", "던전")), mn, _josa(mn, "을", "를")])
+	# 1) 보스 컷인 경고(원작 setAlertMonster). 일반 조우에는 없다.
+	var delay := 0.0
+	if is_boss:
+		_alert_monster(mid)
+		delay = 3.0 / maxf(_speed, 1.0)
+	# 2)+3) 그림자 → 점프 착지
+	get_tree().create_timer(delay).timeout.connect(
+		_show_monster.bind(mid, is_boss, vis))
+
+## 원작 showMonsterShadow + showMonster. 착지 후 setAllViewShake → 전투 전환.
+func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
+	if not is_inside_tree():
+		return
+	var meet := Node2D.new(); add_child(meet)
+	var cx := vis.x * 0.5
+	var cy := FLOOR * 0.56
+	var full := Vector2(0.75, 0.75) * (1.3 if is_boss else 1.0)
+	var mscn := "res://scenes/monsters/monster_%d.tscn" % mid
+	var mnode: Node2D = null
+	if ResourceLoader.exists(mscn):
+		mnode = (load(mscn) as PackedScene).instantiate()
+		var ap := mnode.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if ap and ap.has_animation("wait"): ap.play("wait")
+	else:
+		mnode = _spr("adventure_ui", "scene_adventure_shadow", _adv, 2.0)
+	if mnode == null:
+		_go_battle(); return
+	# ── showMonsterShadow: 지면 그림자 + 숨쉬는 스케일 루프
+	var sbase := 1.5 * (1.3 if is_boss else 1.0)
+	var sh := _spr("adventure_ui", "scene_adventure_shadow", _adv, sbase)
+	if sh:
+		sh.position = Vector2(cx, cy + 96.0)
+		meet.add_child(sh)
+		var st := sh.create_tween().set_loops()
+		st.tween_property(sh, "scale", Vector2(sbase - 0.1, sbase - 0.1), 1.0)
+		st.tween_property(sh, "scale", Vector2(sbase, sbase), 1.0)
+	# ── showMonster: 아래에서 튀어올라 착지
+	meet.add_child(mnode)
+	var p0 := Vector2(cx, cy + 30.0)          # 순 이동 +30(위) 를 상쇄한 시작점
+	mnode.position = p0
+	mnode.scale = full
+	Bgm.sfx("effect_monster_in")              # 원작 music/effect_monster_in.mp3
+	var t := meet.create_tween()
+	t.tween_property(mnode, "scale", full * 1.2, 0.3)
+	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -130.0), 0.3)
+	t.tween_property(mnode, "scale", Vector2(full.x * 0.9, full.y * 0.8), 0.15)
+	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -10.0), 0.15)
+	t.tween_callback(func():                  # setAllViewShake + 착지 파티클
+		_arrive_impact(cx, cy, is_boss))
+	t.tween_property(mnode, "scale", full, 0.2)
+	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -30.0), 0.2)
+	t.tween_interval(0.55)
+	t.tween_callback(_go_battle)
+
+## 원작 AdventureMapLayer setShakeMap+setArriveParticle: 몬스터 리빌 순간 화면 흔들림 + 도착 파티클.
+func _arrive_impact(x: float, y: float, is_boss: bool) -> void:
+	_map_shake(9.0 if is_boss else 5.0)
+	var burst := CPUParticles2D.new()
+	burst.position = Vector2(x, y)
+	burst.one_shot = true; burst.explosiveness = 1.0
+	burst.amount = 20 if is_boss else 12
+	burst.lifetime = 0.5
+	burst.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	burst.emission_sphere_radius = 14.0
+	burst.direction = Vector2(0, -1); burst.spread = 180.0
+	burst.initial_velocity_min = 90.0; burst.initial_velocity_max = 210.0
+	burst.gravity = Vector2(0, 320.0)
+	burst.scale_amount_min = 2.0; burst.scale_amount_max = 4.5
+	var g := Gradient.new()
+	var c: Color = Color(1.0, 0.45, 0.25) if is_boss else Color(1.0, 0.92, 0.6)
+	g.set_color(0, Color(c.r, c.g, c.b, 0.9)); g.set_color(1, Color(c.r, c.g, c.b, 0.0))
+	burst.color_ramp = g
+	burst.z_index = 30
+	add_child(burst)
+	burst.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(burst): burst.queue_free())
+
+## 화면 흔들림(원작 AdventureMapLayer::setShakeMap = Shake(0.5s,10)). 보행 카메라(_cam)를 지터.
+var _shake_tw: Tween
+func _map_shake(intensity: float) -> void:
+	if not is_instance_valid(_cam):
+		_cam = Camera2D.new()
+		_cam.position = _vis() * 0.5
+		add_child(_cam); _cam.make_current()
+	if is_instance_valid(_shake_tw): _shake_tw.kill()
+	_shake_tw = _cam.create_tween()
+	var amt := intensity
+	for i in 6:
+		_shake_tw.tween_property(_cam, "offset", Vector2(randf_range(-amt, amt), randf_range(-amt, amt)), 0.03)
+		amt *= 0.68
+	_shake_tw.tween_property(_cam, "offset", Vector2.ZERO, 0.05)
+
+## 원작 `AdventureScene::setAlertMonster`(AdventureScene.c:34281-34590) 축자 이식 — **보스 컷인 경고**.
+##
+## 🔴 이전 구현은 이 함수를 "가로 띠가 0.22초 스윕하고 사라짐"으로 오해했다. 실제 구성은:
+##   · `CCLayerColor(검정, w+200, h+200)` @ (-100,-100), z=100, tag 0x9b
+##     → FadeTo(0.5, **150**) 후 RepeatForever(FadeTo(0.5,150) ↔ FadeTo(0.5,**50**))  = 맥동하는 암막
+##   · `Monster::getImagePathBossCutin()` = **`monster/<id>/<id>_image/cutin.png`**
+##     (:34370-34392) 를 앵커(0.5,0.5)·scale 2S 로 화면 중앙 + (w+100, 100) 에 두고
+##     MoveBy(0.5, (-w, 0)) + **CCEaseExponentialOut** 으로 밀어 넣는다
+##     → `asset_index.py --grep cutin` = 78장 전부 🟠 미사용이던 자산. 여기서 처음 쓴다.
+##   · `scene/adventure/bar.png` 2줄(위=flipX, 아래=정방향), 각각
+##       - `bar_deco_right/left_move.png` 를 **200장 타일링**해 MoveBy(9.0, ±w) → 느린 무한 스크롤 띠
+##       - `txt_danger.png`(scale 0.5S) 를 **10장 반복**해 MoveBy(4.5, ±2w) → DANGER 문자열 흐름
+##   · 하단 텍스트박스(tag 7)는 MoveTo(0.5, (w/2, -h/2)) 로 화면 아래로 빠진다
+##   · 총 길이 = Delay(3.0) → CallFunc (그 뒤 setAlertMonsterShowEnd)
+##
+## 타일 200장/10장은 화면 밖까지 채우기 위한 수치다 — 우리는 화면폭에 필요한 만큼만 깐다(가시결과 동일).
+func _alert_monster(mid: int) -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var lay := CanvasLayer.new(); lay.layer = 30; add_child(lay)
+	var root := Node2D.new(); lay.add_child(root)
+	# ── 맥동하는 암막(CCLayerColor 검정, alpha 150↔50)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.0)
+	dim.position = Vector2(-100, -100)
+	dim.size = vis + Vector2(200, 200)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(dim)
+	lay.move_child(dim, 0)
+	var dt := dim.create_tween()
+	dt.tween_property(dim, "color:a", 150.0 / 255.0, 0.5)
+	var dl := dim.create_tween().set_loops()
+	dl.tween_interval(0.5)
+	dl.tween_property(dim, "color:a", 50.0 / 255.0, 0.5)
+	dl.tween_property(dim, "color:a", 150.0 / 255.0, 0.5)
+	# ── 하단 텍스트박스 퇴장(원작: getChildByTag(7) → MoveTo(0.5, (w*0.5, -h*0.5)))
+	var narr_par: Node = _narr_label.get_parent() if is_instance_valid(_narr_label) else null
+	var narr_home := Vector2.ZERO
+	if narr_par is Control:
+		narr_home = (narr_par as Control).position
+		(narr_par as Control).create_tween().tween_property(narr_par, "position:y", vis.y + 40.0, 0.5)
+	# ── 보스 컷인(우측 화면 밖 → 중앙, EaseExponentialOut). 스케일 2S(원작 vtable 0x78 인자 = S+S).
+	#    컷인 원본은 가로로 긴 띠다(예: monster_5 = 354×74) → 2S 로 그리면 화면폭을 거의 채운다.
+	var cp := "res://assets/converted/monster_%d/monster_%d_%d_image_cutin.tres" % [mid, mid, mid]
+	var cut_h := 74.0 * S * 2.0        # 컷인이 없을 때의 기본 띠 높이
+	if ResourceLoader.exists(cp):
+		var cut := Sprite2D.new()
+		cut.texture = load(cp)
+		cut.material = _pma
+		cut.scale = Vector2(S * 2.0, S * 2.0)
+		cut.z_index = 10
+		cut.position = Vector2(vis.x * 1.5, vis.y * 0.5)
+		root.add_child(cut)
+		var ch := cut.texture.get_size().y
+		if ch > 1.0:
+			cut_h = ch * S * 2.0
+		cut.create_tween().tween_property(cut, "position:x", vis.x * 0.5, 0.5)\
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	# ── DANGER 스트라이프 2줄 — 원작은 바를 `center ± 컷인높이×S`에 둬서 **컷인을 위아래로 감싼다**
+	#    (:34406 `getContentSize(this_01).height * (S+S) * 0.5`, this_01 = 컷인 스프라이트).
+	var bar_h := float(_adv.get("scene_adventure_bar", {}).get("h", 23)) * S
+	for i in 2:
+		var bar := _spr("adventure_ui", "scene_adventure_bar", _adv, S)
+		if bar == null: continue
+		bar.flip_h = (i == 0)                                   # 원작: 위쪽 바만 flipX(1)
+		bar.position = Vector2(vis.x * 0.5,
+			vis.y * 0.5 + (-cut_h * 0.5 if i == 0 else cut_h * 0.5))
+		bar.z_index = 15                                        # 컷인 위에 겹친다
+		root.add_child(bar)
+		var dir := 1.0 if i == 0 else -1.0
+		_alert_scroll(bar, "scene_adventure_bar_deco_%s_move" % ("right" if i == 0 else "left"),
+			S, 0.0, dir * vis.x, 9.0, vis.x)
+		# DANGER 문자열은 바 **바깥쪽**으로(위 바는 위, 아래 바는 아래) 흐른다.
+		_alert_scroll(bar, "scene_adventure_txt_danger",
+			S * 0.5, (-bar_h * 0.5 - 26.0) if i == 0 else (bar_h * 0.5 + 26.0),
+			dir * vis.x * 2.0, 4.5, vis.x)
+	# ── 3초 뒤 정리(원작 Delay(3.0) → setAlertMonsterShowEnd)
+	var life := 3.0 / maxf(_speed, 1.0)
+	get_tree().create_timer(life).timeout.connect(func() -> void:
+		if is_instance_valid(narr_par) and narr_par is Control:
+			(narr_par as Control).create_tween().tween_property(narr_par, "position", narr_home, 0.3)
+		if is_instance_valid(lay):
+			var ft := dim.create_tween()
+			ft.tween_property(root, "modulate:a", 0.0, 0.25)
+			ft.parallel().tween_property(dim, "color:a", 0.0, 0.25)
+			ft.tween_callback(lay.queue_free))
+
+## 바 하나에 프레임을 화면폭+여유만큼 타일링해 붙이고 통째로 흘려보낸다(원작 200장/10장 타일링 대응).
+func _alert_scroll(bar: Sprite2D, key: String, scale: float, y: float,
+		travel: float, dur: float, screen_w: float) -> void:
+	var e: Dictionary = _adv.get(key, {})
+	var w := float(e.get("w", 0)) * scale
+	if w <= 1.0:
+		return
+	var n := int(ceil((screen_w * 2.0 + absf(travel)) / w)) + 1
+	var strip := Node2D.new()
+	strip.position = Vector2(0, y)
+	bar.add_child(strip)
+	var x0 := -screen_w - (w if travel > 0.0 else 0.0)
+	for i in n:
+		var s := _spr("adventure_ui", key, _adv, scale)
+		if s == null:
+			strip.queue_free(); return
+		# bar 스프라이트의 scale 을 상속하므로 로컬 좌표는 bar 픽셀 공간이다.
+		s.scale /= bar.scale.x
+		s.position = Vector2((x0 + w * i) / bar.scale.x, 0)
+		strip.add_child(s)
+	var tw := strip.create_tween().set_loops()
+	tw.tween_property(strip, "position:x", travel / bar.scale.x, dur).from(0.0)
+
+func _go_battle() -> void:
+	var hp_state: Dictionary = {} if _healed else _params.get("hp_state", {})
+	# 랜덤 보스면 선택된 보스 enc를 전달(meet↔battle 일치). 아니면 일반 enc.
+	var enc := _rboss_enc if _rboss_enc >= 0 else int(_params.get("enc", 0))
+	# 원작 setEventMonster: 비보스 조우 ~10%가 정예(스탯↑·금빛·보상2배).
+	var total := int((_stage.get("enemies", []) as Array).size())
+	var is_boss := (total > 0 and enc + 1 >= total) or _rboss_enc >= 0
+	var elite := false
+	if not is_boss:
+		var er := RandomNumberGenerator.new(); er.seed = hash("elite_%s_%d" % [String(_params.get("stage", "")), enc])
+		elite = er.randf() < 0.10
+	Scenes.goto("battle", {"stage": String(_params.get("stage", "")),
+		"region": _params.get("region", "yutakan"), "enc": enc, "elite": elite,
+		"hp_state": hp_state, "streak": int(_params.get("streak", 0)),
+		# 이번 탐험의 출전 인원 — 일반은 리더 1마리, 3인 단계는 편성 결과.
+		# 전투가 전역 UserDB.party() 를 다시 읽으면 1인 탐험에서도 3마리가 나온다.
+		# 카데스의 공간 여부는 스테이지 id(601+)로 이미 정해지지만, 전투가 다시 계산하지 않도록
+		# 명시해서 넘긴다(아티팩트 드롭·미각성 페널티가 여기에 걸린다).
+		"kades": _is_kades(), "field": _base_field(),
+		"party_uids": _run_party.duplicate(), "hero": bool(_params.get("hero", false))})
+
+## 편성에서 `weight`(기본 1) 비례로 하나를 고른다. 합이 0 이면 균등.
+func _pick_weighted(rows: Array, rr: RandomNumberGenerator) -> int:
+	var total := 0.0
+	for r in rows:
+		total += maxf(0.0, float((r as Dictionary).get("weight", 1)))
+	if total <= 0.0:
+		return rr.randi() % rows.size()
+	var t := rr.randf() * total
+	for i in rows.size():
+		t -= maxf(0.0, float((rows[i] as Dictionary).get("weight", 1)))
+		if t <= 0.0:
+			return i
+	return rows.size() - 1
+
+## 현 조우(enc)의 몬스터 asset id. 랜덤 보스면 선택된 보스, 아니면 stage.enemies[enc].id.
+func _enemy_id_for_enc() -> int:
+	var enemies: Array = _stage.get("enemies", [])
+	if enemies.is_empty(): return 1
+	var enc := _rboss_enc if _rboss_enc >= 0 else clampi(int(_params.get("enc", 0)), 0, enemies.size() - 1)
+	var e: Dictionary = enemies[enc]
+	var eid: Variant = e.get("id", 1)
+	return int(eid) if eid != null else 1
+
+## 원작 BattleTextBox 1:1: 하단 대화상자 — dialogue_box 9patch + 타자기 텍스트 + next 화살표 + 탭 진행.
+## 근거: BattleTextBox::init (BattleTextBox.c:170 CCScale9Sprite '9patch/dialogue_box.png' capInsets Rect(10,10,4,4);
+##   this 앵커(0.5,0.0)+VisibleRect::bottom 하단중앙; contentSize(visW-10, 120); CCLabelTTF "Thonburi" 28 좌측정렬(:187-191);
+##   setDimensions(boxW-20) 워드랩(:195); dialogue_box 자식 앵커(0.0,0.5) pos(10, h*0.5-2)(:170-55)).
+##   타자기: setTextSpeed/showString/showStringAll/schedule(문자 순차노출); showNextArrow/removeNextArrow(btn_arrow2);
+##   ccTouchBegan(BattleTextBox.c:38): 타이핑중=전체표시(showStringAll), 완료=다음(on_done).
+## ⚠️ 문자노출 속도(cps)는 연출용 클라 설정 — 정확값 미확정 → 기본 40cps ASSUMPTION(게임수치 아님, 코스메틱).
+func _open_dialogue(text: String, on_done := Callable()) -> void:
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 80; add_child(layer)
+	const BH := 120.0
+	var bw: float = vis.x - 20.0
+	var box := NinePatchRect.new()
+	box.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
+	box.patch_margin_left = 16; box.patch_margin_top = 16; box.patch_margin_right = 16; box.patch_margin_bottom = 16
+	box.size = Vector2(bw, BH); box.position = Vector2(10, vis.y - BH - 12)   # 하단중앙(원작 bottom 앵커)
+	layer.add_child(box)
+	# Thonburi 28 좌측정렬 라벨 + 워드랩(boxW-20). 우리 폰트로 대체(비트맵 폰트 미적용).
+	var lbl := Label.new(); lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 28)
+	lbl.add_theme_color_override("font_color", Color(0.15, 0.1, 0.03))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.position = Vector2(14, 12); lbl.size = Vector2(bw - 28, BH - 24)
+	lbl.visible_characters = 0   # 타자기 시작
+	box.add_child(lbl)
+	# next 화살표(btn_arrow2) — 완료 시 우하단에 점멸. 원작 showNextArrow.
+	var arrow := _spr("common_ui", "common_btn_arrow2", _man("common_ui"), 0.8)
+	if arrow:
+		arrow.position = Vector2(bw - 26, BH - 22); arrow.visible = false; box.add_child(arrow)
+	# 타자기: 40cps로 visible_characters 증가(ASSUMPTION 속도). 완료 시 화살표 표시.
+	var total := text.length()
+	var done := {"v": false}
+	var timer := Timer.new(); timer.wait_time = 1.0 / 40.0; timer.one_shot = false
+	layer.add_child(timer)
+	var reveal_all := func() -> void:
+		lbl.visible_characters = -1; done["v"] = true
+		if timer and is_instance_valid(timer): timer.stop()
+		if arrow:
+			arrow.visible = true
+			var tw := arrow.create_tween().set_loops()
+			tw.tween_property(arrow, "position:y", BH - 16, 0.4).as_relative()
+			tw.tween_property(arrow, "position:y", BH - 22, 0.4)
+	timer.timeout.connect(func() -> void:
+		lbl.visible_characters += 1
+		if lbl.visible_characters >= total: reveal_all.call())
+	timer.start()
+	# 탭 진행(원작 ccTouchBegan): 타이핑중=전체표시, 완료=on_done+닫기.
+	var catcher := Control.new(); catcher.set_anchors_preset(Control.PRESET_FULL_RECT)
+	catcher.mouse_filter = Control.MOUSE_FILTER_STOP
+	catcher.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed:
+			if not done["v"]:
+				reveal_all.call()
+			else:
+				if is_instance_valid(layer): layer.queue_free()
+				if on_done.is_valid(): on_done.call())
+	layer.add_child(catcher)
+
+# ---------- 헬퍼 ----------
+func _vis() -> Vector2:
+	return get_viewport_rect().size
+
+func _man(dir: String) -> Dictionary:
+	var f := FileAccess.open("res://assets/converted/%s/_manifest.json" % dir, FileAccess.READ)
+	if f == null: return {}
+	var d = JSON.parse_string(f.get_as_text())
+	return d if d is Dictionary else {}
+
+func _spr(dir: String, name: String, man: Dictionary, scale := 1.0) -> Sprite2D:
+	var p := "res://assets/converted/%s/%s.tres" % [dir, name]
+	if not ResourceLoader.exists(p):
+		return null
+	var s := Sprite2D.new()
+	s.texture = load(p)
+	s.material = _pma
+	# 회전 보정 불필요 — 변환 단계가 흡수(scripts/tools/fix_rotated_frames.py)
+	s.scale = Vector2(scale, scale)
+	return s
+
+func _portrait(id: int, stage: String, scale := 1.0) -> Sprite2D:
+	var dir := "portrait_%d" % id
+	return _spr(dir, "dragon_dragon_%d_box_%s" % [id, stage], _man(dir), scale)
+
+## NPC 대사 조회 — data/npc_lines.json { "<npc>": { "<상황>": "대사" } }.
+## 파일이 없거나 키가 없으면 fallback(임시 문구)을 그대로 쓴다. 문장을 지어내지 않는다.
+var _npc_lines_cache: Dictionary = {}
+var _npc_lines_loaded := false
+func _npc_line(npc: String, situation: String, fallback: String) -> String:
+	if not _npc_lines_loaded:
+		_npc_lines_loaded = true
+		var f := FileAccess.open("res://data/npc_lines.json", FileAccess.READ)
+		if f:
+			var d = JSON.parse_string(f.get_as_text())
+			if d is Dictionary: _npc_lines_cache = d
+	var byn: Dictionary = _npc_lines_cache.get(npc, {})
+	var v = byn.get(situation, "")
+	return String(v) if typeof(v) == TYPE_STRING and String(v) != "" else fallback

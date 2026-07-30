@@ -1,0 +1,29 @@
+{
+ "_source": "원작 Dragon::isStun/getCureTime/setCureTime (docs/ref/orig_code/decomp/Dragon.c) + 사용자 확정(2026-07-29, docs/input/sheets/open_questions.csv 'equipment / 부적 효과 해석').",
+ "_re_basis": [
+  "상태 표현 = 원작 확정. `Dragon::isStun()` = `GameManager::getTime() < this->cureTime` (Dragon.c:11359).",
+  "  즉 상태값은 **해제 시각(유닉스) 한 개**다. `setCureTime(0)` = 즉시 해제.",
+  "다이아 즉시 회복 = 원작 확정. `CaveScene.c:8290-8312` 가 `(cureTime - now) / 0x708 < User::getCash()`",
+  "  를 검사하고 통과하면 `setCureTime(0)`. 0x708 = 1800초 ⇒ **남은 30분당 다이아 1개, 최소 1개**.",
+  "  ⚠️ 2026-07-30 정정: 종전엔 '버림'으로 읽어 30분 미만이면 0다이아였다. 실제 표시값은",
+  "  `WorldMapScene::setDragonStun` 의 `setCash(0, remain/1800 + 1, false)` = **+1** 이고,",
+  "  위 CaveScene 검사(`q < cash`)도 보유 `q+1` 을 요구하므로 두 곳이 같은 값이다.",
+  "  문자열 `Tip_35` = '드래곤이 행동불능이 될 경우 다이아를 사용해 바로 회복시킬 수 있습니다.'",
+  "부적 재해석도 같은 줄에서 사용자가 확정했다: '부적 아이템은 패배했을때 행동불능 상태가 되지",
+  "  않을 확률을 부여하는 것'. 원작 툴팁 `CaveItemEquipComent3` = '행동불능 치유 확률 +%d%%'.",
+  "  ⚠️ 종전 구현은 이 값을 **전투 중 기절 해제 확률**로 썼다 — 다른 상태였다(AdventureSkillStop).",
+  "  전투 중 기절은 스킬 효과로 남기고, `cure` 는 여기(패배 시 회피)로 옮겼다.",
+  "회복 경로는 **두 가지뿐**이다 — ① recover_seconds 경과 ② 다이아 즉시회복. 치료제 아이템은 없다(사용자 정정 2026-07-29)."
+ ],
+ "_schema": {
+  "recover_seconds": "int — 패배로 걸린 행동불능이 저절로 풀리는 데 걸리는 시간(초)",
+  "instant_cure_seconds_per_dia": "int — 다이아 1개가 줄여 주는 남은 시간(초). 원작 1800",
+  "cure_items": "string[] — 이 아이템을 쓰면 즉시 회복. data/items.json 의 키",
+  "avoid_stat": "string — 회피 확률을 담는 스탯 키(장비 합계). 부적 = cure"
+ },
+ "recover_seconds": 3600,
+ "instant_cure_seconds_per_dia": 1800,
+ "cure_items": [],
+ "_cure_items_note": "**비어 있는 것이 정답이다**(사용자 정정 2026-07-29). 처음에 사용자가 '치료제 아이템을 사용하거나'라고 적었으나 곧 착각이었다고 정정했다 — 원작에는 행동불능을 푸는 아이템이 없고 **다이아 즉시회복만** 있었다. 원작 코드도 그와 맞는다: `setCureTime(0)` 호출처 중 아이템 경로는 없고 `CaveScene.c:8290`(다이아) 뿐이다. `elixir`(생명의 정수)는 위키 item.pdf §2.2 대로 **해골요새 안에서 쓰러진 드래곤 부활** 전용이라 다른 시스템이다. 되살릴 근거가 생기면 이 배열에 아이템 키를 넣기만 하면 된다.",
+ "avoid_stat": "cure"
+}

@@ -1,0 +1,412 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_dwarfstatue_new_spine/ani_dwarfstatue_new_spine.png" id="1_81ovx"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_2tb7w"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g2he3"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(2, 261, 175, 59)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e84nw"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(162, 322, 29, 27)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_inrgd"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(123, 322, 37, 33)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p1a65"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(179, 261, 13, 21)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yuxwh"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(2, 322, 119, 83)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_34oq0"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(162, 351, 27, 25)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p3bxt"]
+atlas = ExtResource("1_81ovx")
+region = Rect2(2, 2, 195, 257)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_7ek5r"]
+length = 2.7333
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 0.0, 0.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/arm1:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.3359486708692105, 2.3359486708692105, 2.3359486708692105, 2.6268950571766654, 2.6268950571766654, 2.6268950571766654, 2.3359486708692105]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/arm1:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(79.2, 0.42), Vector2(79.2, 0.42), Vector2(79.2, 0.42), Vector2(84.16, 0.42), Vector2(84.16, 0.42), Vector2(84.16, 0.42), Vector2(79.2, 0.42)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/arm1:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/arm2:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [1.3763666481227284, 1.3763666481227284, 1.3763666481227284, 1.0271262647986628, 1.0271262647986628, 1.0271262647986628, 1.3763666481227284]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/arm2:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-88.25, -44.13), Vector2(-88.25, -44.13), Vector2(-88.25, -44.13), Vector2(-88.25, -44.13), Vector2(-88.25, -44.13)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/arm2:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/arm3:rotation")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.1659536017249628, 2.1659536017249628, 2.1659536017249628, 1.7378243362107535, 1.7378243362107535, 1.7378243362107535, 2.1659536017249628]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/arm3:position")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-139.99, -41.81), Vector2(-139.99, -41.81), Vector2(-139.99, -41.81), Vector2(-139.99, -41.81), Vector2(-139.99, -41.81)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/arm3:scale")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 2.7332, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/arm1/hand1:rotation")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.4914847173616032, 0.4914847173616032, 0.4914847173616032, -0.3892084231947355, -0.3892084231947355, -0.3892084231947355, 0.4914847173616032]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/arm1/hand1:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(18.1, -0.45), Vector2(18.1, -0.45), Vector2(18.1, -0.45), Vector2(15.89, -2.36), Vector2(15.89, -2.36), Vector2(15.89, -2.36), Vector2(18.1, -0.45)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/arm1/hand1:scale")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1.127), Vector2(1, 1.127), Vector2(1, 1.127), Vector2(1, 1)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/arm2/hand2:rotation")
+tracks/15/interp = 1
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.602285914723545, 2.602285914723545, 2.602285914723545, 3.0665434957540367, 3.0665434957540367, 3.0665434957540367, 2.602285914723545]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/arm2/hand2:position")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(27.71, 0.71), Vector2(27.71, 0.71), Vector2(27.71, 0.71), Vector2(36.05, -1.96), Vector2(36.05, -1.96), Vector2(36.05, -1.96), Vector2(27.71, 0.71)]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/arm2/hand2:scale")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0.707, 1.017), Vector2(0.707, 1.017), Vector2(0.707, 1.017), Vector2(1, 1)]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/arm3/hand3:rotation")
+tracks/18/interp = 1
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-2.759714613253434, -2.759714613253434, -2.759714613253434, -1.9600047499896325, -1.9600047499896325, -1.9600047499896325, -2.759714613253434]
+}
+tracks/19/type = "value"
+tracks/19/imported = false
+tracks/19/enabled = true
+tracks/19/path = NodePath("root/arm3/hand3:position")
+tracks/19/interp = 1
+tracks/19/loop_wrap = true
+tracks/19/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(49.36, 2.39), Vector2(49.36, 2.39), Vector2(49.36, 2.39), Vector2(29.12, 13.07), Vector2(29.12, 13.07), Vector2(29.12, 13.07), Vector2(49.36, 2.39)]
+}
+tracks/20/type = "value"
+tracks/20/imported = false
+tracks/20/enabled = true
+tracks/20/path = NodePath("root/arm3/hand3:scale")
+tracks/20/interp = 1
+tracks/20/loop_wrap = true
+tracks/20/keys = {
+"times": PackedFloat32Array(0, 0.1999, 0.2, 0.3, 2.1999, 2.2, 2.7333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1.205, 1.082), Vector2(1.205, 1.082), Vector2(1.205, 1.082), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_m6rgh"]
+_data = {
+&"animation": SubResource("Animation_7ek5r")
+}
+
+[node name="Dragon_ani_dwarfstatue_new_spine_scene" type="Node2D" unique_id=274527928]
+
+[node name="root" type="Node2D" parent="." unique_id=2116868637]
+
+[node name="arm1" type="Node2D" parent="root" unique_id=483947758]
+position = Vector2(79.2, 0.42)
+rotation = 2.3359487
+
+[node name="hand1" type="Node2D" parent="root/arm1" unique_id=413151370]
+position = Vector2(18.1, -0.45)
+rotation = 0.49148473
+
+[node name="w_dwarf_dwarfstatue_hand1_frame" type="Node2D" parent="root/arm1/hand1" unique_id=1586153846]
+position = Vector2(59.44, 33.82)
+rotation = -2.8276079
+
+[node name="w_dwarf_dwarfstatue_hand1" type="Sprite2D" parent="root/arm1/hand1/w_dwarf_dwarfstatue_hand1_frame" unique_id=539530768]
+z_index = 4
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(39.963898, 0)
+rotation = 1.5707964
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_g2he3")
+
+[node name="w_dwarf_dwarfstatue_arm1_frame" type="Node2D" parent="root/arm1" unique_id=1871445120]
+position = Vector2(54.53, 57.43)
+rotation = -2.3359487
+
+[node name="w_dwarf_dwarfstatue_arm1" type="Sprite2D" parent="root/arm1/w_dwarf_dwarfstatue_arm1_frame" unique_id=1696772896]
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(75.93141, 7.9899497)
+rotation = 1.5707964
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_e84nw")
+
+[node name="arm2" type="Node2D" parent="root" unique_id=953859029]
+position = Vector2(-88.25, -44.13)
+rotation = 1.3763666
+
+[node name="hand2" type="Node2D" parent="root/arm2" unique_id=696397526]
+position = Vector2(27.71, 0.71)
+rotation = 2.6022859
+
+[node name="w_dwarf_dwarfstatue_hand2_frame" type="Node2D" parent="root/arm2/hand2" unique_id=73348195]
+position = Vector2(-68.47, 50.82)
+rotation = 2.3043582
+
+[node name="w_dwarf_dwarfstatue_hand2" type="Sprite2D" parent="root/arm2/hand2/w_dwarf_dwarfstatue_hand2_frame" unique_id=301096231]
+z_index = 6
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(-97.24549, -35.954773)
+rotation = 1.5707964
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_inrgd")
+
+[node name="w_dwarf_dwarfstatue_arm2_frame" type="Node2D" parent="root/arm2" unique_id=1553401604]
+position = Vector2(60.34, -78.07)
+rotation = -1.3763666
+
+[node name="w_dwarf_dwarfstatue_arm2" type="Sprite2D" parent="root/arm2/w_dwarf_dwarfstatue_arm2_frame" unique_id=1665103088]
+z_index = 1
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(-83.92419, -34.623116)
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_p1a65")
+
+[node name="arm3" type="Node2D" parent="root" unique_id=85983511]
+position = Vector2(-139.99, -41.81)
+rotation = 2.1659536
+
+[node name="hand3" type="Node2D" parent="root/arm3" unique_id=2069633045]
+position = Vector2(49.36, 2.39)
+rotation = -2.7597146
+
+[node name="w_dwarf_dwarfstatue_hand3_frame" type="Node2D" parent="root/arm3/hand3" unique_id=1960977011]
+position = Vector2(139.33, 96.81)
+rotation = 0.5935865
+
+[node name="w_dwarf_dwarfstatue_hand3" type="Sprite2D" parent="root/arm3/hand3/w_dwarf_dwarfstatue_hand3_frame" unique_id=2000412369]
+z_index = 5
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(-101.241875, -46.60804)
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_yuxwh")
+
+[node name="w_dwarf_dwarfstatue_arm3_frame" type="Node2D" parent="root/arm3" unique_id=97649429]
+position = Vector2(-43.84, -139.37)
+rotation = -2.1659536
+
+[node name="w_dwarf_dwarfstatue_arm3" type="Sprite2D" parent="root/arm3/w_dwarf_dwarfstatue_arm3_frame" unique_id=398461660]
+z_index = 2
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(-150.53069, -25.301508)
+rotation = 1.5707964
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_34oq0")
+
+[node name="w_dwarf_dwarfstatue_body_frame" type="Node2D" parent="root" unique_id=1870924725]
+
+[node name="w_dwarf_dwarfstatue_body" type="Sprite2D" parent="root/w_dwarf_dwarfstatue_body_frame" unique_id=1137784671]
+z_index = 3
+material = SubResource("CanvasItemMaterial_2tb7w")
+position = Vector2(13.3213, 2.6633165)
+rotation = 1.5707964
+scale = Vector2(1.33213, 1.3316582)
+texture = SubResource("AtlasTexture_p3bxt")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1421466748]
+libraries/ = SubResource("AnimationLibrary_m6rgh")

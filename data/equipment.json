@@ -1,0 +1,1424 @@
+{
+  "_source": "나무위키 equipment_0.pdf(장비) + equipment_1.pdf(전용 장비). scripts/tools/build_equipment.py.",
+  "_re_basis": "옵션 스탯 9종 = 원작 info_item_acc 컬럼(hp,atk,def,blk,gold,exp,pure,depure,accuracy; OptionSelectLayer.c:2343). 편린 세트 옵션 13종 = info_item_setacc(RaidpieceItem.c:2128). 장비 부가버프 = info_item_buf(hp,att,def,cri,evd,blk). 슬롯 = Dragon::getDragonEquipSlot/getDragonPieceSlot. 행값(수치)은 서버 유실 → 위키 + ASSUMPTION.",
+  "_offline_cuts": "피오드 장비는 원작에서 원정 상점(ExpeditionShopScene) 전용 — 원정=온라인 CUT(CLAUDE.md §1). 발록 장비는 길드 토벌전 산출 — 길드 CUT. 두 계열은 데이터로 두되 획득처는 솔로 레이드 재설계 대상.",
+  "stat_keys": {
+    "hp": "생명력(flat)",
+    "att": "공격력(flat)",
+    "def": "방어력(flat)",
+    "blk": "방어(막기)율 %",
+    "evd": "상대공격 회피 확률 %",
+    "cri": "크리티컬 확률 %",
+    "cri_pow": "크리티컬 파워 %",
+    "pure": "방어 관통 대미지(flat, 방어 무시 고정 피해)",
+    "depure": "받는 방어 관통 대미지 감소(flat)",
+    "accuracy": "명중률 %",
+    "cure": "행동불능 치유 확률 %",
+    "awaken_rate": "각성기 게이지 상승률 %",
+    "gold": "골드 획득 %",
+    "exp": "경험치 획득 %"
+  },
+  "slots": [
+    {
+      "id": "all",
+      "name": "모든 장비",
+      "accepts": "*",
+      "_source": "위키 §2 '전용장비를 포함한 말 그대로 모든 장비'"
+    },
+    {
+      "id": "battle",
+      "name": "전투형 장비",
+      "accepts": [
+        "cri",
+        "pure",
+        "cri_pow",
+        "accuracy"
+      ],
+      "_source": "위키 §2 '크리티컬 확률/방어 관통 대미지/크리티컬 파워/명중률 증가형'"
+    },
+    {
+      "id": "support",
+      "name": "보조형 장비",
+      "accepts": [
+        "evd",
+        "cure",
+        "awaken_rate",
+        "depure"
+      ],
+      "_source": "위키 §2 '회피율/행동불능 치유 확률/각성기 게이지 상승률/방어 관통 대미지 감소형'"
+    },
+    {
+      "id": "artifact",
+      "name": "아티팩트 장비",
+      "accepts": [
+        "artifact"
+      ],
+      "_source": "위키 §2 '모든 아티팩트'"
+    }
+  ],
+  "basic": {
+    "깃털": {
+      "stat": "evd",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "허름한 깃털",
+          "value": 2
+        },
+        {
+          "grade": 1,
+          "name": "용의 깃털",
+          "value": 3
+        },
+        {
+          "grade": 2,
+          "name": "고룡의 깃털",
+          "value": 4
+        },
+        {
+          "grade": 3,
+          "name": "전설의 깃털",
+          "value": 5
+        },
+        {
+          "grade": 4,
+          "name": "룬의 수호자의 깃털",
+          "value": 6
+        },
+        {
+          "grade": 5,
+          "name": "태고의 수호자의 깃털",
+          "value": 8
+        },
+        {
+          "grade": 6,
+          "name": "아만타의 금우",
+          "value": 10
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 발록 팔찌 13% · 눈사람 인형/온화한 호박반지 13% · 유타칸의 바람 11% · 허리케인 뱃지 10%. 일반 최고등급(아만타의 금우)은 이벤트·특수 장비보다 아래여야 하므로 10에서 끝냄. ASSUMPTION.",
+      "_authored": true
+    },
+    "발톱": {
+      "stat": "cri",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "허름한 발톱",
+          "value": 2
+        },
+        {
+          "grade": 1,
+          "name": "용의 발톱",
+          "value": 3
+        },
+        {
+          "grade": 2,
+          "name": "고룡의 발톱",
+          "value": 4
+        },
+        {
+          "grade": 3,
+          "name": "전설의 발톱",
+          "value": 5
+        },
+        {
+          "grade": 4,
+          "name": "룬의 수호자의 발톱",
+          "value": 6
+        },
+        {
+          "grade": 5,
+          "name": "태고의 수호자의 발톱",
+          "value": 8
+        },
+        {
+          "grade": 6,
+          "name": "아만타의 조갑",
+          "value": 10
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 발록 보주 13% · 크리스마스 별장식/사악한 호박반지 13% · 어린이 풍선 12% · 유타칸의 별빛/붉은 달의 조각 11% · 발록의 뱃지 10%. ASSUMPTION.",
+      "_authored": true
+    },
+    "부적": {
+      "stat": "cure",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "허름한 부적",
+          "value": 10
+        },
+        {
+          "grade": 1,
+          "name": "용의 부적",
+          "value": 16
+        },
+        {
+          "grade": 2,
+          "name": "고룡의 부적",
+          "value": 24
+        },
+        {
+          "grade": 3,
+          "name": "전설의 부적",
+          "value": 32
+        },
+        {
+          "grade": 4,
+          "name": "룬의 수호자의 부적",
+          "value": 40
+        },
+        {
+          "grade": 5,
+          "name": "태고의 수호자의 부적",
+          "value": 50
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 크리스마스 리본/곰 인형 69% · 팔라곤의 뱃지 50%. 최고등급(태고의 수호자의 부적)을 뱃지급(50)에 맞춤 — 아만타 부적은 원작에 없다. ASSUMPTION. ⚠️위키 설명문은 부적을 '패배 시 부활 확률'로 적지만 §2.1 효과표는 '행동불능 치유 확률'이다 — 효과표를 따랐다.",
+      "_authored": true
+    },
+    "묘안석": {
+      "stat": "pure",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "작은 묘안석",
+          "value": 5
+        },
+        {
+          "grade": 1,
+          "name": "깨진 묘안석",
+          "value": 10
+        },
+        {
+          "grade": 2,
+          "name": "묘안석",
+          "value": 15
+        },
+        {
+          "grade": 3,
+          "name": "세공 묘안석",
+          "value": 20
+        },
+        {
+          "grade": 4,
+          "name": "고급 묘안석",
+          "value": 25
+        },
+        {
+          "grade": 5,
+          "name": "전설의 묘안석",
+          "value": 30
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 발록 투구/피오드 낙인·잠뜰의 모자/할로윈 바구니 40 · 멋진 선글라스 35 · 포세이돈 뱃지 25. 최고등급(전설의 묘안석)을 특수장비(40) 아래인 30으로. ASSUMPTION.",
+      "_authored": true
+    },
+    "흑요석": {
+      "stat": "cri_pow",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "작은 흑요석",
+          "value": 10
+        },
+        {
+          "grade": 1,
+          "name": "깨진 흑요석",
+          "value": 20
+        },
+        {
+          "grade": 2,
+          "name": "흑요석",
+          "value": 30
+        },
+        {
+          "grade": 3,
+          "name": "세공 흑요석",
+          "value": 40
+        },
+        {
+          "grade": 4,
+          "name": "고급 흑요석",
+          "value": 50
+        },
+        {
+          "grade": 5,
+          "name": "전설의 흑요석",
+          "value": 60
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 오색 비치볼/유타칸의 햇빛 60% · 다르고스의 뱃지 45% · 발록 보주 부가효과 100%. 위키 §2.3.2: '메인 효과가 크리티컬 데미지인 대부분의 아이템이 60%를 넘지 못한다' → 60에서 끝냄.",
+      "_authored": true
+    },
+    "백금석": {
+      "stat": "awaken_rate",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "작은 백금석",
+          "value": 5
+        },
+        {
+          "grade": 1,
+          "name": "깨진 백금석",
+          "value": 10
+        },
+        {
+          "grade": 2,
+          "name": "백금석",
+          "value": 15
+        },
+        {
+          "grade": 3,
+          "name": "세공 백금석",
+          "value": 20
+        },
+        {
+          "grade": 4,
+          "name": "고급 백금석",
+          "value": 25
+        },
+        {
+          "grade": 5,
+          "name": "전설의 백금석",
+          "value": 30
+        }
+      ],
+      "_values": "자작 확정 기본값(사용자 승인 2026-07-27, HARD RULE 6 예외). 위키가 서술형이라 숫자가 없고, 아래 앵커 아래로 오도록 정했다. 튜닝 노브 = build_equipment.py BASIC[*].values. 앵커: 크리스마스 종 40% · 시원한 밀짚모자 35% · 그라노스의 뱃지 25%. ASSUMPTION.",
+      "_authored": true
+    }
+  },
+  "event": [
+    {
+      "name": "크리스마스 별장식",
+      "main": {
+        "cri": 13
+      },
+      "event": "크리스마스 이벤트"
+    },
+    {
+      "name": "눈사람 인형",
+      "main": {
+        "evd": 13
+      },
+      "event": "크리스마스 이벤트"
+    },
+    {
+      "name": "크리스마스 리본",
+      "main": {
+        "cure": 69
+      },
+      "event": "크리스마스 이벤트"
+    },
+    {
+      "name": "크리스마스 종",
+      "main": {
+        "awaken_rate": 40
+      },
+      "event": "크리스마스 이벤트"
+    },
+    {
+      "name": "어린이 풍선",
+      "main": {
+        "cri": 12
+      },
+      "event": "어린이날 이벤트"
+    },
+    {
+      "name": "장난감 총",
+      "main": {
+        "evd": 12
+      },
+      "event": "어린이날 이벤트"
+    },
+    {
+      "name": "곰 인형",
+      "main": {
+        "cure": 69
+      },
+      "event": "어린이날 이벤트"
+    },
+    {
+      "name": "오색 비치볼",
+      "main": {
+        "cri_pow": 60
+      },
+      "event": "여름 이벤트"
+    },
+    {
+      "name": "멋진 선글라스",
+      "main": {
+        "pure": 35
+      },
+      "event": "여름 이벤트"
+    },
+    {
+      "name": "시원한 밀짚모자",
+      "main": {
+        "awaken_rate": 35
+      },
+      "event": "여름 이벤트"
+    },
+    {
+      "name": "유타칸의 바람",
+      "main": {
+        "evd": 11
+      },
+      "event": "3주년 이벤트"
+    },
+    {
+      "name": "유타칸의 별빛",
+      "main": {
+        "cri": 11
+      },
+      "event": "3주년 이벤트"
+    },
+    {
+      "name": "유타칸의 햇빛",
+      "main": {
+        "cri_pow": 60
+      },
+      "event": "3주년 이벤트"
+    },
+    {
+      "name": "온화한 호박 반지",
+      "main": {
+        "evd": 13
+      },
+      "event": "할로윈 이벤트"
+    },
+    {
+      "name": "사악한 호박 반지",
+      "main": {
+        "cri": 13
+      },
+      "event": "할로윈 이벤트"
+    },
+    {
+      "name": "할로윈 바구니",
+      "main": {
+        "pure": 40
+      },
+      "event": "할로윈 이벤트"
+    },
+    {
+      "name": "붉은 달의 조각",
+      "main": {
+        "cri": 11
+      },
+      "event": "추석 이벤트"
+    },
+    {
+      "name": "허리케인의 뱃지",
+      "main": {
+        "evd": 10
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "팔라곤의 뱃지",
+      "main": {
+        "cure": 50
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "발록의 뱃지",
+      "main": {
+        "cri": 10
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "다르고스의 뱃지",
+      "main": {
+        "cri_pow": 45
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "포세이돈의 뱃지",
+      "main": {
+        "pure": 25
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "그라노스의 뱃지",
+      "main": {
+        "awaken_rate": 25
+      },
+      "event": "2주년 이벤트"
+    },
+    {
+      "name": "잠뜰의 모자",
+      "main": {
+        "pure": 40
+      },
+      "event": "잠뜰 이벤트"
+    },
+    {
+      "name": "마룡의 보옥",
+      "main": {
+        "pure": 40
+      },
+      "event": "학습도감 5종 세트"
+    }
+  ],
+  "special": {
+    "skull": {
+      "name": "해골요새 장비",
+      "_source": "위키 §2.3.1. '모든 장비의 주 능력이 방어 관통 대미지 +40'.",
+      "items": [
+        {
+          "name": "엘더 블랙퀸의 스태프",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "체방형 드래곤을 공격 시 25% 추가 대미지, 방어형 드래곤이 장착 시 회피율 10% 상승"
+        },
+        {
+          "name": "엘더 블랙퀸의 목걸이",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "방어형 드래곤을 공격 시 25% 추가 대미지, 체력형 드래곤이 장착 시 체력 추가 한계량 20% 증가"
+        },
+        {
+          "name": "G스컬의 은빛망토",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "체공형 드래곤을 공격 시 25% 추가 대미지, 공방형 드래곤이 장착 시 [신의 분노]가 [망각의 망치] 효과를 받지 않음"
+        },
+        {
+          "name": "G스컬의 붉은장갑",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "체력형 드래곤을 공격 시 25% 추가 대미지, 공격형 드래곤이 장착 시 크리티컬 파워 100% 상승"
+        },
+        {
+          "name": "G스컬의 영혼불길",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "공격형 드래곤을 공격 시 25% 추가 대미지, 체공형 드래곤이 장착 시 전투 중 체력·공격력 15% 증가"
+        },
+        {
+          "name": "엘더 블랙퀸의 목도리",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "공방형 드래곤 공격 시 25% 추가 대미지, 체방형 드래곤이 장착 시 스킬에 입는 피해 10% 감소"
+        }
+      ]
+    },
+    "balrog": {
+      "name": "발록 장비",
+      "_source": "위키 §2.3.2.",
+      "items": [
+        {
+          "name": "카이저 발록의 투구",
+          "main": {
+            "pure": 40
+          },
+          "bonus": "공격 시 상대 드래곤 남은 체력의 5%에 비례하는 추가 대미지(최대 300)"
+        },
+        {
+          "name": "카이저 발록의 팔찌",
+          "main": {
+            "evd": 13
+          },
+          "bonus": "현재 체력을 넘어서는 대미지를 받았을 때 체력 1을 남기고 생존(1회)"
+        },
+        {
+          "name": "카이저 발록의 보주",
+          "main": {
+            "cri": 13
+          },
+          "bonus": "크리티컬 대미지 100% 증가"
+        }
+      ]
+    },
+    "fiod": {
+      "name": "피오드 장비",
+      "_source": "위키 §2.3.3. 2020 크리스마스 업데이트.",
+      "items": [
+        {
+          "name": "피오드의 부서진 낙인",
+          "main": {
+            "evd": 13
+          },
+          "bonus": "착용한 드래곤의 스킬 효과 +1"
+        },
+        {
+          "name": "피오드의 빛을 잃은 마석",
+          "main": {
+            "accuracy": 13
+          },
+          "bonus": "착용 드래곤이 각성기에 받는 대미지 1000으로 제한"
+        },
+        {
+          "name": "피오드의 텅 빈 모래시계",
+          "main": {
+            "depure": 20
+          },
+          "bonus": "공격 시 타겟의 최대 체력 1마다 0.002%의 타겟 최대 체력 비례 추가대미지(최대 300)"
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "grades": [
+      "파손된",
+      "작은",
+      "신비한",
+      "빛나는",
+      "위대한",
+      "전설의"
+    ],
+    "types": [
+      {
+        "name": "이그니스",
+        "effect": "스킬 효과 강화",
+        "skills": [
+          "[카데스]철갑방패",
+          "복수의 거울",
+          "피의 갈증",
+          "상처파악",
+          "치유의 빛",
+          "신경독소",
+          "바위방어술",
+          "거신의 돌격",
+          "시한폭탄",
+          "야수의 본능",
+          "자연의 수호",
+          "약점파악",
+          "[베르나]돌격지시",
+          "신속이동",
+          "맹수의 감각",
+          "고속이동",
+          "무언의 압박",
+          "살기표출"
+        ]
+      },
+      {
+        "name": "마리스",
+        "effect": "스킬 발동 체력 조건 완화",
+        "skills": [
+          "분노의 일격",
+          "치유의 빛",
+          "아수라 일섬",
+          "신의 분노"
+        ]
+      },
+      {
+        "name": "벤투스",
+        "effect": "상대 스킬 대미지 감소",
+        "skills": [
+          "신경독소",
+          "시한폭탄",
+          "거신의 돌격",
+          "복수의 거울",
+          "신의 분노"
+        ]
+      },
+      {
+        "name": "루멘",
+        "effect": "스킬 발동 확률 증가",
+        "skills": [
+          "철갑방패",
+          "신의 결계",
+          "복수의 거울",
+          "암흑의 사슬",
+          "심판의 날개",
+          "환각효과",
+          "상처파악",
+          "뼈 부수기",
+          "어둠의 손길",
+          "망각의망치"
+        ]
+      },
+      {
+        "name": "옵스큐럼",
+        "effect": "상대 스킬 발동 확률 감소",
+        "skills": [
+          "철갑방패",
+          "신의 결계",
+          "복수의 거울",
+          "암흑의 사슬",
+          "심판의 날개",
+          "환각효과",
+          "상처파악",
+          "어둠의 손길",
+          "뼈 부수기",
+          "망각의망치"
+        ]
+      },
+      {
+        "name": "테라",
+        "effect": "스킬 효과 강화 및 발동 확률 증가",
+        "skills": [
+          "철갑방패",
+          "복수의 거울",
+          "상처파악",
+          "피의 갈증",
+          "바위방어술",
+          "거신의 돌격",
+          "시한폭탄",
+          "야수의 본능",
+          "자연의 수호",
+          "약점파악"
+        ]
+      }
+    ],
+    "_note": "아티팩트는 스킬 발동확률/효과를 건드린다 — 스탯 장비와 계층이 다르다.",
+    "axes": {
+      "이그니스": "BOOST",
+      "마리스": "REQHP",
+      "테라": "BNR",
+      "벤투스": "DEDMG",
+      "루멘": "INRATE",
+      "옵스큐럼": "DERATE"
+    },
+    "power": {
+      "BOOST": {
+        "power_lv": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3
+        ]
+      },
+      "BNR": {
+        "power_lv": [
+          1,
+          1,
+          1,
+          2,
+          2,
+          2
+        ],
+        "proc_add": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          9
+        ]
+      },
+      "INRATE": {
+        "proc_add": [
+          3,
+          5,
+          7,
+          9,
+          11,
+          12
+        ]
+      },
+      "DERATE": {
+        "foe_proc_sub": [
+          3,
+          5,
+          7,
+          9,
+          11,
+          12
+        ]
+      },
+      "DEDMG": {
+        "skill_dmg_taken_pct": [
+          5,
+          8,
+          11,
+          15,
+          19,
+          22
+        ]
+      },
+      "REQHP": {
+        "req_hp_relax_pct": [
+          5,
+          8,
+          11,
+          15,
+          19,
+          22
+        ]
+      }
+    },
+    "_power_authored": "⚠️ 자작(HARD RULE 6 예외) — 원작 아티팩트 수치는 서버 유실. 배열 = 등급 6단(파손된→전설의). power_lv = 스킬 효과 레벨 가산(각성스킬 83 '잠재력' +5 를 상한 앵커로 그 아래 +3). proc_add/foe_proc_sub = 발동 확률 퍼센트포인트(기본 발동률 20% 대비 최고 +12%p). skill_dmg_taken_pct = 받는 스킬 피해 감소 %. req_hp_relax_pct = 스킬 발동 체력 조건 완화 % — ⚠️ 우리 전투 엔진에 체력 게이트가 아직 없어 **현재 무효**다(데이터만 보유). 튜닝 노브 = build_equipment.py ARTIFACT_POWER.",
+    "hidden": {
+      "REQHP": {
+        "proc_add_all": 5
+      },
+      "DEDMG": {
+        "evd": 5
+      },
+      "BNR": {
+        "skill_uses": 1
+      }
+    },
+    "_hidden_source": "히든 옵션 = 아티팩트를 끼우기만 하면 붙는 상시 효과(등급 무관 고정값). 마리스 = 스킬 발동 확률 +5%(대상 스킬 한정 아님, 전 스킬) · 벤투스 = 회피율 +5% · 테라 = 스킬 발동 횟수 +1. 출처: 사용자 확정 2026-07-29(나무위키 §2.4 각주). ⚠️ 우리 PDF 추출본에는 각주 본문이 없어 재확인 불가 — 값이 바뀌면 여기만 고치면 된다."
+  },
+  "option": {
+    "_source": "위키 §2.6(등급별 옵션 수·강화 횟수) + 원작 info_item_acc 컬럼(OptionSelectLayer.c:2343).",
+    "grades": [
+      {
+        "name": "일반",
+        "options": 0
+      },
+      {
+        "name": "매직",
+        "options": 1
+      },
+      {
+        "name": "레어",
+        "options": 2
+      },
+      {
+        "name": "유니크",
+        "options": 3
+      },
+      {
+        "name": "에픽",
+        "options": 4
+      },
+      {
+        "name": "초월",
+        "options": 5
+      }
+    ],
+    "stats": [
+      "hp",
+      "att",
+      "def",
+      "blk",
+      "gold",
+      "exp",
+      "pure",
+      "depure",
+      "accuracy"
+    ],
+    "_stats_note": "위키 §2.6은 7종(공/방/생/방어율/골드/경험치/관통)만 적었으나 원작 컬럼은 9종 — depure(관통 감소)·accuracy(명중)가 더 있다. 스키마는 클라가 이긴다.",
+    "enhance_per_option": 5,
+    "_enhance_note": "위키 §2.6 표: 옵션 1개=5번 … 6개=30번. 즉 옵션 수 × 5.",
+    "extra_option_possible": true,
+    "pct_stats": [
+      "hp",
+      "att",
+      "def"
+    ],
+    "_pct_stats_re_basis": "원작 근거 확정 — `Dragon::getAttAdd`(Dragon.c:1508) 가 `Equip::getAtk()/100.0` 을 기본 공격력에 곱한다. def/hp 동일. 반면 `Equip::getBlk`(Dragon.c:2372) 등은 `fVar14 = fVar14 + fVar15` 로 가산 → 퍼센트포인트다. 즉 hp/att/def 옵션만 배수, 나머지는 가산. 상세 = docs/ref/porting/EquipBelongOption.md §2-2.",
+    "value_ranges": {
+      "hp": [
+        1,
+        10
+      ],
+      "att": [
+        1,
+        10
+      ],
+      "def": [
+        1,
+        10
+      ],
+      "blk": [
+        1,
+        5
+      ],
+      "gold": [
+        1,
+        10
+      ],
+      "exp": [
+        1,
+        10
+      ],
+      "pure": [
+        1,
+        12
+      ],
+      "depure": [
+        1,
+        8
+      ],
+      "accuracy": [
+        1,
+        5
+      ]
+    },
+    "_value_ranges_authored": "⚠️ 자작(HARD RULE 6 예외, 사용자 승인 2026-07-27, 2026-07-29 단위 정정). 원작 롤 범위는 서버 유실. 위키 확인값(특수장비 관통 40 · 이벤트 확률계 10~13%)을 상한 앵커로 잡고 그 아래로 정했다. hp/att/def 는 %(pct_stats)라 종전 flat 범위를 Lv40 전후 실스탯 기준으로 환산했다. 튜닝 노브 = scripts/tools/build_equipment.py OPTION.value_ranges.",
+    "bind_grade": 2,
+    "_bind_re_basis": "원작 모델 = `Equip::get/setBelong`(드래곤 tag). 미귀속 = 0 또는 -1, 장착 판정은 `belong==-1 || belong==0 || belong==현재 드래곤`(BagTableViewCell.c:671). **레어 등급 이상부터 귀속**은 위키 item.pdf(구드라의 지혜 항목) — 그래서 bind_grade=2(레어). 해제 아이템 = 구드라의 지혜(items.json `item_disconnect`, 원작 20다이아).",
+    "unbind_item": "item_disconnect",
+    "reroll_items": {
+      "2": "ginu_coin_green",
+      "3": "ginu_coin_yellow",
+      "4": "ginu_coin_red"
+    },
+    "_reroll_items_note": "키 = 등급 인덱스(2=레어 3=유니크 4=에픽). 원작 `ItemEquipSelectPopup::requestRegenEquip`. 5(초월) 동전은 추출 아이템 목록에 없어 비워 둔다.",
+    "rarity_rolls": {
+      "drop": {
+        "0": 70,
+        "2": 20,
+        "3": 8,
+        "4": 2
+      },
+      "shop_gold": {
+        "0": 100
+      },
+      "shop_gacha": {
+        "2": 60,
+        "3": 30,
+        "4": 10
+      }
+    },
+    "_rarity_rolls_source": "사용자 확정 2026-07-29 — 드롭 일반70:레어20:유니크8:에픽2 / 상점 골드구매 일반100 / 상점 가챠 레어60:유니크30:에픽10. 원작 값은 서버 유실이라 이 표가 정답이다.",
+    "rarity_colors": [
+      null,
+      "E6E6E6",
+      "7AF04C",
+      "FFF600",
+      "FF3924",
+      "00FFEA"
+    ],
+    "_rarity_colors_re_basis": "원작 확정 — `Equip::getGradeImageSmallSprite` 가 rarity(1~6)로 setColor 한다. rarity 1(일반)은 스프라이트 자체를 만들지 않는다. 초월은 추가로 스파인 `scene/worldmap/trancendence_bg_spine` 을 얹는데 그 스파인은 추출 에셋에 없다.",
+    "enhance_step_pct": 10,
+    "_enhance_step_authored": "⚠️ 자작: 강화 1회 = 해당 옵션 값 +10%(최소 +1). 튜닝 노브."
+  },
+  "pieces": {
+    "_source": "위키 §3(7주년, 4세대 레이드). 세트 2/3 효과.",
+    "_re_basis": "세트 옵션 테이블 = 원작 info_item_setacc, 컬럼 13개(RaidpieceItem.c:2128) — 위키 '13가지'와 일치.",
+    "slots": 3,
+    "option_stats": [
+      "att",
+      "def",
+      "hp",
+      "att_plus",
+      "def_plus",
+      "hp_plus",
+      "blk",
+      "att_cap",
+      "def_cap",
+      "hp_cap",
+      "evd",
+      "cri_pow",
+      "cri"
+    ],
+    "_option_stats_note": "위키 §3.1의 13종을 우리 키로. 원작 컬럼(h,i,j,a,b,c,d,e,f,k,l,m,n)과 개수 일치하나 컬럼↔스탯 대응은 유실 — 순서는 ASSUMPTION.",
+    "grades": [
+      "일반",
+      "매직",
+      "레어",
+      "유니크"
+    ],
+    "list": [
+      {
+        "name": "모험가의 편린",
+        "source": "원소문어",
+        "set2": "체력 10% 증가",
+        "set3": "체력 추가 상승량 한계 10% 증가"
+      },
+      {
+        "name": "신비의 편린",
+        "source": "원소문어",
+        "set2": "체력 80 증가",
+        "set3": "회피를 2회 성공할 때마다 받는 추가 대미지 1 감소(최대 50)"
+      },
+      {
+        "name": "수호자의 편린",
+        "source": "고대의 사서",
+        "set2": "방어력 10% 증가",
+        "set3": "방어력 추가 상승량 한계 10% 증가"
+      },
+      {
+        "name": "요새의 편린",
+        "source": "고대의 사서",
+        "set2": "방어력 20 증가",
+        "set3": "방어(블로킹)를 2회 성공할 때마다 기본 대미지 1 강화(최대 50)"
+      },
+      {
+        "name": "정복자의 편린",
+        "source": "상처입은 늑대",
+        "set2": "공격력 10% 증가",
+        "set3": "공격력 추가 상승량 한계 10% 증가"
+      },
+      {
+        "name": "단죄의 편린",
+        "source": "상처입은 늑대",
+        "set2": "공격력 20 증가",
+        "set3": "치명타를 성공할 때마다 추가 대미지 1 증가(최대 100)"
+      }
+    ]
+  },
+  "exclusive": {
+    "_note": "전용 장비는 드래곤별 고유 효과라 개별 전투 로직이 필요하다. 현재는 데이터 보관만 (implemented=false) — 전투 미반영. 위키 표가 줄단위로 쪼개져 name_raw 는 이름+사용자가 섞여 있다.",
+    "list": [
+      {
+        "name_raw": "고대신룡의 금 관 고대신룡",
+        "effect": "자신이 받는 방어관통 대미지 50 무시",
+        "implemented": false
+      },
+      {
+        "name_raw": "다크닉스의 구 슬 다크닉스",
+        "effect": "자신의 방어 관통 대미지 50 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "번개고룡의 팬 던트 번개고룡",
+        "effect": "자신이 [심판의 날개] 사용 시 대미지 200% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "빙하고룡의 칼 날 빙하고룡",
+        "effect": "자신이 불 속성 드래곤에게 주는 대미지 50% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "파워드래곤의 장갑 파워 드 래곤",
+        "effect": "자신이 물속성 드래곤에게 주는 대미지 50% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "엔젤 드래곤의 티아라 엔젤 드 래곤",
+        "effect": "자신의 방어 관통을 0으로 감소, 나머지 아군 드래곤에게 공통분배",
+        "implemented": false
+      },
+      {
+        "name_raw": "백룡의 보주 백룡",
+        "effect": "자신의 회피 발동 시, 자신의 스킬 사용 횟수 1회 회복",
+        "implemented": false
+      },
+      {
+        "name_raw": "흑룡의 보주 흑룡",
+        "effect": "자신의 크리티컬 발동 시, 자신의 스킬 사용 횟수 1회 회복",
+        "implemented": false
+      },
+      {
+        "name_raw": "트로페우스의 얼음결정 트로페우 스",
+        "effect": "자신의 크리티컬 확률만큼 체력% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "제피로스의 보 석 제피로스",
+        "effect": "자신의 잠재력 발동 확률 +15%",
+        "implemented": false
+      },
+      {
+        "name_raw": "번네스의 화염 신발 번네스",
+        "effect": "자신의 선제공격으로 발동되는 모든 적의 방어율, 회피 무시",
+        "implemented": false
+      },
+      {
+        "name_raw": "루미네스의 빙 결신발 루미네스",
+        "effect": "자신이 입히는 대미지 30% 증가",
+        "implemented": false
+      },
+      {
+        "raw": "저네르의 정기 저네르 크리티컬 발동 시, 상대 최대 체력의 10%만큼의 추가 피해(최대 300)",
+        "implemented": false
+      },
+      {
+        "name_raw": "노웨마의 갈기 노웨마",
+        "effect": "장착한 드래곤이 받는 피해가 최대 체력의 30%까지로 제한, 아군 드래 곤이 주는 대미지 10% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "라 솔라의 불 꽃 라 솔라",
+        "effect": "자신의 스킬 발동 횟수 +2",
+        "implemented": false
+      },
+      {
+        "name_raw": "홀리의 빛나는 양뿔 홀리",
+        "effect": "장착한 홀리의 크리티컬 공격이 상대 드래곤의 회피를 무시",
+        "implemented": false
+      },
+      {
+        "name_raw": "발레포르의 고 리 발레포르",
+        "effect": "장착한 발레포르의 [공격의 날개] 효과 +20%",
+        "implemented": false
+      },
+      {
+        "name_raw": "루시퍼의 날개 장식 루시퍼",
+        "effect": "장착한 루시퍼의 [매의눈]으로 인한 방어무시 대미지가 100으로 증 가(묘안석과 중첩불가)",
+        "implemented": false
+      },
+      {
+        "name_raw": "프로스티의 무 늬 프로스티",
+        "effect": "장착한 프로스티의 [보호의 날개] 효과 +10%",
+        "implemented": false
+      },
+      {
+        "raw": "다크프로스티 의 무늬 다크프로 스티 탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가[19]",
+        "implemented": false
+      },
+      {
+        "name_raw": "청룡의 여의주 청룡",
+        "effect": "[몬스터헌터] 효과가 토벌전 몬스터에게도 적용",
+        "implemented": false
+      },
+      {
+        "name_raw": "네시의 머리장 식 네시",
+        "effect": "자신의 회피 발동시, 자신의 스킬 횟수 1회 회복",
+        "implemented": false
+      },
+      {
+        "name_raw": "미니드래곤 고 리 미니 드 래곤",
+        "effect": "자신의 [선제 공격] 발동시 아군 드래곤의 합으로 공격",
+        "implemented": false
+      },
+      {
+        "name_raw": "샤크곤의 물안 경 샤크곤",
+        "effect": "[구드라의 가호] 효과가 100%로 변경",
+        "implemented": false
+      },
+      {
+        "name_raw": "라이오스의 바 람방패 라이오스",
+        "effect": "자신의 [고요한 바람] 효과가 방어력 100당 3씩 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "발로드의 갈기 발로드",
+        "effect": "자신의 각성기 피해량 30%증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "투탕카의 도리 깨 투탕카",
+        "effect": "자신의 [선제 공격] 발동 시 공격력이 가장 높은 드래곤이 공격하며, 크리 티컬이 발동된다",
+        "implemented": false
+      },
+      {
+        "name_raw": "익시아의 왕관 익시아",
+        "effect": "자신의 [각성된 바람의 힘]효과가 바람속성 필드에서 PvP전투에도 P vP에도 적용되고 효과가 30% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "다크나이트의 투구 다크나이 트",
+        "effect": "자신이 1회 피격시 마다 방어율 2% 증가(누적 최대 20%)",
+        "implemented": false
+      },
+      {
+        "name_raw": "데스퍼라티오 의 용암신발 데스퍼라 티오",
+        "effect": "자신의 [잠재력]이 100% 확률로 발동되며, 스킬 레벨 증가 효과가 + 2로 변경",
+        "implemented": false
+      },
+      {
+        "name_raw": "포세이돈의 삼 지창 포세이돈",
+        "effect": "자신의 [대양의 분노] 효과가 2배 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "프리스트의 빛 나는 날개 프리스트",
+        "effect": "자신의 [순백의 빛] 스킬이 아군 신성/빛 드래곤에게도 적용되고, 효 과가 +15% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "파이썬의 갑옷 파이썬",
+        "effect": "[대지의 시초]효과가 각성기에도 적용",
+        "implemented": false
+      },
+      {
+        "name_raw": "타로스의 용암 구슬 타로스",
+        "effect": "전투 시작 시 자신의 크리티컬 확률만큼, 스킬 피해량 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "레드와이번의 뿔 레드와이 번",
+        "effect": "장착한 레드와이번이 죽음에 이르는 피해를 입으면 죽지 않고 1회 생존",
+        "implemented": false
+      },
+      {
+        "name_raw": "솔라의 불꽃구 슬 솔라",
+        "effect": "자신의 '각성된 빛의 힘'의 효과가 PvP에서도 적용+효과 30%증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "수라드래곤의 고대 장식 수라 드 래곤",
+        "effect": "자신의 '각성된 불꽃의 힘'의 효과가 PvP에서도 적용+효과 30%증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "사이커드래곤 의 초록 번개 사이커 드래곤",
+        "effect": "각성스킬인 [그림자 수호신]으로 받는 데미지 절반,아군이 주는 데미 지 30%상승",
+        "implemented": false
+      },
+      {
+        "name_raw": "오르페우스의 비석 오르페우 스",
+        "effect": "각성스킬 [구드라의 가호]인한 아펙 획득 확률이 100%로 변경",
+        "implemented": false
+      },
+      {
+        "name_raw": "에메랄드 드래 곤의 보석 왕 관 에메랄드 드래곤",
+        "effect": "자신이 받는 방어관통 데미지 40 감소",
+        "implemented": false
+      },
+      {
+        "name_raw": "발칸의 푸른 불꽃 발칸",
+        "effect": "[지옥의 악귀]효과에 크리티컬 파워 30% 추가",
+        "implemented": false
+      },
+      {
+        "name_raw": "운디네의 물방 울 운디네",
+        "effect": "자신의 방어율만큼 아군 물속성 드래곤의 체력 증가 ( 최대 30% )",
+        "implemented": false
+      },
+      {
+        "raw": "엔투라스의 불 꽃 주먹 엔투라스 크리티컬 발동 시 상대의 현재 방어력 절반 무시",
+        "implemented": false
+      },
+      {
+        "raw": "설리반의 가면 설리반 아군 중 신성 속성 드래곤이 있으면 , 한 번에 입는 피해가 최대 체력의 3 0% 까지 제한",
+        "implemented": false
+      },
+      {
+        "name_raw": "금오드래곤의 고대목걸이 금오 드 래곤",
+        "effect": "자신의 [삼족오의 후예] 효과가 2배가 됨.",
+        "implemented": false
+      },
+      {
+        "name_raw": "블랙홀의 암흑 결정체 블랙홀",
+        "effect": "[블랙홀의 마력]으로 인한 체력 회복량이 100%로 증가, 자신의 공격 력 증가량이 20%로 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "시타엘의 신성 한 뿔 시타엘",
+        "effect": "자신이 회피 발동시 , 아군의 스킬 사용횟수 1회 회복",
+        "implemented": false
+      },
+      {
+        "raw": "쿠르파의 푸른 갑주 쿠르파 아군 그림자 속성 드래곤이 체력이 0이 되면, 5턴간 공격력 50% 상승",
+        "implemented": false
+      },
+      {
+        "name_raw": "헤네스의 지성 의 왕관 헤네스",
+        "effect": "[자격을 갖춘 자] 효과 3회 추가",
+        "implemented": false
+      },
+      {
+        "raw": "현무드래곤의 동방갑옷 현무 드 래곤 아군 물속성 드래곤의 피해량 10% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "발록의 전투 갑주 발록 해당 드래곤의 공격을 회피한 경우, 회피한 상대 드래곤이 자신에 턴에",
+        "effect": "자신을 공격 ( 전투당 최대 2회 )",
+        "implemented": false
+      },
+      {
+        "raw": "가오론의 뿔갑 옷 가오론 가오론과 다르고스가 받는 피해량 20 고정감소",
+        "implemented": false
+      },
+      {
+        "name_raw": "아루루가의 물 갈퀴 아루루가",
+        "effect": "[물의보호막] 효과 2회 추가",
+        "implemented": false
+      },
+      {
+        "raw": "일란의 영예의 관 일란 연속공격 피해량 50% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "아틀라스의 마 력 수정 아틀라스",
+        "effect": "[대지의 기둥] 효과로 증가하는 각성기 게이지 회복량이 30% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "바리안의 백색 갑옷 바리안",
+        "effect": "[순위쟁탈전]에서 아군 드래곤이 공격력과 피해량이 20% 증가.",
+        "implemented": false
+      },
+      {
+        "raw": "진의 나무비늘 진 아군 땅 속성 드래곤 수만큼 진의 각성기 데미지 20%증가(최대 60%)",
+        "implemented": false
+      },
+      {
+        "name_raw": "다르고스의 파 괴의 힘 다르고스",
+        "effect": "[파괴의 힘]발동 시 받는 데미지를 2회 1로 고정",
+        "implemented": false
+      },
+      {
+        "name_raw": "커스리퍼의 뼈 투구 커스 리 퍼",
+        "effect": "[뼈갑옷]효과가 2배로 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "살라의 화염창",
+        "effect": "살라 자신의 [푸른화염]으로 인해 상대방에게 주는 상성 대미지 피해량 5 0% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "팔라곤의 권위 의 투구 팔라곤",
+        "effect": "[권위의 팔라곤]으로 인한 공격력 증가량이 150%로 변경",
+        "implemented": false
+      },
+      {
+        "name_raw": "루키르의 바람 의 날개 루키르",
+        "effect": "[신뢰의 힘]에 인한 공격력 증가효과가 아군에게도 적용",
+        "implemented": false
+      },
+      {
+        "name_raw": "루너스의 달빛 불꽃 루너스",
+        "effect": "자신의 크리티컬 파워 150%증가",
+        "implemented": false
+      },
+      {
+        "raw": "글라시아의 왕 관 글라시아 상대의 회피율이 0%가 되면 공격이 반드시 크리티컬로 적중한다.[63]",
+        "implemented": false
+      },
+      {
+        "raw": "레지아나의 빛 나는 깃털 레지아나 해당 드래곤 사망시,아군 각성기 피해량 50%증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "프로스트랩터 의 얼음수정 프로스트 랩터",
+        "effect": "각성스킬 [각성된 어둠의 힘]효과가 PvP에서도 적용되고 효과 +30%",
+        "implemented": false
+      },
+      {
+        "raw": "나이트 드래곤 의 기사 투구 나이트 드래곤 빛의 기사[66]로 인한 체력 획득량 2배",
+        "implemented": false
+      },
+      {
+        "raw": "말덱의 흡수의 서 말덱 흡수하는 능력치의 양이, 대상의 기본 능력치가 아니라 대상의 최대 능력 치로 변경 (아이템/스킬로 인한 변화량 포함)",
+        "implemented": false
+      },
+      {
+        "name_raw": "스트라의 방출 의 서 스트라",
+        "effect": "[방출의 힘]으로 증가하는 각성 게이지가 2배로 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "푸르푸르의 혼 돈의 번개 푸르푸르",
+        "effect": "[절망의 번개] 효과의 발동 횟수 2회 추가",
+        "implemented": false
+      },
+      {
+        "raw": "즈믄의 빛나는 갑주 즈믄 즈믄이 신성 , 빛속성 드래곤 대상 피해량 100% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "팡팡드래곤의 풍선 팡팡 드 래곤",
+        "effect": "자신의 스킬 발동 횟수 +2",
+        "implemented": false
+      },
+      {
+        "raw": "섬머샤인의 선 글라스 섬머샤인 해당 드래곤의 스킬 발동 횟수 +2",
+        "implemented": false
+      },
+      {
+        "raw": "실러캔스의 물 빛 투구 실러캔스 착용한 실러캔스의 기본 방어력의 50% 만큼 추가 방어력 증가, 각성 스 킬의 효과를 두배로 변경",
+        "implemented": false
+      },
+      {
+        "raw": "카일루스의 신 성 방패 카일루스 각성 스킬이[71] 합계 방어력 10% 누적",
+        "implemented": false
+      },
+      {
+        "raw": "세로님의 전쟁 보닛 세로님 팀버프 [흑풍[72]]을 활성화한 경우 자신은 공격하지 않음",
+        "implemented": false
+      },
+      {
+        "name_raw": "디기의 금빛 장식 디기 각성 스킬[74]의 최대 추가 대미지 제한이 250으로 증가 000 과거 디기를 패왕으로 반들어준 장본인. 최강의 추가대미지를 주며 1vs1 3vs3 모든곳에서 잘 쓰이는 강한 드래곤이 었으나 다크닉스ll 추가 후 몰락했다. 그래도 좋은 장비임은 변함이 없다. 장비 페이스리스의 사슬 페이스리 스",
+        "effect": "장착한 드래곤의 등급이 6.0 이상일 때 적용, 바피드의 각인과 중첩이 불 가능, 한번에 입는 대미지가 최대 체력의 100% - 6% 드래곤 등급의 값 으로 제한, 제한 비율은 최소 30%",
+        "implemented": false
+      },
+      {
+        "name_raw": "페이스리스의 사슬 페이스리 스",
+        "effect": "장착한 드래곤의 등급이 6.0 이상일 때 적용, 바피드의 각인과 중첩이 불 가능, 한번에 입는 대미지가 최대 체력의 100% - 6% 드래곤 등급의 값 으로 제한, 제한 비율은 최소 30%",
+        "implemented": false
+      },
+      {
+        "name_raw": "아가레스의 투 구[75] 아가레스",
+        "effect": "장착한 자신의 체력이 -10% 감소하는 대신, 장착한 자신의 공격력과 방 어력이 +30% 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "콜테일의 헛된 희망 콜테일",
+        "effect": "자신의 스킬 [타락한 드래곤]에 의한 증가량만큼 자신의 공격력 방어 력이 증가",
+        "implemented": false
+      },
+      {
+        "raw": "미르의 별빛 방울 미르 상대 팀 현재 체력의 10%를 자신의 공격력에 추가(최대 1000)",
+        "implemented": false
+      },
+      {
+        "name_raw": "루페스의 결정 화된 분노 루페스",
+        "effect": "장착한 루페스가 복수의 거울로 대미지를 반사할 때 상대 드래곤은 현재 체력의 5%에 해당하는 추가 대미지 (최대 300)",
+        "implemented": false
+      },
+      {
+        "raw": "모노케로스의 붉은 보주 모노케로 스 착용한 모노케로스가 현재 체력 50%를 넘어서는 대미지를 받는 대신 누 적 , 최대 자신의 공격력이 1/3 , 공격 시 누적 값 만큼 기본대미지를 강 화하여 공격 , 전투 중 1회 적용",
+        "implemented": false
+      },
+      {
+        "name_raw": "크로우 드래곤 의 해골투구 크로우 드래곤",
+        "effect": "장착한 크로우 드래곤이 막기 혹은 회피에 성공하면 각성스킬 [복수의 까 마귀] 횟수를 1회 회복 (최대 4회)",
+        "implemented": false
+      },
+      {
+        "raw": "워든의 부유검 워든 상처파악을 제외한 모든 디버프의 영향을 받는 동안 자신이 일반공격 시 타겟 최대 체력의 10% 만큼 공격력 강화 (최대 1000)",
+        "implemented": false
+      },
+      {
+        "name_raw": "쏜 네일의 가 시갑옷 쏜 네일",
+        "effect": "각성스킬 [가시와 못]의 받는 대미지 감소율과 주는 대미지 증가율을 모두 2% 변경",
+        "implemented": false
+      },
+      {
+        "name_raw": "  아카이아의 성 물 아카이아",
+        "effect": "각성스킬 [신성한 유대]의 효과가 아군 전체에 적용",
+        "implemented": false
+      },
+      {
+        "name_raw": "샤마쉬의 흉갑 샤마쉬",
+        "effect": "각성스킬 [정의집행]의 추가대미지 효과가 아군 전체에 적용",
+        "implemented": false
+      },
+      {
+        "raw": "불나래의 불꽃 구슬 불나래 스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소 , 철갑방패와 중첩 가능 , 각인[에자녹의 권능]으로 인한 스킬레벨 증가도 포함",
+        "implemented": false
+      },
+      {
+        "name_raw": "레이어스의 반 석 방패 레이어스",
+        "effect": "각성스킬의 효과를 다음과 같이 변경, 드래곤 등급 × 4% 자신이 주 는 대미지 증가, 드래곤 등급 × 2% 자신의 받는 대미지 증가",
+        "implemented": false
+      },
+      {
+        "name_raw": "오울드라의 어 둠갑옷 오울드라",
+        "effect": "전투시작 시 모든 대미지를 1로 막아주는 보호막 1회 전체 적용",
+        "implemented": false
+      },
+      {
+        "raw": "세크라포의 어 깨보호대 세크라포 연속 공격 시 자신이 준 대미지만큼 자신의 체력 회복, 전투 중 3회 한정, 피의 갈증과 중첩불가",
+        "implemented": false
+      },
+      {
+        "raw": "멜로우 드래곤 의 부메랑 멜로우 드래곤 아군에 자신을 제외한 바람속성 드래곤이 있는 경우 멜로우는 공격하지 않는다.",
+        "implemented": false
+      },
+      {
+        "name_raw": "소라게 드래곤 의 마법의 소 라 소라게 드래곤",
+        "effect": "자신의 스킬 사용 횟수 +2",
+        "implemented": false
+      },
+      {
+        "name_raw": "완숙이의 후라 이팬 완숙이",
+        "effect": "자신의 체력 20% 이하일 때 공격 시, 체력 1% 회복 + 자신이 주는 대미 지 25% 증가(피의 갈증과 중첩 불가)",
+        "implemented": false
+      }
+    ]
+  }
+}

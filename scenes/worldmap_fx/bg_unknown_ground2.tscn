@@ -1,0 +1,358 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_bg_unknown_ground2/waterfall_spine.png" id="1_2n4kt"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_dhnt3"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iyd00"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(41, 404, 18, 17)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1t02c"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(184, 400, 35, 30)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qwt5v"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(184, 300, 39, 44)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5evec"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(213, 346, 11, 44)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3q3xj"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(184, 346, 27, 52)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f7r3m"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(2, 404, 37, 26)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x6iqx"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(2, 2, 222, 296)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_81m2e"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(2, 300, 107, 102)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nr00m"]
+atlas = ExtResource("1_2n4kt")
+region = Rect2(111, 300, 71, 102)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_priud"]
+length = 10.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bg_unknown_ground_island1_wave1:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.3333, 1.5333, 2.8666, 3.0666, 4.4, 4.6666, 6, 6.3, 7.6333, 8.2333, 9.5666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-24.29, -94.95), Vector2(-24.29, -14.96), Vector2(-24.29, -94.95), Vector2(-24.29, -14.96), Vector2(-24.29, -94.95), Vector2(-24.29, -14.96), Vector2(-24.29, -94.95), Vector2(-24.29, -14.96), Vector2(-24.29, -94.95), Vector2(-24.29, -14.96), Vector2(-24.29, -94.95), Vector2(-24.29, -14.96)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bg_unknown_ground_fog2:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 2.6666, 5.3333, 7.7, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(26.94, 113.12), Vector2(26.94, 103.12), Vector2(26.94, 113.12), Vector2(26.94, 103.12), Vector2(26.94, 113.12)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bg_unknown_ground_fog2:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 2.6666, 5.3333, 7.7, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.608, 0.608), Vector2(0.926, 0.926), Vector2(0.608, 0.608), Vector2(0.926, 0.926), Vector2(0.608, 0.608)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bg_unknown_ground_fog1:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 4.3333, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(-27.85, 85.41), Vector2(-27.85, 65.41), Vector2(-27.85, 85.41)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bg_unknown_ground_fog1:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 2.0333, 4.3333, 6.9666, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1.124, 1.124), Vector2(0.889, 0.889), Vector2(1.124, 1.124), Vector2(0.889, 0.889), Vector2(1.124, 1.124)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bg_unknown_ground_light1:position")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 10),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-1.05, -62.17), Vector2(-1.05, -102.17)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bg_unknown_ground_light2:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 10),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-17.41, 39.65), Vector2(-17.41, 9.65)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bg_unknown_ground_island3:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 2.4666, 4.7666, 7.6666, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-86.09, -95.1), Vector2(-86.09, -105.1), Vector2(-86.09, -95.1), Vector2(-86.09, -105.1), Vector2(-86.09, -95.1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bg_unknown_ground_island4:position")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 2.7, 4.6666, 7, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-60.88, -117.17), Vector2(-60.88, -127.17), Vector2(-60.88, -117.17), Vector2(-60.88, -127.17), Vector2(-60.88, -117.17)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bg_unknown_ground_floaters3:position")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 2.7666, 5.5, 7.6666, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-22.21, -222.65), Vector2(-22.21, -232.65), Vector2(-22.21, -222.65), Vector2(-22.21, -232.65), Vector2(-22.21, -222.65)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/bg_unknown_ground_light1/bg_unknown_ground_light1_slot_frame/bg_unknown_ground_light1_slot:modulate")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 1.6666, 3.3333, 5.3666, 7, 8.6666, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0.9607843, 0.9607843, 0.9607843, 0.9607843), Color(0.3254902, 0.3254902, 0.3254902, 0.3254902), Color(1, 1, 1, 1), Color(0.29803923, 0.29803923, 0.29803923, 0.29803923), Color(0.76862746, 0.76862746, 0.76862746, 0.76862746), Color(0, 0, 0, 0)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/bg_unknown_ground_light2/bg_unknown_ground_light2_slot_frame/bg_unknown_ground_light2_slot:modulate")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 2.2, 4.3666, 7.0333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/bg_unknown_ground_fog1/bg_unknown_ground_fog1_slot_frame/bg_unknown_ground_fog1_slot:modulate")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 2.0333, 4.3333, 5.3332, 5.3333, 6.9666, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.8784314, 0.8784314, 0.8784314, 0.8784314), Color(1, 1, 1, 1), Color(0.81960785, 0.81960785, 0.81960785, 0.81960785), Color(0.81960785, 0.81960785, 0.81960785, 0.81960785), Color(0.81960785, 0.81960785, 0.81960785, 0.81960785), Color(1, 1, 1, 1), Color(0.81960785, 0.81960785, 0.81960785, 0.81960785)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/bg_unknown_ground_fog2/bg_unknown_ground_fog2_slot_frame/bg_unknown_ground_fog2_slot:modulate")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 2.6666, 5.3333, 7.7, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.78039217, 0.78039217, 0.78039217, 0.78039217), Color(0.7921569, 0.7921569, 0.7921569, 0.7921569), Color(0.74509805, 0.74509805, 0.74509805, 0.74509805), Color(0.7921569, 0.7921569, 0.7921569, 0.7921569), Color(0.74509805, 0.74509805, 0.74509805, 0.74509805)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/bg_unknown_ground_island1_wave1/bg_unknown_ground_island1_wave1_slot_frame/bg_unknown_ground_island1_wave1_slot:modulate")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 1.3333, 1.5332, 1.5333, 1.6, 2.8666, 3.0665, 3.0666, 3.1333, 4.4, 4.6665, 4.6666, 4.7333, 6, 6.2999, 6.3, 6.3666, 7.6333, 8.2332, 8.2333, 8.3, 9.5666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.79607844, 0.79607844, 0.79607844, 0.79607844), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.79607844, 0.79607844, 0.79607844, 0.79607844), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.79607844, 0.79607844, 0.79607844, 0.79607844), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.79607844, 0.79607844, 0.79607844, 0.79607844), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.79607844, 0.79607844, 0.79607844, 0.79607844), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_11e15"]
+_data = {
+&"animation": SubResource("Animation_priud")
+}
+
+[node name="Dragon_bg_unknown_ground2_scene" type="Node2D" unique_id=1393102492]
+
+[node name="root" type="Node2D" parent="." unique_id=1165809720]
+
+[node name="bg_unknown_ground_floaters3" type="Node2D" parent="root" unique_id=566541465]
+position = Vector2(-22.21, -222.65)
+
+[node name="bg_unknown_ground_floaters3_slot_frame" type="Node2D" parent="root/bg_unknown_ground_floaters3" unique_id=1459492296]
+position = Vector2(-1.08, 3.07)
+
+[node name="bg_unknown_ground_floaters3_slot" type="Sprite2D" parent="root/bg_unknown_ground_floaters3/bg_unknown_ground_floaters3_slot_frame" unique_id=1900560171]
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.3333334, 1.3529412)
+texture = SubResource("AtlasTexture_iyd00")
+
+[node name="bg_unknown_ground_fog1" type="Node2D" parent="root" unique_id=497448560]
+position = Vector2(-27.85, 85.41)
+
+[node name="bg_unknown_ground_fog1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_fog1" unique_id=828723599]
+position = Vector2(3.72, -3.87)
+
+[node name="bg_unknown_ground_fog1_slot" type="Sprite2D" parent="root/bg_unknown_ground_fog1/bg_unknown_ground_fog1_slot_frame" unique_id=498341755]
+z_index = 6
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.3142858, 1.3333334)
+texture = SubResource("AtlasTexture_1t02c")
+
+[node name="bg_unknown_ground_fog2" type="Node2D" parent="root" unique_id=513629632]
+position = Vector2(26.94, 113.12)
+
+[node name="bg_unknown_ground_fog2_slot_frame" type="Node2D" parent="root/bg_unknown_ground_fog2" unique_id=294650519]
+position = Vector2(-5.84, 3.6)
+
+[node name="bg_unknown_ground_fog2_slot" type="Sprite2D" parent="root/bg_unknown_ground_fog2/bg_unknown_ground_fog2_slot_frame" unique_id=670399584]
+z_index = 7
+material = SubResource("CanvasItemMaterial_dhnt3")
+rotation = 1.5707964
+scale = Vector2(1.3409091, 1.3333334)
+texture = SubResource("AtlasTexture_qwt5v")
+
+[node name="bg_unknown_ground_island1_wave1" type="Node2D" parent="root" unique_id=2111441918]
+position = Vector2(-24.29, -94.95)
+
+[node name="bg_unknown_ground_island1_wave1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island1_wave1" unique_id=119282183]
+position = Vector2(0.58, -11.9)
+
+[node name="bg_unknown_ground_island1_wave1_slot" type="Sprite2D" parent="root/bg_unknown_ground_island1_wave1/bg_unknown_ground_island1_wave1_slot_frame" unique_id=1670726792]
+z_index = 8
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.2727273, 1.3181819)
+texture = SubResource("AtlasTexture_5evec")
+
+[node name="bg_unknown_ground_island3" type="Node2D" parent="root" unique_id=14717679]
+position = Vector2(-86.09, -95.1)
+
+[node name="bg_unknown_ground_island3_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island3" unique_id=1426280930]
+position = Vector2(-5.01, 5.27)
+
+[node name="bg_unknown_ground_island3_slot" type="Sprite2D" parent="root/bg_unknown_ground_island3/bg_unknown_ground_island3_slot_frame" unique_id=1169000658]
+z_index = 2
+material = SubResource("CanvasItemMaterial_dhnt3")
+rotation = 1.5707964
+scale = Vector2(1.3269231, 1.3333334)
+texture = SubResource("AtlasTexture_3q3xj")
+
+[node name="bg_unknown_ground_island4" type="Node2D" parent="root" unique_id=2056027181]
+position = Vector2(-60.88, -117.17)
+
+[node name="bg_unknown_ground_island4_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island4" unique_id=268146499]
+position = Vector2(-3.76, 6.1)
+
+[node name="bg_unknown_ground_island4_slot" type="Sprite2D" parent="root/bg_unknown_ground_island4/bg_unknown_ground_island4_slot_frame" unique_id=1027191447]
+z_index = 1
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.3243244, 1.3076923)
+texture = SubResource("AtlasTexture_f7r3m")
+
+[node name="bg_unknown_ground_island5" type="Node2D" parent="root" unique_id=1493734024]
+
+[node name="bg_unknown_ground_island5_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island5" unique_id=931945225]
+position = Vector2(-2.1, -35.07)
+
+[node name="bg_unknown_ground_island5_slot" type="Sprite2D" parent="root/bg_unknown_ground_island5/bg_unknown_ground_island5_slot_frame" unique_id=1464907828]
+z_index = 3
+material = SubResource("CanvasItemMaterial_dhnt3")
+position = Vector2(-8, 17.319876)
+scale = Vector2(1.3333334, 1.3322982)
+texture = SubResource("AtlasTexture_x6iqx")
+
+[node name="bg_unknown_ground_light1" type="Node2D" parent="root" unique_id=1091816795]
+position = Vector2(-1.05, -62.17)
+scale = Vector2(2, 2)
+
+[node name="bg_unknown_ground_light1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_light1" unique_id=1189537956]
+position = Vector2(-5.42, 4.02)
+
+[node name="bg_unknown_ground_light1_slot" type="Sprite2D" parent="root/bg_unknown_ground_light1/bg_unknown_ground_light1_slot_frame" unique_id=338960156]
+z_index = 4
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.3271028, 1.3333334)
+texture = SubResource("AtlasTexture_81m2e")
+
+[node name="bg_unknown_ground_light2" type="Node2D" parent="root" unique_id=1089243329]
+position = Vector2(-17.41, 39.65)
+scale = Vector2(1.5, 1.5)
+
+[node name="bg_unknown_ground_light2_slot_frame" type="Node2D" parent="root/bg_unknown_ground_light2" unique_id=2036318277]
+position = Vector2(-20.82, -20.93)
+
+[node name="bg_unknown_ground_light2_slot" type="Sprite2D" parent="root/bg_unknown_ground_light2/bg_unknown_ground_light2_slot_frame" unique_id=1165795406]
+z_index = 5
+material = SubResource("CanvasItemMaterial_dhnt3")
+scale = Vector2(1.3380282, 1.3333334)
+texture = SubResource("AtlasTexture_nr00m")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=31809800]
+libraries/ = SubResource("AnimationLibrary_11e15")

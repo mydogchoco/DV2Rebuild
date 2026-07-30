@@ -1,0 +1,840 @@
+{
+ "_re_basis": "회차 제목·챕터·서브미션 = 나무위키 '드래곤빌리지2/스토리' (docs/ref/orig_image/story_mission/*.pdf, 사용자 제공). 원작 stringsData_KR.xml 에는 회차 제목이 없다(<Scenario*> 키는 ScenarioTalk / ScenarioReward* 뿐) — 제목·챕터·해금조건은 ScenarioScript(서버 JSON)라 유실. 회차 번호 = ScenarioTalk<N> 의 N (35화 '결계의 저편' ↔ ScenarioTalk35_5 로 교차확인).",
+ "_unlock": {
+  "rule": "1~35화 = round(1 + (n-1)*44/34), 36화~ = 0(레벨 조건 없음, 직전 회차 관람으로 해금)",
+  "basis": "ASSUMPTION. 관측 앵커 2점 = 레퍼런스 스크린샷(1화 '개방조건: 드래곤 1레벨' / 35화 '드래곤 45레벨'). 45 는 data/level_curve.json 의 cap 과 일치한다 ⇒ 레벨 게이트가 35화에서 끝난다고 본다. 사이 보간과 36화 이후 규칙은 밸런스 노브.",
+  "anchor_episode": 35,
+  "anchor_level": 45,
+  "level_cap": 45
+ },
+ "_strings": {
+  "episode": "%d화",
+  "unlock": "개방조건: 드래곤 %d레벨",
+  "submission": "서브미션 : %s",
+  "chapter": "Chapter %d.",
+  "_src": "stringsData_KR.xml MissionMsg1 / MissionMsg2 / QuestTitleSub / ScenarioTitleNum"
+ },
+ "chapters": [
+  {
+   "no": 1,
+   "title": "드래곤 테이머",
+   "from": 1,
+   "to": 15
+  },
+  {
+   "no": 2,
+   "title": "다가오는 어둠",
+   "from": 16,
+   "to": 26
+  },
+  {
+   "no": 3,
+   "title": "희망의 용사",
+   "from": 27,
+   "to": 34
+  },
+  {
+   "no": 4,
+   "title": "바람의 날개",
+   "from": 35,
+   "to": 46
+  },
+  {
+   "no": 5,
+   "title": "운명의 기로",
+   "from": 47,
+   "to": 58
+  },
+  {
+   "no": 6,
+   "title": "엘피스 이야기",
+   "from": 59,
+   "to": 78
+  },
+  {
+   "no": 7,
+   "title": "드래곤 각성",
+   "from": 79,
+   "to": 91
+  },
+  {
+   "no": 8,
+   "title": "카오스 피어",
+   "from": 92,
+   "to": 101
+  },
+  {
+   "no": 9,
+   "title": "베르나",
+   "from": 102,
+   "to": 128
+  },
+  {
+   "no": 10,
+   "title": "안젤로의 정의",
+   "from": 129,
+   "to": 139
+  },
+  {
+   "no": 11,
+   "title": "원정대의 시련",
+   "from": 140,
+   "to": 146
+  }
+ ],
+ "episodes": {
+  "1": {
+   "title": "희망의 숲 이야기",
+   "chapter": 1,
+   "unlock_level": 1
+  },
+  "2": {
+   "title": "드래곤 알",
+   "chapter": 1,
+   "unlock_level": 2,
+   "submission": "희망의 숲 조사"
+  },
+  "3": {
+   "title": "내 이름은 포포",
+   "chapter": 1,
+   "unlock_level": 4
+  },
+  "4": {
+   "title": "물품거래",
+   "chapter": 1,
+   "unlock_level": 5
+  },
+  "5": {
+   "title": "예지",
+   "chapter": 1,
+   "unlock_level": 6,
+   "submission": "난파선의 몬스터"
+  },
+  "6": {
+   "title": "전투의 기본",
+   "chapter": 1,
+   "unlock_level": 7
+  },
+  "7": {
+   "title": "전투에 대한 예의",
+   "chapter": 1,
+   "unlock_level": 9
+  },
+  "8": {
+   "title": "용암속의 진주",
+   "chapter": 1,
+   "unlock_level": 10,
+   "submission": "마법석 찾기"
+  },
+  "9": {
+   "title": "유리아의 선물",
+   "chapter": 1,
+   "unlock_level": 11
+  },
+  "10": {
+   "title": "바루스의 인생설교",
+   "chapter": 1,
+   "unlock_level": 13
+  },
+  "11": {
+   "title": "드래곤의 속성",
+   "chapter": 1,
+   "unlock_level": 14,
+   "submission": "캉갈로의 특급 임무"
+  },
+  "12": {
+   "title": "4대신룡",
+   "chapter": 1,
+   "unlock_level": 15,
+   "submission": "4대 신룡의 발자취"
+  },
+  "13": {
+   "title": "피노의 조언",
+   "chapter": 1,
+   "unlock_level": 17
+  },
+  "14": {
+   "title": "선배의 선물",
+   "chapter": 1,
+   "unlock_level": 18
+  },
+  "15": {
+   "title": "이상한 상인",
+   "chapter": 1,
+   "unlock_level": 19,
+   "submission": "명물 구경"
+  },
+  "16": {
+   "title": "G스컬의 음모",
+   "chapter": 2,
+   "unlock_level": 20
+  },
+  "17": {
+   "title": "고대의 악마 G스컬",
+   "chapter": 2,
+   "unlock_level": 22
+  },
+  "18": {
+   "title": "의문의 물건",
+   "chapter": 2,
+   "unlock_level": 23
+  },
+  "19": {
+   "title": "해골 요새에서의 전투",
+   "chapter": 2,
+   "unlock_level": 24
+  },
+  "20": {
+   "title": "결계의 저편",
+   "chapter": 2,
+   "unlock_level": 26
+  },
+  "21": {
+   "title": "의문의 목격",
+   "chapter": 2,
+   "unlock_level": 27
+  },
+  "22": {
+   "title": "조사",
+   "chapter": 2,
+   "unlock_level": 28,
+   "submission": "냉철한 조사"
+  },
+  "23": {
+   "title": "정보교환",
+   "chapter": 2,
+   "unlock_level": 29
+  },
+  "24": {
+   "title": "수중동굴의 전투",
+   "chapter": 2,
+   "unlock_level": 31
+  },
+  "25": {
+   "title": "불길한 전조",
+   "chapter": 2,
+   "unlock_level": 32,
+   "submission": "그림자를 찾아서"
+  },
+  "26": {
+   "title": "고대의 어둠",
+   "chapter": 2,
+   "unlock_level": 33
+  },
+  "27": {
+   "title": "생체실험",
+   "chapter": 3,
+   "unlock_level": 35
+  },
+  "28": {
+   "title": "불완전한 결과물",
+   "chapter": 3,
+   "unlock_level": 36
+  },
+  "29": {
+   "title": "검은로브",
+   "chapter": 3,
+   "unlock_level": 37
+  },
+  "30": {
+   "title": "악몽의 시작",
+   "chapter": 3,
+   "unlock_level": 39
+  },
+  "31": {
+   "title": "비밀",
+   "chapter": 3,
+   "unlock_level": 40
+  },
+  "32": {
+   "title": "실험체 다크 프로스티",
+   "chapter": 3,
+   "unlock_level": 41
+  },
+  "33": {
+   "title": "슬픈메아리",
+   "chapter": 3,
+   "unlock_level": 42
+  },
+  "34": {
+   "title": "희망의 용사",
+   "chapter": 3,
+   "unlock_level": 44,
+   "submission": "고약한 라이벌"
+  },
+  "35": {
+   "title": "결계의 저편",
+   "chapter": 4,
+   "unlock_level": 45
+  },
+  "36": {
+   "title": "고대의 잔재",
+   "chapter": 4,
+   "unlock_level": 0
+  },
+  "37": {
+   "title": "오래된 이야기",
+   "chapter": 4,
+   "unlock_level": 0
+  },
+  "38": {
+   "title": "할머니의 노래",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "얄미운 소녀"
+  },
+  "39": {
+   "title": "단서 파악",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "대지의 비밀"
+  },
+  "40": {
+   "title": "땅의 마음",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "파도의 장벽"
+  },
+  "41": {
+   "title": "물의 미소",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "화염의 시련"
+  },
+  "42": {
+   "title": "불의 용기",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "바람의 기로"
+  },
+  "43": {
+   "title": "바람의 안녕",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "인지도의 부작용"
+  },
+  "44": {
+   "title": "빛의 첫 번째 자손",
+   "chapter": 4,
+   "unlock_level": 0,
+   "submission": "정화 작업"
+  },
+  "45": {
+   "title": "빛이 머무는 곳",
+   "chapter": 4,
+   "unlock_level": 0
+  },
+  "46": {
+   "title": "빛의 순례자",
+   "chapter": 4,
+   "unlock_level": 0
+  },
+  "47": {
+   "title": "바람의 날개",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "48": {
+   "title": "철과 바위의 나라",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "49": {
+   "title": "의문의 소문",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "50": {
+   "title": "만남",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "51": {
+   "title": "흔적찾기",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "52": {
+   "title": "화염의 지배자 카시즈",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "53": {
+   "title": "숲과 정령의 나라",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "54": {
+   "title": "의혹의 연속",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "55": {
+   "title": "의문의 밤",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "56": {
+   "title": "검은 이방인",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "57": {
+   "title": "태초의 마귀 크로낙",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "58": {
+   "title": "선택",
+   "chapter": 5,
+   "unlock_level": 0
+  },
+  "59": {
+   "title": "캉갈로-습격",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "60": {
+   "title": "캉갈로-수수께끼",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "61": {
+   "title": "캉갈로-캉갈로의 위기",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "62": {
+   "title": "캉갈로-의문의 그림자",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "63": {
+   "title": "딜리스-집착",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "64": {
+   "title": "딜리스-귀여운 음모",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "65": {
+   "title": "딜리스-재료 수집",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "66": {
+   "title": "딜리스-행방불명",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "67": {
+   "title": "란돌프-자칭 발명왕",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "68": {
+   "title": "란돌프-가벼운 부탁",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "69": {
+   "title": "란돌프-두 번째 방법",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "70": {
+   "title": "란돌프-엉뚱한 부탁",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "71": {
+   "title": "애니-매력 연구",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "72": {
+   "title": "애니-이상한 준비물",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "73": {
+   "title": "애니-엉뚱함의 결말",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "74": {
+   "title": "애니-란돌프 바라기",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "75": {
+   "title": "바루스-기묘한 조사",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "76": {
+   "title": "바루스-단어의 조사",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "77": {
+   "title": "바루스-대리 업무",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "78": {
+   "title": "바루스-빛의 석판",
+   "chapter": 6,
+   "unlock_level": 0
+  },
+  "79": {
+   "title": "루미니-긴급한 부탁",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "80": {
+   "title": "루미니-좌절",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "81": {
+   "title": "루미니-첫 외상",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "82": {
+   "title": "즈믄-과거의 멍",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "83": {
+   "title": "즈믄-준비 시작!",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "84": {
+   "title": "즈믄-기호 식품",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "85": {
+   "title": "즈믄-알리바이",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "86": {
+   "title": "즈믄-과정에 만족",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "87": {
+   "title": "금기의 연구",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "88": {
+   "title": "괴짜 마공학자",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "89": {
+   "title": "지도 복원",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "90": {
+   "title": "과거의 오명",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "91": {
+   "title": "의문의 쉼표",
+   "chapter": 7,
+   "unlock_level": 0
+  },
+  "92": {
+   "title": "검은 파장",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "93": {
+   "title": "가려진 어둠",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "94": {
+   "title": "교만의 독",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "95": {
+   "title": "구출 임무",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "96": {
+   "title": "숲의 가호",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "97": {
+   "title": "철의 어금니",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "98": {
+   "title": "어둠의 갈림길에서",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "99": {
+   "title": "다이즈의 영물",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "100": {
+   "title": "긴 어둠의 끝",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "101": {
+   "title": "보이지 않는 운명",
+   "chapter": 8,
+   "unlock_level": 0
+  },
+  "102": {
+   "title": "보물을 찾아 떠나는 여행",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "103": {
+   "title": "위험에 빠진 소녀",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "104": {
+   "title": "베르나에 드리워진 어둠",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "105": {
+   "title": "문장이 뭐지?",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "106": {
+   "title": "베르나에서 만난 아놀드",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "107": {
+   "title": "검은로브 실험실 파괴!",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "108": {
+   "title": "엘프의 초대",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "109": {
+   "title": "엘리시움에 나타난 검은로브",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "110": {
+   "title": "평화 협정 사절단",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "111": {
+   "title": "누리의 분노",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "112": {
+   "title": "누리의 복수",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "113": {
+   "title": "행방불명된 아놀드",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "114": {
+   "title": "고원에서 아놀드 찾기",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "115": {
+   "title": "푸른 눈의 구원자",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "116": {
+   "title": "친구? 아니면 적?",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "117": {
+   "title": "바르타온을 찾아서",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "118": {
+   "title": "문자해석? 시약부터!",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "119": {
+   "title": "라지드의 봉인",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "120": {
+   "title": "레지아나의 배신",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "121": {
+   "title": "레지아나의 숨겨진 진실",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "122": {
+   "title": "깨어난 라지드",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "123": {
+   "title": "선택",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "124": {
+   "title": "혼란",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "125": {
+   "title": "희생의 진정한 의미",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "126": {
+   "title": "각성한 레지아나",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "127": {
+   "title": "드래곤과 드래곤 테이머",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "128": {
+   "title": "불안한 미래",
+   "chapter": 9,
+   "unlock_level": 0
+  },
+  "129": {
+   "title": "에이드라의 위기",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "130": {
+   "title": "플로렌스의 호출",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "131": {
+   "title": "이상한 엘리시움",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "132": {
+   "title": "안젤로의 연설",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "133": {
+   "title": "쓰로린과의 만남",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "134": {
+   "title": "에이드라 구출",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "135": {
+   "title": "안젤로의 음모",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "136": {
+   "title": "에이드라 치료",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "137": {
+   "title": "일촉즉발",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "138": {
+   "title": "정체를 드러낸 안젤로",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "139": {
+   "title": "바이델로의 여정",
+   "chapter": 10,
+   "unlock_level": 0
+  },
+  "140": {
+   "title": "바람의 나라에 닥친 이변",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "141": {
+   "title": "잃어버린 알과 검은 로브",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "142": {
+   "title": "검은 로브의 반격",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "143": {
+   "title": "빛의 탑에 드리운 어둠",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "144": {
+   "title": "원정대 출발",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "145": {
+   "title": "타락한 데몽 - 혼돈의 피오드",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  },
+  "146": {
+   "title": "새로운 대륙 발견",
+   "chapter": 11,
+   "unlock_level": 0,
+   "no_lines": true
+  }
+ }
+}
