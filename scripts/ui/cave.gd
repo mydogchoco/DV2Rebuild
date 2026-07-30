@@ -6329,100 +6329,17 @@ func _pct_text(p: float) -> String:
 ## 개봉 결과창 — 원작 `ItemDetailLayer::showResultEgg` 가 쓰는 프레임 그대로:
 ##   패널 `9patch/recall_del` · 후광 `common/backlight3`(알 뒤) · 성급 `common/eggclass`
 ##   속성 `item/item_small/ele_<속성>` · 확인 `common/check_btn`.
+##
+## 연출 본체는 `EggResultPopup`(scripts/ui/egg_result_popup.gd) 로 옮겼다(2026-07-30) —
+## 카드 코드 보상·드래곤 소환도 같은 창을 쓰기 때문이다. 여기 남은 것은 **가방 복귀**뿐이다.
 func _show_egg_result(did: int, used_key := "") -> void:
-	var d: Dictionary = Data.get_dragon(did)
-	var vis := _vis()
-	var layer := CanvasLayer.new(); layer.layer = 70; add_child(layer)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.62)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT); layer.add_child(dim)
-
-	const PW := 520.0
-	const PH := 440.0
-	var win := NinePatchRect.new()
-	win.texture = load("res://assets/converted/ninepatch_ui/9patch_recall_del.tres")
-	win.patch_margin_left = 40; win.patch_margin_right = 40
-	win.patch_margin_top = 40; win.patch_margin_bottom = 40
-	win.size = Vector2(PW, PH)
-	win.position = Vector2((vis.x - PW) * 0.5, (vis.y - PH) * 0.5)
-	layer.add_child(win)
-
-	var cman: Dictionary = _man_common()
-	# 후광 — 원작은 알 뒤 (w*0.5, h*0.5+110). 회전시켜 둔다(원작 backlight 연출).
-	var back := _atlas_sprite("common_ui", "common_backlight3", cman, 1.0)
-	if back:
-		back.position = Vector2(PW * 0.5, 170.0)
-		back.modulate = Color(1, 1, 1, 0.85)
-		win.add_child(back)
-		back.create_tween().set_loops().tween_property(back, "rotation", TAU, 14.0)
-	# 알 — 도감과 같은 규약 `dragon_dragon_<id>_egg`.
-	var pdir := "portrait_%d" % did
-	if not _portrait_manifests.has(pdir):
-		var pf := FileAccess.open("res://assets/converted/%s/_manifest.json" % pdir, FileAccess.READ)
-		_portrait_manifests[pdir] = JSON.parse_string(pf.get_as_text()) if pf else {}
-	var eggspr := _atlas_sprite(pdir, _dex_stage_frame(did, "egg"), _portrait_manifests[pdir], 1.5)
-	if eggspr:
-		eggspr.position = Vector2(PW * 0.5, 170.0)
-		win.add_child(eggspr)
-
-	var name_l := Label.new()
-	name_l.text = String(d.get("name", "드래곤 %d" % did))
-	name_l.add_theme_font_size_override("font_size", 30)
-	name_l.add_theme_color_override("font_color", Color(1, 0.95, 0.82))
-	name_l.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.95))
-	name_l.add_theme_constant_override("outline_size", 5)
-	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_l.size = Vector2(PW, 38); name_l.position = Vector2(0, 262)
-	win.add_child(name_l)
-
-	# 성급(원작 common/eggclass 를 별 개수만큼) + 속성 아이콘.
-	var star := int(d.get("star", 0))
-	var sw := 26.0
-	var x0 := PW * 0.5 - (float(star) * sw) * 0.5
-	for i in star:
-		var st := _atlas_sprite("common_ui", "common_eggclass", cman, 0.9)
-		if st:
-			st.position = Vector2(x0 + float(i) * sw + sw * 0.5, 316.0)
-			win.add_child(st)
-	var ele := String(d.get("element", ""))
-	var elp := "res://assets/converted/item_small_ui/item_item_small_ele_%s.tres" % _ele_frame(ele)
-	if ResourceLoader.exists(elp):
-		var es := Sprite2D.new(); es.texture = load(elp); es.material = _pma
-		es.position = Vector2(x0 - 34.0, 316.0)
-		win.add_child(es)
-
-	var sub := Label.new()
-	# 원작 문구 — CaveEggBronMsg7(의문의 알) / Msg9(정기=속성알) / Msg13(일반형).
-	#   "%1$s을 사용하여 %2$s의 알을 획득하였습니다."
-	var used := Data.item_name(used_key) if used_key != "" else "알"
-	sub.text = "%s을 사용하여 %s의 알을 획득하였습니다." % [used, String(d.get("name", "드래곤"))]
-	sub.add_theme_font_size_override("font_size", 17)
-	sub.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.size = Vector2(PW, 24); sub.position = Vector2(0, 344)
-	win.add_child(sub)
-
-	# 확인 — 원작 common/check_btn.
-	var ok := _atlas_sprite("common_ui", "common_check_btn", cman, 1.0)
-	if ok:
-		ok.position = Vector2(PW * 0.5, PH - 52.0)
-		win.add_child(ok)
-	var okb := Button.new(); okb.flat = true
-	okb.size = Vector2(150, 60); okb.position = Vector2((PW - 150) * 0.5, PH - 82.0)
+	var pop := EggResultPopup.open(self, did, used_key)
 	# 확인하면 가방으로 돌아간다 — 방금 얻은 알이 '알' 탭에 들어와 있다(부화는 거기서).
-	okb.pressed.connect(func():
-		layer.queue_free()
+	pop.closed.connect(func():
 		_inv_tab = "egg"
 		_inv_selected = EggGacha.key_for(did)
 		_open_inventory())
-	win.add_child(okb)
 
-## 우리 속성 코드 → 원작 `item/item_small/ele_*` 프레임 접미사.
-## 원작 프레임은 ground/water 인데 우리 data 는 earth/aqua 를 쓴다.
-func _ele_frame(element: String) -> String:
-	match element:
-		"earth": return "ground"
-		"aqua": return "water"
-		_: return element
 
 func _inventory_badge(left: String, right: String) -> Control:
 	var box := _panel(Color(0.95, 0.86, 0.65, 0.96))
