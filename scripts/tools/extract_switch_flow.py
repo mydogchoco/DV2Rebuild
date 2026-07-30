@@ -320,6 +320,62 @@ def main():
                         cur2 = listing.getInstructionAfter(cur2.getAddress())
                 return None
 
+            def chain_from_block(start: int) -> dict[int, int]:
+                """회차 블록에서 **스텝 비교 체인**을 따라 `{스텝번호: 블록주소}` 를 만든다.
+
+                스텝이 적은 회차는 컴파일러가 점프 테이블 대신 비교 체인으로 낮춘다
+                (실측: Scenario7 20회차 중 표가 잡히는 건 63·78 둘뿐).
+                두 형태를 다 받는다:
+                    cmp step,#N ; b.eq <스텝블록>      → 그 타깃이 스텝 본문
+                    cmp step,#N ; b.ne <다음비교>      → 폴스루가 스텝 본문
+                """
+                out2: dict[int, int] = {}
+                stepreg: str | None = None
+                last: tuple[str, int] | None = None
+                cur3 = at(start)
+                seen3: set[int] = set()
+                for _ in range(3000):
+                    if cur3 is None:
+                        break
+                    a3 = cur3.getAddress().getOffset()
+                    if a3 in seen3 or not (lo <= a3 <= hi):
+                        break
+                    seen3.add(a3)
+                    t3 = text(cur3)
+                    m3 = re.fullmatch(r"ldr (w\d+),\[x\d+,#0x158\]", t3)
+                    if m3:
+                        stepreg = m3.group(1)
+                        last = None
+                        cur3 = listing.getInstructionAfter(cur3.getAddress())
+                        continue
+                    m3 = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t3)
+                    if m3:
+                        last = (m3.group(1), int(m3.group(2), 0))
+                        cur3 = listing.getInstructionAfter(cur3.getAddress())
+                        continue
+                    m3 = re.fullmatch(r"b\.(eq|ne) (0x[0-9a-f]+)", t3)
+                    if m3 and last and stepreg and last[0] == stepreg:
+                        tgt3 = int(m3.group(2), 0)
+                        nxt = listing.getInstructionAfter(cur3.getAddress())
+                        nxa = nxt.getAddress().getOffset() if nxt is not None else None
+                        if m3.group(1) == "eq":
+                            out2.setdefault(last[1], tgt3)
+                            cur3 = nxt                      # 체인은 폴스루로 이어진다
+                        else:
+                            if nxa is not None:
+                                out2.setdefault(last[1], nxa)
+                            cur3 = at(tgt3)                 # 다음 비교로 점프
+                        last = None
+                        continue
+                    if cur3.getMnemonicString() in ("br", "ret"):
+                        break
+                    if cur3.getMnemonicString() == "b":     # 무조건 분기는 따라간다
+                        fl3 = cur3.getFlows()
+                        cur3 = listing.getInstructionAt(fl3[0]) if fl3 else None
+                        continue
+                    cur3 = listing.getInstructionAfter(cur3.getAddress())
+                return out2
+
             def episode_of(step_tbl: dict) -> int | None:
                 """스텝 테이블이 속한 회차 — sn 테이블이 없을 때(Scenario8)의 폴백."""
                 if sn_blocks:
@@ -375,8 +431,12 @@ def main():
                     t0 = table_from_block(sn_blocks[sn0])
                     if t0 is not None:
                         pairs.append((sn0, t0))
+                        continue
+                    ch = chain_from_block(sn_blocks[sn0])
+                    if ch:
+                        pairs.append((sn0, {"kind": "chain", "steps": ch, "dflt": None}))
                     else:
-                        print(f"  {cls} ep{sn0}: 스텝 표 못 찾음")
+                        print(f"  {cls} ep{sn0}: 스텝 분기 못 찾음")
             else:
                 for t0 in tables:
                     if t0["kind"] != "step":
@@ -393,19 +453,24 @@ def main():
                 best_t = None
                 for t in cands:
                     f0: list[dict] = []
-                    for idx in range(t["count"]):
-                        f0.extend(walk_case(listing, af, fm, body, entry_target(t, idx), slots,
+                    if t.get("kind") == "chain":
+                        addrs = [t["steps"][k] for k in sorted(t["steps"])]
+                    else:
+                        addrs = [entry_target(t, i) for i in range(t["count"])]
+                    for a4 in addrs:
+                        f0.extend(walk_case(listing, af, fm, body, a4, slots,
                                             npc_talk_addr, user_talk_addrs, text,
-                                            talker_addrs, rostr,
-                                            sn if sn_blocks else None))
+                                            talker_addrs, rostr, None))
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
                 flow, t = best, (best_t or cands[0])
-                if t["dflt"] and default_is_user_talk(listing, af, body, t["dflt"], user_talk_addrs):
+                if t.get("dflt") and default_is_user_talk(listing, af, body, t["dflt"], user_talk_addrs):
                     flow.append({"op": "setUserTalk"})
                 out[str(sn)] = flow
                 talk = sum(1 for o in flow if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
-                print(f"  {cls} ep{sn}: 스텝 {t['count']} · 대사 {talk}")
+                nstep = len(t["steps"]) if t.get("kind") == "chain" else t["count"]
+                print(f"  {cls} ep{sn}: 스텝 {nstep} · 대사 {talk}"
+                      f"{' (체인)' if t.get('kind') == 'chain' else ''}")
 
         # ⚠️ 단일 클래스로 돌려도 **기존 산출물을 지우지 않는다** — 종전에는
         #    `--classes Scenario1` 한 번에 79~81 화가 통째로 날아갔다.
