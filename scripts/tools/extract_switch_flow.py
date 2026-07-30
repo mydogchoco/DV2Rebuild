@@ -97,7 +97,7 @@ def main():
             cmp/b.hi/adrp+add/adr 만 취한다(뒤쪽의 다른 스위치 값이 섞이지 않게).
             """
             win, cur = [], br_ins
-            for _ in range(48):
+            for _ in range(96):
                 cur = listing.getInstructionBefore(cur.getAddress())
                 if cur is None:
                     break
@@ -365,12 +365,18 @@ def main():
             #    Scenario8 은 회차가 3개뿐이라 표도 3개로 갈려 있어 이 모델이 통한다.
             pairs: list[tuple[int, dict]] = []
             step_tables = [t0 for t0 in tables if t0["kind"] == "step"]
-            if sn_blocks and step_tables:
-                # 회차들이 **표를 공유**한다 → 회차마다 표를 want_sn 으로 걸어 본다.
-                # ⚠️ "가장 큰 표" 같은 근사는 틀린다(Scenario7: 108엔트리 표는 대사 0,
-                #    실제 내용은 50엔트리 표에 있었다). 회차마다 **가장 많이 나오는 표**를 쓴다.
+            if sn_blocks:
+                # 🔴 회차 블록마다 **자기 스텝 분기**가 있다(2026-07-31 디스어셈블 확인).
+                #    Scenario7 진입부: `ldr w9,[x0,#0x168]` → `sub w8,w9,#0x3b`(sn-59)
+                #    → `cmp w8,#0x13`(20개) → 회차 테이블 0x2244360 → 회차 블록.
+                #    그 블록 안에서 다시 `ldr [.,#0x158]` 스텝 분기를 탄다.
+                #    ⇒ "표 공유" 가정은 폐기. 블록에서 **도달하는** 표만 그 회차의 것이다.
                 for sn0 in sorted(sn_blocks):
-                    pairs.append((sn0, step_tables))
+                    t0 = table_from_block(sn_blocks[sn0])
+                    if t0 is not None:
+                        pairs.append((sn0, t0))
+                    else:
+                        print(f"  {cls} ep{sn0}: 스텝 표 못 찾음")
             else:
                 for t0 in tables:
                     if t0["kind"] != "step":
