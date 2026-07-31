@@ -29,7 +29,7 @@ push 한다(디컴프에 `&PTR_FUN_xxxx` 나열로 보인다). 람다는 소스 
     python scripts/tools/parse_scenario_flow.py --classes Scenario_zimon --report
 """
 from __future__ import annotations
-import json, re, sys
+import json, re, struct, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -56,7 +56,9 @@ OPS: dict[str, list[str]] = {
     "showMonster": ["monsters", "delay", "b1"],
     "deleteMonster": [],
     "walkAction": ["field"],
-    "delayWalkAction": ["field", "delay"],
+    # 원형 주석 축자: `delayWalkAction(float, int)` — **필드가 아니라** (지연, 반복수)다.
+    # 종전 이름표 ["field","delay"] 는 순서까지 뒤바뀐 오해였다.
+    "delayWalkAction": ["delay", "n"],
     "scenarioBlackLayer": [],
     "deleteColorLayer": [],
     "showColorLayer": [],
@@ -64,16 +66,22 @@ OPS: dict[str, list[str]] = {
     "initScenarioTalk": [],
     "setSubQuest": [],
     "miniGameText": ["b1", "n"],
+    # 미니게임 레이어를 띄우는 스텝 — 원작 `minigameSpeedTarget()` @0165bc7c 이
+    # `ScenarioMiniGameLayer::create(1.8, 150.0)` 를 만든다(속도·판정폭 상수 확정).
+    "minigameSpeedTarget": [],
     "passMiniGame": [],
     "miniGameSucEndAct": [],
-    "scenarioBattle": [],
+    # 원형 `scenarioBattle(int fieldNo, int battleNo)` → `AdventureScene::scene(f, b)` 푸시.
+    "scenarioBattle": ["field", "battle"],
     "setChaosFearStart": [],
     "actionSmoke": [],
     "shakeAction": [],
     "shineAction": [],
     "removeNPCAction": [],
     "setNPCAction": [],
-    "showScenarioItem": [],
+    # 원작 `showScenarioItem(ScenarioItem*, float x, float y, float, bool, bool)`.
+    # 첫 인자는 열거형 **포인터**라 changeBackGround 와 같은 슬롯 추적으로 푼다.
+    "showScenarioItem": ["item", "x", "y", "scale", "b1", "b2"],
     "removeScenarioItem": [],
     "goOutWorldMap": [],
     "setPassEndingPopup": [],
@@ -174,6 +182,33 @@ def bgm_table() -> dict[int, str]:
     return out
 
 
+def item_table() -> dict[int, str]:
+    """`showScenarioItem(ScenarioItem*, …)` 의 아이템 번호 → 프레임 경로 (원작 @0165cb68).
+
+    0~11 의 12종. 5·6 은 같은 `item/item_small/stone2.png` 를 쓰고 6 만 플래그가 다르다
+    (원작이 `param_6 = true` 로 덮어쓴다) — 그대로 둔다.
+    """
+    src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
+    ms = list(re.finditer(r"/\* ==== showScenarioItem @ [0-9a-f]+ \(size=(\d+)\)", src))
+    if not ms:
+        return {}
+    m = max(ms, key=lambda x: int(x.group(1)))
+    seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    out: dict[int, str] = {}
+    cur: list[int] = []
+    for line in seg.splitlines():
+        cm = re.search(r"^\s*case (0x[0-9a-f]+|\d+):", line)
+        if cm:
+            cur.append(int(cm.group(1), 0))
+            continue
+        pm = re.search(r'"((?:scenario|item)/[^"]+\.png)"', line)
+        if pm and cur:
+            for c in cur:
+                out[c] = pm.group(1)
+            cur = []
+    return out
+
+
 def split_blocks(text: str):
     """람다 덤프를 (주소, 본문) 목록으로."""
     out = []
@@ -252,6 +287,11 @@ def parse_body(body: str) -> list[dict]:
             else:
                 for label, raw in zip(OPS[name], args):
                     rec[label] = resolve(raw, vals)
+            # float 인자는 비트패턴 정수로 잡힌다(`0x3f800000` = 1.0) — 되돌린다.
+            for label in ("x", "y", "scale"):
+                v = rec.get(label)
+                if isinstance(v, int) and v > 0:
+                    rec[label] = round(struct.unpack("<f", struct.pack("<I", v & 0xFFFFFFFF))[0], 3)
             ops.append(rec)
         elif m.group("sargs"):
             args = m.group("sargs").split(",")
@@ -526,6 +566,7 @@ def main():
     if not classes:
         classes = sorted(p.stem for p in LAMBDA.glob("*.c"))
     npcs, bgs, bgms = npc_table(), bg_table(), bgm_table()
+    items = item_table()
     scen = json.loads((REPO / "data" / "scenario.json").read_text(encoding="utf-8"))
     scenarios = scen.get("scenarios", {})
     flows: dict[str, list[dict]] = {}
@@ -562,11 +603,12 @@ def main():
         "npc_names": {str(k): v for k, v in sorted(npcs.items())},
         "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
         "bgm": {str(k): v for k, v in sorted(bgms.items())},
+        "sc_items": {str(k): v for k, v in sorted(items.items())},
         "flows": {k: sanitize_names(flows[k], scen) for k in sorted(flows, key=int)},
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)}")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)}")
 
 
 if __name__ == "__main__":

@@ -289,6 +289,20 @@
   "36": "bg_strengh",
   "37": "bg_world_wood"
  },
+ "sc_items": {
+  "0": "scenario/main_story/sc_item/baros_paper.png",
+  "1": "scenario/main_story/sc_item/anima.png",
+  "2": "scenario/main_story/sc_item/bonner.png",
+  "3": "scenario/main_story/sc_item/evol_jewel_3.png",
+  "4": "scenario/main_story/sc_item/evol_jewel_6.png",
+  "5": "item/item_small/stone2.png",
+  "6": "item/item_small/stone2.png",
+  "7": "scenario/main_story/sc_item/blackmasicstone_1.png",
+  "8": "scenario/main_story/sc_item/blackmasicstone_2.png",
+  "9": "scenario/main_story/sc_item/blackmasicstone_3.png",
+  "10": "scenario/main_story/sc_item/blackmasicstone_4.png",
+  "11": "scenario/main_story/sc_item/baros_slate.png"
+ },
  "flows": {
   "1": [
    {
@@ -3528,8 +3542,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 1
+    "delay": null,
+    "n": 1
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -5870,7 +5884,9 @@
     "b1": false
    },
    {
-    "op": "scenarioBattle"
+    "op": "scenarioBattle",
+    "field": 24,
+    "battle": 26
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -6664,7 +6680,13 @@
     "b7": true
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 0,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
     "op": "setUserTalk",
@@ -7557,7 +7579,9 @@
     "b1": false
    },
    {
-    "op": "scenarioBattle"
+    "op": "scenarioBattle",
+    "field": 24,
+    "battle": 27
    },
    {
     "op": "changeBackGround",
@@ -8301,13 +8325,31 @@
     "b1": false
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 1,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 2,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 3,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
     "op": "setNpcTalk",
@@ -8492,7 +8534,9 @@
     "b7": true
    },
    {
-    "op": "scenarioBattle"
+    "op": "scenarioBattle",
+    "field": 24,
+    "battle": 28
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -8660,19 +8704,37 @@
     "b1": false
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 1,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
     "op": "shineAction"
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 2,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
     "op": "shineAction"
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 4,
+    "x": null,
+    "y": null,
+    "scale": null,
+    "b1": true,
+    "b2": false
    },
    {
     "op": "shineAction"
@@ -9157,8 +9219,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 3
+    "delay": null,
+    "n": 3
    },
    {
     "op": "setNpcTalk",
@@ -9307,8 +9369,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -9366,8 +9428,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -9434,7 +9496,9 @@
     "b1": false
    },
    {
-    "op": "scenarioBattle"
+    "op": "scenarioBattle",
+    "field": 24,
+    "battle": 29
    },
    {
     "op": "changeBackGround",
@@ -9443,8 +9507,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -9539,7 +9603,9 @@
     "b1": false
    },
    {
-    "op": "showScenarioItem"
+    "op": "showScenarioItem",
+    "item": 7,
+    "x": 1.0
    },
    {
     "op": "setUserTalk",
@@ -9872,8 +9938,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -10037,8 +10103,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -10118,8 +10184,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -10345,8 +10411,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -10639,8 +10705,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 3
+    "delay": null,
+    "n": 3
    },
    {
     "op": "setNpcTalk",
@@ -10709,8 +10775,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -10884,8 +10950,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -11243,8 +11309,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -11273,8 +11339,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -11329,8 +11395,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -11348,8 +11414,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -11464,8 +11530,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -11646,8 +11712,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "playBackGroundFieldMusic",
@@ -11781,8 +11847,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12143,8 +12209,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12170,8 +12236,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12215,8 +12281,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12476,8 +12542,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12551,8 +12617,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12610,8 +12676,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setTitleScenario",
@@ -12641,8 +12707,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12707,8 +12773,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setNpcTalk",
@@ -12779,8 +12845,8 @@
    },
    {
     "op": "delayWalkAction",
-    "field": null,
-    "delay": 2
+    "delay": null,
+    "n": 2
    },
    {
     "op": "setUserTalk",
@@ -13608,8 +13674,8 @@
     },
     {
      "op": "delayWalkAction",
-     "field": null,
-     "delay": 1
+     "delay": null,
+     "n": 1
     },
     {
      "op": "setNpcTalk",
@@ -13967,8 +14033,8 @@
     },
     {
      "op": "delayWalkAction",
-     "field": null,
-     "delay": 1
+     "delay": null,
+     "n": 1
     },
     {
      "op": "setNpcTalk",
@@ -14905,8 +14971,8 @@
     },
     {
      "op": "delayWalkAction",
-     "field": null,
-     "delay": 1
+     "delay": null,
+     "n": 1
     },
     {
      "op": "setNpcTalk",

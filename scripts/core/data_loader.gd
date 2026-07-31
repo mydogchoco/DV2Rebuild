@@ -450,6 +450,10 @@ func scenario_bg_paths(bg_no: int) -> Array:
 func scenario_bgm(field: int) -> String:
 	return String(scenario_flow.get("bgm", {}).get(str(field), ""))
 
+## 시나리오 소품 번호 → 원작 프레임 경로 (`ScenarioSupport::showScenarioItem` 0~11).
+func scenario_item_path(no: int) -> String:
+	return String(scenario_flow.get("sc_items", {}).get(str(no), ""))
+
 ## 프롤로그 대사 34줄 — 원작 `<PrologueTalk0~33>`(회차 구조 밖의 인트로).
 func prologue_lines() -> Array[String]:
 	var out: Array[String] = []

@@ -82,6 +82,7 @@ var _npc_node: Node2D
 var _box: NinePatchRect
 var _box_home := Vector2.ZERO
 var _fx_layer: CanvasLayer
+var _sc_item: Sprite2D            # showScenarioItem 이 띄우는 소품
 
 func enter(params: Dictionary = {}) -> void:
 	_params = params
@@ -328,11 +329,81 @@ func _play_flow() -> void:
 			"sound_CryMonster":
 				# 원작 @0165df7c — 몬스터 울음. 두 분기(param 1·2) 모두 `music/voice1.mp3`.
 				Bgm.sfx("voice1")
+			"walkAction":
+				# 원작 @0165bd24 — 텍스트박스를 치우고 `mScenarioManager+0x188` 에 필드 번호를
+				# 박은 뒤 이동 연출(`InfoEventData`)을 돌린다. 우리는 **필드 이동 = 배경 전환**
+				# 까지만 이식한다(원작의 이동 애니는 탐험 필드 시스템에 묶여 있다).
+				var fld := int(o.get("field", 0))
+				_push_box_away()
+				if fld > 0:
+					_apply_field_bg(fld)
+				_restore_box()
+			"delayWalkAction":
+				# 원작 @0165b628 `delayWalkAction(float delay, int n)` — 지연 뒤 **n번의
+				# 걷기 비트**(각 사이 0.5초). 걷는 스프라이트가 없으므로 **박자만** 남긴다.
+				# ASSUMPTION: 첫 인자(지연)는 float 라 스택에 안 남아 미복원 → 0으로 둔다.
+				_walk_beats(int(o.get("n", 1)))
+			"showScenarioItem":
+				_show_sc_item(int(o.get("item", -1)))
+			"removeScenarioItem":
+				if is_instance_valid(_sc_item):
+					_sc_item.queue_free()
 			_:
 				pass          # 아직 이식 안 한 연출(전투·미니게임·NPC 워크)은 건너뛴다
 	_finish()
 
 # ── 연출 헬퍼(원작 ScenarioSupport / ScenarioLayer) ────────────────────────────
+## 탐험 필드 번호 → 그 필드 배경. `changeBackGround` 가 쓰는 것과 같은 변환본을 쓴다.
+func _apply_field_bg(field: int) -> void:
+	var p := "res://assets/converted/adventure_bg/bg_%d.jpg" % field
+	if not ResourceLoader.exists(p):
+		return
+	_ensure_bg_layer()
+	_bg_layer.texture = load(p)
+	_bg_layer.visible = true
+
+## 걷기 비트 n회 — 원작은 매 비트마다 CCCallFunc(이동) + CCDelayTime(0.5).
+## 우리는 이동 스프라이트가 없어 **박자만** 남긴다(텍스트박스를 치우고 n*0.5초 뒤 되돌림).
+func _walk_beats(n: int) -> void:
+	_push_box_away()
+	var t := create_tween()
+	t.tween_interval(0.5 * float(maxi(n, 1)))
+	t.tween_callback(_restore_box)
+
+## 시나리오 소품 — 원작 `ScenarioSupport::showScenarioItem(ScenarioItem*, x, y, …)` @0165cb68.
+## 번호→프레임 표(0~11)는 디컴프에서 그대로 뽑아 `scenario_flow.json` `sc_items` 에 있다.
+## ⚠️ 좌표 인자는 `fmov` 로 넘어가 스택에 안 남는 경우가 많아 대부분 미복원이다
+##    (ASSUMPTION: 화면 중앙 상단). 값이 복원된 스텝은 그 값을 쓴다.
+func _show_sc_item(no: int) -> void:
+	var orig := Data.scenario_item_path(no)
+	if orig == "":
+		return
+	var key := orig.trim_suffix(".png").replace("/", "_")
+	# 12종 중 5·6(`item/item_small/stone2.png`)만 전용 아틀라스가 아니라 아이템 아틀라스에 있다.
+	var cands := ["res://assets/converted/scenario_item/%s.tres" % key,
+		"res://assets/converted/item_small_ui/%s.tres" % key]
+	var tex: Texture2D = null
+	for c in cands:
+		if ResourceLoader.exists(c):
+			tex = load(c)
+			break
+	if tex == null:
+		return
+	if is_instance_valid(_sc_item):
+		_sc_item.queue_free()
+	var vis := _vis()
+	var s := Sprite2D.new()
+	s.texture = tex
+	s.material = _pma
+	s.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
+	s.position = Vector2(vis.x * 0.5, vis.y * 0.38)
+	_sc_item = s
+	_fx().add_child(s)
+	s.modulate.a = 0.0
+	var t := s.create_tween()
+	t.tween_property(s, "modulate:a", 1.0, 0.3)
+
+
 ## 연출 전용 오버레이 레이어. 원작은 색막을 z=0x62(98) 로 깔아 **텍스트박스 위**에 둔다.
 func _fx() -> CanvasLayer:
 	if not is_instance_valid(_fx_layer):
@@ -495,16 +566,21 @@ func _apply_bg(bg_no: int) -> void:
 	var res := _bg_res(String(paths[0]))
 	if res == "":
 		return
-	if not is_instance_valid(_bg_layer):
-		_bg_layer = TextureRect.new()
-		_bg_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_bg_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		_bg_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_bg_layer)
-		move_child(_bg_layer, 1)          # 검은 막 바로 위
+	_ensure_bg_layer()
 	_bg_layer.texture = load(res)
 	_bg_layer.visible = true
+
+## 장면 배경 레이어(없으면 만든다). `changeBackGround` 와 `walkAction` 이 공유한다.
+func _ensure_bg_layer() -> void:
+	if is_instance_valid(_bg_layer):
+		return
+	_bg_layer = TextureRect.new()
+	_bg_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_bg_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_bg_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_bg_layer)
+	move_child(_bg_layer, 1)              # 검은 막 바로 위
 
 ## 원작 경로 → 우리 변환본. 시나리오 전용 배경 6장만 `scenario/bg/` 에 있고
 ## 나머지는 **탐험 배경 재사용**이라 `adventure_bg/bg_<필드>.jpg` 로 간다(§10 정정).
