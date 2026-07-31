@@ -346,8 +346,10 @@ func _custom_dragon_checks() -> int:
 	# 666 은 6조항 전부 이식됐다(회피 시 혼란까지 react 로 처리) → partial 이 없어야 한다.
 	f += _true("666 은 전 조항 이식(partial 없음)",
 		(by[666]["effect"].get("partial", []) as Array).is_empty())
-	# 777 은 '크리 시 방어·회피 절반 무시' 가 남았다 → 무엇이 남았는지 적혀 있어야 한다.
-	f += _true("777 partial 기록", not ((by[777]["effect"].get("partial", []) as Array).is_empty()))
+	# 777 도 2026-08-01 로 전 조항이 이식됐다 — 마지막까지 남았던 '크리 시 방어·회피 절반
+	# 무시' 를 93 태양의 불꽃이 연 `crit_halves_guard` 통로로 처리했다(아래 행동 검증).
+	f += _true("777 은 전 조항 이식(partial 없음)",
+		(by[777]["effect"].get("partial", []) as Array).is_empty())
 
 	# ── 666 샛별 ────────────────────────────────────────────────────────────
 	var p666 := _party([[666, "chaos"], [0, "fire"]])
@@ -401,6 +403,37 @@ func _custom_dragon_checks() -> int:
 	(p777b[0]["effects"] as Array).append({"kind": "dot", "pct": 5, "turns": 2, "source": 32})
 	f += _true("777 지속피해(dot)는 안 막는다(경계 확인)",
 		B._has_flag(p777b[0], "status_immune"))
+	# 크리티컬 발동 시 상대 방어율·회피율의 절반 무시 (93 태양의 불꽃과 같은 통로).
+	#
+	# ⚠️ 시드를 맞춘 1:1 비교는 성립하지 않는다 — 이 플래그는 크리를 **먼저** 굴리므로
+	#    난수 소비 순서가 달라진다. 그래서 충분한 표본의 **비율**로 본다.
+	# ⚠️ 막기는 횟수로 보면 안 된다 — 회피가 줄어든 만큼 막기 판정 기회가 늘어 상쇄된다.
+	#    회피를 통과한 공격 중의 비율로 봐야 절반 무시가 드러난다.
+	var p777c := _party([[777, "fire"]])
+	A.apply_battle(p777c, [_enemy("aqua")], _table, {})
+	p777c[0]["cri"] = 100
+	var plain777: Dictionary = _party([[0, "fire"]])[0]
+	plain777["cri"] = 100
+	var guard777: Dictionary = B.make_combatant("G7", "enemy", "aqua",
+		{"hp": 999999, "att": 1, "def": 1, "evd": 60, "blk": 60})
+	var rng777 := RandomNumberGenerator.new()
+	var n777 := 600
+	var miss := [0, 0]
+	var blkn := [0, 0]
+	for side in 2:
+		var atk: Dictionary = plain777 if side == 0 else p777c[0]
+		for i in n777:
+			rng777.seed = 3000 + i
+			var r: Dictionary = B.resolve_attack(atk, guard777, rng777, _combat, {})
+			if bool(r.get("miss", false)):
+				miss[side] += 1
+			elif bool(r.get("block", false)):
+				blkn[side] += 1
+	var rate0 := float(blkn[0]) / float(n777 - miss[0])
+	var rate7 := float(blkn[1]) / float(n777 - miss[1])
+	f += _true("777 크리 시 회피가 줄어든다 (%d → %d / %d)" % [miss[0], miss[1], n777],
+		miss[1] < miss[0])
+	f += _true("777 크리 시 막기 비율이 줄어든다 (%.2f → %.2f)" % [rate0, rate7], rate7 < rate0)
 
 	# ── 50·70 ('추가 데미지' 해석으로 풀린 것들) ────────────────────────────
 	var p50 := _party([[50, "light"], [0, "fire"]])
