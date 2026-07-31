@@ -2455,7 +2455,6 @@ func _set_gauge(v: Dictionary, val: float) -> void:
 ##          → `ScaleTo(0.25, s+0.2)` → `ScaleTo(0.25, s)`
 const _SMALLEXP_SIZE := Vector2(250.0, 60.0)
 func _small_exp_layer(uid: int, gained: int, slot: int) -> void:
-	print("[DBG smallexp] uid=", uid, " gained=", gained, " slot=", slot)
 	if gained <= 0:
 		return
 	var d := UserDB.get_dragon(uid)
@@ -2471,7 +2470,7 @@ func _small_exp_layer(uid: int, gained: int, slot: int) -> void:
 	var lay := CanvasLayer.new(); lay.layer = 62; add_child(lay)
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.position = Vector2(col - w * 0.5 * S, vis.y - 200.0)
+	root.position = Vector2(col - w * 0.5 * S, vis.y - 150.0)
 	root.scale = Vector2(S, S)
 	root.modulate.a = 0.0
 	lay.add_child(root)
@@ -2514,14 +2513,14 @@ func _small_exp_layer(uid: int, gained: int, slot: int) -> void:
 	var t := root.create_tween()
 	t.tween_interval(0.3)
 	t.tween_property(root, "modulate:a", 1.0, 0.25)
-	t.parallel().tween_property(root, "position:y", root.position.y - 25.0, 0.25) \
+	# 원작은 두 겹으로 띄운다: setDragonExpLabel 이 레이어째 **+110**, setExpFinish 가 내부에서 **+25**.
+	t.parallel().tween_property(root, "position:y", root.position.y - 135.0, 0.25) \
 		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	t.tween_property(root, "scale", Vector2(S + 0.2, S + 0.2), 0.25)
 	t.tween_property(root, "scale", Vector2(S, S), 0.25)
 	t.tween_interval(1.2)
 	t.tween_property(root, "modulate:a", 0.0, 0.3)
 	t.tween_callback(lay.queue_free)
-	print("[DBG smallexp] built pos=", root.position, " lay=", lay.layer, " box_ok=", root.get_child_count())
 
 ## 흡혈 임팩트 — 원작 `AdventureScene::setVampImpact` @00ca52e4 (`(피격 위치, 시전자 위치)`).
 ## 원작이 하는 일 두 가지:
