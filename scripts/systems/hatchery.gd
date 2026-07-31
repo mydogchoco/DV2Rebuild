@@ -58,9 +58,19 @@ static func hatch_seconds(grade: float) -> int:
 ## 남은 초 → 원작 표기. 1시간 미만은 "MM : SS", 이상은 "H:MM:SS".
 static func format_remain(sec: int) -> String:
 	sec = maxi(0, sec)
-	# 원작 CaveScene 포맷 문자열 두 종을 그대로 따른다.
+	# 원작 `CaveScene::countDownFatigue` 의 포맷 두 종 그대로 — **콜론 양옆에 공백이 있다**
+	# (레퍼런스 docs/ref/egg/타이머UI.png 의 "39 : 59 : 57").
 	if sec < 3600:
 		return "%02d : %02d" % [sec / 60, sec % 60]
+	return "%02d : %02d : %02d" % [sec / 3600, (sec % 3600) / 60, sec % 60]
+
+
+## 같은 시간의 **공백 없는** 표기. 원작 `onClickFatigue` 가 다이아 즉시부화 확인 문구
+## (`CaveDiaBronMsg1` 의 `%1$s`)에만 쓰는 별도 포맷(`"%02d:%02d"` / `"%02d:%02d:%02d"`)이다.
+static func format_remain_compact(sec: int) -> String:
+	sec = maxi(0, sec)
+	if sec < 3600:
+		return "%02d:%02d" % [sec / 60, sec % 60]
 	return "%02d:%02d:%02d" % [sec / 3600, (sec % 3600) / 60, sec % 60]
 
 

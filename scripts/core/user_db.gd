@@ -141,11 +141,16 @@ func add_dragon(id: int, level: int = 1, stat_bonus: Dictionary = {}) -> Diction
 ## 그 종들은 마스터 데이터에 `stages`·`element` 가 비어 있어서(플레이어 선택권 드래곤)
 ## **개체가 스스로 들고 있어야** 그림·속성을 알 수 있다. 규칙은 `Summon.plan`, 읽는 쪽은
 ## `Icons.art_id_of` / `element_of`. 일반 알은 이 인자를 넘기지 않는다.
-func add_egg(id: int, grade: float, seconds: int, enhance := 0, inherit: Dictionary = {}) -> Dictionary:
+func add_egg(id: int, grade: float, seconds: int, enhance := 0, inherit: Dictionary = {},
+		blessed := false) -> Dictionary:
 	var inst := _new_dragon(id, 1, _zero_bonus())
 	inst["egg"] = true
 	inst["egg_grade"] = snappedf(grade, 0.1)
 	inst["egg_enhance"] = int(enhance)          # 이름 앞 "+N" 배지(연구소 알 강화, 미구현)
+	# 축복받은 둥지로 시작한 알인가. 원작은 `User::getNestLevel()`(계정 상태)로 갈렸지만
+	# 우리 축복은 **1회성**이라 알 개체에 기록한다. 읽는 곳 = `cave.gd` 의 둥지 그림
+	# (nest_holy1/2 + 먼지)과 부화 연출의 보너스 성급 분리 표시(docs/ref/porting/EggHatch.md §1).
+	inst["egg_blessed"] = bool(blessed)
 	inst["hatch_at"] = int(Time.get_unix_time_from_system()) + maxi(0, seconds)
 	if not inherit.is_empty():
 		if int(inherit.get("art_id", 0)) > 0:
@@ -177,11 +182,22 @@ func hatch_egg(uid: int, stat_bonus: Dictionary) -> bool:
 			continue
 		if hatch_remain(d) > 0:
 			return false
-		d.erase("egg"); d.erase("hatch_at")
+		d.erase("egg"); d.erase("hatch_at"); d.erase("egg_blessed")
 		d["level"] = 1
 		d["stat_bonus"] = stat_bonus
 		_commit()
 		return true
+	return false
+
+
+## 알의 부화 시각을 **지금**으로 당긴다(원작 `onClickEggDia` = 다이아 즉시 부화).
+## 원작은 서버가 `hatch_time` 을 되돌려 주고 클라는 `Dragon::setHatchTime` 만 한다.
+func set_hatch_now(uid: int) -> bool:
+	for d in _data["dragons"]:
+		if int(d["uid"]) == uid and is_egg(d):
+			d["hatch_at"] = int(Time.get_unix_time_from_system())
+			_commit()
+			return true
 	return false
 
 # --- 드래곤 보관소(원작 '드래곤의 고삐') -----------------------------------

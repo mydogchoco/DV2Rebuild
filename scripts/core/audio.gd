@@ -141,6 +141,18 @@ func sfx(track: String) -> void:
 	add_child(p); p.play()
 	p.finished.connect(func(): if is_instance_valid(p): p.queue_free())
 
+## 루프 효과음. 원작 `SoundManager::playEffect(..., loop=1)` 대응(알 대기 중 심장박동 등).
+## **호출자가 소유한다** — 반환된 플레이어를 자기 노드에 붙여 두면 그 노드가 사라질 때 같이 죽는다.
+## (원작은 `stopEffectAll()` 로 껐지만, 우리 쪽 효과음은 전부 임시 플레이어라 트리 수명이 곧 소유권이다.)
+func loop_sfx(track: String) -> AudioStreamPlayer:
+	if _muted: return null
+	var st := _make_stream(track)
+	if st == null: return null
+	if st is AudioStreamMP3: st.loop = true
+	var p := AudioStreamPlayer.new(); p.bus = SFX_BUS; p.stream = st; p.volume_db = _base_vol
+	p.autoplay = true      # 트리에 들어가는 순간 시작한다(아직 트리 밖이라 play() 는 못 부른다)
+	return p
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 구역 앰비언트 — 원작 `WorldMapLayer::setWorldMapSound` (WorldMapLayer.c:4108~)
 #

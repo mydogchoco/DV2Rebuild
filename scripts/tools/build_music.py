@@ -29,7 +29,7 @@ SRC = REPO / "DV2" / "music"
 DST = REPO / "assets" / "music"
 SCRIPTS = REPO / "scripts"
 
-LITERAL = re.compile(r'Bgm\.(?:sfx|play)\(\s*"([a-zA-Z0-9_]+)"')
+LITERAL = re.compile(r'Bgm\.(?:sfx|loop_sfx|play)\(\s*"([a-zA-Z0-9_]+)"')
 # 런타임 조립 키 — 원본에 존재하는 것만 자동으로 걸린다.
 PATTERNS = [
     re.compile(r"^effect_skill_\d+$"),        # 스킬 전용 효과음(= 스킬 id)
@@ -42,6 +42,9 @@ PATTERNS = [
     # 드래곤 보이스 — 원작 `info_dragon_v2.voice_{baby,child,adult,critical}_no` → `music/voice<N>.mp3`
     # (docs/ref/orig_code/decomp/Dragon.c:13478-13526). battle.gd 가 `"voice%d"` 로 조립하므로 리터럴 스캔에 안 걸린다.
     re.compile(r"^voice\d+$"),
+    # 부화 빛기둥 타격음 — cave.gd 가 상수(`EGG_BEAT_SFX`)로 들고 있어 리터럴 스캔에 안 걸린다.
+    # ⚠️ 원작 대응은 미확정(디컴프에 없는 익명 람다가 낸다) — docs/ref/porting/EggHatch.md §6.3.
+    re.compile(r"^effect_egg$"),
 ]
 
 

@@ -41,6 +41,45 @@ static func spr(dir: String, key: String, scale := 1.0) -> Sprite2D:
 	s.scale = Vector2(scale, scale)
 	return s
 
+## 원작 `CCSprite` 와 **같은 배치**로 프레임을 놓는다 — 트림(잘라낸 여백)을 되돌린다.
+##
+## 왜 필요한가: Cocos 아틀라스는 투명 여백을 잘라내 넣고 plist 에 `offset`(트림중심 −
+## 원본캔버스중심, y-up)·`sourceSize`(원본 캔버스)를 남긴다. 원작은 **원본 캔버스 기준**으로
+## 배치하고 잘린 만큼 되돌리지만, 우리 `spr()` 은 잘린 그림의 중심에 놓는다. 오프셋이 큰
+## 프레임은 그래서 원작과 다른 자리에 뜬다(실측 사고: 동굴 둥지 `common/nest*` — `sourceSize
+## {184,184}` 에 `offset {-2,-47}` 이라 짚더미가 캔버스 중심보다 47px 아래에 있다).
+##
+## 반환 Node2D 의 **원점 = 원작 스프라이트의 앵커점**이고 `scale` 은 원작 `setScale` 값이다
+## (프레임 픽셀→포인트 환산 ×4/3 은 안쪽 Sprite2D 가 흡수한다). 그래서 원작 소스의
+## `setPosition`/`setScale` 리터럴을 그대로 옮겨 쓸 수 있다.
+##   anchor = 원작 `setAnchorPoint` (기본 (0.5,0.5), 밑변 기준이면 (0.5,0)).
+## `off`/`src` 가 없는 매니페스트(구 변환본)면 종전대로 트림 중심 정렬로 떨어진다
+## → `scripts/tools/backfill_trim_manifest.py` 로 채운다.
+static func spr_cocos(dir: String, key: String, scale := 1.0,
+		anchor := Vector2(0.5, 0.5)) -> Node2D:
+	var t := tex(dir, key)
+	if t == null:
+		return null
+	var S := Design.ASSET_SCALE
+	var info: Dictionary = manifest(dir).get(key, {})
+	var src: Array = info.get("src", [float(info.get("w", t.get_width())),
+		float(info.get("h", t.get_height()))])
+	var off: Array = info.get("off", [0, 0])
+	var w := float(src[0]) * S
+	var h := float(src[1]) * S
+	var holder := Node2D.new()
+	holder.scale = Vector2(scale, scale)
+	var s := Sprite2D.new()
+	s.texture = t
+	s.material = pma()
+	s.scale = Vector2(S, S)
+	# 원본 캔버스 중심(앵커 기준, y-down) + 트림 오프셋(cocos y-up → 부호 반전).
+	s.position = Vector2((0.5 - anchor.x) * w + float(off[0]) * S,
+		(anchor.y - 0.5) * h - float(off[1]) * S)
+	holder.add_child(s)
+	return holder
+
+
 ## 프레임의 디자인 공간 크기(포인트).
 static func size_pt(dir: String, key: String) -> Vector2:
 	var i: Dictionary = manifest(dir).get(key, {})

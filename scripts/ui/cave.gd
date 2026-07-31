@@ -2319,34 +2319,26 @@ func _egg_pt(ox: float, oy: float) -> Vector2:
 	return Vector2(ox - EGG_LAYER_SIZE.x * 0.5, -oy)
 
 ## 알 그림 1장. 원작은 같은 `Egg::getImage()`(= `dragon/dragon_%d/egg.png`)를 **3번** 쓴다.
-## anchor(0.5,0) = 밑변 기준이라, 트림된 아틀라스 프레임을 **원본(untrimmed) 박스 기준**으로
-## 되돌려 놓는다(`_manifest.json` 의 `src`/`off`). 반환 노드의 scale 이 원작 setScale 이다.
+## 원작 위치 = `(w/2, h/2 − 알높이)` + `anchor(0.5,0)`(밑변 기준). 여기서 "알높이"는
+## `getContentSize()` = 트림 전 **원본 캔버스** 높이다(CCSprite 는 트림해도 contentSize 가
+## originalSize 다) → `_manifest.json` 의 `src` 를 쓴다.
 func _egg_sprite(did: int, org_scale: float) -> Node2D:
 	var S := Design.ASSET_SCALE
 	var pdir := "portrait_%d" % did
-	var man := AtlasUI.manifest(pdir)
 	var key := _dex_stage_frame(did, "egg")
-	var info: Dictionary = man.get(key, {})
+	var info: Dictionary = AtlasUI.manifest(pdir).get(key, {})
 	var src: Array = info.get("src", [float(info.get("w", 0)), float(info.get("h", 0))])
-	var off: Array = info.get("off", [0, 0])
-	var src_h := float(src[1])
-	var holder := Node2D.new()
-	holder.position = _egg_pt(EGG_LAYER_SIZE.x * 0.5, EGG_LAYER_SIZE.y * 0.5 - src_h * S)
-	holder.scale = Vector2(org_scale, org_scale)
-	var spr := _atlas_sprite(pdir, key, man, S)
-	# 트림 중심 = 원본 박스 중심 + off(cocos px, y-up) → 밑변 기준 노드 안에서의 위치.
-	spr.position = Vector2(float(off[0]) * S, -(src_h * 0.5 + float(off[1])) * S)
-	holder.add_child(spr)
+	var holder := AtlasUI.spr_cocos(pdir, key, org_scale, Vector2(0.5, 0))
+	if holder == null:
+		holder = Node2D.new()
+	holder.position = _egg_pt(EGG_LAYER_SIZE.x * 0.5, EGG_LAYER_SIZE.y * 0.5 - float(src[1]) * S)
 	holder.set_meta("home", holder.position)
-	holder.set_meta("src_h_pt", src_h * S)
 	return holder
 
 ## 원작 `setDragonInfo` 알 분기 — 받침대 위 알 + 둥지 + 정보 판.
 func _build_egg_on_stand(a: Dictionary) -> void:
-	var S := Design.ASSET_SCALE
 	var did := int(a["id"])
 	var blessed := bool(a.get("egg_blessed", false))
-	var cm := _man_common()
 	_egg_uid = int(a["uid"])
 	_egg_done = false
 	_egg_busy = false
@@ -2359,16 +2351,19 @@ func _build_egg_on_stand(a: Dictionary) -> void:
 	_egg_layer.scale = Vector2(1.0 / S1080, 1.0 / S1080)
 	_stage.add_child(_egg_layer)
 
+	# ⚠️ 둥지 4프레임은 전부 `sourceSize {184,184}` 에 크게 트림돼 있다(`nest1` 은 offset y −47)
+	#    → 반드시 `spr_cocos`(트림 되돌림)로 놓는다. 트림을 무시하면 짚더미가 알 중턱에 뜬다.
+	var nest_pos := _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 35.0)
 	# 그림자(원작 common/shadow ×1.75 @ (w/2, h/2−135))
-	var sh := _atlas_sprite("common_ui", "common_shadow", cm, S * 1.75)
+	var sh := AtlasUI.spr_cocos("common_ui", "common_shadow", 1.75)
 	if sh:
 		sh.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 135.0)
 		_egg_layer.add_child(sh)
 	# 둥지 뒤(nest2 / nest_holy2) ×1.5 @ (w/2, h/2−35)
-	var nest_back := _atlas_sprite("common_ui",
-		"common_nest_holy2" if blessed else "common_nest2", cm, S * 1.5)
+	var nest_back := AtlasUI.spr_cocos("common_ui",
+		"common_nest_holy2" if blessed else "common_nest2", 1.5)
 	if nest_back:
-		nest_back.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 35.0)
+		nest_back.position = nest_pos
 		_egg_layer.add_child(nest_back)
 	# 알 3겹 — tag1(×1.6, 투명) · tag2(×1.7, 투명) 펄스 유령, tag0(×1.5) 본체.
 	for g in [1.6, 1.7]:
@@ -2378,16 +2373,16 @@ func _build_egg_on_stand(a: Dictionary) -> void:
 		_egg_ghosts.append(ghost)
 	_egg_body = _egg_sprite(did, 1.5)
 	_egg_layer.add_child(_egg_body)
+	# 강화알(+N) 오라 — 원작은 nest1 의 자식(z=−1)이라 **둥지 앞판보다 뒤, 알보다 앞**이다.
+	if int(a.get("egg_enhance", 0)) > 0:
+		_egg_enhance_aura()
 	# 둥지 앞(nest1 / nest_holy1) ×1.5 — 알보다 앞
-	var nest_front := _atlas_sprite("common_ui",
-		"common_nest_holy1" if blessed else "common_nest1", cm, S * 1.5)
+	var nest_front := AtlasUI.spr_cocos("common_ui",
+		"common_nest_holy1" if blessed else "common_nest1", 1.5)
 	if nest_front:
-		nest_front.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 35.0)
+		nest_front.position = nest_pos
 		_egg_layer.add_child(nest_front)
-		# 강화알(+N) 오라 — 원작 common/ani_egg_up1_1~6, 0.15s/프레임, 둥지 뒤(z=−1).
-		if int(a.get("egg_enhance", 0)) > 0 and nest_front.texture:
-			_egg_enhance_aura(nest_front)
-		# 축복 둥지 먼지 — 원작은 getNestLevel()==1 일 때만 붙인다.
+		# 축복 둥지 먼지 — 원작은 getNestLevel()==1 일 때만 nest1 중심에 붙인다.
 		if blessed:
 			var dust := CocosParticle.spawn(nest_front, "cave_dust", Vector2.ZERO, -2)
 			if dust: dust.one_shot = false
@@ -2419,32 +2414,41 @@ func _egg_wait_anim() -> void:
 		t2.parallel().tween_property(g, "modulate:a", 0.0, 0.9)
 		t2.tween_property(g, "scale", Vector2(float(s[1]), float(s[1])), float(s[2]))
 
-## 강화알 오라(원작 common/ani_egg_up1_N ×1.1 @ (nestW/2, 60), anchor(0.5,0), 0.15s/프레임).
-func _egg_enhance_aura(nest_front: Sprite2D) -> void:
-	var fx := Sprite2D.new()
-	fx.material = _pma
-	fx.z_index = -1
-	# 부모(둥지)의 배율을 물려받으므로 여기서 ASSET_SCALE 을 또 곱하지 않는다 —
-	# 원작 setScale(1.1) 도 둥지와 같은 좌표계의 1.1 이다(`_inv_egg_grade_fx` 와 같은 규칙).
-	fx.scale = Vector2(1.1, 1.1)
-	nest_front.add_child(fx)
+## 강화알(+N) 오라 — 원작 `common/ani_egg_up1_1~6` 6프레임 × 0.15s.
+##
+## 원작은 이걸 **nest1 의 자식**으로 `anchor(0.5,0)`, `position(nestW/2, 60)`, `setScale(1.1)`,
+## `z=-1` 에 붙인다. nest1 은 `contentSize 184px = 245.3pt`(트림 전 캔버스) 에 배율 1.5 이므로
+## 레이어 좌표로 풀면 y = 115 + (60 − 245.3/2)×1.5 = **21** — 즉 짚더미 위치다.
+## 배율도 1.1 × 1.5 = 1.65. 부모를 거치지 않고 레이어에 직접 놓아 같은 결과를 낸다.
+##
+## ⚠️ 원작은 강화 단계별로 `setColor(DAT_029ec7b4/7cc/7c0)` 틴트를 건다. 그 상수는 **.bss**
+## (런타임 초기화)라 libgame.so 에서 정적으로 못 읽는다 → 틴트 없이 그린다
+## (가방의 같은 오라 `_inv_egg_grade_fx` 도 같은 이유로 틴트가 없다).
+const EGG_AURA_OY := 21.0      # 115 + (60 − 245.33/2) × 1.5
+func _egg_enhance_aura() -> void:
 	var frames: Array = []
 	for i in 6:
 		var t := AtlasUI.tex("common_ui", "common_ani_egg_up1_%d" % (i + 1))
 		if t != null: frames.append(t)
 	if frames.is_empty():
-		fx.queue_free(); return
+		return
+	var holder := AtlasUI.spr_cocos("common_ui", "common_ani_egg_up1_1", 1.1 * 1.5, Vector2(0.5, 0))
+	if holder == null:
+		return
+	holder.position = _egg_pt(175, EGG_AURA_OY)
+	_egg_layer.add_child(holder)
+	var fx: Sprite2D = holder.get_child(0)
 	var idx := {"i": 0}
 	var apply := func() -> void:
+		# 프레임마다 높이가 다르다(62·62·66·68·66·62) — 밑변 정렬을 유지하려면 offset 도 같이 고친다.
 		var t: Texture2D = frames[int(idx["i"]) % frames.size()]
+		var base: Texture2D = frames[0]
 		fx.texture = t
-		# 원작 anchor(0.5,0)·position (nestW/2, 60) — 둥지 텍스처 픽셀 좌표계.
-		fx.position = Vector2(0, nest_front.texture.get_height() * 0.5 - 60.0 / Design.ASSET_SCALE)
-		fx.offset = Vector2(0, -t.get_height() * 0.5)
+		fx.offset = Vector2(0, (base.get_height() - t.get_height()) * 0.5)
 		idx["i"] = int(idx["i"]) + 1
 	apply.call()
 	var tm := Timer.new(); tm.wait_time = 0.15; tm.autostart = true
-	tm.timeout.connect(apply); fx.add_child(tm)
+	tm.timeout.connect(apply); holder.add_child(tm)
 
 ## 원작 `CaveScene::init` 의 정보 판(this+0x258) — 알일 때는 부화 타이머가 들어간다.
 ## 9patch/dialogue_box(capInsets 20,20,2,2) 180×45 @ (visW*0.5, visH*0.5−137).
