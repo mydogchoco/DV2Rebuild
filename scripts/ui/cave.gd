@@ -500,122 +500,45 @@ func _equip_stat_kr(key: String) -> String:
 		"cure": "치유", "awaken_rate": "각성", "gold": "골드", "exp": "경험",
 	}.get(key, key)
 
-## 장비 관리 — 원작 4칸(전체/전투형/보조형/아티팩트) + 편린 3칸.
-## 원작 근거: 슬롯 종류=위키 §2 표, 칸 해금=연구소 '드래곤 강화'(위키 §2.1.1).
-## ⚠️ 원작은 인벤토리의 실제 장비 아이템을 낀다(MultyEquipPop/ItemEquipSelectPopup). 우리는 장비 인벤토리가
-##    아직 없어 카탈로그에서 바로 장착한다 — 인벤토리 도입 시 이 함수가 교체 지점.
+## 장비 관리 — **원작 `MultyEquipPop` 이식**(제목 <MultyEquip_Title> "장비 슬롯 확장").
+## 종전엔 680×64 짜리 자작 행에 변경/옵션/강화/해제 버튼을 늘어놓았는데, 참조 두 장
+## (`docs/ref/equip/cave_장비칸클릭시팝업1,2.png` · `docs/ref/orig_image/lab/드래곤강화4.png`)이
+## 보여 주듯 원작은 **125px 짜리 4행**(아이콘 칸 + 이름·옵션 칸)이고 버튼이 없다 —
+## 행을 누르면 그 칸의 장비 선택창(`ItemEquipSelectPopup`)이 열린다. 그림은 `MultyEquipPop`
+## 이 그리고(연구소 화면과 같은 클래스) 여기선 클릭만 배선한다.
 ## 칸 해금은 연구소(scripts/ui/laboratory.gd 「드래곤 강화」)에서 한다 — 위키 etc.pdf §2.1.1.
-## 드래곤별 해금 칸 수 = UserDB dragon["equip_slots"](기본 1칸).
+## 드래곤별 해금 칸 = UserDB dragon["equip_slots"](기본 all 1칸).
 func _open_equipment() -> void:
 	var a := _active()
 	if a.is_empty(): return
 	var uid := int(a["uid"])
-	const BW := 780.0
-	const BH := 560.0
-	var vis := _vis()
-	var overlay := CanvasLayer.new(); overlay.layer = 30; add_child(overlay)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: overlay.queue_free())
-	overlay.add_child(dim)
-	var win := NinePatchRect.new()
-	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
-	win.patch_margin_left = 130; win.patch_margin_top = 190; win.patch_margin_right = 55; win.patch_margin_bottom = 81
-	win.size = Vector2(BW, BH); win.position = Vector2(round((vis.x - BW) * 0.5), round((vis.y - BH) * 0.5)); overlay.add_child(win)
-	var tbar := NinePatchRect.new(); tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
-	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
-	tbar.size = Vector2(BW * 0.9, 56); tbar.position = Vector2((BW - BW * 0.9) * 0.5, 14); win.add_child(tbar)
-	var t := Label.new(); t.text = "장비"; t.add_theme_font_size_override("font_size", 24)
-	t.add_theme_color_override("font_color", Color.WHITE); t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; t.size = tbar.size; tbar.add_child(t)
-	var cbtn := TextureButton.new(); cbtn.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
-	cbtn.position = Vector2(BW - 72, 8); win.add_child(cbtn)
-	cbtn.pressed.connect(func(): overlay.queue_free())
-	var eqf: Dictionary = UserDB.get_dragon(uid).get("equip", {})
-	var slot_kr := {"all": "전체", "battle": "전투형", "support": "보조형", "artifact": "아티팩트"}
-	var y := 96.0
-	var unlocked = UserDB.get_dragon(uid).get("equip_slots", 1)   # v11: 배열(구세이브는 int)
-	for slot_id: String in Equipment.slot_ids(unlocked):
-		var box := NinePatchRect.new(); box.texture = load("res://assets/converted/ninepatch_ui/9patch_train_box3.tres")
-		box.patch_margin_left = 30; box.patch_margin_right = 30; box.patch_margin_top = 12; box.patch_margin_bottom = 12
-		box.size = Vector2(680, 64); box.position = Vector2((BW - 680) * 0.5, y); win.add_child(box)
-		var it: Dictionary = Equipment.equipped(eqf, slot_id, Data.equipment)
-		var sdata := _equip_slot_data(eqf, slot_id)
-		# 원작 장비 아이콘(item/accessory — 종류·등급별). 논리키 조회는 Icons(§8.4).
-		# 희귀도 실루엣 + 귀속 뱃지까지 원작 BagTableViewCell 순서로 겹쳐 그린다.
-		var eicon := Icons.equip_rect(it, 40.0, int(sdata.get("grade", 0)),
-				int(sdata.get("belong", 0)), uid) if not it.is_empty() else null
-		if eicon: eicon.position = Vector2(14, 8); box.add_child(eicon)
-		var lbl := Label.new()
-		lbl.position = Vector2(62 if eicon else 20, 15)
-		lbl.add_theme_font_size_override("font_size", 17)
-		lbl.add_theme_color_override("font_color", Color(0.2, 0.15, 0.08))
-		if it.is_empty():
-			lbl.text = "[%s] 비어 있음" % slot_kr[slot_id]
-		else:
-			var mparts: PackedStringArray = []
-			for st: String in (it.get("stat_main", {}) as Dictionary):
-				mparts.append("%s+%d" % [_equip_stat_kr(st), int(it["stat_main"][st])])
-			lbl.text = "[%s] %s  %s" % [slot_kr[slot_id], String(it["name"]), " ".join(mparts)]
-		box.add_child(lbl)
-		var sid := slot_id
-		var chg := Button.new(); chg.text = "변경"; chg.size = Vector2(70, 38); chg.position = Vector2(390, 9)
-		chg.pressed.connect(func(): overlay.queue_free(); _open_equip_select(sid))
-		box.add_child(chg)
-		if not it.is_empty():
-			# 옵션(원작 info_item_acc 9종) — 현재 붙은 옵션 표시 + 재설정/강화.
-			var sd := _equip_slot_data(eqf, sid)
-			var opts: Array = sd.get("options", [])
-			var ol := Label.new()
-			var oparts: PackedStringArray = []
-			for o in opts:
-				oparts.append("%s+%d" % [_equip_stat_kr(String((o as Dictionary).get("stat", ""))),
-						int((o as Dictionary).get("value", 0))])
-			var eg := int(sd.get("grade", 0))
-			var gname: String = String((Data.equipment.get("option", {}).get("grades", [])[eg] as Dictionary).get("name", "일반")) if eg < (Data.equipment.get("option", {}).get("grades", []) as Array).size() else "일반"
-			# 귀속 표기 — 원작 문구 `CaveItemEquipSky`(귀속됨) / `CaveItemEquipBeing`(~의 귀속 아이템).
-			var bel := int(sd.get("belong", 0))
-			var btxt := ""
-			if bel > 0:
-				btxt = "  귀속됨" if bel == uid else "  %s의 귀속 아이템" % _dragon_label(bel)
-			ol.text = "  %s  %s  [강화 %d/%d]%s" % [gname,
-					("옵션 없음" if oparts.is_empty() else " ".join(oparts)),
-					int(sd.get("enhance", 0)), _equip_enhance_limit(sd), btxt]
-			ol.add_theme_font_size_override("font_size", 13)
-			ol.add_theme_color_override("font_color", Color(0.36, 0.28, 0.14))
-			ol.position = Vector2(62, 34); box.add_child(ol)
-			var rr := Button.new(); rr.text = "옵션"; rr.size = Vector2(66, 38); rr.position = Vector2(464, 9)
-			rr.pressed.connect(func(): _reroll_options(uid, sid); overlay.queue_free(); _open_equipment())
-			box.add_child(rr)
-			var en := Button.new(); en.text = "강화"; en.size = Vector2(66, 38); en.position = Vector2(534, 9)
-			en.disabled = Equipment.enchant_blocked(sd, Data.equipment) != ""
-			en.pressed.connect(func(): overlay.queue_free(); _enhance_option(uid, sid))
-			box.add_child(en)
-			var rm := Button.new(); rm.text = "해제"; rm.size = Vector2(66, 38); rm.position = Vector2(604, 9)
-			rm.pressed.connect(func():
-				# 해제 → 인벤토리로 돌려준다. 귀속·희귀도·옵션·강화는 **개체에 남는다** →
-				# 슬롯 상태를 그대로 실은 키로 돌려보낸다(§Equipment slot_to_item_key).
-				var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
-				var off := _equip_slot_data(cur, sid)
-				if not off.is_empty():
-					UserDB.add_item(Equipment.slot_to_item_key(off), 1)
-				UserDB.set_dragon_field(uid, "equip", Equipment.unequip(cur, sid))
-				_refresh_stats(); overlay.queue_free(); _open_equipment())
-			box.add_child(rm)
-			# 귀속해제(원작 `CaveEquip_Lift`) — 구드라의 지혜 1개를 쓴다. 귀속돼 있을 때만 보인다.
-			if int(sd.get("belong", 0)) > 0:
-				var ub := Button.new(); ub.text = "귀속해제"; ub.size = Vector2(96, 30)
-				ub.position = Vector2(464, 30)
-				ub.add_theme_font_size_override("font_size", 13)
-				ub.pressed.connect(func(): _unbind_equip(uid, sid); overlay.queue_free(); _open_equipment())
-				box.add_child(ub)
-		y += 72.0
-	# 부가 효과(특수 장비 bonus) 안내 — 조건부 효과라 전투 미반영임을 명시한다.
-	var note := Label.new()
-	note.text = "※ 특수 장비의 부가 효과와 전용 장비는 데이터만 보유(전투 미반영) — docs/input/review/equipment_sheet.md"
-	note.add_theme_font_size_override("font_size", 13)
-	note.add_theme_color_override("font_color", Color(0.5, 0.44, 0.36))
-	note.position = Vector2(40, BH - 74); note.size = Vector2(BW - 80, 40); note.autowrap_mode = TextServer.AUTOWRAP_WORD
-	win.add_child(note)
+	var pop := MultyEquipPop.open(self, uid, "equip", func(sid: String, unlocked: bool):
+		if not unlocked:
+			# 원작 <MultyEquip_Lock>. 확장은 연구소 '드래곤 강화'에서 한다.
+			_toast("%s  (연구소 '드래곤 강화')" % MultyEquipPop.S_LOCK)
+			return
+		_open_equip_select(sid))
+	pop.closed.connect(_refresh_stats)
+
+
+## 장비 선택창 하단 버튼 하나의 동작(원작 `ItemEquipSelectPopup` 의 제련/강화/해제/귀속해제).
+## ⚠️ 람다 안에 `match` 를 쓰면 4.7 파서가 거부한다 — 그래서 본체를 함수로 뺐다.
+func _equip_slot_action(what: String, uid: int, slot_id: String, overlay: Node) -> void:
+	if what == "옵션":
+		overlay.queue_free(); _reroll_options(uid, slot_id); _open_equipment()
+	elif what == "강화":
+		overlay.queue_free(); _enhance_option(uid, slot_id)
+	elif what == "해제":
+		# 해제 → 인벤으로. 귀속·희귀도·옵션·강화는 **개체에 남는다**(§slot_to_item_key).
+		var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
+		var off := _equip_slot_data(cur, slot_id)
+		if not off.is_empty():
+			UserDB.add_item(Equipment.slot_to_item_key(off), 1)
+		UserDB.set_dragon_field(uid, "equip", Equipment.unequip(cur, slot_id))
+		_refresh_stats(); overlay.queue_free(); _open_equipment()
+	elif what == "귀속해제":
+		overlay.queue_free(); _unbind_equip(uid, slot_id); _open_equipment()
+
 
 ## 귀속 표기에 쓸 드래곤 이름(닉네임 우선, 없으면 종 이름). 없는 uid 면 "다른 드래곤".
 func _dragon_label(uid: int) -> String:
@@ -724,7 +647,8 @@ func _open_equip_select(slot_id: String) -> void:
 	cbtn.position = Vector2(BW - 72, 8); win.add_child(cbtn)
 	cbtn.pressed.connect(func(): overlay.queue_free(); _open_equipment())
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(40, 86); scroll.size = Vector2(BW - 80, BH - 130); win.add_child(scroll)
+	# 아래 56pt 는 지금 낀 장비를 다루는 버튼 줄(원작 ItemEquipSelectPopup 하단)이 쓴다.
+	scroll.position = Vector2(40, 86); scroll.size = Vector2(BW - 80, BH - 130 - 56); win.add_child(scroll)
 	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 3)
 	col.custom_minimum_size.x = BW - 100; scroll.add_child(col)
 	var cat: Dictionary = Equipment.catalog(Data.equipment)
@@ -830,6 +754,38 @@ func _open_equip_select(slot_id: String) -> void:
 		none.add_theme_font_size_override("font_size", 18)
 		none.add_theme_color_override("font_color", Color(0.45, 0.38, 0.28))
 		col.add_child(none)
+
+	# ── 지금 낀 장비를 다루는 줄 — 원작 `ItemEquipSelectPopup` 하단(제련/강화/해제/귀속해제).
+	# 종전엔 이 버튼들이 4칸 목록(MultyEquipPop)에 붙어 있었는데, 원작은 **칸을 고른 뒤**
+	# 나오는 이 창이 갖고 있다.
+	var cur_sd := _equip_slot_data(UserDB.get_dragon(uid).get("equip", {}), slot_id)
+	if not cur_sd.is_empty():
+		var bx := 44.0
+		for spec in [["옵션", true], ["강화", true], ["해제", true],
+				["귀속해제", int(cur_sd.get("belong", 0)) > 0]]:
+			if not bool((spec as Array)[1]):
+				continue
+			var nm2 := String((spec as Array)[0])
+			var bt := Button.new()
+			bt.text = nm2
+			bt.size = Vector2(96.0, 40.0)
+			bt.position = Vector2(bx, BH - 92.0)
+			if nm2 == "강화":
+				bt.disabled = Equipment.enchant_blocked(cur_sd, Data.equipment) != ""
+			bt.pressed.connect(func(): _equip_slot_action(nm2, uid, slot_id, overlay))
+			win.add_child(bt)
+			bx += 104.0
+		# 지금 낀 것 요약 — 원작도 이 창에 대상 장비를 함께 보여 준다.
+		var cur_it: Dictionary = Equipment.catalog(Data.equipment).get(
+			String(cur_sd.get("key", "")), {})
+		var sm := Label.new()
+		sm.text = "장착 중: %s%s  [강화 %d/%d]" % [String(cur_it.get("name", "?")),
+			(" +%d" % int(cur_sd.get("enhance", 0))) if int(cur_sd.get("enhance", 0)) > 0 else "",
+			int(cur_sd.get("enhance", 0)), _equip_enhance_limit(cur_sd)]
+		sm.add_theme_font_size_override("font_size", 14)
+		sm.add_theme_color_override("font_color", Color(0.45, 0.38, 0.30))
+		sm.position = Vector2(44.0, BH - 54.0); sm.size = Vector2(BW - 88.0, 22.0)
+		win.add_child(sm)
 
 ## 장신구(data/accessories.json): 깃털/발톱/부적 → cri/evd/blk. 등급=드래곤 등급 근사.
 ## ⚠️ 구형 — Equipment(data/equipment.json)로 대체됐다. 기존 세이브 호환용으로만 남긴다.

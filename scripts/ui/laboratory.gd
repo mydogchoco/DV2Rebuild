@@ -2476,7 +2476,8 @@ func _open_slot_expand(uid: int) -> void:
 		_select_popup = null
 	var d := UserDB.get_dragon(uid)
 	if d.is_empty(): return
-	var pop := OrigPopup.open(self, "장비 슬롯 확장", Vector2(520.0, 560.0))
+	# 크기는 공용 위젯(MultyEquipPop) 의 행 규격(125px × 4)에 맞춘다.
+	var pop := OrigPopup.open(self, MultyEquipPop.S_TITLE, Vector2(560.0, 636.0))
 	# 원작(드래곤강화3/4.png)은 이 창을 **오른쪽에 붙이고** 왼쪽 빈자리에 '주의' 안내판을 둔다.
 	var vis := _vis()
 	pop.body.position = Vector2(round(vis.x * 0.72 - pop.win_size.x * 0.5),
@@ -2486,43 +2487,18 @@ func _open_slot_expand(uid: int) -> void:
 
 func _slot_expand_body(pop: OrigPopup, uid: int) -> void:
 	pop.clear_content()
-	var d := UserDB.get_dragon(uid)
-	var open := _unlocked_slots(d)
-	var W: float = pop.win_size.x
+	var open := _unlocked_slots(UserDB.get_dragon(uid))
 	# 확장 안내판 — 원작은 첫 확장 전에만 띄운다(드래곤강화3/4.png ↔ 8.png 대조).
 	if open.size() <= 1:
 		_expand_notice(pop)
-	var y := 96.0
-	for sid_v in Equipment.SLOT_ORDER:
-		var sid := String(sid_v)
-		var unlocked := open.has(sid)
-		var row := Control.new()
-		row.position = Vector2(30.0, y)
-		row.size = Vector2(W - 60.0, 100.0)
-		pop.content.add_child(row)
-		_slot_chip(row, Vector2.ZERO, Vector2(92.0, 100.0), sid, unlocked)
-		var lb := AtlasUI.nine("ninepatch_ui", "9patch_bt_itembox_off",
-			Vector2(W - 60.0 - 100.0, 100.0), Rect2(16, 16, 9, 24))
-		if lb != null:
-			lb.position = Vector2(100.0, 0.0)
-			if not unlocked: lb.modulate = Color(0.72, 0.70, 0.66)
-			row.add_child(lb)
-		var l := Label.new(); l.text = String(SLOT_ROW_KR.get(sid, sid))
-		l.add_theme_font_size_override("font_size", 21)
-		l.add_theme_color_override("font_color",
-			Color(0.22, 0.15, 0.08) if unlocked else Color(0.44, 0.38, 0.32))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.position = Vector2(100.0, 0.0); l.size = Vector2(W - 160.0, 100.0)
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(l)
-		if not unlocked:
-			var b := Button.new(); b.flat = true
-			b.size = row.size
-			var s2 := sid
-			b.pressed.connect(func(): _open_enh_material_select(uid, s2))
-			row.add_child(b)
-		y += 108.0
+	# 4행은 **동굴 장비창과 같은 위젯**이 그린다 — 원작도 같은 클래스(MultyEquipPop)다.
+	MultyEquipPop.build_rows(pop.content, uid, "expand", pop.win_size.x - 60.0,
+		Vector2(30.0, 88.0), func(sid: String, unlocked: bool):
+			if unlocked:
+				_say(MultyEquipPop.S_ALREADY)       # <MultyEquip_Slot_alread>
+				return
+			_open_enh_material_select(uid, sid))
+
 
 ## '주의' 안내판(원작 드래곤강화3.png). 확장 횟수별 재료 드래곤 등급 표.
 func _expand_notice(pop: OrigPopup) -> void:

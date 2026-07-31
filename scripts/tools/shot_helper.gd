@@ -308,6 +308,38 @@ func _ready() -> void:
 					for i in 160: await get_tree().process_frame     # 마법진 연출이 끝나길 기다린다
 					ef_p.set("_pick", 1)
 					ef_p.call("_rebuild_result")
+		"equipslots":
+			# 동굴 장비 4칸 창(원작 MultyEquipPop). `--tab=locked` 로 잠긴 칸 상태도 본다.
+			UserDB.begin_batch()
+			var es_lock := false
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--tab="): es_lock = a.substr(6) == "locked"
+			_seed_equip_slots(UserDB.active_uid(), es_lock)
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var es_n := _find_method_node(get_tree().root, "_open_equipment")
+			if es_n == null:
+				print("SHOT: cave 없음")
+			else:
+				es_n.call("_open_equipment")
+				if es_lock:
+					pass
+				else:
+					for a2 in OS.get_cmdline_user_args():
+						if a2 == "--select":
+							await get_tree().process_frame
+							es_n.call("_open_equip_select", "all")
+		"labslots":
+			# 연구소 B1 '드래곤 강화' → 장비 슬롯 확장(동굴과 같은 MultyEquipPop 위젯).
+			UserDB.begin_batch()
+			_seed_equip_slots(UserDB.active_uid(), true)
+			Scenes.goto("laboratory", {})
+			for i in 30: await get_tree().process_frame
+			var ls_n := _find_method_node(get_tree().root, "_open_slot_expand")
+			if ls_n == null:
+				print("SHOT: laboratory 없음")
+			else:
+				ls_n.call("_open_slot_expand", UserDB.active_uid())
 		"gemshop":
 			# 점술집 지하 — `--tab=disassemble|soul` 로 기능 창을 연다(원작 UpgradeGemLayer(2) /
 			# UpgradeSoulGemLayer). 젬·재료를 임시로 넣는다. begin_batch = 디스크 미기록.
@@ -2655,3 +2687,30 @@ func _node_with_method(n: Node, m: String) -> Node:
 		if r != null:
 			return r
 	return null
+
+
+## `equipslots` 촬영용 — 그 드래곤의 4칸을 열고 장비를 끼워 둔다(begin_batch 라 디스크 미기록).
+func _seed_equip_slots(uid: int, locked: bool) -> void:
+	if locked:
+		UserDB.set_dragon_field(uid, "equip_slots", ["all"])
+		UserDB.set_dragon_field(uid, "equip", {"slots": []})
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var rows: Array = [
+		["all", "special:skull:G스컬의 붉은장갑", 5, 25],
+		["battle", "basic:묘안석:5", 4, 12],
+		["support", "special:balrog:카이저 발록의 팔찌", 5, 25],
+		["artifact", "artifact:옵스큐럼:5", 3, 8]]
+	var cat := Equipment.catalog(Data.equipment)
+	var slots: Array = []
+	for r in rows:
+		var key := String((r as Array)[1])
+		if not cat.has(key):
+			continue
+		var g := int((r as Array)[2])
+		slots.append({"slot": String((r as Array)[0]), "key": key, "grade": g,
+			"enhance": int((r as Array)[3]), "belong": uid,
+			"options": Equipment.roll_options(g, rng, Data.equipment)})
+	UserDB.set_dragon_field(uid, "equip_slots", ["all", "battle", "support", "artifact"])
+	UserDB.set_dragon_field(uid, "equip", {"slots": slots})
