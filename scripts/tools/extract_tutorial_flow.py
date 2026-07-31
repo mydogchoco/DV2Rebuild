@@ -125,11 +125,13 @@ CUT = {
     "SN_0_17_8": "〃",
 }
 
-## 화자(NPC 초상). ⚠️ **시나리오 0 의 화자 배정은 우리 디컴프에 없다** — 1~78화는 회차 클래스가
-## `setTalk` 앞에 화자를 멤버에 써 두지만(그래서 scenario_flow.json 에 npc_name 이 있다),
-## 프롤로그 대사 목록을 만드는 코드는 덤프 범위 밖이다(`grep PrologueTalk decomp/*.c` → 0건).
-## 그래서 **대사 원문이 스스로 밝히는 줄만** 배정하고 나머지는 비운다(초상 미표시).
-## 지어내지 않는다 — 근거 문장을 함께 남긴다.
+## 화자(NPC 초상).
+## ✅ **2026-08-01 해결 — libgame.so 에서 32/35 전량 채굴했다.**
+##   디컴프에는 없다(`grep PrologueTalk decomp/*.c` → 0건). 배정 함수 `Scenario1::setNext` 를
+##   **Ghidra 가 312B 로 잘못 끊기** 때문이다(ELF 심볼상 실제 77,940B).
+##   → `scripts/tools/extract_prologue_speakers.py` 가 명령어 수준에서 `this+0x1d8`(화자) /
+##     `this+0x1f0`(대사 키) 쌍을 읽어 `docs/input/sheets/prologue_speakers.csv` 로 낸다.
+##   아래 표는 그 시트가 없을 때의 **폴백**(대사 원문이 스스로 밝히는 줄)일 뿐이다.
 TALK_SPEAKER = {
     1:  ("nuri",  "'반가워, 난 누리야!' — 자기소개"),
     2:  ("jimon", "'내 이름은 즈믄! 네 이름을 알려주겠어?' — 자기소개"),
@@ -177,7 +179,9 @@ def read_speaker_sheet() -> dict:
         for row in csv.DictReader(f):
             npc = (row.get("speaker") or "").strip()
             if npc:
-                out[str(int(row["idx"]))] = {"npc": npc, "basis": "사용자 확정(prologue_speakers.csv)"}
+                out[str(int(row["idx"]))] = {
+                    "npc": npc,
+                    "basis": (row.get("basis") or "").strip() or "prologue_speakers.csv(사용자 기입)"}
     return out
 
 
