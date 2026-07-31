@@ -660,7 +660,13 @@ def main():
                 dedup: list[dict] = []
                 for o5 in flow:
                     k5 = o5.get("key")
-                    if o5.get("op") == "setTalk" and isinstance(k5, str) and k5:
+                    if o5.get("op") == "setTalk":
+                        # 🔴 **키 없는 대사는 버린다.** 키를 못 읽었다는 건 그 경로가 진짜
+                        #    대사 스텝이 아닐 가능성이 크다 — 실측으로 초과의 정체였다
+                        #    (62화 = 키 있는 28개가 원작 28줄과 정확히 일치, 키 없는 2개가 잉여).
+                        #    진짜 빠진 줄은 parse_scenario_flow 의 보충이 **정확한 키로** 채운다.
+                        if not (isinstance(k5, str) and k5):
+                            continue
                         if k5 in seen_keys:
                             continue
                         seen_keys.add(k5)

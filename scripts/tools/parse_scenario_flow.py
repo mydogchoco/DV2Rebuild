@@ -574,12 +574,16 @@ def fill_missing_lines(flows: dict[str, list[dict]], scenarios: dict) -> tuple[i
             if added >= quota:
                 break
             key = "ScenarioTalk%s_%d" % (sn, k)
-            if key.encode() + bytes(1) not in blob:
-                continue                   # 리터럴이 없으면 그 회차 대사가 아닐 수 있다 — 안 넣는다
+            # 코드 리터럴이 있으면 그걸로 확증된다. 없어도 **원작 문자열 리소스**에 그 키로
+            # 실재하면(= scenario.json 이 그 줄을 그 회차로 들고 있다는 뜻) 채운다 —
+            # 키가 회차·줄을 인코딩하므로 다른 회차 것일 수 없다. 과잉은 위 `quota` 가 막는다.
+            # (실측: 25·38·50 화의 마지막 1줄이 이 경우였다. 원작은 런타임 조립으로 띄운다.)
+            lit = key.encode() + bytes(1) in blob
             prev = max((x for x in have if x < k), default=None)
             pos = (have[prev] + 1) if prev is not None else 0
             ops.insert(pos, {"op": "setTalk", "key": key, "npc_name": None,
-                             "body": None, "state": None, "_recovered": True})
+                             "body": None, "state": None,
+                             "_recovered": "literal" if lit else "resource"})
             for kk in list(have):          # 뒤 인덱스를 밀어 준다
                 if have[kk] >= pos:
                     have[kk] += 1
