@@ -364,6 +364,10 @@ func _play_flow() -> void:
 				# 걷기 비트**(각 사이 0.5초). 걷는 스프라이트가 없으므로 **박자만** 남긴다.
 				# ASSUMPTION: 첫 인자(지연)는 float 라 스택에 안 남아 미복원 → 0으로 둔다.
 				_walk_beats(int(o.get("n", 1)))
+			"drawillust_3", "drawillust_8", "drawillust_9":
+				# 컷 시퀀스. 원작 렌더러는 회차 클래스의 `drawillust_N` 이고
+				# `sn_<회차>/back.jpg` + `s1~sN`(20화는 `1~5`)을 깐다 — 목록은 scenario.json `cuts`.
+				_show_cutin()
 			"showMonster":
 				# 원작 `ScenarioSupport::showMonster(vector<int>, float, bool)` @0165dba4 —
 				# `scenario/monster_npc/*.png` 정지 스프라이트를 배경 위에 세운다(전투 아님).
@@ -434,6 +438,58 @@ func _walk_beats(n: int) -> void:
 	var t := create_tween()
 	t.tween_interval(0.5 * float(maxi(n, 1)))
 	t.tween_callback(_restore_box)
+
+## 컷 시퀀스 — 원작 `Scenario_*::drawillust_N`(예: `Scenario_Kadeath::drawillust_3` @01665ec0).
+## 배경 `back.jpg` 위에 컷을 순서대로 겹치고, 원작처럼 검은 막을 짧게 번뜩인다
+## (`Cutin::show` @014febe0: Delay → FadeTo(dur*0.1, 150) → Delay(dur*0.4) → FadeTo(dur*0.1, 0)).
+## ⚠️ 타이밍 인자(delay·dur)는 float 라 스택에 안 남아 미복원 — dur=1.0 으로 둔다(ASSUMPTION).
+func _show_cutin() -> void:
+	var cuts: Array = Data.scenario_def(str(_no)).get("cuts", [])
+	if cuts.is_empty():
+		return
+	var lay := _fx()
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(root)
+	var vis := _vis()
+	var order := 0
+	for c in cuts:
+		var name := String(c)
+		var tex: Texture2D = null
+		if name.ends_with(".jpg"):                      # back.jpg — 낱장 복사본
+			var p1 := "%s/%s" % [ART_DIR, name]
+			if ResourceLoader.exists(p1):
+				tex = load(p1)
+		else:                                           # 아틀라스 프레임(scenario_cut)
+			var p2 := "res://assets/converted/scenario_cut/%s.tres" % name
+			if ResourceLoader.exists(p2):
+				tex = load(p2)
+		if tex == null:
+			continue
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if name.ends_with(".jpg") 			else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate.a = 0.0
+		root.add_child(tr)
+		var t := tr.create_tween()
+		t.tween_interval(0.35 * float(order))
+		t.tween_property(tr, "modulate:a", 1.0, 0.25)
+		order += 1
+	# 원작의 검은 번뜩임(`Cutin::show`) — 컷이 다 깔린 뒤 한 번.
+	var flash := ColorRect.new()
+	flash.color = Color(0, 0, 0, 0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_interval(0.35 * float(order))
+	ft.tween_property(flash, "color:a", 150.0 / 255.0, 0.1)
+	ft.tween_interval(0.4)
+	ft.tween_property(flash, "color:a", 0.0, 0.1)
 
 ## 컷신 몬스터 — 원작 `showMonster`. 전투 몬스터가 아니라 `scenario/monster_npc/` 정지 스프라이트다.
 ## ⚠️ 좌표·크기 인자(float)는 스택에 안 남아 미복원 — 화면 중앙에 세운다(ASSUMPTION).

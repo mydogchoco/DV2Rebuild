@@ -52,6 +52,11 @@ OPS: dict[str, list[str]] = {
     "changeBackGround": ["bg", "pass_"],
     "changeBackGroundPass": ["bg"],
     "drawIllust": ["illust", "kind", "b1"],
+    # 컷 시퀀스. 원작 렌더러는 `Cutin::show` 가 아니라 회차 클래스의 `drawillust_N`
+    # 메서드다(`Scenario_Kadeath::drawillust_3` @01665ec0 이 sn_94/back.jpg + s1~s3 를 깐다).
+    # 이미지 목록은 **경로에 회차 번호가 들어 있어**(`sn_<N>/`) 데이터에서 회차로 바로
+    # 찾는다(scenario.json `cuts`) ⇒ op 은 **위치만** 표시한다.
+    "drawillust_3": [], "drawillust_8": [], "drawillust_9": [],
     "removeIllust": [],
     "showMonster": ["monsters", "delay", "b1"],
     "deleteMonster": [],
@@ -268,7 +273,11 @@ def parse_body(body: str) -> list[dict]:
         r"|\b(?P<bvar>\w+)\[(?P<bidx>0x[0-9a-f]+|\d+)\]\s*=\s*(?P<bval>" + NUM + r");"
         r"|\b(?P<cvar>\w+)\s*=\s*CONCAT44\(\s*(?P<chi>" + NUM + r")\s*,\s*(?P<clo>" + NUM + r")\s*\);"
         r"|\b(?P<avar>\w+)\s*=\s*(?P<aval>" + NUM + r");"
-        r"|cocos2d::(?:ScenarioSupport|ScenarioLayer)::(?P<cname>\w+)\s*\((?P<cargs>[^;]*?)\);"
+        # ⚠️ 회차 클래스(`Scenario_Kadeath` 등) 메서드도 스텝이 될 수 있다 —
+        #    컷 시퀀스 렌더러 `drawillust_N` 이 그렇다(원작은 여기서 sn_<회차>/ 컷을 깐다).
+        #    종전 패턴은 ScenarioSupport/ScenarioLayer 만 봐서 통째로 놓쳤다.
+        r"|cocos2d::(?:ScenarioSupport|ScenarioLayer|Scenario_\w+)::(?P<cname>\w+)"
+        r"\s*\((?P<cargs>[^;]*?)\);"
         r"|SoundManager::playBackground\s*\((?P<sargs>[^;]*?)\);"
     )
     for m in token.finditer(flat):
