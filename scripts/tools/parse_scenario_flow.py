@@ -537,9 +537,9 @@ def inject_story_battles(flows: dict[str, list[dict]]) -> int:
        방법을 세 가지 시도해 전부 실패했다(주소 근접 · 스텝 순회 · 개선된 순회 재시도 —
        셋 다 회차가 안 갈린다. 상세 = docs/ref/porting/ScenarioWiring.md §14).
 
-    ⇒ **회차↔전투번호는 사용자 확정값**(data/story_monsters.json `battle_no`)을 쓰고,
-      **위치는 회차 마지막**에 둔다(ASSUMPTION). 대사가 다 끝난 뒤 전투가 벌어지고
-      끝나면 다음 회차로 넘어간다. 원작 위치가 확인되면 여기만 고치면 된다.
+    ⇒ **회차↔전투번호는 사용자 확정값**(data/story_monsters.json `battle_no`)을 쓴다.
+      위치도 사용자가 **전투 직전 대사**로 확정해 주면 `battle_after_line` 에 적고
+      그 줄 **바로 뒤**에 꽂는다. 없으면 회차 마지막(폴백).
     """
     sm = json.loads((REPO / "data" / "story_monsters.json").read_text(encoding="utf-8"))
     n = 0
@@ -550,8 +550,21 @@ def inject_story_battles(flows: dict[str, list[dict]]) -> int:
                 continue
             if any(o.get("op") == "scenarioBattle" for o in ops):
                 continue                     # 원작에서 이미 뽑힌 회차(82~101)는 건드리지 않는다
-            ops.append({"op": "scenarioBattle", "battle": int(bno),
-                        "_placement": "회차 끝(ASSUMPTION — 원작 스텝 미확인)"})
+            after = (m.get("battle_after_line") or {}).get(str(ep))
+            rec = {"op": "scenarioBattle", "battle": int(bno)}
+            pos = None
+            if after is not None:
+                want = "ScenarioTalk%s_%d" % (ep, int(after))
+                for i, o in enumerate(ops):
+                    if o.get("op") == "setTalk" and o.get("key") == want:
+                        pos = i + 1          # 그 대사 **바로 뒤**
+                        break
+            if pos is None:
+                rec["_placement"] = "회차 끝(원작 스텝 미확인 · 앵커 대사도 못 찾음)"
+                ops.append(rec)
+            else:
+                rec["_placement"] = "사용자 확정 — 대사 %d줄 직후" % int(after)
+                ops.insert(pos, rec)
             n += 1
     return n
 

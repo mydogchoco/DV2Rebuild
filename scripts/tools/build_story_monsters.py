@@ -56,6 +56,10 @@ MONSTERS = [
     {
         # 원작 `AdventureScene::initEventBattle` case 11 → 몬스터 #73. 사용자 확정 27화 ⇒ 11=27화.
         "id": 73, "id_confirmed": True, "battle_no": {"27": 11},
+        # 전투 위치 = **그 대사 바로 뒤**(사용자 확정 2026-07-31).
+        #   27화 29줄 = "- 아놀드와 플로렌스가 보고 있는 것은 몬스터 만드라고낙…
+        #                하지만 평소와는 다르다! -"
+        "battle_after_line": {"27": 29},
         "name": "기계 만드라고낙", "episodes": [27], "stage": 10,
         "hp_max": 2170, "att": 185, "def": 185, "level": 50,
         "_stats_status": "사용자 확정 2026-07-31",
@@ -63,6 +67,8 @@ MONSTERS = [
     {
         # `initEventBattle` case 12 → #74. 사용자 확정 28화 ⇒ 12=28화.
         "id": 74, "id_confirmed": True, "battle_no": {"28": 12},
+        # 28화 13줄 = 즈믄 "이쪽으로 온다!"
+        "battle_after_line": {"28": 13},
         "name": "정령 스파이크젤", "episodes": [28], "stage": 11,
         "hp_max": 2170, "att": 185, "def": 185, "level": 50,
         "_stats_status": "사용자 확정 2026-07-31 (기계 만드라고낙과 같은 값)",
