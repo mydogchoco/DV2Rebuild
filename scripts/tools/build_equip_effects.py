@@ -243,10 +243,19 @@ EXCLUSIVE = {
         # 우리 판정 순서는 회피→막기→크리라 크리가 정해질 땐 회피가 끝나 있다.
         # `crit_ignores_evade` 플래그가 있으면 Battle 이 **크리를 먼저 굴려** 회피를 건너뛴다.
         "ops": [op("flag", flag="crit_ignores_evade")]},
-    "레이어스의 반석 방패": {"impl": False, "why": "skill:(각성스킬 효과 자체를 치환)"},
-    "실러캔스의 물빛 투구": {"impl": False, "why": "skill:(각성스킬 효과 2배) — 방어력 조항만으로는 반쪽"},
-    "카일루스의 신성 방패": {"impl": False, "why": "skill:(각성스킬 누적)"},
-    "디기의 금빛장식": {"impl": False, "why": "skill:(각성스킬 추가대미지 상한)"},
+    "레이어스의 반석 방패": {      # [타오르는 바위](등급×2% 증뎀 · 등급×1% 받뎀) → ×4% / ×2%
+        # 원문이 "각성스킬의 효과를 다음과 같이 변경" 이라 치환처럼 읽히지만,
+        # 실제 값은 원래 스킬의 **정확히 두 배**다 ⇒ 계수만 갈아 끼우면 된다.
+        "awaken_mod": awk("타오르는 바위",
+            {"ops.0.from.ratio": 4.0, "ops.1.from.ratio": 2.0})},
+    "실러캔스의 물빛 투구": {      # 기본 방어력의 50% 추가 + [격류] 효과 2배
+        "ops": [op("stat", stat="def", mode="pct", value=50)],
+        "awaken_mod": awk("격류", {
+            "dyn.0.ops.0.from.ratio": -1.0, "dyn.1.ops.0.from.ratio": 1.0})},
+    "카일루스의 신성 방패": {      # [신성 방패] 누적량이 합계 방어력 5% → 10%
+        "awaken_mod": awk("신성 방패", {"react.0.pct": 10})},
+    "디기의 금빛장식": {          # [약점 공략] 의 추가대미지 상한 150 → 250
+        "awaken_mod": awk("약점 공략", {"react.0.max": 250})},
     "세로님의 전쟁보닛": {"impl": False, "why": "skill:팀버프 흑풍"},
     "진의 나무비늘": {           # 아군 땅속성 수만큼 각성기 데미지 20% 증가(최대 60%)
         "ops": [op("awaken_dmg", pct=20, per="ally_element:earth", max=60)]},

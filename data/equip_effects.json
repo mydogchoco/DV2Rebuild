@@ -923,32 +923,65 @@
    "text": "장착한 홀리의 크리티컬 공격이 상대 드래곤의 회피를 무시"
   },
   "레이어스의 반석 방패": {
-   "impl": false,
-   "why": "skill:(각성스킬 효과 자체를 치환)",
+   "awaken_mod": {
+    "skill": "타오르는 바위",
+    "patch": {
+     "ops.0.from.ratio": 4.0,
+     "ops.1.from.ratio": 2.0
+    },
+    "no": 92
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "각성스킬의 효과를 다음과 같이 변경, 드래곤 등급 × 4% 자신이 주 는 대미지 증가, 드래곤 등급 × 2% 자신의 받는 대미지 증가"
   },
   "실러캔스의 물빛 투구": {
-   "impl": false,
-   "why": "skill:(각성스킬 효과 2배) — 방어력 조항만으로는 반쪽",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "stat",
+     "stat": "def",
+     "mode": "pct",
+     "value": 50
+    }
+   ],
+   "awaken_mod": {
+    "skill": "격류",
+    "patch": {
+     "dyn.0.ops.0.from.ratio": -1.0,
+     "dyn.1.ops.0.from.ratio": 1.0
+    },
+    "no": 13
+   },
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "착용한 실러캔스의 기본 방어력의 50% 만큼 추가 방어력 증가, 각성 스 킬의 효과를 두배로 변경"
   },
   "카일루스의 신성 방패": {
-   "impl": false,
-   "why": "skill:(각성스킬 누적)",
+   "awaken_mod": {
+    "skill": "신성 방패",
+    "patch": {
+     "react.0.pct": 10
+    },
+    "no": 65
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "각성 스킬이 합계 방어력 10% 누적"
   },
   "디기의 금빛장식": {
-   "impl": false,
-   "why": "skill:(각성스킬 추가대미지 상한)",
+   "awaken_mod": {
+    "skill": "약점 공략",
+    "patch": {
+     "react.0.max": 250
+    },
+    "no": 71
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],

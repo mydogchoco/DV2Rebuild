@@ -241,6 +241,39 @@ func _test_d_batch(tbl: Dictionary, cfg: Dictionary) -> void:
 	EE.apply_battle([fd], [], tbl, {})
 	_eq("스킬 효과 레벨 +1", B._skill_level_bonus(fd), 1)
 
+	# 디기의 금빛장식 — [약점 공략](71) 추가대미지 상한 150 → 250
+	var dg := _mk_aw("DG", "fire", 71, {"att": 500, "def": 500}, ["exclusive:디기의 금빛장식"])
+	var weak := _mk_aw("WK", "fire", 0, {"hp": 9999, "att": 1, "def": 1}, [])
+	_fire([dg], tbl, awt)
+	_eq("약점 공략 상한 250", B._aw_on_attack_bonus(dg, weak, rng, 0), 250)
+	var dg0 := _mk_aw("DG0", "fire", 71, {"att": 500, "def": 500}, [])
+	_fire([dg0], tbl, awt)
+	_eq("장비 없으면 150", B._aw_on_attack_bonus(dg0, weak, rng, 0), 150)
+
+	# 레이어스의 반석 방패 — [타오르는 바위] 계수가 정확히 두 배
+	var ly := _mk_aw("LY", "earth", 92, {"att": 100}, ["exclusive:레이어스의 반석 방패"])
+	ly["grade"] = 5.0
+	_fire([ly], tbl, awt)
+	_eq("주는 피해 등급×4%", B._dmg_deal_mult(ly), 1.2)
+	_eq("받는 피해 등급×2%", B._dmg_taken_mult(ly), 1.1)
+
+	# 카일루스의 신성 방패 — [신성 방패] 누적량 5% → 10%
+	var ky := _mk_aw("KY", "holy", 65, {"hp": 1000, "def": 200}, ["exclusive:카일루스의 신성 방패"])
+	_fire([ky], tbl, awt)
+	ky["hp"] = 500
+	B._aw_on_block(ky, rng)
+	B._aw_on_attack_bonus(ky, weak, rng, 0)
+	_eq("막기 1회 → 방어력 10% 회복", int(ky["hp"]), 520)
+
+	# 실러캔스의 물빛 투구 — 기본 방어력 +50% + [격류] 효과 2배
+	var sc2 := _mk_aw("SC2", "aqua", 13, {"hp": 1000, "def": 100}, ["exclusive:실러캔스의 물빛 투구"])
+	sc2["grade"] = 5.0
+	var mate2 := _mk_aw("MT2", "aqua", 0, {"hp": 1000}, [])
+	_fire([sc2, mate2], tbl, awt)
+	_eq("방어력 +50%", B._eff(sc2, "def"), 150)
+	B._aw_refresh_dynamic([sc2, mate2], [])
+	_eq("격류 아군 받는 피해 등급×1%(2배)", B._dmg_taken_mult(mate2), 0.95)
+
 
 ## A 묶음 — 장비가 각성스킬 표를 고치는 통로(`EquipEffect.awaken_mods` → `AwakenSkill._patched`).
 ##
