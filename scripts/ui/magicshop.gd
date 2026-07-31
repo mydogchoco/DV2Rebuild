@@ -2911,7 +2911,9 @@ func _body_soul(pop: OrigPopup) -> void:
 	var mats: Array = plan.get("mats", [])
 	for i in mats.size():
 		var m: Dictionary = mats[i]
-		var c := Vector2(W * 0.5 - 120.0 + float(i) * 100.0, midy)
+		# 재료 칸은 개수가 1~3으로 변하므로 **묶음 자체를 가운데** 놓는다
+		# (참조 `docs/ref/gem/소울젬4.png` 도 대상↔결과 사이 한가운데다).
+		var c := Vector2(W * 0.5 + (float(i) - (float(mats.size()) - 1.0) * 0.5) * 100.0, midy)
 		var cell := Panel.new()
 		cell.size = Vector2(86.0, 92.0)
 		cell.position = c - cell.size * 0.5
@@ -3039,16 +3041,29 @@ func _soul_plan() -> Dictionary:
 
 
 ## 단계표 한 줄 → 재료 목록. 가루는 그 소울젬 계열(공/방/체)의 가루를 쓴다.
+##
+## 원작 세 칸의 정체(위키 item.pdf p18, `build_gems.py` SOUL_MAT_ITEMS 주석):
+##   core = 발록의 핵 · dust = 마법가루(축별) · mat = 카이저 발록의 파편/발톱/뿔(축별).
+## 부위 3종은 우리 items.json 에 없어 🟦 사용자 확정으로 `mat` 도 발록의 핵을 쓴다.
+## ⇒ 같은 키가 두 칸에 걸리므로 **한 칸으로 합쳐** 필요 개수를 더한다(칸마다 따로 세면
+##   같은 아이템의 보유량을 두 번 재게 돼 판정이 틀린다).
 func _soul_mats(step: Dictionary, gem_name: String) -> Array:
+	var order: Array = []
+	var need: Dictionary = {}
+	for row in [[_dust_key_for(gem_name), int(step.get("dust", 0))],
+			[_soul_mat_item("mat"), int(step.get("mat", 0))],
+			[_soul_mat_item("core"), int(step.get("core", 0))]]:
+		var k := String((row as Array)[0])
+		var n := int((row as Array)[1])
+		if k == "" or n <= 0:
+			continue
+		if not need.has(k):
+			order.append(k)
+			need[k] = 0
+		need[k] = int(need[k]) + n
 	var out: Array = []
-	if int(step.get("dust", 0)) > 0:
-		out.append({"key": _dust_key_for(gem_name), "need": int(step["dust"])})
-	var mk := _soul_mat_item("mat")
-	if int(step.get("mat", 0)) > 0 and mk != "":
-		out.append({"key": mk, "need": int(step["mat"])})
-	var ck := _soul_mat_item("core")
-	if int(step.get("core", 0)) > 0 and ck != "":
-		out.append({"key": ck, "need": int(step["core"])})
+	for k in order:
+		out.append({"key": k, "need": int(need[k])})
 	return out
 
 

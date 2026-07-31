@@ -133,7 +133,7 @@ func _init() -> void:
 	# 13) 마지막 묶음 — 사망 트리거 · 관통 분배 · 스킬 지정 · PvE 조항만 살린 것.
 	_test_d_batch(tbl, cfg)
 	# 14) 커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 — 위키 밖, 사용자 정의.
-	_test_custom(tbl, cfg)
+	_test_custom(tbl, cfg, sdb)
 
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
@@ -627,20 +627,23 @@ func _test_custom(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
 
 	# ── 한울의 불꽃(777) ───────────────────────────────────────────────────
 	# 1) 스킬 발동 횟수 +2 (라 솔라의 불꽃과 같은 조항 — 같은 값이 나와야 한다).
-	var sid := 11
-	var base := _mk("HB", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]}, [])
-	var han := _mk("HN", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]},
-		["exclusive:한울의 불꽃"])
-	var sol := _mk("LS", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]},
-		["exclusive:라 솔라의 불꽃"])
-	EE.apply_battle([base], [], tbl, {})
-	EE.apply_battle([han], [], tbl, {})
-	EE.apply_battle([sol], [], tbl, {})
-	var n_base := int((base["skill_uses"] as Dictionary).get(sid, 0))
-	_eq("한울 — 스킬 발동 횟수 +2", int((han["skill_uses"] as Dictionary).get(sid, 0)), n_base + 2)
-	_eq("한울 — 라 솔라의 불꽃과 같은 값",
-		int((han["skill_uses"] as Dictionary).get(sid, 0)),
-		int((sol["skill_uses"] as Dictionary).get(sid, 0)))
+	#    ⚠️ 순서가 중요하다: `_init_combatant_skills` 가 한도를 굳힐 때 효과가 이미 심겨
+	#       있어야 한다(실전 순서도 apply_battle → simulate 다).
+	var sid := 0
+	for k: String in sdb:
+		if typeof(sdb[k]) == TYPE_DICTIONARY and bool((sdb[k] as Dictionary).get("active", true)):
+			sid = int(k)
+			break
+	var uses: Array = []
+	for keys: Array in [[], ["exclusive:한울의 불꽃"], ["exclusive:라 솔라의 불꽃"]]:
+		var c := _mk("HU", "fire", {"att": 100}, keys)
+		c["skills"] = [{"id": sid, "level": 1}]
+		EE.apply_battle([c], [], tbl, {})
+		B._init_combatant_skills(c, sdb, cfg)
+		uses.append(int((c["skill_uses"] as Dictionary).get(sid, 0)))
+	_true("스킬 한도가 잡혔다 (%d)" % int(uses[0]), sid > 0 and int(uses[0]) > 0)
+	_eq("한울 — 스킬 발동 횟수 +2", int(uses[1]), int(uses[0]) + 2)
+	_eq("한울 — 라 솔라의 불꽃과 같은 값", int(uses[1]), int(uses[2]))
 	# 2) 크리티컬 발동 시 상대의 현재 방어력 절반 무시 — **크리일 때만** 걸린다.
 	var c0 := _crit_dmg(tbl, cfg, [])
 	var c1 := _crit_dmg(tbl, cfg, ["exclusive:한울의 불꽃"])
