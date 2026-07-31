@@ -24,9 +24,13 @@ const BH := 300.0
 
 ## 팝업을 띄운다. 반환 = 만들어진 CanvasLayer(호출부가 미리 닫을 수 있게).
 ## cash_type < 0 이면 재화 표시 없음. cash_n = 소모량.
+##
+## `on_cancel` = **확인을 고르지 않고 닫힌** 모든 경로에서 1회 호출된다(취소 버튼 · X 버튼).
+## 원작에도 `setCancelListener`(onClickLeft)가 있다. 닫기(X)까지 묶은 것은 "안 고르고 나가면"
+## 이라는 호출부 요구 때문이다 — 젬 복구창이 그렇다(고르지 않고 나가면 젬이 소멸한다).
 static func open(parent: Node, title: String, msg: String, on_confirm: Callable,
 		confirm_text := "확인", cancel_text := "취소",
-		cash_type := -1, cash_n := 0) -> CanvasLayer:
+		cash_type := -1, cash_n := 0, on_cancel := Callable()) -> CanvasLayer:
 	var vis: Vector2 = parent.get_viewport_rect().size
 	var layer := CanvasLayer.new(); layer.layer = 70
 	parent.add_child(layer)
@@ -52,10 +56,19 @@ static func open(parent: Node, title: String, msg: String, on_confirm: Callable,
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tl.size = tbar.size; tbar.add_child(tl)
+	# 확인 외의 경로로 닫힐 때 딱 한 번만 부른다(취소·X 가 겹쳐 두 번 불리면 안 된다).
+	var done := [false]
+	var bail := func():
+		if done[0]:
+			return
+		done[0] = true
+		layer.queue_free()
+		if on_cancel.is_valid():
+			on_cancel.call()
 	var xb := TextureButton.new()
 	xb.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
 	xb.position = Vector2(BW - 58, 14)
-	xb.pressed.connect(func(): layer.queue_free())
+	xb.pressed.connect(bail)
 	win.add_child(xb)
 	var ml := Label.new(); ml.text = msg
 	ml.add_theme_font_size_override("font_size", 21)
@@ -78,9 +91,12 @@ static func open(parent: Node, title: String, msg: String, on_confirm: Callable,
 		rb.position = Vector2(BW * 0.5 + 14, BH - 66)
 		var lb := Button.new(); lb.text = cancel_text; lb.size = Vector2(160, 46)
 		lb.position = Vector2(BW * 0.5 - 174, BH - 66)
-		lb.pressed.connect(func(): layer.queue_free())
+		lb.pressed.connect(bail)
 		win.add_child(lb)
 	rb.pressed.connect(func():
+		if done[0]:
+			return
+		done[0] = true            # 확인을 골랐으니 취소 콜백은 돌지 않는다
 		layer.queue_free()
 		on_confirm.call())
 	win.add_child(rb)

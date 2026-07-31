@@ -113,6 +113,31 @@ var _soul_key := ""
 ## 혼성젬 강화의 대상 **가방 젬 키**(원작 `AlchemyLayer` 는 `AccountManager::getItem()` 에서
 ## 고른다 — 장착 젬이 아니다). 연금술 진행도는 키 자체에 실려 있다(`Gem.item_key` 메타).
 var _hybrid_key := ""
+## 가마솥 스파인 인스턴스(원작 `magicshop_alchemist`). 팝업을 다시 그릴 때마다 갈린다.
+var _alchemy_spine: Node2D = null
+
+## 원작 `AlchemyLayer::initWidget` 이 쓰는 연금술사 스파인.
+## 변환: `python scripts/tools/spine_export.py --scene DV2/480/scene/magicshop/
+##        magicshop_alchemist.spine_json --atlas DV2/480/scene/magicshop/alchemy_spine.img_plist`
+##      → `build_worldmap_fx_scenes.gd`
+## ⚠️ 스켈레톤(`magicshop_alchemist`)과 아틀라스(`alchemy_spine`) 이름이 다르다 —
+##   `--atlas` 를 반드시 지정해야 한다(임프상인과 같은 사례).
+const ALCHEMY_SPINE := "res://scenes/worldmap_fx/magicshop_alchemist.tscn"
+const ALCHEMY_SPINE_SCALE := 0.67        # 원작 setScale(0x3f2b851f)
+
+## 용액 → 스파인 애니 이름. 스파인의 7개 애니 중 `normal` 을 뺀 6개가 **원작 용액 서버 키**와
+## 정확히 같다(`AlchemyLayer.c` :4150~4176 `resection/wisdom/brave/justice/glory/legend`)
+## ⇒ 용액마다 전용 붓는 연출이 있다(참조 `docs/ref/gem/혼성젬강화5(용액사용연출).png`).
+## ⚠️ `alchemy_special`(초월의 용액)만 대응 애니가 **없다** — 후기 추가분이라 스파인에 안 들어
+##   있다. 다른 애니로 대체하지 않고 `normal` 을 유지한다(HARD RULE 3).
+const POTION_ANIM := {
+	"alchemy_moderation": "resection",   # 절제
+	"alchemy_wisdom": "wisdom",          # 지혜
+	"alchemy_courage": "brave",          # 용기
+	"alchemy_justice": "justice",        # 정의
+	"alchemy_glory": "glory",            # 영광
+	"alchemy_legend": "legend",          # 전설
+}
 var _summon_uid := 0
 var _summon_species := Summon.SPECIES_DEF
 ## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, opts}.
@@ -1189,7 +1214,10 @@ func _gem_result_line(e) -> String:
 ##   검은 화면 + 회전하는 별빛(`common/backlight3`) + 워드아트(`scene/magicshop/success_en`
 ##   / 실패는 `fail_en`) + 젬 아이콘 + 하단 `이전 ▶ 이후` 띠(`9patch/chat_black` + `common/btn_arrow2`).
 ## 아무 곳이나 누르면 닫힌다.
-func _show_upgrade_result(ok: bool, before: String, after: String, entry) -> void:
+## `broken_key` 가 비어 있지 않으면 = 강화 실패로 **파손된 가방 젬**이 있다는 뜻이라
+## 실패 화면에 [복구] 버튼을 달고, 그걸 안 누르고 닫으면 그 젬을 소멸시킨다.
+func _show_upgrade_result(ok: bool, before: String, after: String, entry,
+		broken_key := "") -> void:
 	var vis := _vis()
 	var lay := Control.new()
 	lay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1249,8 +1277,41 @@ func _show_upgrade_result(ok: bool, before: String, after: String, entry) -> voi
 	var hit := Button.new()
 	hit.flat = true
 	hit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hit.pressed.connect(func(): lay.queue_free())
 	lay.add_child(hit)
+
+	# ── 실패 화면의 [복구] 버튼(원작 `scene/magicshop/btn_gemrepair` + "복구" 라벨) ──
+	# 참조 `docs/ref/gem/혼성젬강화_실패.png` 우하단 → 누르면 `혼성젬강화9_실패복구.png` 창.
+	# 🟦 사용자 확정 2026-07-31: **이 버튼을 누르지 않고 화면을 닫으면 젬은 영구 소멸**한다.
+	#   그래서 닫기 경로(전체 히트버튼)에 소멸을 묶는다.
+	var chose := [false]
+	if broken_key != "":
+		var rb := Button.new()
+		rb.flat = true
+		rb.size = Vector2(96.0, 96.0)
+		rb.position = Vector2(vis.x - 130.0, vis.y - 150.0)
+		lay.add_child(rb)
+		var ri := AtlasUI.spr("magicshop_ui", "scene_magicshop_btn_gemrepair", Design.ASSET_SCALE)
+		if ri != null:
+			ri.position = Vector2(48.0, 40.0)
+			rb.add_child(ri)
+		var rl := Label.new()
+		rl.text = "복구"
+		rl.add_theme_font_size_override("font_size", 17)
+		rl.add_theme_color_override("font_color", Color(1, 1, 1))
+		rl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		rl.add_theme_constant_override("outline_size", 4)
+		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		rl.position = Vector2(0, 76.0); rl.size = Vector2(96.0, 22.0)
+		rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rb.add_child(rl)
+		rb.pressed.connect(func():
+			chose[0] = true
+			lay.queue_free()
+			_offer_repair(before))
+	hit.pressed.connect(func():
+		lay.queue_free()
+		if broken_key != "" and not chose[0]:
+			_destroy_broken_gem(broken_key))     # 안 고르고 나갔다 → 소멸
 
 func _repair(uid: int, slot: int, dia: int) -> void:
 	if not UserDB.spend("diamond", dia):
@@ -1380,6 +1441,29 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 	if pbg != null:
 		pbg.position = panel.size * 0.5
 		panel.add_child(pbg)
+	# ── 가마솥 스파인(원작 `magicshop_alchemist`) ─────────────────────
+	# 원작 `AlchemyLayer::initWidget` @0128… 는 스파인을 **box_bg 의 자식**으로 붙인다:
+	#     spine = CCSkeletonAnimation::createWithFile(
+	#                 "scene/magicshop/magicshop_alchemist.spine_json",
+	#                 "scene/magicshop/alchemy_spine.img_plist", 1.0);
+	#     spine->setScale(0.67);
+	#     spine->setPosition(box_bg.width * 0.5, 0);      // 가로 중앙 · box_bg 바닥
+	#     spine->setAnimation("normal", loop=true, track 0);
+	#     box_bg->addChild(spine);
+	# 그래서 스케일도 box_bg 의 축척에 **곱해서** 얹는다(우리는 box_bg 를 0.70×ASSET_SCALE 로
+	# 그리므로 그 값을 그대로 물려받는다). 어태치먼트 = magicshop_pot(냄비) ·
+	# magicshop_sccop(국자) · magicshop_bubble_s1~15(거품) · magicshop_eff*(불꽃).
+	_alchemy_spine = null
+	if ResourceLoader.exists(ALCHEMY_SPINE):
+		var sp := (load(ALCHEMY_SPINE) as PackedScene).instantiate() as Node2D
+		if sp != null:
+			var k := Design.ASSET_SCALE * 0.70 * ALCHEMY_SPINE_SCALE
+			sp.scale = Vector2(k, k)
+			# box_bg 바닥 중앙 — 우리 panel 좌표계로 옮긴 같은 자리.
+			sp.position = Vector2(panel.size.x * 0.5, panel.size.y)
+			panel.add_child(sp)
+			_alchemy_spine = sp
+			_alchemy_play("normal")
 	# "투입된 혼성젬" 캡션 + 그 오른쪽의 **작은 네모 슬롯**(원작 `alchemy/alchemy_gem_slot`).
 	# 참조 `docs/ref/gem/혼성젬강화1·3.png` — 캡션과 슬롯이 방 그림 **위쪽에 겹쳐** 놓인다.
 	# (종전엔 `posion_bg` 큰 병을 판 한가운데 놓고 있었다 — 그건 용액 칸 프레임이다.)
@@ -1409,11 +1493,9 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		if si != null:
 			si.position = gs_c - si.size * 0.5
 			pop.content.add_child(si)
-		var gi := Icons.rect(Icons.gem_texture(
-			String(Gem.gem_def(String(e["name"]), Data.gems).get("code", "")), int(e["tier"])), 72.0)
-		if gi != null:
-			gi.position = Vector2(slot_cx - 36.0, 222.0)
-			pop.content.add_child(gi)
+		# ⚠️ 큰 젬을 가마솥 위에 띄우지 않는다 — 참조(`혼성젬강화1·3`)에서 투입된 젬은
+		#   **위 작은 슬롯에만** 보인다. 종전의 72px 아이콘은 슬롯이 없던 시절의 대용품이라
+		#   이제 가마솥 연출을 가릴 뿐이다.
 		var nl := Label.new()
 		nl.text = Gem.display_name(String(e["name"]), int(e["tier"]), Data.gems)
 		if Gem.is_broken(e):
@@ -1424,7 +1506,7 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		nl.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.02))
 		nl.add_theme_constant_override("outline_size", 5)
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nl.size = Vector2(300.0, 26.0); nl.position = Vector2(slot_cx - 150.0, 330.0)
+		nl.size = Vector2(300.0, 26.0); nl.position = Vector2(slot_cx - 150.0, 402.0)
 		pop.content.add_child(nl)
 	else:
 		var nl2 := Label.new()
@@ -1434,7 +1516,7 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		nl2.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.02))
 		nl2.add_theme_constant_override("outline_size", 5)
 		nl2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nl2.size = Vector2(300.0, 56.0); nl2.position = Vector2(slot_cx - 150.0, 326.0)
+		nl2.size = Vector2(300.0, 56.0); nl2.position = Vector2(slot_cx - 150.0, 398.0)
 		pop.content.add_child(nl2)
 	# ── 우: 보유 용액 목록 ────────────────────────────────────────────
 	var lx := 380.0
@@ -1557,6 +1639,22 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		0, Vector2(190.0, 50.0), Vector2(lx + 300.0, H - 30.0))
 
 
+## 가마솥 스파인 재생. `loop` 이면 계속 돌고, 아니면 끝난 뒤 `normal` 로 돌아온다
+## (원작도 대기 애니가 `normal` 이고 용액 연출은 1회성이다).
+func _alchemy_play(anim: String, loop := true) -> void:
+	if not is_instance_valid(_alchemy_spine):
+		return
+	var ap := _alchemy_spine.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if ap == null or not ap.has_animation(anim):
+		return
+	ap.get_animation(anim).loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+	ap.play(anim)
+	if not loop:
+		ap.animation_finished.connect(func(_a):
+			if is_instance_valid(_alchemy_spine):
+				_alchemy_play("normal"), CONNECT_ONE_SHOT)
+
+
 ## 가방 젬 1개를 새 상태로 갈아 끼운다 — 옛 키 1개를 빼고 새 키 1개를 넣는다.
 ## (진행도가 키에 실리므로 상태 변화 = 키 변화다.) 새 키를 돌려준다.
 func _rekey_gem(old_key: String, new_inst: Dictionary) -> String:
@@ -1586,7 +1684,10 @@ func _pour_potion(potion: Dictionary, item_key: String) -> void:
 		_toast("연금포인트가 100을 넘어 초기화됐습니다 (+%d)" % int(res["gained"]))
 	else:
 		_toast("연금포인트 +%d → %d" % [int(res["gained"]), int(res["points"])])
+	# ⚠️ 순서 주의 — `_refresh_feature()` 가 팝업을 다시 그리면서 스파인을 **새로 만든다**.
+	#   그러니 연출은 재생성 **뒤에** 걸어야 한다(먼저 걸면 그 인스턴스째 사라진다).
 	_refresh_feature()
+	_alchemy_play(String(POTION_ANIM.get(item_key, "")), false)
 
 
 ## 강화 실행 — 원작 `alchemy_gem_upgrade.hb`. 실패하면 **파손**되고 복구창을 띄운다
@@ -1617,33 +1718,57 @@ func _hybrid_upgrade() -> void:
 	else:
 		_toast("아쉽게 실패했네요. 다음을 기약하죠. (성공률 %d%% — 파손)"
 			% int(res.get("chance", 0)), 4)
-	_show_upgrade_result(ok, before, _gem_result_line(after_inst), after_inst)
-	if not ok:
-		_offer_repair(before)
+	# 실패면 결과 화면에 [복구] 버튼을 달아 준다 — 원작도 복구창은 그 버튼으로 연다.
+	# 안 누르고 닫으면 `_destroy_broken_gem` 이 돌아 젬이 사라진다(사용자 확정).
+	_show_upgrade_result(ok, before, _gem_result_line(after_inst), after_inst,
+		"" if ok else _hybrid_key)
 	_refresh_feature()
 
 
 ## 실패 직후 복구 제안 — 원작 `혼성젬강화9_실패복구.png` ("다이아를 사용하여 해당 젬을
 ## 복구하시겠습니까?"). 복구 비용은 티어별 다이아(`Gem.repair_cost`).
+##
+## 🟦 사용자 확정 2026-07-31: **여기서 복구를 고르지 않고 나가면 젬은 영구 소멸**한다.
+##   원작 문구도 "강화 실패로 혼성젬이 **파괴**되었습니다...."(참조 `혼성젬강화_실패.png`)이고,
+##   이 창이 되살릴 유일한 기회다. 그래서 파손 상태(`gem:x@…`)로 가방에 남겨 두지 않는다 —
+##   확인=복구 / 취소·닫기=소멸, 어느 쪽으로 끝나든 파손 키는 가방에서 사라진다.
 func _offer_repair(label: String) -> void:
-	var inst := Gem.item_key_to_slot(_hybrid_key)
+	var broken_key := _hybrid_key
+	var inst := Gem.item_key_to_slot(broken_key)
 	if inst.is_empty() or not Gem.is_broken(inst):
 		return
 	var dia := Gem.repair_cost(int(inst["tier"]), Data.gems)
+	# 다이아 표시는 `setCash(0, n)` — 원작 복구창도 본문 아래 💎 아이콘 + "X 1" 이다.
 	PopupType.open(self, "젬 복구",
-		"%s\n다이아를 사용하여 해당 젬을 복구하시겠습니까?\n💎 X %d" % [label, dia],
-		func(): _repair_bag_gem(dia), "확인", "취소")
+		"%s\n다이아를 사용하여 해당 젬을 복구하시겠습니까?" % label,
+		func(): _repair_bag_gem(broken_key, dia),
+		"확인", "취소", 0, dia,
+		func(): _destroy_broken_gem(broken_key))
 
 
-func _repair_bag_gem(dia: int) -> void:
-	var inst := Gem.item_key_to_slot(_hybrid_key)
+func _repair_bag_gem(broken_key: String, dia: int) -> void:
+	var inst := Gem.item_key_to_slot(broken_key)
 	var fixed := Gem.inst_repair(inst)
 	if fixed.is_empty():
 		return
 	if not UserDB.spend("diamond", dia):
-		_toast("다이아가 부족합니다"); return
-	_hybrid_key = _rekey_gem(_hybrid_key, fixed)
+		# 다이아가 모자라면 복구 실패 = 소멸(창을 다시 띄우지 않는다).
+		_toast("다이아가 부족합니다 — 젬이 소멸했습니다")
+		_destroy_broken_gem(broken_key)
+		return
+	_hybrid_key = _rekey_gem(broken_key, fixed)
 	_toast("젬을 복구했습니다.")
+	_refresh_feature()
+
+
+## 복구를 고르지 않았다 — 파손 젬을 가방에서 **영구 제거**한다.
+func _destroy_broken_gem(broken_key: String) -> void:
+	if broken_key == "" or UserDB.item_count(broken_key) <= 0:
+		return
+	UserDB.use_item(broken_key, 1)
+	if _hybrid_key == broken_key:
+		_hybrid_key = ""
+	_toast("강화 실패로 혼성젬이 파괴되었습니다....")   # 원작 실패 화면 문구
 	_refresh_feature()
 
 # ── 젬 분해 / 용액 상점 / 알 조합 / 뽑기 ────────────────────────────────────
