@@ -1094,11 +1094,19 @@ func _build_hud() -> void:
 	skip.position = Vector2(vis.x - 90, vis.y * 0.5 + fh)
 	skip.pressed.connect(func(): _skip = true)
 	hud.add_child(skip)
-	# 원작 PopAutoSettingLayer 진입(자동/속도/반복 설정 팝업).
-	var setb := Button.new(); setb.text = "⚙"; setb.size = Vector2(38, 32)
-	setb.add_theme_font_size_override("font_size", 20)
-	setb.position = Vector2(vis.x - 72, vis.y * 0.5 + fh + 40.0); setb.pressed.connect(_open_battle_settings)
-	hud.add_child(setb)
+	# 전투 메뉴(원작 `onClickBattleMenu` → PopAutoSettingLayer) 진입 버튼.
+	# 🔴 2026-07-31 교체: 종전엔 `⚙` **텍스트 글리프 버튼**이었다(자작).
+	#   원작 아이콘을 찾았다 — `AdventureScene::setEventFightEnd` 가
+	#   `CCMenuItemImageEx::create(CCSprite("common/icon_sword1.png"), onClickBattleMenu, 1.05)` 로 만든다.
+	#   좌표도 그 함수 그대로: `VisibleRect::right()` 기준 **x-150**, **y = H*0.75**(cocos), tag 0x83.
+	#   등장 안무 `Spawn(ScaleTo(0.5,2.0), FadeTo(0.5,255))` → `ScaleTo(1.0, 1.5)` 이라 상주 크기는 **1.5**.
+	var sw: Dictionary = _man("common_ui")
+	var sword := _img_button_from("common_ui", "common_icon_sword1", sw, 1.5 * S)
+	if sword:
+		sword.position = Vector2(vis.x - 150.0 - sword.size.x * 0.5,
+			Design.flip_y(vis.y * 0.75, vis.y) - sword.size.y * 0.5)
+		sword.pressed.connect(_open_battle_settings)
+		hud.add_child(sword)
 	# 🔴 2026-07-31 제거: "ROUND N" 라벨은 **자작**이었다. 원작 전투 HUD 에 라운드 표시가 없다 —
 	#   문자열 테이블에 `ROUND`/`라운드` 0건이고 AdventureScene 359메서드 어디에도 턴 카운터
 	#   표시가 없다(전량 디컴파일, [skip>8000] 0건). 턴 전환은 텍스트박스 문구로만 알린다.
@@ -1789,6 +1797,7 @@ func _heal_number(pos: Vector2, amt: int) -> void:
 func _kill(v: Dictionary) -> void:
 	if v.is_empty() or not bool(v.get("alive", true)): return
 	v["alive"] = false
+	_bicon_clear(v)          # 원작 setRemoveAllBicon: 쓰러지면 버프 아이콘도 전부 걷힌다
 	Bgm.sfx("effect_dead")   # 원작 사망 효과음
 	var node: Node = v["node"]
 	if node is CanvasItem:
@@ -2593,6 +2602,13 @@ func _bicon_add(v: Dictionary, skill_id: int) -> void:
 	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 0.7, 0.2)
 	t.tween_callback(_bicon_positioning.bind(v))
 	_bicon_positioning(v)
+
+## 원작 `AdventureScene::setRemoveAllBicon` @00c7ee40 — 그 전투원의 버프 아이콘을 전부 걷는다.
+func _bicon_clear(v: Dictionary) -> void:
+	for s in (v.get("bicons", []) as Array):
+		if is_instance_valid(s):
+			s.queue_free()
+	v["bicons"] = []
 
 ## 원작 `InterFace::setBiconPositioning` — 행을 기준점부터 일정 간격으로 다시 늘어놓는다(MoveTo 0.2).
 func _bicon_positioning(v: Dictionary) -> void:
@@ -3638,6 +3654,21 @@ func _img_button(frame: String, size: Vector2, scale := 1.0) -> Button:
 		b.add_child(sp)
 	else:
 		b.text = frame.get_slice("_", -1)   # 폴백: 프레임명 꼬리
+	return b
+
+## 아틀라스 지정 이미지 버튼 — 크기는 프레임 실측 × scale 로 잡는다(원작 CCMenuItemImageEx 처럼
+## 프레임이 곧 클릭 영역). 프레임이 없으면 null 을 돌려 호출측이 생략하게 한다(자작 대체 금지).
+func _img_button_from(dir: String, frame: String, man: Dictionary, scale := 1.0) -> Button:
+	var sp := _spr(dir, frame, man, scale)
+	if sp == null:
+		return null
+	var fi: Dictionary = man.get(frame, {})
+	var b := Button.new()
+	b.size = Vector2(float(fi.get("w", 32)), float(fi.get("h", 32))) * scale
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	sp.position = b.size * 0.5
+	b.add_child(sp)
 	return b
 
 func _spr(dir: String, name: String, man: Dictionary, scale := 1.0) -> Sprite2D:

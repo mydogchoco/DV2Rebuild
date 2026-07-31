@@ -2,7 +2,7 @@
 
 > `python scripts/tools/asset_index.py --baseline` 이 갱신한다. **손으로 고치지 말 것.**
 > 회귀 감지: `python scripts/tools/asset_index.py --check` (커버리지가 떨어지면 exit 1).
-> 최초 측정 기준: 2026-07-31 / rev 909008e
+> 최초 측정 기준: 2026-07-31 / rev 3ac0a3d
 
 - **파일** = 원본 자산 수(아틀라스 프레임 전개 포함, scope=out 제외)
 - **orig** = 원작 코드(libgame.so/_decomp)가 참조하는 것
@@ -29,18 +29,18 @@
 | item | 1289 | 799 | 836 | 453 | 390 |
 | dragon | 4957 | 4856 | 4695 | 262 | 244 |
 | monster | 998 | 998 | 766 | 232 | 232 |
-| skill | 266 | 256 | 97 | 169 | 159 |
-| scenario | 325 | 321 | 193 | 132 | 128 |
+| skill | 266 | 256 | 102 | 164 | 154 |
+| scenario | 325 | 321 | 195 | 130 | 126 |
 | sound | 318 | 309 | 189 | 129 | 125 |
-| scene/adventure | 284 | 268 | 169 | 115 | 101 |
-| common | 233 | 196 | 108 | 125 | 91 |
+| scene/adventure | 284 | 268 | 170 | 114 | 100 |
+| common | 233 | 196 | 110 | 123 | 89 |
 | scene/cave | 181 | 170 | 95 | 86 | 76 |
 | 9patch | 125 | 114 | 40 | 85 | 74 |
 | battle | 161 | 161 | 89 | 72 | 72 |
 | scene/opening | 64 | 64 | 2 | 62 | 62 |
 | scene/shop | 72 | 63 | 23 | 49 | 41 |
 | scene/town | 113 | 94 | 71 | 42 | 36 |
-| particle | 74 | 54 | 27 | 47 | 36 |
+| particle | 74 | 54 | 28 | 46 | 35 |
 | emblem | 34 | 34 | 1 | 33 | 33 |
 | icon_mission | 24 | 24 | 0 | 24 | 24 |
 | npc | 775 | 83 | 82 | 693 | 18 |
@@ -48,15 +48,15 @@
 | scene/magicshop | 55 | 42 | 36 | 19 | 13 |
 | scene/achievement | 18 | 9 | 1 | 17 | 8 |
 | scene/setting | 12 | 12 | 4 | 8 | 8 |
-| scene/mamorudiclab | 24 | 23 | 17 | 7 | 7 |
 | scene/promote | 27 | 26 | 23 | 4 | 3 |
 | string | 3 | 3 | 1 | 2 | 2 |
+| scene/mamorudiclab | 24 | 23 | 23 | 1 | 1 |
 | shader | 9 | 1 | 0 | 9 | 1 |
 | title | 149 | 149 | 149 | 0 | 0 |
 | stand | 16 | 16 | 16 | 0 | 0 |
 | font | 9 | 9 | 9 | 0 | 0 |
 | scene/colosseum | 1 | 1 | 1 | 0 | 0 |
-| **합계** | **11312** | **9848** | **7908** | **3404** | **2509** |
+| **합계** | **11312** | **9848** | **7925** | **3387** | **2492** |
 
 ## scope=out (⚫ 구현 계획 없음) — 1352개
 

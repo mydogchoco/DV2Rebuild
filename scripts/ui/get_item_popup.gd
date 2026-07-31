@@ -153,6 +153,15 @@ func _make_entry(e: Dictionary, scale_f: float) -> Node2D:
 		var tw2 := create_tween()
 		tw2.tween_property(icon, "scale", icon.scale, 0.35) \
 			.from(icon.scale * 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# 바탕 위에 겹치는 그림 — 원작 setEventReward 의 스킬 보상은
+		# `common/skill_sroll.png`(두루마리) 위에 스킬 아이콘을 (w/2+1, h/2+5) 로 얹는다.
+		var ov: Texture2D = info.get("overlay")
+		if ov != null:
+			var ovs := Sprite2D.new()
+			ovs.texture = ov
+			ovs.material = AtlasUI.pma()
+			ovs.position = (info.get("overlay_off", Vector2.ZERO) as Vector2)
+			icon.add_child(ovs)
 
 	# ⚪ 미이식 — `common/eggclass` 등급 마크. 원작은 알 분기에서 이 프레임을
 	#    **여러 개 가로로 늘어놓는다**(anchor(0,0.5) · 기준점 +(0,65) · 개수 n 만큼
@@ -239,7 +248,9 @@ static func resolve(e: Dictionary) -> Dictionary:
 		var sd: Dictionary = Data.skills.get(str(int(sk["id"])), {})
 		var sp := "res://assets/converted/skill/skill_%d.tres" % int(sk["id"])
 		return {"name": "%s Lv.%d" % [String(sd.get("name", "스킬")), int(sk["level"])],
-			"tex": load(sp) if ResourceLoader.exists(sp) else null, "egg": false}
+			"tex": AtlasUI.tex("common_ui", "common_skill_sroll"),
+			"overlay": load(sp) if ResourceLoader.exists(sp) else null,
+			"overlay_off": Vector2(1, 5), "egg": false}
 	# 평범한 아이템
 	var ip := Data.item_icon_path(key)
 	var nm := Data.item_name(key)
