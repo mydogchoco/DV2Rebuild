@@ -17,7 +17,10 @@ extends SceneTree
 ## 실행: godot --headless --path . --script res://scripts/tools/test_scenario_flow.gd --quit-after 3
 
 ## 회차 → 원작 대사 줄 수와 일치해야 하는가(분기 회차는 false).
-const EXACT := {79: true, 80: true, 81: true,
+## 1~78화(점프 테이블 추출)는 대사 수가 정확히 맞은 것만 올린다 — 회귀 앵커.
+const EXACT := {1: true, 3: true, 4: true, 10: true, 16: true, 17: true, 23: true,
+	26: true, 31: true, 36: true, 37: true, 50: true, 58: true, 60: true,
+	79: true, 80: true, 81: true,
 	82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
 	89: true, 90: true, 91: true, 94: true, 96: true, 97: true, 99: true, 100: true}
 
@@ -55,7 +58,7 @@ func _init() -> void:
 		var talk := 0
 		for o in ops:
 			var op := String((o as Dictionary).get("op", ""))
-			if op == "setNpcTalk" or op == "setUserTalk":
+			if op == "setNpcTalk" or op == "setUserTalk" or op == "setTalk" or op == "setTalker":
 				talk += 1
 		var sc: Dictionary = scenarios.get(sn, {})
 		var lines := 0
@@ -75,19 +78,38 @@ func _init() -> void:
 	for sn in flows.keys():
 		for o in flows[sn]:
 			var d: Dictionary = o
-			if String(d.get("op", "")) != "setNpcTalk":
+			var op := String(d.get("op", ""))
+			var folder := ""
+			if op == "setNpcTalk":
+				# 82~101화 — 화자를 **번호**로 넘긴다(getNPCname 전표로 푼다).
+				var raw = d.get("npc", null)     # 미해석 스텝은 null 로 들어온다
+				var no := int(raw) if raw != null else -1
+				if no <= 0 or not npcs.has(str(no)):
+					unresolved += 1
+					continue
+				folder = String(npcs[str(no)])
+			elif op == "setTalk" or op == "setTalker":
+				# 1~78화 — 화자를 **문자열**로 넘긴다(원작이 this+0x1d8 에 써 두는 값).
+				# ⚠️ 미해석 스텝은 JSON null 이다. `String(null)` 은 4.7 런타임 에러이고
+				#    `--script` 모드에서는 **에러 출력 없이 무한 대기**로 나타난다(실제로 걸렸다).
+				var nv = d.get("npc_name", null)
+				if typeof(nv) != TYPE_STRING or String(nv) == "":
+					# 화자 대입이 없는 스텝 = **직전 화자 유지**가 원작 동작이다
+					# (원작도 멤버 this+0x1d8 을 덮어쓰지 않으면 그대로 쓴다).
+					# 오류가 아니라 정상 — story.gd 도 이름칸을 안 건드린다.
+					unresolved += 1
+					continue
+				folder = String(nv)
+			else:
 				continue
-			var raw = d.get("npc", null)         # 미해석 스텝은 null 로 들어온다
-			var no := int(raw) if raw != null else -1
-			if no <= 0 or not npcs.has(str(no)):
-				unresolved += 1
-				continue
-			var folder := String(npcs[str(no)])
 			var dir := "res://assets/converted/npc_%s" % folder
 			if not DirAccess.dir_exists_absolute(dir):
 				missing_art[folder] = true
 	if not missing_art.is_empty():
-		print("WARN 초상 미변환 NPC: ", missing_art.keys())
+		# `who`(=`<NPC_who>???`)는 원작에도 아틀라스가 없다 — 이름만 나오는 정상 케이스.
+		missing_art.erase("who")
+		if not missing_art.is_empty():
+			print("WARN 초상 미변환 NPC: ", missing_art.keys())
 
 	# ⑤ 배경 번호가 우리 변환본으로 이어지는가
 	var bg_missing := []
@@ -106,7 +128,7 @@ func _init() -> void:
 	if not bg_missing.is_empty():
 		print("WARN 배경 미보유(§10 판본 불일치): ", bg_missing)
 
-	print("[flow] 회차 %d · 정합 검사 %d회차 · 화자 미해석 %d" % [flows.size(), checked, unresolved])
+	print("[flow] 회차 %d · 정합 검사 %d회차 · 화자 유지(직전 화자) %d" % [flows.size(), checked, unresolved])
 	print("PASS" if fails == 0 else "FAIL %d" % fails)
 	quit(0 if fails == 0 else 1)
 

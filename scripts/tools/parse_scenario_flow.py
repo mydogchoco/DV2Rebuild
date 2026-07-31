@@ -449,6 +449,27 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
     return out
 
 
+def sanitize_names(ops: list[dict], scen: dict) -> list[dict]:
+    """화자 칸에 **문자열 리소스 키**가 새는 것을 막는다.
+
+    원작은 대사 함수 직전에 멤버 두 곳에 문자열을 써 둔다 —
+    `this+0x1d8`=화자(`NPC_nuri`) · `this+0x1f0`=대사 키(`ScenarioTalk1_1`).
+    두 대입이 한 블록에 다 있으면 정확히 갈리지만, 화자 대입이 없는 스텝에서는
+    직전 값이 그대로 남아 **대사 키가 화자로 실린다**(`PrologueTalk2` 등).
+    ⇒ `<NPC_*>` 전표(62종)에 있는 이름만 화자로 인정하고 나머지는 비운다.
+       여기서 추측해 채우지 않는다(HARD RULE 6).
+    """
+    valid = set(scen.get("npc_names", {}).keys())
+    for o in ops:
+        nm = o.get("npc_name")
+        if isinstance(nm, str) and nm.startswith("NPC_"):
+            nm = nm[4:]
+            o["npc_name"] = nm
+        if nm is not None and nm not in valid:
+            o["npc_name"] = None
+    return ops
+
+
 def accept_if_exact(flows: dict[str, list[dict]], scenarios: dict) -> dict[str, list[dict]]:
     """대사 스텝 수가 원작 대사 줄 수와 **정확히 일치**하는 회차만 통과시킨다."""
     ok = {}
@@ -541,7 +562,7 @@ def main():
         "npc_names": {str(k): v for k, v in sorted(npcs.items())},
         "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
         "bgm": {str(k): v for k, v in sorted(bgms.items())},
-        "flows": {k: flows[k] for k in sorted(flows, key=int)},
+        "flows": {k: sanitize_names(flows[k], scen) for k in sorted(flows, key=int)},
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")

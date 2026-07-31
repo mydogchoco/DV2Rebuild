@@ -64,6 +64,16 @@ OUT = REPO / "data" / "scenario_flow_switch.json"
 CLASSES = [f"Scenario{i}" for i in range(1, 9)]
 ## 시나리오 매니저 멤버 오프셋 — 0x168 = 회차(sn) · 0x158 = 레이어의 스텝 번호.
 OFF_SN, OFF_STEP = 0x168, 0x158
+## 대사를 띄우는 `ScenarioLayer` 메서드 — 원작에 **다섯 가지**가 있다(전수 열거:
+##   `grep -oh "==== [A-Za-z_]*[Tt]alk[A-Za-z_]* @" decomp/ScenarioLayer.c`).
+## 공통 규약: 부르기 전에 문자열 두 개를 멤버에 써 둔다.
+##     this+0x1d8 = 화자 이름 · this+0x1f0 = 대사 문자열 키(`ScenarioTalk<회차>_<줄>`)
+## ⚠️ 이름으로 하나씩 쫓다가 `setTalk`(68~78화) → `setReorderTalker`(1~9화) 순으로
+##    두 번 놓쳤다. 이제 **멤버 대입**을 기준으로 잡고 이 집합은 보조로만 쓴다.
+TALK_FNS = {"setTalk", "setTalker", "setReorderTalker", "setMoveTalker",
+            "setTalkForNotClick", "setTalkForTalker"}
+OFF_NAME, OFF_KEY = 0x1d8, 0x1f0
+
 ## 한 case 블록에서 따라갈 최대 명령 수 / 범위 탐색 상한.
 MAX_STEP_INSNS, MAX_SCAN = 400, 300000
 
@@ -363,7 +373,7 @@ def main():
                     npc_talk_addr = i.getAddress().getOffset()
                 elif "setUserTalk" in nm:
                     user_talk_addrs.add(i.getAddress().getOffset())
-                elif nm == "setTalk":
+                elif nm in TALK_FNS:
                     # 🔴 `setTalk` 는 `setTalker` 와 **다른 함수**이고, 넘기는 문자열도 다르다.
                     #    이름 정확일치만 보다가 놓쳐서 Scenario7 68~78화가 "대사 0" 이었다.
                     #
@@ -375,8 +385,6 @@ def main():
                     #       화자로 쓰면 이름칸에 키가 찍힌다 — 별도 op 로 뺀다.
                     #       대신 이 경로는 **줄 번호가 확정**된다(순서 추정이 필요 없다).
                     talk_addrs.add(i.getAddress().getOffset())
-                elif nm == "setTalker":
-                    talker_addrs.add(i.getAddress().getOffset())
             if npc_talk_addr is None and not talker_addrs and not talk_addrs:
                 names = {}
                 for i in iter_range(at, after, lo, hi):
@@ -598,10 +606,13 @@ def main():
                     else:
                         addrs = [entry_target(t, i) for i in range(t["count"])]
                     for a4 in addrs:
+                        n0 = len(f0)
                         f0.extend(walk_case(at, after, fm, body, a4, slots,
                                             npc_talk_addrs, user_talk_addrs, text,
                                             talker_addrs=talker_addrs, rostr=rostr,
                                             talk_addrs=talk_addrs, want_sn=None))
+                        if f"--dump-ep={sn}" in sys.argv:
+                            print(f"     [step] {a4:#x} -> {f0[n0:] or '(없음)'}")
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
                 flow, t = best, (best_t or cands[0])
@@ -696,128 +707,179 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               want_sn: int | None = None) -> list[dict]:
     """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
 
-    `want_sn` 을 주면 **블록 안의 회차 분기**(`cmp <sn레지스터>,#K` + `b.eq/b.ne`)에서
-    그 회차 경로만 따라간다. `Scenario1~7` 은 스텝 표 하나를 여러 회차가 공유하고
-    case 블록 안에서 다시 sn 으로 갈리기 때문에, 이게 없으면 회차를 못 가른다
-    (실측: Scenario1 = sn 테이블 4개 · 스텝 테이블 1개(82엔트리) · 회차 9개).
+    ## 조건 분기 (2026-07-31)
+
+    🔴 종전에는 **폴스루만** 따라갔다. 대사 호출이 taken 쪽에 있으면 그 스텝은 통째로
+       빠졌고, 그게 1~78화 부족분(중앙값 6줄)의 정체였다.
+       이제 조건 분기를 만나면 **타깃을 대기열에 넣고** 폴스루를 계속 간다.
+       주 경로가 대사 없이 끝나면 대기열에서 꺼내 이어 간다(BFS).
+
+    ⚠️ 대사 op 은 **하나만** 낸다(스텝 하나 = 대사 한 줄). 첫 대사 호출에서 즉시 끝낸다.
+       배경/삽화 같은 부수 op 은 **주 경로에서만** 모은다 — 갈래마다 모으면 중복된다.
+
+    `want_sn` 을 주면 블록 안의 회차 분기(`cmp <sn레지스터>,#K`)에서 그 회차 경로만 탄다.
     """
-    snreg: str | None = None          # 0x168 에서 읽은 = 회차 레지스터
-    last_cmp: tuple[str, int] | None = None
-    regs: dict[str, int] = {}
-    slotval: dict[str, int] = {}
-    xptr: dict[str, str] = {}
-    pages: dict[str, int] = {}
-    xstr: dict[str, str] = {}
-    last_str = None
-    store: dict[str, int] = {}
+    TALK_SIDE = ("changeBackGround", "drawIllust", "setOutTalker")
+
+    def snapshot(regs, slotval, xptr, pages, xstr, last_str, store, snreg):
+        return (dict(regs), dict(slotval), dict(xptr), dict(pages), dict(xstr),
+                last_str, dict(store), snreg)
+
     ops: list[dict] = []
-    cur = nav_at(tgt)
-    seen = set()
-    for _ in range(MAX_STEP_INSNS):
-        if cur is None or not body.contains(cur.getAddress()):
-            break
-        a = cur.getAddress().getOffset()
-        if a in seen:
-            break
-        seen.add(a)
-        t = text(cur)
-        # 회차 레지스터 추적 — `ldr wN,[x?,#0x168]`
-        m = re.fullmatch(r"ldr (w\d+),\[x\d+,#0x168\]", t)
-        if m:
-            snreg = m.group(1)
-        m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
-        if m:
-            last_cmp = (m.group(1), int(m.group(2), 0))
-        # 회차 분기 — 원하는 회차 경로만 따라간다
-        if (want_sn is not None and snreg is not None and last_cmp is not None
-                and last_cmp[0] == snreg and re.fullmatch(r"b\.(eq|ne) 0x[0-9a-f]+", t)):
-            eq = last_cmp[1] == want_sn
-            taken = (t.startswith("b.eq") and eq) or (t.startswith("b.ne") and not eq)
-            last_cmp = None
-            if taken:
-                fl3 = cur.getFlows()
-                if not fl3:
-                    break
-                cur = nav_at(fl3[0].getOffset())
-                continue
-            cur = nav_after(cur)
+    # (시작주소, 상태, 주경로여부)
+    queue: list[tuple[int, tuple, bool]] = [
+        (tgt, ({}, {}, {}, {}, {}, None, {}, None), True)]
+    seen_starts: set[int] = set()
+    budget = MAX_STEP_INSNS * 4          # 갈래를 다 합친 총 예산
+
+    while queue and budget > 0:
+        start, st, primary = queue.pop(0)
+        if start in seen_starts:
             continue
-        m = re.fullmatch(r"(mov|movz) (w\d+),#(0x[0-9a-f]+|\d+)", t)
-        if m:
-            regs[m.group(2)] = int(m.group(3), 0)
-        m = re.fullmatch(r"orr (w\d+),wzr,#(0x[0-9a-f]+|\d+)", t)
-        if m:
-            regs[m.group(1)] = int(m.group(2), 0)
-        # 슬롯 저장 — 4개 대사 슬롯뿐 아니라 전부 기억한다(배경 번호도 슬롯으로 넘어간다)
-        m = re.fullmatch(r"(str|stur) (w\d+|wzr),\[(x29|sp),#(-?0x[0-9a-f]+|-?\d+)\]", t)
-        if m:
-            key = f"{m.group(3)}{int(m.group(4), 0):+d}"
-            val = 0 if m.group(2) == "wzr" else regs.get(m.group(2))
-            if val is not None:
-                slotval[key] = val
-                for name, sl in slots.items():
-                    if sl == key:
-                        store[name] = val
-        # 포인터 인자 준비
-        m = re.fullmatch(r"(add|sub) (x\d+),(x29|sp),#(0x[0-9a-f]+|\d+)", t)
-        if m:
-            sign = -1 if m.group(1) == "sub" else 1
-            xptr[m.group(2)] = f"{m.group(3)}{sign * int(m.group(4), 0):+d}"
-        # .rodata 문자열 포인터 조립(`adrp x8,PAGE` + `add x8,x8,#OFF`) — 1~78화의
-        # `ScenarioLayer::setTalker` 는 NPC 를 **이름 문자열**로 받는다.
-        m = re.fullmatch(r"adrp (x\d+),(0x[0-9a-f]+)", t)
-        if m:
-            pages[m.group(1)] = int(m.group(2), 0)
-        m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
-        if m and m.group(1) in pages:      # `` 역참조 → 그룹은 (레지스터, 즉값)
-            cand = pages[m.group(1)] + int(m.group(2), 0)
-            if rostr:
-                sv = rostr(cand)
-                if sv:
-                    last_str = sv
-                    xstr[m.group(1)] = sv
-        # 레지스터 간 복사(문자열 포인터가 x2 로 옮겨진다)
-        m = re.fullmatch(r"mov (x\d+),(x\d+)", t)
-        if m and m.group(2) in xstr:
-            xstr[m.group(1)] = xstr[m.group(2)]
-        if cur.getMnemonicString() == "bl":
-            if a in npc_talk_addrs:
-                ops.append({"op": "setNpcTalk", **store})
-                return ops
-            if a in user_talk_addrs:
-                ops.append({"op": "setUserTalk"})
-                return ops
-            if talk_addrs and a in talk_addrs:
-                # 대사 키를 그대로 싣는다 — `ScenarioTalk<회차>_<줄번호>`.
-                ops.append({"op": "setTalk", "key": last_str})
-                return ops
-            if talker_addrs and a in talker_addrs:
-                # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
-                # (원작 `ScenarioLayer::setTalker(bool, string, int body, int state, float×4, …)`)
-                ops.append({"op": "setTalker",
-                            "npc_name": xstr.get("x2", last_str),
-                            "body": regs.get("w3"), "state": regs.get("w4")})
-                return ops
-            fl = cur.getFlows()
-            callee = fm.getFunctionAt(fl[0]) if fl else None
-            if callee is not None:
-                nm = callee.getName()
-                if "changeBackGround" in nm:
-                    # ⚠️ 2번째 인자는 `BackGruundName*` = 스택 슬롯 포인터다(정수 아님)
-                    ops.append({"op": "changeBackGround", "bg": slotval.get(xptr.get("x1", ""))})
-                elif "drawIllust" in nm:
-                    ops.append({"op": "drawIllust", "illust": regs.get("w1"), "kind": regs.get("w2")})
-                elif "setOutTalker" in nm:
-                    ops.append({"op": "setOutTalker"})
-        if cur.getMnemonicString() == "b":
-            fl = cur.getFlows()
-            if not fl:
+        seen_starts.add(start)
+        regs, slotval, xptr, pages, xstr, last_str, store, snreg = (
+            dict(st[0]), dict(st[1]), dict(st[2]), dict(st[3]), dict(st[4]),
+            st[5], dict(st[6]), st[7])
+        last_cmp: tuple[str, int] | None = None
+        pend_slot: int | None = None          # 직전 `add x0,this,#0x1d8|0x1f0`
+        talk_name = talk_key = None
+        cur = nav_at(start)
+        seen: set[int] = set()
+        for _ in range(MAX_STEP_INSNS):
+            budget -= 1
+            if cur is None or budget <= 0 or not body.contains(cur.getAddress()):
                 break
-            cur = nav_at(fl[0].getOffset())
-            continue
-        if cur.getMnemonicString() == "ret":
-            break
-        cur = nav_after(cur)
+            a = cur.getAddress().getOffset()
+            if a in seen:
+                break
+            seen.add(a)
+            t = text(cur)
+            # 회차 레지스터 추적 — `ldr wN,[x?,#0x168]`
+            m = re.fullmatch(r"ldr (w\d+),\[x\d+,#0x168\]", t)
+            if m:
+                snreg = m.group(1)
+            m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
+            if m:
+                last_cmp = (m.group(1), int(m.group(2), 0))
+            # 회차 분기 — 원하는 회차 경로만 따라간다
+            if (want_sn is not None and snreg is not None and last_cmp is not None
+                    and last_cmp[0] == snreg and re.fullmatch(r"b\.(eq|ne) 0x[0-9a-f]+", t)):
+                eq = last_cmp[1] == want_sn
+                taken = (t.startswith("b.eq") and eq) or (t.startswith("b.ne") and not eq)
+                last_cmp = None
+                if taken:
+                    fl3 = cur.getFlows()
+                    if not fl3:
+                        break
+                    cur = nav_at(fl3[0].getOffset())
+                    continue
+                cur = nav_after(cur)
+                continue
+            m = re.fullmatch(r"(mov|movz) (w\d+),#(0x[0-9a-f]+|\d+)", t)
+            if m:
+                regs[m.group(2)] = int(m.group(3), 0)
+            m = re.fullmatch(r"orr (w\d+),wzr,#(0x[0-9a-f]+|\d+)", t)
+            if m:
+                regs[m.group(1)] = int(m.group(2), 0)
+            # 슬롯 저장 — 4개 대사 슬롯뿐 아니라 전부 기억한다(배경 번호도 슬롯으로 넘어간다)
+            m = re.fullmatch(r"(str|stur) (w\d+|wzr),\[(x29|sp),#(-?0x[0-9a-f]+|-?\d+)\]", t)
+            if m:
+                key = f"{m.group(3)}{int(m.group(4), 0):+d}"
+                val = 0 if m.group(2) == "wzr" else regs.get(m.group(2))
+                if val is not None:
+                    slotval[key] = val
+                    for name, sl in slots.items():
+                        if sl == key:
+                            store[name] = val
+            # 대사 문자열을 멤버에 써 두는 규약 — `add x0,this,#0x1d8|0x1f0` 다음의
+            # `basic_string::assign(x0, x1=<문자열>)` 이 화자 이름/대사 키를 정한다.
+            m = re.fullmatch(r"add x0,x\d+,#(0x1d8|0x1f0)", t)
+            if m:
+                pend_slot = int(m.group(1), 0)
+            # 포인터 인자 준비
+            m = re.fullmatch(r"(add|sub) (x\d+),(x29|sp),#(0x[0-9a-f]+|\d+)", t)
+            if m:
+                sign = -1 if m.group(1) == "sub" else 1
+                xptr[m.group(2)] = f"{m.group(3)}{sign * int(m.group(4), 0):+d}"
+            # .rodata 문자열 포인터 조립(`adrp x8,PAGE` + `add x8,x8,#OFF`)
+            m = re.fullmatch(r"adrp (x\d+),(0x[0-9a-f]+)", t)
+            if m:
+                pages[m.group(1)] = int(m.group(2), 0)
+            # ⚠ 역참조 \1 은 히어독 편집으로 **두 번** 사라졌다(제어문자로 치환돼 매치가 조용히 죽는다).
+            #   그래서 여기서는 역참조 대신 **두 그룹을 잡아 같은지 비교**한다.
+            m = re.fullmatch(r"add (x\d+),(x\d+),#(0x[0-9a-f]+|\d+)", t)
+            if m and m.group(1) == m.group(2) and m.group(1) in pages:
+                cand = pages[m.group(1)] + int(m.group(3), 0)
+                if rostr:
+                    sv = rostr(cand)
+                    if sv:
+                        last_str = sv
+                        xstr[m.group(1)] = sv
+            # 레지스터 간 복사(문자열 포인터가 x2 로 옮겨진다)
+            m = re.fullmatch(r"mov (x\d+),(x\d+)", t)
+            if m and m.group(2) in xstr:
+                xstr[m.group(1)] = xstr[m.group(2)]
+            if cur.getMnemonicString() == "bl":
+                if pend_slot is not None:
+                    sv = xstr.get("x1")
+                    if sv:
+                        if pend_slot == OFF_NAME:
+                            talk_name = sv
+                        else:
+                            talk_key = sv
+                    pend_slot = None
+                if a in npc_talk_addrs:
+                    ops.append({"op": "setNpcTalk", **store})
+                    return ops
+                if a in user_talk_addrs:
+                    ops.append({"op": "setUserTalk"})
+                    return ops
+                if talk_addrs and a in talk_addrs:
+                    # 대사 키는 멤버(this+0x1f0)에 써 둔 것이 정답이다 —
+                    # `last_str` 을 쓰면 직전에 스친 아무 문자열이나 집힌다.
+                    ops.append({"op": "setTalk", "key": talk_key or last_str,
+                                # 원작이 멤버에 쓰는 값은 문자열 리소스 키(`NPC_nuri`)다 —
+                                # 우리 `npc_names` 는 폴더명(`nuri`) 이 키라 접두를 뗀다.
+                                "npc_name": (talk_name[4:] if talk_name
+                                             and talk_name.startswith("NPC_") else talk_name),
+                                "body": regs.get("w3"), "state": regs.get("w4")})
+                    return ops
+                if talker_addrs and a in talker_addrs:
+                    # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
+                    ops.append({"op": "setTalker",
+                                "npc_name": xstr.get("x2", last_str),
+                                "body": regs.get("w3"), "state": regs.get("w4")})
+                    return ops
+                fl = cur.getFlows()
+                callee = fm.getFunctionAt(fl[0]) if fl else None
+                if callee is not None and primary:
+                    nm = callee.getName()
+                    if "changeBackGround" in nm:
+                        # ⚠️ 2번째 인자는 `BackGruundName*` = 스택 슬롯 포인터다(정수 아님)
+                        ops.append({"op": "changeBackGround",
+                                    "bg": slotval.get(xptr.get("x1", ""))})
+                    elif "drawIllust" in nm:
+                        ops.append({"op": "drawIllust",
+                                    "illust": regs.get("w1"), "kind": regs.get("w2")})
+                    elif "setOutTalker" in nm:
+                        ops.append({"op": "setOutTalker"})
+            mn = cur.getMnemonicString()
+            if mn == "b":
+                fl = cur.getFlows()
+                if not fl:
+                    break
+                cur = nav_at(fl[0].getOffset())
+                continue
+            if mn == "ret":
+                break
+            # 조건 분기 — 타깃을 대기열에 넣고 폴스루를 계속 간다
+            if mn.startswith("b.") or mn.startswith("cb") or mn.startswith("tb"):
+                for f2 in cur.getFlows():
+                    o2 = f2.getOffset()
+                    if o2 != a + cur.getLength() and o2 not in seen_starts:
+                        queue.append((o2, snapshot(regs, slotval, xptr, pages,
+                                                   xstr, last_str, store, snreg), False))
+            cur = nav_after(cur)
     return ops
 
 

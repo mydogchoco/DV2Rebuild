@@ -276,10 +276,13 @@ func _play_flow() -> void:
 				_next_line()
 				return
 			"setTalk":
-				# 원작 `ScenarioLayer::setTalk(bool)` — 이름을 인자로 받지 않고
-				# **대사 문자열 키**(`ScenarioTalk<회차>_<줄>`)를 멤버에 써 두고 부른다.
-				# ⇒ 이 경로는 줄 번호가 확정이라 순서 추정 없이 그 줄을 바로 집는다.
-				#   화자는 이 호출이 알려 주지 않는다(앞선 setTalker 가 정한 이름을 유지).
+				# 1~78화 경로. 원작은 대사 함수를 부르기 전에 **멤버 두 개에 문자열을 써 둔다**:
+				#   this+0x1d8 = 화자(`NPC_nuri`) · this+0x1f0 = 대사 키(`ScenarioTalk1_1`)
+				# ⇒ 줄 번호가 확정이라 순서 추정이 필요 없고, **화자도 유실이 아니었다.**
+				var f3 := String(o.get("npc_name", ""))
+				if f3 != "":
+					_name_label.text = Data.npc_name(f3)
+					_show_npc(f3, maxi(int(o.get("body", 1)), 1), int(o.get("state", 1)))
 				_line_by_key(String(o.get("key", "")))
 				return
 			"setUserTalk":
