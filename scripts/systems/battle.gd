@@ -41,6 +41,11 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# 개체 등급(Growth.compute_grade). 각성스킬 18·100 이 아군끼리 **비교**할 때만 쓴다.
 		# ⚠️ 절대 눈금은 원작과 다르다(우리 7.0 기준 / 원작 0~6) — 절대값을 쓰는 스킬은 미이식.
 		"grade": float(stats.get("grade", 0.0)),
+		# 전투 유형(원작 `Dragon::getAttackType`) — `dragons.json` 의 `type`.
+		#   atk 공격형 · hp 체력형 · def 방어형 · hd 체방형 · ha 체공형 · ad 공방형
+		# 해골요새 특수 장비가 "체방형 드래곤을 공격 시 25% 추가 대미지" 처럼 **양쪽 유형**을 본다.
+		# 스탯 곡선(stat_table)의 축과 같은 값이라 별도 표가 필요 없다.
+		"atk_type": String(stats.get("atk_type", "")),
 		"skills": norm, "skill_uses": {}, "effects": [],
 		# 장착 중인 장비의 카탈로그 키(EquipEffect.keys_of). 조건부 효과를 심을 때만 쓰고,
 		# 스탯은 이미 Equipment.apply 로 stats 에 반영돼 들어온다.
@@ -97,19 +102,24 @@ static func _dmg_deal_mult(c: Dictionary) -> float:
 			pct += float(e["pct"])
 	return maxf(0.0, 1.0 + pct / 100.0)
 
-## **특정 속성 상대에게만** 걸리는 주는 피해 배수.
-## 전용 장비의 "불 속성 드래곤에게 주는 대미지 50% 증가"(빙하고룡의 칼날) 계열 —
-## 상시값인 `dmg_deal` 과 달리 방어자의 속성을 봐야 해서 별도 통로다.
+## **상대를 보고** 걸리는 주는 피해 배수 — 두 축이 있다.
+##   `dmg_deal_vs_element` 방어자의 **속성** ("불 속성 드래곤에게 주는 대미지 50% 증가")
+##   `dmg_deal_vs_type`    방어자의 **전투 유형** ("체방형 드래곤을 공격 시 25% 추가 대미지")
+## 상시값인 `dmg_deal` 과 달리 방어자를 봐야 해서 별도 통로다.
 ## 여러 개면 **곱이 아니라 합**으로 본다(같은 축의 증가율이라 dmg_deal 과 같은 규약).
 static func _dmg_deal_vs_mult(attacker: Dictionary, defender: Dictionary) -> float:
 	var el := String(defender.get("element", ""))
-	if el == "":
-		return 1.0
+	var ty := String(defender.get("atk_type", ""))
 	var pct := 0.0
 	for e in (attacker.get("effects", []) as Array):
 		var d := e as Dictionary
-		if String(d.get("kind", "")) == "dmg_deal_vs_element" and String(d.get("element", "")) == el:
-			pct += float(d.get("pct", 0.0))
+		match String(d.get("kind", "")):
+			"dmg_deal_vs_element":
+				if el != "" and String(d.get("element", "")) == el:
+					pct += float(d.get("pct", 0.0))
+			"dmg_deal_vs_type":
+				if ty != "" and String(d.get("atk_type", "")) == ty:
+					pct += float(d.get("pct", 0.0))
 	return maxf(0.0, 1.0 + pct / 100.0)
 
 ## 각성기 피해 배수 — "자신의 각성기 피해량 30% 증가"(발로드의 갈기) 계열.
@@ -118,6 +128,15 @@ static func _awaken_dmg_mult(c: Dictionary) -> float:
 	var pct := 0.0
 	for e in (c.get("effects", []) as Array):
 		if (e as Dictionary).get("kind") == "awaken_dmg":
+			pct += float((e as Dictionary).get("pct", 0.0))
+	return maxf(0.0, 1.0 + pct / 100.0)
+
+## **스킬 피해에만** 걸리는 받는 피해 배수 — "스킬에 입는 피해 10% 감소"(엘더 블랙퀸의 목도리).
+## 상시 `dmg_taken` 과 통로가 다르다(평타에는 안 걸린다). 음수 pct 가 감소다.
+static func _skill_dmg_taken_mult(c: Dictionary) -> float:
+	var pct := 0.0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "skill_dmg_taken":
 			pct += float((e as Dictionary).get("pct", 0.0))
 	return maxf(0.0, 1.0 + pct / 100.0)
 
@@ -370,6 +389,10 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		var ded := _art(defender, "skill_dmg_taken_pct", int(attacker.get("_cast_skill_id", 0)))
 		if ded > 0:
 			raw_dmg = maxi(1, int(round(float(raw_dmg) * (1.0 - float(ded) / 100.0))))
+		# 장비/각성스킬의 "스킬에 입는 피해 N% 감소" — `dmg_taken` 과 같은 규약으로 **음수가 감소**다.
+		var sm := _skill_dmg_taken_mult(defender)
+		if not is_equal_approx(sm, 1.0):
+			raw_dmg = maxi(1, int(round(float(raw_dmg) * sm)))
 	var dres := _defense_skill_onhit(defender, rng, raw_dmg, is_skill, cfg, skills_db)
 	var ap := _apply_dmg(defender, int(dres["dmg"]))
 	var out := {"damage": int(ap["dmg"]), "dead": bool(ap["dead"])}
@@ -700,7 +723,12 @@ static func _roll_proc_level(c: Dictionary, rng: RandomNumberGenerator) -> int:
 	return 0
 
 ## 망각의 망치(56) 반응. 적 보유자 롤 성공 시 무효화 이벤트(아니면 {}).
+## `oblivion_immune` = 해골요새 장비 "G스컬의 은빛망토" — 공방형이 장착하면 [신의 분노](36)가
+## [망각의 망치](56) 효과를 받지 않는다. 원문이 36 만 지목하므로 **그 스킬에만** 면제한다.
+const OBLIVION_IMMUNE_SKILL := 36
 static func _oblivion_react(caster: Dictionary, fired_id: int, enemies: Array, rng: RandomNumberGenerator, skills_db: Dictionary, _cfg: Dictionary) -> Dictionary:
+	if fired_id == OBLIVION_IMMUNE_SKILL and _has_flag(caster, "oblivion_immune"):
+		return {}
 	for e in enemies:
 		if not e["alive"]:
 			continue
@@ -1637,6 +1665,10 @@ static func effect_cond_ok(cond, owner: Dictionary, allies: Array, enemies: Arra
 			return allies.size() >= int(c.get("min", 1))
 		"enemy_boss":
 			return bool(ctx.get("enemy_boss", false))
+		"self_type":
+			# 해골요새 장비의 후반 조항 — "방어형 드래곤이 장착 시 회피율 10% 상승".
+			# 값은 `dragons.json` 의 `type`(atk/hp/def/hd/ha/ad) 그대로다.
+			return String(owner.get("atk_type", "")) == String(c.get("value", ""))
 		"self_stat_min":
 			# 27 대지의 기둥 "자신의 방어력이 500 이상이면". 전투 시작 시점의 확정 스탯으로 본다.
 			return _eff(owner, String(c.get("stat", ""))) >= int(c.get("min", 0))
@@ -1725,7 +1757,16 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				# 방어자의 속성을 봐야 하므로 대상 속성을 항목에 함께 싣는다.
 				_push(t, {"kind": "dmg_deal_vs_element", "pct": v,
 					"element": String(op.get("element", ""))}, src)
+			"dmg_deal_vs_type":
+				# 해골요새 장비 "체방형 드래곤을 공격 시 25% 추가 대미지" —
+				# 방어자의 **전투 유형**을 봐야 하므로 대상 유형을 항목에 함께 싣는다.
+				_push(t, {"kind": "dmg_deal_vs_type", "pct": v,
+					"atk_type": String(op.get("atk_type", ""))}, src)
 			"awaken_dmg":    _push(t, {"kind": "awaken_dmg", "pct": v}, src)
+			"skill_dmg_taken":
+				# "스킬에 입는 피해 10% 감소"(엘더 블랙퀸의 목도리). 음수 = 감소.
+				# 아티팩트의 `skill_dmg_taken_pct` 와 같은 지점에서 곱해진다.
+				_push(t, {"kind": "skill_dmg_taken", "pct": v}, src)
 			"dmg_taken":     _push(t, {"kind": "dmg_taken", "pct": v}, src)
 			"dmg_taken_flat": _push(t, {"kind": "dmg_taken_flat", "value": v}, src)
 			"dmg_cap_pct":   _push(t, {"kind": "dmg_cap_pct", "pct": v}, src)

@@ -1,7 +1,34 @@
 {
   "_re_basis": "원작 info_dragon_team_buf(no/name/combine/effect/img). 로직=libgame.so 복원(docs/ref/design/team_buff_analysis.md, TeamBuff.c). **name·effect 는 유실이 아니라 원작 문자열 테이블에 실재** — DV2/string/stringsData_KR.xml <Combine1..30> + <Combine_Comment_1..30> 에서 그대로 가져왔다. img 는 TeamBuff::createIcon 이 쓰는 battle/<res>/combine_mark.png 폴더명(추출 에셋 24종 실재). ⚠️combine(조합 구성)만은 원작 데이터가 아니다 — 서버 유실 + 위키가 그 열을 이미지로만 실어 추출 불가. 사용자 승인(2026-07-27)으로 버프명·효과·아이콘 res명의 의미에서 **추론해 채웠다** (HARD RULE 6 예외). 각 행 _combine_basis 에 근거. 원작과 다를 수 있고 조정 대상 (docs/input/review/team_buff_sheet.md).",
   "race_dim": "element",
-  "_race_dim_note": "ASSUMPTION: 원작 DragonRace id 유실. 후보=element(9속성). 원작 UI 문자열이 이 기능을 '조합(Combine)'으로 부르고 위키는 '속성 조합 버프'라 부른다 → element 가 유력.",
+  "_race_dim_note": "✅ 2026-07-31 확정 — 더 이상 ASSUMPTION 이 아니다. CombineElementsLayer::combine(decomp CombineElementsLayer.c:1341-1394)이 Dragon::getRace() 반환값을 문자열로 바꾸는 switch 를 그대로 갖고 있다: 0=earth 1=aqua 2=fire 3=wind 4=light 5=dark 6=holy 7=chaos 8=shadow. 우리 element 축(9속성)과 이름까지 1:1 이다.",
+  "stat_order": [
+    "hp",
+    "att",
+    "def",
+    "evd",
+    "cri",
+    "blk",
+    "pure",
+    "cri_pow",
+    "depure",
+    "awaken_rate",
+    "accuracy"
+  ],
+  "stat_labels": {
+    "hp": "체력",
+    "att": "공격",
+    "def": "방어",
+    "evd": "회피",
+    "cri": "치명",
+    "blk": "막기",
+    "pure": "방어관통",
+    "cri_pow": "크리티컬파워",
+    "depure": "관통감소",
+    "awaken_rate": "각성게이지",
+    "accuracy": "명중률"
+  },
+  "_stat_note": "연출(CombineElementsLayer)이 효과 줄을 만드는 순서·이름. TeamBuff::getOptions 가 11개 스탯 필드를 stat_order 순으로 훑어 값이 0 이 아닌 것만 '<이름> +N%' 로 찍는다. 이름 출처 = stringsData_KR.xml <CombineHP…ACC>. 🔴 cri 만 '치명'으로 덮어썼다 — 레퍼런스 docs/ref/TeamBuff/21.png + font_combine.fnt 의 글리프 집합('치·명' 있음 / '티·컬' 없음)이 출시 빌드 표기를 특정한다. 상세 = docs/ref/porting/CombineElementsLayer.md §5.",
   "effect_mode": "typed",
   "_effect_mode_note": "effect[stat].mode: hp/att/def=pct(배수) · cri/evd/blk/cri_pow/awaken_rate/accuracy=point(퍼센트 포인트) · pure/depure=flat. 원작 툴팁은 전부 '+N%' 표기라 point/pct 구분은 ASSUMPTION.",
   "_wiki_diff": [

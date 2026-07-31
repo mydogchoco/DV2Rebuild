@@ -69,7 +69,7 @@ func _rebuild() -> void:
 	_build_textbox()
 	_build_hud()
 	_build_team_buff_badges()   # 원작 TeamBuff::createIcon — 활성 조합버프 배지
-	_run_and_replay()
+	_maybe_team_buff_intro()    # 원작 AdventureScene::setCheckTeamBuff — 조합 연출 뒤 전투 시작
 
 # ---------- 데이터 조립 ----------
 func _setup_enemy() -> void:
@@ -361,10 +361,13 @@ func _setup_party() -> void:
 			else:
 				ordered.append(d)
 	# 종족 조합 팀버프(원작 TeamBuff, docs/ref/design/team_buff_analysis.md): 파티 전체 구성으로 1회 산출.
-	# ⚠️ race_dim=element는 ASSUMPTION(원작 DragonRace id 유실). 테이블 비면 no-op(안전).
+	# ✅ race_dim=element 는 2026-07-31 확정 — 더 이상 ASSUMPTION 이 아니다.
+	#    `CombineElementsLayer::combine`(decomp :1341-1394)이 Dragon::getRace() 를 문자열로 바꾸는
+	#    switch 를 갖고 있다: 0=earth 1=aqua 2=fire 3=wind 4=light 5=dark 6=holy 7=chaos 8=shadow.
 	var party3: Array = ordered.slice(0, 3)
 	var team_delta := _team_buff_delta(party3)
 	_active_team_buffs = _team_buff_list(party3)
+	_team_races = _party_race_keys(party3)   # 조합 연출(CombineElements)이 쓰는 속성 3종
 
 	for i in mini(3, ordered.size()):
 		var d: Dictionary = ordered[i]
@@ -443,6 +446,9 @@ func _setup_party() -> void:
 			# 개체 등급(§K-10). 각성스킬 18·100 이 아군끼리 비교할 때 쓴다.
 			"grade": Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
 				d.get("gain_log", []), Data.level_curve.get("grade", {})),
+			# 전투 유형(원작 `Dragon::getAttackType`) = dragons.json 의 `type`.
+			# 해골요새 특수 장비가 공격자/방어자 양쪽 유형을 본다(`Battle` 의 `dmg_deal_vs_type`).
+			"atk_type": String(ddef.get("type", "")),
 		})
 	_apply_awaken_skills()
 
@@ -476,6 +482,7 @@ func _apply_awaken_skills() -> void:
 		st["awaken_no"] = int(pd.get("awaken_skill", 0))
 		st["grade"] = float(pd.get("grade", 0.0))
 		st["dragon_id"] = int(pd.get("id", 0))
+		st["atk_type"] = String(pd.get("atk_type", ""))
 		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
 		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
 		pa.append(c)
@@ -511,23 +518,41 @@ func _apply_awaken_skills() -> void:
 ## ⚠️ race_dim=element는 ASSUMPTION(원작 DragonRace id 유실 — 위키가 "속성 조합 버프"라 부르는 근거).
 ## 활성 팀버프 목록(연출용). 원작 TeamBuff::createIcon 이 아이콘을 만드는 그 목록이다.
 var _active_team_buffs: Array = []
-func _team_buff_list(party: Array) -> Array:
+## 파티 3마리의 속성 키 — 조합 연출 `CombineElements` 의 진입 데이터(원작 combine() 이
+## `Dragon::getRace()` 로 뽑아 `this+0x198/0x1a0/0x1a8` 에 넣는 그 3개).
+var _team_races: Array = []
+
+## 파티 → race 키 목록. race_dim 은 테이블이 선언한다(현재 element, 위 근거로 확정).
+func _party_race_keys(party: Array) -> Array:
 	var table: Dictionary = Data.team_buffs
-	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
-		return []
 	var race_dim := String(table.get("race_dim", "element"))
 	var race_keys: Array = []
 	for d in party:
 		race_keys.append(String(Data.get_dragon(int(d["id"])).get(race_dim, "")))
-	return TeamBuff.active_buffs(race_keys, table)
+	return race_keys
 
-## 활성 팀버프 배지 — 원작 `TeamBuff::createIcon`(TeamBuff.c:658-669)이
-## `battle/<res>/combine_outline.png` 위에 `combine_mark.png` 를 겹쳐 만든다. 그대로 재현한다.
+func _team_buff_list(party: Array) -> Array:
+	var table: Dictionary = Data.team_buffs
+	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
+		return []
+	return TeamBuff.active_buffs(_party_race_keys(party), table)
+
+## 활성 팀버프 배지 — 아이콘 조립만 원작 `TeamBuff::createIcon`(TeamBuff.c:658-669)을 따른다
+## (`battle/<res>/combine_outline.png` 위에 `combine_mark.png` 를 겹친다).
 ## res 이름 = team_buffs.json 의 img (Combine1..24 ↔ battle/* 폴더 1:1 확인분).
+##
+## ⚠️ **배치는 자작이다.** `createIcon` 호출자를 전수 조회하면 `SkinPopup` 하나뿐이고
+##    (`grep -rn createIcon docs/ref/orig_code/decomp/`), 원작 전투 HUD 에는 이 배지가 없다.
+##    원작이 조합 버프를 알리는 방법은 전투 시작 직전의 **연출**(`CombineElementsLayer`,
+##    `docs/ref/porting/CombineElementsLayer.md`) 이다 — 그건 `_maybe_team_buff_intro` 로 이식했다.
+##    지울지 남길지는 사용자 판단이라 남겨 두되, 크기 버그만 고친다.
+## 🔴 2026-07-31 수정: 배지 배율이 `ASSET_SCALE*0.5` 였다 — combine_outline 프레임이 411px 라
+##    한 변 274pt 짜리 원판이 EXP HUD 를 덮고 있었다(3마리 파티 + 조합 성립 때만 나와서 여태
+##    못 봤다). 프레임 실폭에서 목표 높이로 역산한다.
+const TEAM_BADGE_PX := 52.0        # 배지 한 변(디자인 pt) — 아래 x 간격(58)에 맞춘 값
 func _build_team_buff_badges() -> void:
 	if _active_team_buffs.is_empty():
 		return
-	var S := Design.ASSET_SCALE
 	var lay := CanvasLayer.new(); lay.layer = 8; add_child(lay)
 	var x := 18.0
 	for b in _active_team_buffs:
@@ -536,14 +561,18 @@ func _build_team_buff_badges() -> void:
 			continue                     # 25~30(그림자 계열)은 구판 덤프에 아이콘 없음
 		var dir := "battle_combine_%s" % res
 		var holder := Node2D.new()
-		holder.position = Vector2(x + 26.0, 118.0)
+		# EXP 바(y≈115)와 미션 2줄(y≈172/238) 아래로 내린다 — 종전 y=118 은 EXP 바를 덮었다.
+		holder.position = Vector2(x + 26.0, 296.0)
 		lay.add_child(holder)
+		var man := _man(dir)
+		var ow := float((man.get("battle_%s_combine_outline" % res, {}) as Dictionary).get("w", 0))
+		var k: float = (TEAM_BADGE_PX / ow) if ow > 0.0 else 0.125
 		for frame in ["combine_outline", "combine_mark"]:
 			var pth := "res://assets/converted/%s/battle_%s_%s.tres" % [dir, res, frame]
 			if not ResourceLoader.exists(pth):
 				continue
 			var sp := Sprite2D.new(); sp.texture = load(pth); sp.material = _pma
-			sp.scale = Vector2(S * 0.5, S * 0.5)
+			sp.scale = Vector2(k, k)
 			holder.add_child(sp)
 		var nm := Label.new(); nm.text = String((b as Dictionary).get("name", ""))
 		nm.add_theme_font_size_override("font_size", 13)
@@ -551,7 +580,7 @@ func _build_team_buff_badges() -> void:
 		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 		nm.add_theme_constant_override("outline_size", 4)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nm.size = Vector2(96, 18); nm.position = Vector2(x - 22.0, 146.0)
+		nm.size = Vector2(96, 18); nm.position = Vector2(x - 22.0, 324.0)
 		lay.add_child(nm)
 		x += 58.0
 
@@ -559,12 +588,35 @@ func _team_buff_delta(party: Array) -> Dictionary:
 	var table: Dictionary = Data.team_buffs
 	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
 		return {}
-	var race_dim := String(table.get("race_dim", "element"))
-	var race_keys: Array = []
-	for d in party:
-		var ddef := Data.get_dragon(int(d["id"]))
-		race_keys.append(String(ddef.get(race_dim, "")))
-	return TeamBuff.typed_for_party(race_keys, table)
+	return TeamBuff.typed_for_party(_party_race_keys(party), table)
+
+## 조합 연출(원작 `AdventureScene::setCheckTeamBuff`, AdventureScene.c:55692) — 전투 개시 직전.
+## 원작 원문:
+##   if (아직 안 틀었음 && 3슬롯 전원 && 레이드 아님) {
+##       layer = CombineElementsLayer::create(d0,d1,d2);
+##       runningScene->addChild(layer, 1000); layer->active();
+##       runAction(Seq(DelayTime(layer->getDuration()), CallFunc(setEventFightStart)));
+##   } else setEventFightStart(this);
+## ⇒ **연출이 끝날 때까지(7초) 전투 시작을 미룬다.** 우리는 `_run_and_replay()` 를 그만큼 늦춘다.
+## 재생 대상은 **첫 번째로 발동한 버프 하나**(원작 combine() 이 첫 발동에서 루프를 끊는다).
+## 연출 상세 = `docs/ref/porting/CombineElementsLayer.md`.
+func _maybe_team_buff_intro() -> void:
+	var gen := _gen
+	var buff: Dictionary = _active_team_buffs[0] if not _active_team_buffs.is_empty() else {}
+	# 원작 this[0x39a] = "이 탐험에서 한 번만". 우리 전투 씬은 조우마다 새로 생기므로 탐험 키로 판별.
+	var run_key := "%s:%d" % [String(_params.get("stage", "")), int(_params.get("run_seed", 0))]
+	if buff.is_empty() or not CombineElements.can_play(run_key, _team_races.size(), buff):
+		_run_and_replay()
+		return
+	var layer := CombineElements.play(self, _team_races, buff, Data.team_buffs)
+	if layer == null:
+		_run_and_replay()
+		return
+	CombineElements.mark_played(run_key)
+	await get_tree().create_timer(CombineElements.DURATION).timeout
+	if gen != _gen or not is_inside_tree():
+		return
+	_run_and_replay()
 
 ## 전투에 나가는 스킬 = **장착 2칸에 꽂힌 것만**(원작 `Dragon::getSkill(0/1)`).
 ## 학습 풀(`dragon_skills`)은 가지고만 있는 목록이라 전투에 안 나간다 — 종전엔 풀 전체를 넘겼다.
@@ -1345,6 +1397,7 @@ func _run_and_replay() -> void:
 		c["awaken_no"] = int(pd.get("awaken_skill", 0))
 		c["grade"] = float(pd.get("grade", 0.0))
 		c["dragon_id"] = int(pd.get("id", 0))
+		c["atk_type"] = String(pd.get("atk_type", ""))
 		c["awaken_gauge"] = float(pd.get("awaken_gauge", 0.0))   # 97 하얀매의 친구
 		for e in (pd.get("awaken_effects", []) as Array):
 			(c["effects"] as Array).append((e as Dictionary).duplicate())

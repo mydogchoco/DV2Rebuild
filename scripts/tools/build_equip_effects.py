@@ -198,14 +198,45 @@ SPECIAL = {
     "fiod:피오드의 빛을 잃은 마석": {"impl": False, "why": "engine — 각성기 피격 피해 상한(고정값)"},
     "fiod:피오드의 텅 빈 모래시계": {
         "impl": False, "why": "engine — 타겟 최대 체력 비례 추가 피해(최대 300)"},
-    # 해골요새 6종은 전부 "<유형>형 드래곤을 공격 시 25% 추가 대미지" + "<유형>형이 장착 시 …" 라
-    # **전투 유형(체방형/공방형 등)** 을 봐야 한다. 우리 전투원은 속성만 알고 유형을 모른다.
-    "skull:엘더 블랙퀸의 스태프": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
-    "skull:엘더 블랙퀸의 목걸이": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
-    "skull:엘더 블랙퀸의 목도리": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
-    "skull:G스컬의 은빛망토": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
-    "skull:G스컬의 붉은장갑": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
-    "skull:G스컬의 영혼불길": {"impl": False, "why": "engine — 상대/자신의 전투 유형 참조"},
+    # ── 해골요새 6종 — **전투 유형**(체방형/공방형 등) 두 축 ────────────────────
+    # 앞 조항 = "<유형>형 드래곤을 **공격 시** 25% 추가 대미지" → `dmg_deal_vs_type`(방어자 유형)
+    # 뒤 조항 = "<유형>형 드래곤이 **장착 시** …"                → cond `self_type`(착용자 유형)
+    # 유형 값은 `dragons.json` 의 `type`(원작 `Dragon::getAttackType`)이라 새 데이터가 없다:
+    #   atk 공격형 · hp 체력형 · def 방어형 · hd 체방형 · ha 체공형 · ad 공방형
+    #
+    # ⚠️ **앞 조항은 PvE 에서 걸리지 않는다.** 원문이 "…형 **드래곤**을 공격 시" 인데 오프라인
+    #    전투의 상대는 몬스터이고, `monsters.json` 에는 전투 유형 열이 없다(form/size 뿐).
+    #    유형을 지어내지 않고(HARD RULE 6) 기구만 정확히 두었다 — 드래곤을 상대하는 전투가
+    #    생기면 그날 자동으로 걸린다. 그래서 `partial` 에 그 사실을 적는다.
+    "skull:엘더 블랙퀸의 스태프": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="hd"),
+                op("stat", stat="evd", mode="flat", value=10,
+                   cond={"kind": "self_type", "value": "def"})],
+        "partial": "앞 조항(체방형 드래곤 공격 시 +25%)은 몬스터에 전투 유형이 없어 PvE 에서 안 걸린다"},
+    "skull:엘더 블랙퀸의 목걸이": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="def")],
+        "impl": True,
+        "partial": "'체력형이 장착 시 체력 추가 한계량 20% 증가' 는 원문의 '추가 한계량'이 "
+                   "무엇의 한계인지 위키에 정의가 없어 미반영"},
+    "skull:엘더 블랙퀸의 목도리": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="ad"),
+                op("skill_dmg_taken", pct=-10,
+                   cond={"kind": "self_type", "value": "hd"})]},
+    "skull:G스컬의 은빛망토": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="ha"),
+                # [신의 분노](36)가 [망각의 망치](56)의 효과를 받지 않는다 → 망각 면역 플래그.
+                op("flag", flag="oblivion_immune",
+                   cond={"kind": "self_type", "value": "ad"})]},
+    "skull:G스컬의 붉은장갑": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="hp"),
+                op("stat", stat="cri_pow", mode="flat", value=100,
+                   cond={"kind": "self_type", "value": "atk"})]},
+    "skull:G스컬의 영혼불길": {
+        "ops": [op("dmg_deal_vs_type", pct=25, atk_type="atk"),
+                op("stat", stat="hp", mode="pct", value=15,
+                   cond={"kind": "self_type", "value": "ha"}),
+                op("stat", stat="att", mode="pct", value=15,
+                   cond={"kind": "self_type", "value": "ha"})]},
 }
 
 

@@ -110,6 +110,31 @@ COMBINE = {
     30: ({"earth": 2, "light": 1},           "신기루(사막 아지랑이) = 대지2+빛1"),
 }
 
+# ── 표시용 스탯 이름·순서 — 원작 연출(CombineElementsLayer)이 쓰는 그대로 ──────────
+# `TeamBuff::getOptions`(TeamBuff.c:918-1490)는 11개 스탯 필드(this+0x68 … +0x90)를
+# **이 순서대로** 훑으며 값이 0 이 아닌 것만 `"<이름> <값>"` 한 줄로 만든다.
+# 값 포맷은 스택 인라인 상수로 박혀 있다: `{#77ff2c:+%2d%%}`(HP/DEF/EVD/BLK, 초록)
+#   `{#f7152e:+%2d%%}`(ATK/CRI/CRIPW/SPECIAL/ACC, 빨강) `{#fbed42:+%2d%}`(PURE/ANTI_PURE, 노랑).
+# `{#rrggbb:…}` 는 CCLabelBMFontEx 인라인 색 태그지만 **생성 직후 setColor(WHITE)** 로 덮이므로
+# 화면에는 흰 글씨로만 나온다(레퍼런스 docs/ref/TeamBuff/21.png 와 일치) → 색은 옮기지 않는다.
+STAT_ORDER = ["hp", "att", "def", "evd", "cri", "blk",
+              "pure", "cri_pow", "depure", "awaken_rate", "accuracy"]
+
+# 이름은 같은 xml 의 <CombineHP> … <CombineACC> 를 그대로 읽는다(아래 build()).
+# 🔴 단 하나 예외 — CRI. 이 xml 은 "크리티컬"이라고 적었는데 **원작 출시 빌드는 "치명"** 이다.
+#    근거 2가지: (1) 레퍼런스 영상 docs/ref/TeamBuff/21.png 가 "치명 + 5%".
+#    (2) 그 연출이 쓰는 폰트 font/font_combine.fnt 의 한글 글리프 136자에 '치'·'명'은 있고
+#        '티'·'컬'이 **없다**. BMFont 는 그 빌드가 실제로 쓴 글자만 굽는다 ⇒ xml 쪽이 다른 판본.
+#    (같은 이유로 '관/통/각/률/중'도 없어 PURE/SPECIAL/ACC 이름은 그 폰트로 못 찍는다.
+#     다만 버프 1~24 는 그 스탯을 하나도 안 쓰고, 쓰는 25~30 은 아이콘이 없어 연출 자체를 생략한다.)
+LABEL_OVERRIDE = {"cri": "치명"}
+LABEL_TAG = {   # 우리 키 → xml 태그
+    "hp": "CombineHP", "att": "CombineATK", "def": "CombineDEF", "evd": "CombineEVD",
+    "cri": "CombineCRI", "blk": "CombineBLK", "pure": "CombinePURE",
+    "cri_pow": "CombineCRIPW", "depure": "CombineANTI_PURE",
+    "awaken_rate": "CombineSPECIAL", "accuracy": "CombineACC",
+}
+
 TOKEN = re.compile(r"([A-Z_]+)\+(\d+)")
 
 
@@ -153,6 +178,9 @@ def build() -> dict:
         buffs.append(entry)
     if unknown:
         print(f"  ! 미등록 스탯 약어: {sorted(unknown)}", file=sys.stderr)
+    labels = {}
+    for key, tag in LABEL_TAG.items():
+        labels[key] = LABEL_OVERRIDE.get(key) or read_tag(text, tag) or key
     return {
         "_re_basis": (
             "원작 info_dragon_team_buf(no/name/combine/effect/img). "
@@ -167,8 +195,21 @@ def build() -> dict:
         ),
         "race_dim": "element",
         "_race_dim_note": (
-            "ASSUMPTION: 원작 DragonRace id 유실. 후보=element(9속성). "
-            "원작 UI 문자열이 이 기능을 '조합(Combine)'으로 부르고 위키는 '속성 조합 버프'라 부른다 → element 가 유력."
+            "✅ 2026-07-31 확정 — 더 이상 ASSUMPTION 이 아니다. "
+            "CombineElementsLayer::combine(decomp CombineElementsLayer.c:1341-1394)이 "
+            "Dragon::getRace() 반환값을 문자열로 바꾸는 switch 를 그대로 갖고 있다: "
+            "0=earth 1=aqua 2=fire 3=wind 4=light 5=dark 6=holy 7=chaos 8=shadow. "
+            "우리 element 축(9속성)과 이름까지 1:1 이다."
+        ),
+        "stat_order": STAT_ORDER,
+        "stat_labels": labels,
+        "_stat_note": (
+            "연출(CombineElementsLayer)이 효과 줄을 만드는 순서·이름. TeamBuff::getOptions 가 "
+            "11개 스탯 필드를 stat_order 순으로 훑어 값이 0 이 아닌 것만 '<이름> +N%' 로 찍는다. "
+            "이름 출처 = stringsData_KR.xml <CombineHP…ACC>. "
+            "🔴 cri 만 '치명'으로 덮어썼다 — 레퍼런스 docs/ref/TeamBuff/21.png + font_combine.fnt 의 "
+            "글리프 집합('치·명' 있음 / '티·컬' 없음)이 출시 빌드 표기를 특정한다. "
+            "상세 = docs/ref/porting/CombineElementsLayer.md §5."
         ),
         "effect_mode": "typed",
         "_effect_mode_note": (

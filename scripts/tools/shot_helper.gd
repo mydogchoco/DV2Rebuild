@@ -56,6 +56,16 @@ func _ready() -> void:
 				for rep in 20:
 					bs.call("_play_skill_spine", sid, bs.get("_views").get("E0", {}))
 					await get_tree().create_timer(0.4).timeout
+		"teambuff":
+			# 조합 팀버프 연출(원작 CombineElementsLayer) 통합 검수 — **전투 씬 안에서** 확인한다.
+			# 보유 드래곤 중 아이콘 있는 버프를 발동시키는 3마리를 골라 party_uids 로 넘긴다.
+			var uids := _pick_team_buff_party()
+			if uids.is_empty():
+				print("SHOT teambuff: 보유 드래곤으로 발동 가능한(아이콘 있는) 조합이 없다")
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0, "party_uids": uids, "run_seed": randi()})
 		"getitem":
 			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
 			Scenes.goto("shop", {"area": "elpis"})
@@ -2444,3 +2454,33 @@ func _all_texture_buttons(n: Node, out: Array = []) -> Array:
 	if n is TextureButton: out.append(n)
 	for c in n.get_children(): _all_texture_buttons(c, out)
 	return out
+
+## 조합 팀버프 검수용 — 보유 드래곤에서 **아이콘 있는 버프**를 발동시키는 3마리를 찾는다.
+## 원작 판정과 같은 코드(`TeamBuff.active_buffs`)로 확인하므로 "고르면 반드시 뜬다".
+func _pick_team_buff_party() -> Array:
+	var table: Dictionary = Data.team_buffs
+	var race_dim := String(table.get("race_dim", "element"))
+	var owned: Array = UserDB.dragons()
+	# 속성 → 그 속성 드래곤 uid 목록
+	var by_elem: Dictionary = {}
+	for d in owned:
+		var e := String(Data.get_dragon(int(d["id"])).get(race_dim, ""))
+		if e == "": continue
+		if not by_elem.has(e): by_elem[e] = []
+		(by_elem[e] as Array).append(int(d["uid"]))
+	for b in (table.get("buffs", []) as Array):
+		var buff: Dictionary = b
+		if String(buff.get("img", "")) == "": continue     # 아이콘 없는 25~30 은 연출을 생략한다
+		var need: Dictionary = buff.get("combine", {})
+		var uids: Array = []
+		var ok := true
+		for e in need:
+			var pool: Array = by_elem.get(String(e), [])
+			if pool.size() < int(need[e]):
+				ok = false; break
+			for i in int(need[e]): uids.append(pool[i])
+		if ok and uids.size() == 3:
+			print("SHOT teambuff: no=%d %s combine=%s uids=%s" % [
+				int(buff["no"]), buff["name"], str(need), str(uids)])
+			return uids
+	return []

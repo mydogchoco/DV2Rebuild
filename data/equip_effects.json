@@ -881,44 +881,132 @@
    "text": "공격 시 타겟의 최대 체력 1마다 0.002%의 타겟 최대 체력 비례 추가대미지(최대 300)"
   },
   "skull:엘더 블랙퀸의 스태프": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "hd"
+    },
+    {
+     "kind": "stat",
+     "stat": "evd",
+     "mode": "flat",
+     "value": 10,
+     "cond": {
+      "kind": "self_type",
+      "value": "def"
+     }
+    }
+   ],
+   "partial": "앞 조항(체방형 드래곤 공격 시 +25%)은 몬스터에 전투 유형이 없어 PvE 에서 안 걸린다",
+   "impl": true,
    "react": [],
    "text": "체방형 드래곤을 공격 시 25% 추가 대미지, 방어형 드래곤이 장착 시 회피율 10% 상승"
   },
   "skull:엘더 블랙퀸의 목걸이": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "def"
+    }
+   ],
+   "impl": true,
+   "partial": "'체력형이 장착 시 체력 추가 한계량 20% 증가' 는 원문의 '추가 한계량'이 무엇의 한계인지 위키에 정의가 없어 미반영",
    "react": [],
    "text": "방어형 드래곤을 공격 시 25% 추가 대미지, 체력형 드래곤이 장착 시 체력 추가 한계량 20% 증가"
   },
   "skull:엘더 블랙퀸의 목도리": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "ad"
+    },
+    {
+     "kind": "skill_dmg_taken",
+     "pct": -10,
+     "cond": {
+      "kind": "self_type",
+      "value": "hd"
+     }
+    }
+   ],
+   "impl": true,
    "react": [],
    "text": "공방형 드래곤 공격 시 25% 추가 대미지, 체방형 드래곤이 장착 시 스킬에 입는 피해 10% 감소"
   },
   "skull:G스컬의 은빛망토": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "ha"
+    },
+    {
+     "kind": "flag",
+     "flag": "oblivion_immune",
+     "cond": {
+      "kind": "self_type",
+      "value": "ad"
+     }
+    }
+   ],
+   "impl": true,
    "react": [],
    "text": "체공형 드래곤을 공격 시 25% 추가 대미지, 공방형 드래곤이 장착 시 [신의 분노]가 [망각의 망치] 효과를 받지 않음"
   },
   "skull:G스컬의 붉은장갑": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "hp"
+    },
+    {
+     "kind": "stat",
+     "stat": "cri_pow",
+     "mode": "flat",
+     "value": 100,
+     "cond": {
+      "kind": "self_type",
+      "value": "atk"
+     }
+    }
+   ],
+   "impl": true,
    "react": [],
    "text": "체력형 드래곤을 공격 시 25% 추가 대미지, 공격형 드래곤이 장착 시 크리티컬 파워 100% 상승"
   },
   "skull:G스컬의 영혼불길": {
-   "impl": false,
-   "why": "engine — 상대/자신의 전투 유형 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "dmg_deal_vs_type",
+     "pct": 25,
+     "atk_type": "atk"
+    },
+    {
+     "kind": "stat",
+     "stat": "hp",
+     "mode": "pct",
+     "value": 15,
+     "cond": {
+      "kind": "self_type",
+      "value": "ha"
+     }
+    },
+    {
+     "kind": "stat",
+     "stat": "att",
+     "mode": "pct",
+     "value": 15,
+     "cond": {
+      "kind": "self_type",
+      "value": "ha"
+     }
+    }
+   ],
+   "impl": true,
    "react": [],
    "text": "공격형 드래곤을 공격 시 25% 추가 대미지, 체공형 드래곤이 장착 시 전투 중 체력·공격력 15% 증가"
   }

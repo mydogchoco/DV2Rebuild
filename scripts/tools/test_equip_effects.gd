@@ -124,8 +124,79 @@ func _init() -> void:
 			B.resolve_attack(foe, ev, rr, cfg, sdb)
 		_true("한도를 넘지 않는다", int((ev["skill_uses"] as Dictionary).get(sid, 0)) <= full)
 
+	# 10) 전투 유형(해골요새 6종) — 앞 조항은 **방어자 유형**, 뒤 조항은 **착용자 유형**.
+	_test_atk_type(tbl, cfg)
+
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
+
+
+## 해골요새 장비 — `dmg_deal_vs_type`(방어자 유형) + cond `self_type`(착용자 유형).
+func _test_atk_type(tbl: Dictionary, cfg: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	# 앞 조항: 엘더 블랙퀸의 스태프 = 체방형(hd) 을 공격할 때만 +25%
+	var base_hd := _duel_type(tbl, cfg, rng, [], "hd")
+	var buff_hd := _duel_type(tbl, cfg, rng, ["special:skull:엘더 블랙퀸의 스태프"], "hd")
+	var buff_atk := _duel_type(tbl, cfg, rng, ["special:skull:엘더 블랙퀸의 스태프"], "atk")
+	var base_atk := _duel_type(tbl, cfg, rng, [], "atk")
+	_true("체방형 상대에게 피해 증가 (%d → %d)" % [base_hd, buff_hd], buff_hd > base_hd)
+	_eq("다른 유형 상대엔 변화 없음", buff_atk, base_atk)
+	# ⚠️ 몬스터는 전투 유형이 없다(monsters.json 에 열 자체가 없다) → PvE 에선 안 걸린다.
+	var mon := _duel_type(tbl, cfg, rng, ["special:skull:엘더 블랙퀸의 스태프"], "")
+	_eq("유형 없는 상대(몬스터)엔 변화 없음", mon, _duel_type(tbl, cfg, rng, [], ""))
+
+	# 뒤 조항: 착용자 유형이 맞을 때만 걸린다.
+	for row in [
+		["special:skull:엘더 블랙퀸의 스태프", "def", "evd", 10],
+		["special:skull:G스컬의 붉은장갑", "atk", "cri_pow", 100],
+	]:
+		var key := String(row[0])
+		var need := String(row[1])
+		var stat := String(row[2])
+		var want := int(row[3])
+		var ok := _mk_type("OK", need, {"evd": 0, "cri_pow": 0}, [key])
+		EE.apply_battle([ok], [], tbl, {})
+		_eq("%s — %s형이 장착: %s +%d" % [key, need, stat, want], B._eff(ok, stat), want)
+		var no := _mk_type("NO", "hp", {"evd": 0, "cri_pow": 0}, [key])
+		EE.apply_battle([no], [], tbl, {})
+		_eq("%s — 다른 유형이면 무효" % key, B._eff(no, stat), 0)
+
+	# G스컬의 영혼불길 — 체공형(ha) 장착 시 체력·공격력 15%
+	var soul := _mk_type("SO", "ha", {"hp": 1000, "att": 100}, ["special:skull:G스컬의 영혼불길"])
+	EE.apply_battle([soul], [], tbl, {})
+	_eq("영혼불길 — 체력 +15%", int(soul["hp_max"]), 1150)
+	_eq("영혼불길 — 공격력 +15%", B._eff(soul, "att"), 115)
+
+	# 엘더 블랙퀸의 목도리 — 체방형(hd) 장착 시 **스킬 피해만** 10% 감소(평타는 그대로).
+	var sc := _mk_type("SC", "hd", {"hp": 100000, "def": 0}, ["special:skull:엘더 블랙퀸의 목도리"])
+	EE.apply_battle([sc], [], tbl, {})
+	var foe := _mk_type("F", "atk", {"att": 100}, [])
+	var plain := _mk_type("PL", "hd", {"hp": 100000, "def": 0}, [])
+	var d_skill := int(B._deal_attack(foe, sc, 1000, true, rng, cfg, {})["damage"])
+	var d_skill0 := int(B._deal_attack(foe, plain, 1000, true, rng, cfg, {})["damage"])
+	var d_norm := int(B._deal_attack(foe, sc, 1000, false, rng, cfg, {})["damage"])
+	var d_norm0 := int(B._deal_attack(foe, plain, 1000, false, rng, cfg, {})["damage"])
+	_true("스킬 피해 감소 (%d → %d)" % [d_skill0, d_skill], d_skill < d_skill0)
+	_eq("평타 피해는 그대로", d_norm, d_norm0)
+
+
+## 전투 유형을 가진 전투원.
+func _mk_type(nm: String, ty: String, stats: Dictionary, keys: Array) -> Dictionary:
+	var st := stats.duplicate()
+	st["equip_keys"] = keys
+	st["atk_type"] = ty
+	return B.make_combatant(nm, "ally", "wind", st)
+
+
+## 공격 1회의 피해 — 방어자 **전투 유형**만 바꿔 가며 비교(속성은 같게 고정).
+func _duel_type(tbl: Dictionary, cfg: Dictionary, rng: RandomNumberGenerator,
+		keys: Array, def_type: String) -> int:
+	var a := _mk_type("A", "atk", {"att": 200, "def": 50, "cri": 0, "evd": 0, "blk": 0}, keys)
+	var d := _mk_type("D", def_type,
+		{"hp": 999999, "att": 1, "def": 100, "cri": 0, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([a], [d], tbl, {})
+	rng.seed = 4242
+	return int(B.resolve_attack(a, d, rng, cfg, {})["damage"])
 
 
 ## 전투원 하나 만들기(장착 키 포함).
