@@ -76,6 +76,25 @@ STRINGS = REPO / "DV2" / "string" / "stringsData_KR.xml"
 PROLOGUE_MAX = 34          # <PrologueTalk0..34>
 TUTORIAL_OFFSET = 36       # 인덱스 N(≥37) → <Tutorial_(N-36)>
 
+## 대상 프레임 → 우리 씬이 등록한 안내 대상 id(`guide_target`). 프레임이 곧 근거다.
+FRAME_TARGET = {
+    "scene/worldmap/ma_btn_cave_image.png": "cave",
+    "scene/cave/bag.png": "bag",
+    "scene/cave/book.png": "book",
+    "scene/cave/card.png": "card",
+    "stand/stand1.png": "stand",
+}
+## 프레임 리터럴이 없는 스텝의 대상 — **원작 대사가 무엇을 가리키는지 말해 준다**.
+## 각 항목의 근거를 대사 원문으로 남긴다(추측 아님, 문면 근거).
+TALK_TARGET = {
+    "SN_0_45": ("dragon_list", "Tutorial_9 '동굴 왼쪽에서 내가 갖고 있는 드래곤들을 볼 수 있습니다.'"),
+    "SN_0_48": ("skin", "Tutorial_12 '동굴의 스킨과 드래곤의 스탠드를 변경하는 아이콘입니다.'"),
+    "SN_0_58": ("slot_item", "Tutorial_22 '이곳은 전투 아이템 슬롯입니다.'"),
+    "SN_0_60": ("slot_gem", "Tutorial_24 '이곳은 장착 젬 슬롯 입니다.'"),
+    "SN_0_63": ("slot_skill", "Tutorial_27 '이곳은 스킬 슬롯입니다.'"),
+    "SN_0_69": ("slot_gem", "Tutorial_33 '젬과 전투 아이템을 모두 장착했어요!'"),
+}
+
 BRANCH = re.compile(r'memcmp\(\w+,"(SN_0_[0-9A-Za-z_]+)"')
 ARROW = re.compile(r'setScNextArrow\(\(ScenarioLayer \*\)(0x[0-9a-f]+|0),\w+,\w+,(0x[0-9a-f]+|\d+),(\w+)\)')
 FRAME = re.compile(r'"((?:scene|common|stand)/[A-Za-z0-9_/]+\.png)"')
@@ -136,6 +155,18 @@ def main() -> int:
         frames = [f for f in dict.fromkeys(FRAME.findall(blk)) if not f.startswith("scene/cave/tap_")]
         if frames:
             st["frames"] = frames
+        # 화살표 대상. **TALK_TARGET 이 우선**한다 — memcmp 블록 경계가 정확히 그 분기의 끝이라는
+        # 보장이 없어(다음 분기의 리터럴이 딸려 오는 일이 있다) 프레임만 믿으면 어긋난다.
+        # 실측: `SN_0_48` 은 프레임으로는 book 이 잡히는데 대사는 Tutorial_12(스킨/단상)이고,
+        # 바로 다음 `SN_0_51` 의 대사가 Tutorial_15 '드래곤 도감입니다!' 다 ⇒ book 은 흘러든 것.
+        if key in TALK_TARGET:
+            st["target"], st["target_basis"] = TALK_TARGET[key]
+        else:
+            for f in frames:
+                if f in FRAME_TARGET:
+                    st["target"] = FRAME_TARGET[f]
+                    st["target_basis"] = "원작 프레임 %s" % f
+                    break
         if "CaveScene::scene(0)" in blk:
             st["action"] = "enter_cave"
         elif "CaveScene::onClickNicName" in blk:

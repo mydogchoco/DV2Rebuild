@@ -221,11 +221,16 @@ func _ready() -> void:
 			# ⚠️ 세이브를 건드리지 않으려고 begin_batch 로 연다.
 			UserDB.begin_batch()
 			var tu_step := ""
+			var tu_scene := "worldmap"        # --scene=cave 로 동굴 스텝 검수
 			for a7 in OS.get_cmdline_user_args():
 				if a7.begins_with("--step="): tu_step = a7.substr(7)
+				elif a7.begins_with("--scene="): tu_scene = a7.substr(8)
 			UserDB.set_pmeta("tutorial_done", false)
 			UserDB.set_pmeta("tutorial_step", tu_step)
 			Scenes.goto("worldmap", {"region": "yutakan"})
+			if tu_scene != "worldmap":
+				for i in 10: await get_tree().process_frame
+				Scenes.goto(tu_scene, {})
 			for i in 25: await get_tree().process_frame
 			var tu_app := get_tree().current_scene
 			if tu_app != null and tu_app.has_method("start_tutorial"):
@@ -2316,11 +2321,24 @@ func _ready() -> void:
 						UserDB.item_count("level_up"), "  갱신됨=", li_lv2 == li_lv + 1)
 		"lvtriple":
 			# 트리플맥스 컷인 검증 — 데르사의 축복(guarantee=triple)을 슬롯에서 실제로 클릭한다.
+			# `--stage=baby|child|adult` 로 성장 단계를 강제한다(사용자 신고 2026-07-31:
+			# 해치/해츨링에서 트리플맥스 컷인이 안 뜬다). begin_batch = 디스크 미기록.
+			UserDB.begin_batch()
+			Scenes.goto("cave", {})
 			for i in 30: await get_tree().process_frame
 			var tp_cv := _find_method_node(get_tree().root, "_open_levelup")
 			if tp_cv == null:
 				print("SHOT: _open_levelup 노드 없음")
 			else:
+				var tp_uid := UserDB.active_uid()
+				var tp_want := int({"baby": 5, "child": 15, "adult": 30}.get(stage, 0))
+				if tp_want > 0:
+					while int(UserDB.get_dragon(tp_uid).get("level", 1)) > tp_want:
+						UserDB.level_down(tp_uid)
+					while int(UserDB.get_dragon(tp_uid).get("level", 1)) < tp_want:
+						UserDB.level_up_with(tp_uid, {"hp": 3, "att": 1, "def": 1})
+				if UserDB.item_count("bless_of_dersa") <= 0:
+					UserDB.add_item("bless_of_dersa", 3)
 				tp_cv.call("_open_levelup")
 				for i in 20: await get_tree().process_frame
 				var tp_btn := _find_button_tooltip_prefix(get_tree().root, Data.item_name("bless_of_dersa"))
@@ -2329,11 +2347,21 @@ func _ready() -> void:
 				else:
 					var tc := tp_btn as Control
 					_click_at(get_viewport().get_screen_transform() * tc.get_global_rect().get_center())
-					for i in 12: await get_tree().process_frame   # 컷인이 떠 있는 동안 캡처되도록 짧게
+					# 컷인은 타임라인 끝(3MAX 뱃지 착지)에 뜬다 — 최대 25초까지 **폴링**한다.
+					# (종전 12프레임 고정 관측은 늘 이르러서 어느 단계든 빈손이었다.)
+					var tp_t := 0.0
 					var tt: Array = []
-					_collect_labels(get_tree().root, "트리플", tt)
-					print("SHOT lvtriple: 컷인 문구=", tt, "  레벨=",
-						int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)))
+					while tp_t < 25.0:
+						tt.clear()
+						_collect_labels(get_tree().root, "트리플", tt)
+						if not tt.is_empty(): break
+						await get_tree().process_frame
+						tp_t += get_process_delta_time()
+					var tp_d: Dictionary = UserDB.get_dragon(tp_uid)
+					print("SHOT lvtriple: stage=",
+						Growth.stage_for_level(int(tp_d.get("level", 1))),
+						"  레벨=", tp_d.get("level"), "  id=", tp_d.get("id"),
+						"  컷인문구=", tt, "  등장t=%.1fs" % tp_t)
 		"lvreroll":
 			# 리롤 버튼 재현 — 실제 마우스 이벤트를 주입해 "입력이 안 닿는가 / 표시가 안 바뀌는가"를 가른다.
 			Scenes.goto("cave", {})

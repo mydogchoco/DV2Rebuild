@@ -191,6 +191,8 @@ func _build_stage() -> void:
 	_dragon_btn.position = Vector2(vis.x / 2.0 - bs / 2.0, vis.y / 2.0 - bs / 2.0 - 26.0)   # ASSUMPTION: 드래곤 몸통 위치에 맞춰 F5 보정
 	_dragon_btn.pressed.connect(_on_dragon_clicked)
 	add_child(_dragon_btn)
+	# 튜토리얼 Tutorial_41(받침대 위 드래곤 + 버프 말풍선) 대상 — 원작 `stand/stand1.png`.
+	_guide_targets["stand"] = _dragon_btn
 
 ## 좌측 둥지 목록 — 원작 `CaveScene::setLeftWallLayer` + `addScroll` 1:1.
 ##
@@ -221,6 +223,7 @@ func _build_dragon_list() -> void:
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER   # 원작 CCScrollView 는 막대 없음
 	add_child(sc)
 	_left_wall = sc   # toggleSideWalls: 좌측 벽(드래곤 목록) 슬라이드 대상
+	_guide_targets["dragon_list"] = sc   # 튜토리얼 Tutorial_9 "동굴 왼쪽에서 … 드래곤들을"
 	_list_box = VBoxContainer.new()
 	_list_box.add_theme_constant_override("separation", SLOT_GAP)
 	sc.add_child(_list_box)
@@ -246,6 +249,13 @@ func _build_bottom_bar() -> void:
 	bar.position = Vector2(12, vis.y - 150.0 * bs - 6.0)
 	add_child(bar)
 	_bottom_bar = bar   # 도감(setBottomElement)이 하단을 교체하는 동안 통째로 숨긴다
+	# 튜토리얼 대사 상자가 이 위로 올라오게(하단 슬롯을 가리키는 중에 슬롯을 가리면 안 된다).
+	var barhit := Control.new()
+	barhit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	barhit.position = bar.position
+	barhit.size = bar.size * bs
+	add_child(barhit)
+	_guide_targets["bottom_bar"] = barhit
 
 	# 등급 수치 — 원작 Cave.png 좌하단은 **원형 배지 없이 주황 숫자("6.9")만** 있다.
 	# 자작 원형 Panel(StyleBoxFlat)을 제거하고 텍스트만 남긴다.
@@ -1466,7 +1476,7 @@ func _slot_icon(parent: Control, tex: Texture2D, scale: float) -> void:
 	parent.add_child(s)
 
 ## 칸 클릭 히트박스(원작 CCMenuItemImageEx 자리).
-func _slot_hit(bar: Control, x: float, cb: Callable, tip := "") -> void:
+func _slot_hit(bar: Control, x: float, cb: Callable, tip := "", guide := "") -> void:
 	var b := Button.new()
 	b.flat = true
 	b.position = Vector2(x, SLOT_Y)
@@ -1475,6 +1485,8 @@ func _slot_hit(bar: Control, x: float, cb: Callable, tip := "") -> void:
 		b.tooltip_text = tip
 	b.pressed.connect(cb)
 	bar.add_child(b)
+	if guide != "":
+		_guide_targets[guide] = b      # 튜토리얼 안내 화살표 대상
 
 ## 아이템(장비) 칸 — 원작 `onClickItem` → `MultyEquipPop`.
 ## ⚠️ 후기판은 `MultyEquipView`(140×140, 앵커로 2×2 4칸)를 쓰는데 그 배경 프레임
@@ -1502,7 +1514,7 @@ func _build_item_slot(bar: Control, a: Dictionary) -> void:
 		n.add_theme_constant_override("outline_size", 4)
 		n.position = Vector2(SLOT_BOX - 40, SLOT_BOX - 34)
 		base.add_child(_ignore_mouse(n))
-	_slot_hit(bar, SLOT_X_ITEM, _open_equipment, "장비 관리")
+	_slot_hit(bar, SLOT_X_ITEM, _open_equipment, "장비 관리", "slot_item")
 
 ## 젬 3칸 — 원작 setDragonInfo 젬 루프 + `onClickGem`.
 ##   빈 칸 클릭 → **가방 '젬' 탭**(`_open_gem_tab`, 사용자 확정 — 그 자리의 자작 젬선택 팝업 폐기)
@@ -1529,12 +1541,12 @@ func _build_gem_slots(bar: Control, a: Dictionary) -> void:
 				String(Gem.gem_def(gname, Data.gems).get("code", "")), tier), 0.5)
 			tip += "\n%s\n(클릭: 해제)" % _gem_line(gname, tier)
 			var slot := i
-			_slot_hit(bar, x, func(): _confirm_unequip_gem(slot), tip)
+			_slot_hit(bar, x, func(): _confirm_unequip_gem(slot), tip, "slot_gem" if i == 0 else "")
 		else:
 			# 칸 index 는 넘기지 않는다 — 가방 '젬' 탭의 "장착"이 맞는 빈 칸을 스스로 찾는다
 			# (원작 BagPopup::onClickConfirm case 2 = `Gem.fit_slot`).
 			tip += "\n비어 있음 (클릭: 가방 젬 탭)"
-			_slot_hit(bar, x, _open_gem_tab, tip)
+			_slot_hit(bar, x, _open_gem_tab, tip, "slot_gem" if i == 0 else "")
 
 ## 젬 해제 확인 — 원작은 `PopupTypeLayer` 확인창을 띄우고 confirm 에서 지운다.
 ## 원작은 해제 비용(isMEC 2/10)이 있으나 단위 표기가 없어 무료로 둔다(문서화: CaveBottomSlots.md §7).
@@ -1601,7 +1613,7 @@ func _build_skill_slots(bar: Control, a: Dictionary) -> void:
 		else:
 			tip += "\n비어 있음 (클릭: 장착)"
 		var slot3 := i
-		_slot_hit(bar, x, func(): _open_skill_select(slot3), tip)
+		_slot_hit(bar, x, func(): _open_skill_select(slot3), tip, "slot_skill" if i == 0 else "")
 	# 각성스킬 칸 — 원작은 각성했을 때만 `skill_evolution_bg` + `skill/evolution/<N>.png` 를 얹는다.
 	if bool(a.get("awakened", false)):
 		var base2 := _slot_base(bar, SLOT_X_AWAKEN, "")
@@ -1735,6 +1747,15 @@ func _toggle_side_walls() -> void:
 	if is_instance_valid(_wall_handle):
 		_wall_handle.text = "▶" if _walls_open else "◀"
 
+# ---------- 튜토리얼 안내 대상 (원작 `ScenarioLayer::setNextSelecteMode` 의 화살표 대상) ----------
+## 원작은 대상 **프레임 이름**으로 복제 버튼을 만들어 짚는다(`scene/cave/bag.png` 등).
+## 우리는 노드 구성이 달라 복제본을 만들면 원작에 없는 가짜 버튼이 생기므로, 진짜 노드를
+## 여기 등록해 두고 `TutorialGuide` 가 그걸 짚는다. 등록 id = `data/tutorial_flow.json` 의 `target`.
+var _guide_targets: Dictionary = {}
+func guide_target(id: String) -> Control:
+	var n = _guide_targets.get(id)
+	return n if is_instance_valid(n) else null
+
 func _menu_button(it: Dictionary, screen_w: float) -> void:
 	# 원작 우측메뉴 버튼: _bg(뒤) + 아이콘(앞), scale 1.2, 우측정렬. it={icon,bg,cy(cocos),dx,cb}.
 	const SCALE := 1.2
@@ -1754,6 +1775,7 @@ func _menu_button(it: Dictionary, screen_w: float) -> void:
 	b.position = Vector2(cx - bgw * 0.5, cy - bgw * 0.5)
 	b.pressed.connect(it["cb"])
 	_right_wall.add_child(b)
+	_guide_targets[icon] = b       # 튜토리얼 안내 화살표 대상(book/skin/bag/card)
 
 func _build_topbar() -> void:
 	var vis := _vis()

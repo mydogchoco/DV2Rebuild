@@ -191,29 +191,15 @@ func _run() -> void:
 	_dispatch(String(st.get("action", "")))
 
 
-## 스텝이 가리키는 화면 요소. 원작은 프레임 이름으로 대상을 만들지만(복제본), 우리는
-## **현재 씬이 등록해 둔 안내 대상**(`guide_target`)을 짚는다 — 우리 화면은 노드 구성이 달라
-## 프레임 복제본을 만들면 원작에 없는 가짜 버튼이 하나 더 생긴다.
-const FRAME_TO_TARGET := {
-	"scene/worldmap/ma_btn_cave_image.png": "cave",
-	"scene/cave/bag.png": "bag",
-	"scene/cave/book.png": "book",
-	"scene/cave/card.png": "card",
-	"stand/stand1.png": "stand",
-	"common/element_bg.png": "element",
-}
+## 스텝이 가리키는 화면 요소. 원작은 대상 **프레임의 복제 버튼**을 만들어 짚지만, 우리는
+## 노드 구성이 달라 복제본을 만들면 원작에 없는 가짜 버튼이 하나 더 생긴다 → 씬이 등록해 둔
+## 진짜 노드(`guide_target`)를 짚는다. id 와 그 근거는 `data/tutorial_flow.json` 의
+## `target`/`target_basis`(추출 = extract_tutorial_flow.py).
 func _target_for(st: Dictionary) -> Control:
-	var host := Scenes.current_scene()
-	if host == null:
+	var id := String(st.get("target", ""))
+	if id == "":
 		return null
-	for f in st.get("frames", []):
-		var id := String(FRAME_TO_TARGET.get(String(f), ""))
-		if id == "":
-			continue
-		var n = _find_guide_target(host, id)
-		if n != null:
-			return n
-	return null
+	return _find_guide_target(get_tree().root, id)
 
 
 ## 씬(또는 그 자식 HUD)이 노출한 `guide_target(id)` 를 찾는다.
