@@ -126,9 +126,189 @@ func _init() -> void:
 
 	# 10) 전투 유형(해골요새 6종) — 앞 조항은 **방어자 유형**, 뒤 조항은 **착용자 유형**.
 	_test_atk_type(tbl, cfg)
+	# 11) 소규모 훅 — 크리 순서 · 연속공격 · 동적 · 각성기 상한 · 대상 속성.
+	_test_c_hooks(tbl, cfg, sdb)
 
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
+
+
+## C 묶음 — 크리 판정 순서 · 연속공격 · 동적 항목 · 각성기 상한 · 아군 속성 대상.
+func _test_c_hooks(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+
+	# 홀리의 빛나는 양뿔 — 크리티컬 공격은 상대의 회피를 무시한다.
+	# 회피율을 최대(상한 70%)로 준 상대를 여러 번 때려, 크리인데 miss 인 경우가 **한 번도**
+	# 없어야 한다(플래그가 없으면 회피가 먼저라 크리 여부와 무관하게 빗나간다).
+	var bad := 0
+	var crits := 0
+	for t in 200:
+		var a := _mk("A", "wind", {"att": 100, "def": 10, "cri": 100},
+			["exclusive:홀리의 빛나는양뿔"])
+		var d := _mk("D", "wind", {"hp": 999999, "att": 1, "def": 10, "evd": 100}, [])
+		EE.apply_battle([a], [d], tbl, {})
+		rng.seed = 900 + t
+		var ev := B.resolve_attack(a, d, rng, cfg, {})
+		if bool(ev.get("crit", false)):
+			crits += 1
+			if bool(ev.get("miss", false)):
+				bad += 1
+	_true("크리가 실제로 났다 (%d/200)" % crits, crits > 0)
+	_eq("크리 공격은 회피당하지 않는다", bad, 0)
+
+	# 글라시아의 왕관 — 상대 회피율이 0 이면 반드시 크리(크리 확률 0 이어도).
+	var g := _mk("G", "wind", {"att": 100, "cri": 0}, ["exclusive:글라시아의 왕관"])
+	var noevd := _mk("N", "wind", {"hp": 999999, "att": 1, "def": 10, "evd": 0}, [])
+	EE.apply_battle([g], [noevd], tbl, {})
+	rng.seed = 11
+	_true("회피율 0 상대에겐 확정 크리", bool(B.resolve_attack(g, noevd, rng, cfg, {})["crit"]))
+	var g2 := _mk("G2", "wind", {"att": 100, "cri": 0}, ["exclusive:글라시아의 왕관"])
+	var hasevd := _mk("H", "wind", {"hp": 999999, "att": 1, "def": 10, "evd": 30}, [])
+	EE.apply_battle([g2], [hasevd], tbl, {})
+	var anycrit := false
+	for t2 in 30:
+		rng.seed = 300 + t2
+		hasevd["hp"] = 999999
+		if bool(B.resolve_attack(g2, hasevd, rng, cfg, {}).get("crit", false)):
+			anycrit = true
+	_true("회피율이 있으면 확정 크리가 아니다", not anycrit)
+
+	# 엔투라스의 불꽃 주먹 — 크리일 때만 방어력 절반 무시.
+	var e0 := _crit_dmg(tbl, cfg, [])
+	var e1 := _crit_dmg(tbl, cfg, ["exclusive:엔투라스의 불꽃 주먹"])
+	_true("크리 피해 증가 (%d → %d)" % [e0, e1], e1 > e0)
+	var n0 := _duel(tbl, cfg, rng, [], "wind")
+	var n1 := _duel(tbl, cfg, rng, ["exclusive:엔투라스의 불꽃 주먹"], "wind")
+	_eq("논크리 평타는 그대로", n1, n0)
+
+	# 일란의 영예의관 — 연속공격만 +50%, 평타는 그대로.
+	var d0 := _double_dmg(tbl, cfg, [])
+	var d1 := _double_dmg(tbl, cfg, ["exclusive:일란의 영예의관"])
+	_true("연속공격 피해 증가 (%d → %d)" % [d0, d1], d1 > d0)
+	_eq("평타는 그대로", _duel(tbl, cfg, rng, ["exclusive:일란의 영예의관"], "wind"), n0)
+
+	# 세크라포의 어깨보호대 — 연속공격 시 준 피해만큼 회복, 전투 중 3회 한정.
+	var s := _mk("S", "wind", {"hp": 100000, "att": 300, "cri": 0, "evd": 0, "blk": 0},
+		["exclusive:세크라포의 어깨보호대"])
+	var sv := _mk("V", "wind", {"hp": 999999, "att": 1, "def": 10, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([s], [sv], tbl, {})
+	s["hp"] = 1
+	var healed := 0
+	for t3 in 5:
+		rng.seed = 700 + t3
+		var before := int(s["hp"])
+		B.resolve_double(s, sv, rng, cfg, {})
+		if int(s["hp"]) > before:
+			healed += 1
+	_eq("연속공격 회복은 3회까지", healed, 3)
+
+	# 완숙이의 후라이팬 — 체력 20% 이하일 때만 회복 + 증뎀.
+	var w := _mk("W", "wind", {"hp": 1000, "att": 200, "cri": 0, "evd": 0, "blk": 0},
+		["exclusive:완숙이의 후라이팬"])
+	var wv := _mk("WV", "wind", {"hp": 999999, "att": 1, "def": 10, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([w], [wv], tbl, {})
+	w["hp"] = 1000
+	rng.seed = 1
+	B.resolve_attack(w, wv, rng, cfg, {})
+	_eq("체력이 넉넉하면 회복 없음", int(w["hp"]), 1000)
+	w["hp"] = 100                                   # 10% — 조건 충족
+	rng.seed = 1
+	B.resolve_attack(w, wv, rng, cfg, {})
+	_eq("체력 20% 이하면 최대체력 1% 회복", int(w["hp"]), 110)
+	B._aw_refresh_dynamic([w], [wv])                # 라운드 경계에서 동적 증뎀이 켜진다
+	_true("체력 20% 이하면 주는 피해 증가", B._dmg_deal_mult(w) > 1.0)
+	w["hp"] = 1000
+	B._aw_refresh_dynamic([w], [wv])
+	_eq("체력이 회복되면 증뎀이 꺼진다", B._dmg_deal_mult(w), 1.0)
+
+	# 오울드라의 어둠갑옷 — 아군 **전원**에게 1회씩 '모든 피해를 1로'.
+	var o := _mk("O", "wind", {"hp": 1000}, ["exclusive:오울드라의 어둠갑옷"])
+	var mate := _mk("M", "wind", {"hp": 1000}, [])
+	EE.apply_battle([o, mate], [], tbl, {})
+	for who in [o, mate]:
+		_eq("보호막 1회 — 첫 피해는 1", int(B._apply_dmg(who, B._aw_fix_damage(who, 500))["dmg"]), 1)
+		_eq("두 번째 피해는 정상", int(B._apply_dmg(who, B._aw_fix_damage(who, 500))["dmg"]), 500)
+
+	# 미르의 별빛방울 — 상대 팀 현재 체력의 10% 를 공격력에 (최대 1000).
+	var mi := _mk("MI", "wind", {"att": 100}, ["exclusive:미르의 별빛방울"])
+	var foe1 := _mk("F1", "wind", {"hp": 4000}, [])
+	EE.apply_battle([mi], [foe1], tbl, {})
+	B._aw_refresh_dynamic([mi], [foe1])
+	_eq("상대 체력 4000 → 공격력 +400", B._eff(mi, "att"), 500)
+	foe1["hp"] = 40000                              # 4000 초과분은 상한 1000 에서 멈춘다
+	B._aw_refresh_dynamic([mi], [foe1])
+	_eq("상한 1000", B._eff(mi, "att"), 1100)
+
+	# 타로스의 용암구슬 — **스킬 피해만** 크리 확률만큼 증가.
+	var ta := _mk("TA", "wind", {"att": 100, "cri": 40}, ["exclusive:타로스의 용암구슬"])
+	var tv := _mk("TV", "wind", {"hp": 999999, "def": 10}, [])
+	EE.apply_battle([ta], [tv], tbl, {})
+	var sk := int(B._deal_attack(ta, tv, 1000, true, rng, cfg, {})["damage"])
+	var nm := int(B._deal_attack(ta, tv, 1000, false, rng, cfg, {})["damage"])
+	_eq("스킬 피해 +40%", sk, 1400)
+	_eq("평타는 그대로", nm, 1000)
+
+	# 카이저 발록의 투구 / 피오드의 모래시계 — 타겟 체력 비례 추가 피해, 상한 300.
+	for row in [["special:balrog:카이저 발록의 투구", 5000, 250],
+			["special:fiod:피오드의 텅 빈 모래시계", 3000, 180]]:
+		var key := String(row[0])
+		var thp := int(row[1])
+		var want := int(row[2])
+		var at := _mk("AT", "wind", {"att": 100}, [key])
+		var tg := _mk("TG", "wind", {"hp": thp, "def": 10}, [])
+		EE.apply_battle([at], [tg], tbl, {})
+		_eq("%s — 추가 피해" % key, B._aw_on_attack_bonus(at, tg, rng, 0), want)
+	var cap := _mk("CP", "wind", {"att": 100}, ["special:balrog:카이저 발록의 투구"])
+	var big := _mk("BG", "wind", {"hp": 100000, "def": 10}, [])
+	EE.apply_battle([cap], [big], tbl, {})
+	_eq("추가 피해 상한 300", B._aw_on_attack_bonus(cap, big, rng, 0), 300)
+
+	# 피오드의 빛을 잃은 마석 — 각성기에 받는 대미지 1000 제한.
+	var boss := _mk("BS", "wind", {"att": 100000, "def": 1}, [])
+	var prot := _mk("PR", "wind", {"hp": 999999, "def": 1},
+		["special:fiod:피오드의 빛을 잃은 마석"])
+	EE.apply_battle([prot], [boss], tbl, {})
+	rng.seed = 5
+	_eq("각성기 피해 1000 제한",
+		int((B.resolve_awaken(boss, [prot], rng, cfg)[0] as Dictionary)["damage"]), 1000)
+
+	# 운디네 / 현무 — 아군 **물속성만** 대상.
+	var un := _mk("UN", "fire", {"hp": 1000, "blk": 20}, ["exclusive:운디네의 물방울"])
+	var aqua := _mk("AQ", "aqua", {"hp": 1000}, [])
+	var fire := _mk("FI", "fire", {"hp": 1000}, [])
+	EE.apply_battle([un, aqua, fire], [], tbl, {})
+	_eq("물속성 아군 체력 +20%", int(aqua["hp_max"]), 1200)
+	_eq("다른 속성은 그대로", int(fire["hp_max"]), 1000)
+	var hy := _mk("HY", "fire", {"hp": 1000}, ["exclusive:현무드래곤의동방갑옷"])
+	var aqua2 := _mk("AQ2", "aqua", {"hp": 1000}, [])
+	var fire2 := _mk("FI2", "fire", {"hp": 1000}, [])
+	EE.apply_battle([hy, aqua2, fire2], [], tbl, {})
+	_eq("물속성 아군 피해량 +10%", B._dmg_deal_mult(aqua2), 1.1)
+	_eq("다른 속성은 그대로", B._dmg_deal_mult(fire2), 1.0)
+
+
+## 크리 확정 상태에서의 피해 1회(고정 시드).
+func _crit_dmg(tbl: Dictionary, cfg: Dictionary, keys: Array) -> int:
+	var rng := RandomNumberGenerator.new()
+	var a := _mk("A", "wind", {"att": 200, "def": 50, "cri": 100, "evd": 0, "blk": 0}, keys)
+	var d := _mk("D", "wind", {"hp": 999999, "att": 1, "def": 300, "cri": 0, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([a], [d], tbl, {})
+	rng.seed = 4242
+	var ev := B.resolve_attack(a, d, rng, cfg, {})
+	return int(ev["damage"]) if bool(ev["crit"]) else -1
+
+
+## 연속공격 2타의 피해 합(고정 시드).
+func _double_dmg(tbl: Dictionary, cfg: Dictionary, keys: Array) -> int:
+	var rng := RandomNumberGenerator.new()
+	var a := _mk("A", "wind", {"att": 200, "def": 50, "cri": 0, "evd": 0, "blk": 0}, keys)
+	var d := _mk("D", "wind", {"hp": 999999, "att": 1, "def": 100, "cri": 0, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([a], [d], tbl, {})
+	rng.seed = 4242
+	var total := 0
+	for e in B.resolve_double(a, d, rng, cfg, {}):
+		total += int((e as Dictionary)["damage"])
+	return total
 
 
 ## 해골요새 장비 — `dmg_deal_vs_type`(방어자 유형) + cond `self_type`(착용자 유형).

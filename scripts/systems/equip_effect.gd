@@ -58,11 +58,26 @@ static func apply_battle(allies: Array, enemies: Array, table: Dictionary,
 						1.0, SRC):
 					any = true
 			for r in (spec.get("react", []) as Array):
-				var re := (r as Dictionary).duplicate(true)
-				re["kind"] = Battle.REACT
-				re["no"] = 0
-				re["turns"] = -1
-				((owner as Dictionary)["effects"] as Array).append(re)
+				# `plant: "ally"` = 반응을 **아군 전원에게 각자** 심는다("모든 대미지를 1로
+				# 막아주는 보호막 1회 **전체** 적용" — 오울드라의 어둠갑옷). 각자 자기 몫의
+				# 횟수(`left`)를 갖는다. 기본은 착용자 자신에게만.
+				var plant: Array = allies if String((r as Dictionary).get("plant", "")) == "ally" 					else [owner]
+				for who in plant:
+					var re := (r as Dictionary).duplicate(true)
+					re.erase("plant")
+					re["kind"] = Battle.REACT
+					re["no"] = 0
+					re["turns"] = -1
+					((who as Dictionary)["effects"] as Array).append(re)
+				any = true
+			# 동적 항목 — 여기서는 **심기만** 한다. 실제 계산은 라운드마다 Battle 이 한다
+			# (상대 팀 체력 · 자신의 체력 비율처럼 전투 중에 변하는 조건).
+			for d in (spec.get("dyn", []) as Array):
+				var de := (d as Dictionary).duplicate(true)
+				de["kind"] = "dyn"
+				de["no"] = 0
+				de["turns"] = -1
+				((owner as Dictionary)["effects"] as Array).append(de)
 				any = true
 			if any:
 				fired.append({"key": String(key), "name": _name_of(String(key)),

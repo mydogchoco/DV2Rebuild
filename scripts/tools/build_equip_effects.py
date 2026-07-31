@@ -147,7 +147,10 @@ EXCLUSIVE = {
     "미니드래곤 고리": {"impl": False, "why": "skill:선제 공격"},
     "투탕카의 도리깨": {"impl": False, "why": "skill:선제 공격"},
     "번네스의 화염신발": {"impl": False, "why": "skill:선제공격"},
-    "홀리의 빛나는양뿔": {"impl": False, "why": "engine — 크리 공격만 회피를 무시하는 분기가 없다"},
+    "홀리의 빛나는양뿔": {          # 크리티컬 공격이 상대의 회피를 무시
+        # 우리 판정 순서는 회피→막기→크리라 크리가 정해질 땐 회피가 끝나 있다.
+        # `crit_ignores_evade` 플래그가 있으면 Battle 이 **크리를 먼저 굴려** 회피를 건너뛴다.
+        "ops": [op("flag", flag="crit_ignores_evade")]},
     "레이어스의 반석 방패": {"impl": False, "why": "skill:(각성스킬 효과 자체를 치환)"},
     "실러캔스의 물빛 투구": {"impl": False, "why": "skill:(각성스킬 효과 2배) — 방어력 조항만으로는 반쪽"},
     "카일루스의 신성 방패": {"impl": False, "why": "skill:(각성스킬 누적)"},
@@ -168,21 +171,41 @@ EXCLUSIVE = {
 
     # ── 미구현: 엔진에 개념이 없다 ───────────────────────────────────────────
     "엔젤 드래곤의티아라": {"impl": False, "why": "engine — 자기 관통을 아군에게 '공통분배'하는 대상 연산이 없다"},
-    "엔투라스의 불꽃 주먹": {"impl": False, "why": "engine — 크리 시에만 방어력 절반 무시(pen 은 상시값이다)"},
-    "글라시아의 왕관": {"impl": False, "why": "engine — '상대 회피율 0%면 반드시 크리' 조건부 확정 크리"},
-    "일란의 영예의관": {"impl": False, "why": "engine — 연속공격(double)에만 걸리는 피해 배수"},
-    "세크라포의 어깨보호대": {"impl": False, "why": "engine — 연속공격 시 준 피해만큼 회복(횟수 제한)"},
-    "완숙이의 후라이팬": {"impl": False, "why": "engine — 체력 20% 이하 조건부 회복+증뎀"},
+    "엔투라스의 불꽃 주먹": {       # 크리티컬 발동 시 상대의 현재 방어력 절반 무시
+        "ops": [op("crit_pen", pct=50)]},
+    "글라시아의 왕관": {           # 상대의 회피율이 0%가 되면 반드시 크리티컬
+        "ops": [op("flag", flag="crit_sure_if_no_evade")]},
+    "일란의 영예의관": {           # 연속공격 피해량 50% 증가
+        "ops": [op("double_dmg", pct=50)]},
+    "세크라포의 어깨보호대": {      # 연속 공격 시 준 대미지만큼 회복, 전투 중 3회 한정
+        "react": [{"on": "double", "do": "heal_dealt", "ratio": 1.0, "left": 3}],
+        "partial": "'피의 갈증과 중첩불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영"},
+    "완숙이의 후라이팬": {         # 체력 20% 이하일 때 공격 시 체력 1% 회복 + 주는 대미지 25% 증가
+        "dyn": [{"when": {"kind": "self_hp_at_most", "pct": 20},
+                 "ops": [op("dmg_deal", pct=25)]}],
+        "react": [{"on": "attack_done", "do": "heal_pct", "pct": 1,
+                   "when": {"kind": "self_hp_at_most", "pct": 20}}],
+        "partial": "'피의 갈증과 중첩 불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영"},
     "워든의 부유검": {"impl": False, "why": "engine — 디버프 피격 중 공격력 누적 강화"},
     "모노케로스의붉은 보주": {"impl": False, "why": "engine — 피해 누적 후 방출(전투 중 1회)"},
     "발록의 전투갑주": {"impl": False, "why": "engine — 회피한 상대가 자기 턴에 반격당하는 역공 구조"},
     "쿠르파의 푸른갑주": {"impl": False, "why": "engine — 아군 사망 트리거 + 5턴 한정 버프"},
-    "오울드라의 어둠갑옷": {"impl": False, "why": "engine — 전투 시작 시 전체 1회 피해 1 보호막"},
+    "오울드라의 어둠갑옷": {        # 전투시작 시 모든 대미지를 1로 막아주는 보호막 1회 **전체** 적용
+        # `plant: ally` = 아군 전원에게 각자 1회씩 심는다(각자 자기 몫의 left 를 갖는다).
+        "react": [{"on": "pre_damage", "fix": 1, "left": 1, "plant": "ally"}]},
     "페이스리스의사슬": {"impl": False, "why": "engine — 등급 비례 피해 상한(등급 눈금이 원작과 다르다)"},
-    "미르의 별빛방울": {"impl": False, "why": "engine — 상대 팀 현재 체력 비례 공격력 가산"},
-    "타로스의 용암구슬": {"impl": False, "why": "engine — 스킬 피해량만 따로 올리는 통로가 없다"},
-    "운디네의 물방울": {"impl": False, "why": "engine — 아군 중 특정 속성만 대상으로 하는 표기가 없다"},
-    "현무드래곤의동방갑옷": {"impl": False, "why": "engine — 아군 중 특정 속성만 대상으로 하는 표기가 없다"},
+    "미르의 별빛방울": {           # 상대 팀 현재 체력의 10% 를 공격력에 추가(최대 1000)
+        # 상대 체력은 라운드마다 변하므로 동적(dyn) 항목이다 — 라운드 경계에서 다시 계산된다.
+        "dyn": [{"when": {"kind": "enemy_hp_sum"},
+                 "ops": [op("stat", stat="att", mode="flat", value=0.10, max=1000)]}]},
+    "타로스의 용암구슬": {         # 전투 시작 시 자신의 크리티컬 확률만큼 스킬 피해량 증가
+        "ops": [op("skill_dmg_deal", **{"from": {"stat": "cri", "ratio": 1.0}})]},
+    "운디네의 물방울": {           # 자신의 방어율만큼 아군 물속성 드래곤의 체력 증가(최대 30%)
+        # ⚠️ `from` 은 **소유자**의 스탯을 읽고 대상에게 건다 — 원문 그대로다.
+        "ops": [op("stat", stat="hp", mode="pct", to="ally_element:aqua", max=30,
+                   **{"from": {"stat": "blk", "ratio": 1.0}})]},
+    "현무드래곤의동방갑옷": {       # 아군 물속성 드래곤의 피해량 10% 증가
+        "ops": [op("dmg_deal", pct=10, to="ally_element:aqua")]},
     "멜로우 드래곤의 부메랑": {"impl": False, "why": "engine — 조건부로 '공격하지 않는다'(행동 자체를 막는 규칙)"},
 }
 
@@ -192,12 +215,15 @@ SPECIAL = {
         "ops": [op("flag", flag="survive_once")]},
     "balrog:카이저 발록의 보주": {   # 크리티컬 대미지 100% 증가
         "ops": [op("stat", stat="cri_pow", mode="flat", value=100)]},
-    "balrog:카이저 발록의 투구": {
-        "impl": False, "why": "engine — 상대 남은 체력 비례 추가 피해(최대 300)"},
+    "balrog:카이저 발록의 투구": {   # 공격 시 상대 남은 체력의 5% 비례 추가 대미지(최대 300)
+        "react": [{"on": "attack_target_hp", "do": "cur_pct", "pct": 5, "max": 300}]},
     "fiod:피오드의 부서진 낙인": {"impl": False, "why": "skill:(착용자 스킬 효과 +1)"},
-    "fiod:피오드의 빛을 잃은 마석": {"impl": False, "why": "engine — 각성기 피격 피해 상한(고정값)"},
-    "fiod:피오드의 텅 빈 모래시계": {
-        "impl": False, "why": "engine — 타겟 최대 체력 비례 추가 피해(최대 300)"},
+    "fiod:피오드의 빛을 잃은 마석": {  # 각성기에 받는 대미지 1000 으로 제한
+        "ops": [op("awaken_dmg_cap", value=1000)]},
+    "fiod:피오드의 텅 빈 모래시계": {  # 타겟 최대 체력 1마다 0.002% 의, 타겟 최대체력 비례 추가대미지(최대 300)
+        # 비율 자체가 최대 체력에 비례하므로 결과는 최대체력의 제곱에 비례한다.
+        "react": [{"on": "attack_target_hp", "do": "max_per_unit",
+                   "per_unit_pct": 0.002, "max": 300}]},
     # ── 해골요새 6종 — **전투 유형**(체방형/공방형 등) 두 축 ────────────────────
     # 앞 조항 = "<유형>형 드래곤을 **공격 시** 25% 추가 대미지" → `dmg_deal_vs_type`(방어자 유형)
     # 뒤 조항 = "<유형>형 드래곤이 **장착 시** …"                → cond `self_type`(착용자 유형)
@@ -248,6 +274,7 @@ def normalize(tbl: dict, texts: dict) -> dict:
         e.setdefault("impl", True)
         e.setdefault("ops", [])
         e.setdefault("react", [])
+        e.setdefault("dyn", [])       # 라운드마다 다시 계산되는 조건부 항목(각성스킬과 같은 어휘)
         e["text"] = texts.get(k, "")
         out[k] = e
     return out

@@ -131,6 +131,37 @@ static func _awaken_dmg_mult(c: Dictionary) -> float:
 			pct += float((e as Dictionary).get("pct", 0.0))
 	return maxf(0.0, 1.0 + pct / 100.0)
 
+## 크리 전용 방어 관통(%) — "크리티컬 발동 시 상대의 현재 방어력 절반 무시"(엔투라스의 불꽃 주먹).
+static func _crit_pen_pct(c: Dictionary) -> float:
+	var pct := 0.0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "crit_pen":
+			pct += float((e as Dictionary).get("pct", 0.0))
+	return pct
+
+
+## **스킬 피해에만** 걸리는 **주는** 피해 배수 — "스킬 피해량 증가"(타로스의 용암구슬).
+## 평타·각성기가 지나는 `dmg_deal` 과 통로가 다르다.
+static func _skill_dmg_deal_mult(c: Dictionary) -> float:
+	var pct := 0.0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "skill_dmg_deal":
+			pct += float((e as Dictionary).get("pct", 0.0))
+	return maxf(0.0, 1.0 + pct / 100.0)
+
+
+## 각성기에 **받는** 피해 상한(정액) — "각성기에 받는 대미지 1000으로 제한"(피오드의 마석).
+## 0 = 상한 없음. 여러 개면 가장 낮은 값이 이긴다.
+static func _awaken_taken_cap(c: Dictionary) -> int:
+	var cap := 0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "awaken_dmg_cap":
+			var v := int((e as Dictionary).get("value", 0))
+			if v > 0 and (cap == 0 or v < cap):
+				cap = v
+	return cap
+
+
 ## **스킬 피해에만** 걸리는 받는 피해 배수 — "스킬에 입는 피해 10% 감소"(엘더 블랙퀸의 목도리).
 ## 상시 `dmg_taken` 과 통로가 다르다(평타에는 안 걸린다). 음수 pct 가 감소다.
 static func _skill_dmg_taken_mult(c: Dictionary) -> float:
@@ -370,7 +401,12 @@ static func _hit_damage(attacker: Dictionary, defender: Dictionary, crit: bool, 
 	var em := float(cfg.get("element", {}).get("good_mult", 1.25)) 		if _has_flag(attacker, "elem_advantage") 		else element_mult(String(attacker["element"]), String(defender["element"]), cfg)
 	var crit_mult := _crit_mult(attacker, cfg) if crit else 1.0
 	var rf := rng.randf_range(float(d.get("rand_min", 0.95)), float(d.get("rand_max", 1.05)))
-	var dmg := damage(_eff(attacker, "att"), _eff(defender, "def"), float(attacker["pen"]), em, crit_mult, rf, cfg)
+	# `crit_pen` = 전용 장비 엔투라스의 불꽃 주먹 "크리티컬 발동 시 상대의 현재 방어력 절반 무시".
+	# 상시값인 `pen` 과 달리 **크리일 때만** 더한다.
+	var pen := float(attacker["pen"])
+	if crit:
+		pen = clampf(pen + _crit_pen_pct(attacker) / 100.0, 0.0, 0.95)
+	var dmg := damage(_eff(attacker, "att"), _eff(defender, "def"), pen, em, crit_mult, rf, cfg)
 	if block:
 		var red := float(cfg.get("judge", {}).get("block_reduction", 0.5))
 		dmg = maxi(1, int(round(float(dmg) * (1.0 - red))))
@@ -386,6 +422,10 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 	raw_dmg += _aw_on_attack_bonus(attacker, defender, rng, raw_dmg)
 	# 아티팩트 DEDMG(벤투스) = "상대 스킬 대미지 감소". 스킬 피해에만, 방어측 기준으로 깎는다.
 	if is_skill:
+		# 주는 쪽 — "자신의 크리티컬 확률만큼 스킬 피해량 증가"(타로스의 용암구슬).
+		var sdm := _skill_dmg_deal_mult(attacker)
+		if not is_equal_approx(sdm, 1.0):
+			raw_dmg = maxi(1, int(round(float(raw_dmg) * sdm)))
 		var ded := _art(defender, "skill_dmg_taken_pct", int(attacker.get("_cast_skill_id", 0)))
 		if ded > 0:
 			raw_dmg = maxi(1, int(round(float(raw_dmg) * (1.0 - float(ded) / 100.0))))
@@ -413,14 +453,37 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		out["reflect_dead"] = bool(rap["dead"])
 	return out
 
+## 크리티컬 판정 한 곳 — 평타·연속공격이 같은 규칙을 쓰도록 모았다.
+##   `crit_sure`              각성스킬 5 각성된 맹수의 발톱 "크리티컬 확률 100% 고정".
+##                            확률 상한(prob_cap 70)을 우회해야 '고정'이라 확률이 아니라 플래그다.
+##   `crit_sure_if_no_evade`  전용 장비 글라시아의 왕관 "상대의 회피율이 0%가 되면 반드시 크리".
+##                            회피율은 명중률·디버프가 깎은 **최종 확률**로 본다(`_evade_chance`).
+static func _roll_crit(attacker: Dictionary, defender: Dictionary,
+		rng: RandomNumberGenerator, cap: int) -> bool:
+	if _has_flag(attacker, "no_crit"):
+		return false
+	if _has_flag(attacker, "crit_sure"):
+		return true
+	if _has_flag(attacker, "crit_sure_if_no_evade") 			and _evade_chance(attacker, defender) <= 0:
+		return true
+	return _roll(rng, _eff(attacker, "cri"), cap)
+
+
 ## 평타 1회(§K-4): 회피→방어율→크리. 상태이상·피격 방어스킬·반사·흡혈 반영.
 static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary = {}) -> Dictionary:
 	var cap := int(cfg.get("judge", {}).get("prob_cap", 70))
 	var ev := {"type": "normal", "attacker": attacker["name"], "defender": defender["name"],
 		"miss": false, "block": false, "crit": false, "damage": 0, "dead": false}
+	# 전용 장비 홀리의 빛나는 양뿔 — "크리티컬 공격이 상대의 회피를 무시".
+	# ⚠️ 우리 판정 순서는 **회피 → 막기 → 크리**라, 크리가 정해질 땐 이미 회피가 끝나 있다.
+	#    그래서 이 플래그가 있을 때**만** 크리를 먼저 굴려 두고(`pre_crit`), 크리면 회피를
+	#    건너뛴다. 굴린 결과는 아래에서 그대로 쓰므로 난수 소비 횟수는 그대로다.
+	var pre_crit := -1
+	if _has_flag(attacker, "crit_ignores_evade"):
+		pre_crit = 1 if _roll_crit(attacker, defender, rng, cap) else 0
 	# `evade_sure` = 각성스킬 81 자격을 갖춘 자 "다음 공격 무조건 회피".
 	var sure_evade := _has_flag(defender, "evade_sure")
-	if sure_evade or (not _has_flag(defender, "no_evade") 			and _roll(rng, _evade_chance(attacker, defender), cap)):
+	if pre_crit != 1 and (sure_evade or (not _has_flag(defender, "no_evade") 			and _roll(rng, _evade_chance(attacker, defender), cap))):
 		if sure_evade:
 			_remove_flag(defender, "evade_sure")
 		ev["miss"] = true
@@ -429,9 +492,7 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff(defender, "blk"), cap)
 	if block:
 		_aw_on_block(defender, rng)                # 64 신비한 보호 · 65 신성 방패
-	# `crit_sure` = 각성스킬 5 각성된 맹수의 발톱 "크리티컬 확률 100% 고정".
-	# 확률 상한(prob_cap 70)을 우회해야 '고정'이 되므로 확률이 아니라 **플래그**로 표현한다.
-	var crit := (not _has_flag(attacker, "no_crit")) 		and (_has_flag(attacker, "crit_sure") or _roll(rng, _eff(attacker, "cri"), cap))
+	var crit := (pre_crit == 1) if pre_crit >= 0 else _roll_crit(attacker, defender, rng, cap)
 	ev["block"] = block
 	ev["crit"] = crit
 	var dmg := _hit_damage(attacker, defender, crit, block, rng, cfg)
@@ -476,16 +537,28 @@ static func resolve_double(attacker: Dictionary, defender: Dictionary, rng: Rand
 				_double_ev(attacker, defender, 1, true, false, false, 0, false)]
 	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff(defender, "blk"), cap)
 	var out: Array = []
+	var dealt := 0                   # 이번 연속공격으로 실제로 준 피해 합(회복형 반응용)
 	for i in 2:
 		if not defender["alive"]:
 			break
-		# `crit_sure`(각성스킬 5)는 확률 상한을 우회해야 '고정'이라 플래그로 표현한다.
-		var crit := (not _has_flag(attacker, "no_crit")) 			and (_has_flag(attacker, "crit_sure") or _roll(rng, _eff(attacker, "cri"), cap))
+		var crit := _roll_crit(attacker, defender, rng, cap)
 		var dmg := _hit_damage(attacker, defender, crit, block, rng, cfg)
+		# 전용 장비 일란의 영예의관 "연속공격 피해량 50% 증가" — 평타에는 안 걸리는 별도 통로.
+		dmg = maxi(1, int(round(float(dmg) * _double_dmg_mult(attacker))))
 		var ap := _apply_dmg(defender, dmg)
+		dealt += int(ap["dmg"])
 		out.append(_double_ev(attacker, defender, i, false, block, crit, int(ap["dmg"]), bool(ap["dead"])))
-	_aw_on_double(attacker)          # 80 원투박치기 "연속 공격 후 공격력 증가"
+	_aw_on_double(attacker, dealt)   # 80 원투박치기 · 세크라포의 어깨보호대(준 피해만큼 회복)
 	return out
+
+
+## 연속공격 전용 피해 배수 — "연속공격 피해량 50% 증가"(일란의 영예의관).
+static func _double_dmg_mult(c: Dictionary) -> float:
+	var pct := 0.0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "double_dmg":
+			pct += float((e as Dictionary).get("pct", 0.0))
+	return maxf(0.0, 1.0 + pct / 100.0)
 
 static func _double_ev(a: Dictionary, d: Dictionary, hit: int, miss: bool, block: bool, crit: bool, dmg: int, dead: bool) -> Dictionary:
 	return {"type": "double", "hit": hit, "attacker": a["name"], "defender": d["name"],
@@ -507,6 +580,10 @@ static func resolve_awaken(attacker: Dictionary, enemies: Array, rng: RandomNumb
 		# 관통은 방어 무시 고정 피해라 각성기 배수의 대상이 아니다.
 		dmg = int(round(float(dmg) * _awaken_dmg_mult(attacker)))
 		dmg += _pure_damage(attacker, target)   # 관통 고정 피해는 각성기에도 더해진다
+		# 받는 쪽 상한 — "각성기에 받는 대미지 1000으로 제한"(피오드의 빛을 잃은 마석).
+		var acap := _awaken_taken_cap(target)
+		if acap > 0:
+			dmg = mini(dmg, acap)
 		var ap := _apply_dmg(target, dmg)
 		out.append({"type": "awaken", "attacker": attacker["name"], "defender": target["name"],
 			"miss": false, "block": false, "crit": false, "damage": int(ap["dmg"]), "dead": bool(ap["dead"])})
@@ -1259,7 +1336,7 @@ static func _aw_refresh_dynamic(party_a: Array, party_b: Array) -> void:
 				if String((e as Dictionary).get("kind", "")) != "dyn":
 					continue
 				var d := e as Dictionary
-				var scale := _dyn_scale(d.get("when", null), owner, allies)
+				var scale := _dyn_scale(d.get("when", null), owner, allies, enemies)
 				if is_zero_approx(scale):
 					continue
 				for op in (d.get("ops", []) as Array):
@@ -1287,6 +1364,11 @@ static func _reacts(c: Dictionary, on: String) -> Array:
 		if String(d.get("kind", "")) != REACT or String(d.get("on", "")) != on:
 			continue
 		if d.has("left") and int(d["left"]) <= 0:
+			continue
+		# `when` = 발화 **시점**의 조건(동적 효과와 같은 어휘). 전용 장비 완숙이의 후라이팬
+		# "자신의 체력 20% 이하일 때 공격 시 …" 처럼 상시가 아니라 그때그때 봐야 하는 것들.
+		# 없으면 종전대로 무조건 발화한다.
+		if d.has("when") and is_zero_approx(_dyn_scale(d["when"], c, c.get("_party", []), [])):
 			continue
 		out.append(d)
 	return out
@@ -1324,6 +1406,13 @@ static func _aw_on_attack_done(attacker: Dictionary, defender: Dictionary,
 		return
 	for r in _reacts(attacker, "attack_done"):
 		match String(r.get("do", "stack")):
+			"heal_pct":
+				# "자신의 체력 20% 이하일 때 공격 시, 체력 1% 회복"(완숙이의 후라이팬).
+				# 조건은 항목의 `when` 이 이미 걸렀다(`_reacts`).
+				var h := int(round(float(attacker.get("hp_max", 0)) * float(r.get("pct", 0.0)) / 100.0))
+				if h > 0:
+					attacker["hp"] = mini(int(attacker["hp_max"]), int(attacker["hp"]) + h)
+					_spend(r)
 			"stack":
 				if _stack_up(r, attacker, attacker.get("_party", [])):
 					_spend(r)
@@ -1343,11 +1432,20 @@ static func _aw_on_attack_done(attacker: Dictionary, defender: Dictionary,
 				_spend(r)
 
 
-## 연속공격이 끝났다 — 80 원투박치기.
-static func _aw_on_double(attacker: Dictionary) -> void:
+## 연속공격이 끝났다 — 80 원투박치기 · 세크라포의 어깨보호대.
+## `dealt` = 이번 연속공격으로 실제로 준 피해 합.
+static func _aw_on_double(attacker: Dictionary, dealt := 0) -> void:
 	if not bool(attacker.get("alive", true)):
 		return
 	for r in _reacts(attacker, "double"):
+		if String(r.get("do", "stack")) == "heal_dealt":
+			# "연속 공격 시 자신이 준 대미지만큼 자신의 체력 회복, 전투 중 3회 한정"
+			if dealt <= 0:
+				continue
+			var heal := int(round(float(dealt) * float(r.get("ratio", 1.0))))
+			attacker["hp"] = mini(int(attacker["hp_max"]), int(attacker["hp"]) + heal)
+			_spend(r)
+			continue
 		if _stack_up(r, attacker, attacker.get("_party", [])):
 			_spend(r)
 
@@ -1408,6 +1506,27 @@ static func _aw_on_attack_bonus(attacker: Dictionary, _defender: Dictionary,
 		var capa := float(_eff(attacker, String(ra.get("cap_stat", "att"))))
 		_aw_acc_set(attacker, na, minf(
 			_aw_acc_get(attacker, na) + float(raw_hint) * float(ra.get("ratio", 1.0)), capa))
+	# 특수 장비 — 타겟의 체력에 비례하는 추가 피해. 상한(`max`)은 원문의 "(최대 300)".
+	for rt in _reacts(attacker, "attack_target_hp"):
+		var add := 0.0
+		match String(rt.get("do", "")):
+			"cur_pct":
+				# "상대 드래곤 남은 체력의 5%에 비례"(카이저 발록의 투구)
+				add = float(_defender.get("hp", 0)) * float(rt.get("pct", 0.0)) / 100.0
+			"max_pct":
+				add = float(_defender.get("hp_max", 0)) * float(rt.get("pct", 0.0)) / 100.0
+			"max_per_unit":
+				# "타겟의 최대 체력 **1마다** 0.002% 의, 타겟 최대 체력 비례 추가대미지"
+				# (피오드의 텅 빈 모래시계) ⇒ 비율 자체가 최대 체력에 비례한다 = 최대체력²
+				# 비율(%) = 최대체력 × 0.002 · 추가피해 = 최대체력 × 그 비율 / 100
+				#   ⇒ 최대체력 3,000 이면 6% → 180. 상한 300 은 최대체력 약 3,873 에서 닿는다.
+				var hm := float(_defender.get("hp_max", 0))
+				add = hm * (hm * float(rt.get("per_unit_pct", 0.0))) / 100.0
+		if rt.has("max"):
+			add = minf(add, float(rt["max"]))
+		if add >= 1.0:
+			bonus += int(round(add))
+			_spend(rt)
 	# 71 약점 공략 — "상대의 공격력 방어력 합이 자신보다 낮은 경우 그 차이만큼 (최대 150)"
 	for r2 in _reacts(attacker, "stat_gap"):
 		var mine := _eff(attacker, "att") + _eff(attacker, "def")
@@ -1587,13 +1706,19 @@ static func _clear_dyn(c: Dictionary) -> bool:
 ## 조건 평가 → **배수**. 0 이면 미발동, 1 이면 그대로, 그 밖이면 값에 곱한다.
 ## 배수를 쓰는 이유: "잃은 체력에 비례"(12) · "생존 아군 1마리당"(58·66) 처럼
 ## 조건이 곧 크기인 스킬이 있어서다.
-static func _dyn_scale(when, owner: Dictionary, allies: Array) -> float:
+static func _dyn_scale(when, owner: Dictionary, allies: Array, enemies: Array = []) -> float:
 	if when == null:
 		return 1.0
 	var w := when as Dictionary
 	var hp_max := maxf(1.0, float(owner.get("hp_max", 1)))
 	var hp_pct := float(owner.get("hp", 0)) / hp_max * 100.0
 	match String(w.get("kind", "")):
+		"enemy_hp_sum":               # 상대 팀 **현재 체력의 합** 자체가 크기 (미르의 별빛방울)
+			var s := 0.0
+			for c in enemies:
+				if bool((c as Dictionary).get("alive", true)):
+					s += float((c as Dictionary).get("hp", 0))
+			return s
 		"self_hp_at_most":            # "체력이 N% 이하일 때"
 			return 1.0 if hp_pct <= float(w.get("pct", 0)) else 0.0
 		"self_hp_above":              # "체력이 N% 초과 시"
@@ -1763,6 +1888,10 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				_push(t, {"kind": "dmg_deal_vs_type", "pct": v,
 					"atk_type": String(op.get("atk_type", ""))}, src)
 			"awaken_dmg":    _push(t, {"kind": "awaken_dmg", "pct": v}, src)
+			"crit_pen":      _push(t, {"kind": "crit_pen", "pct": v}, src)
+			"double_dmg":    _push(t, {"kind": "double_dmg", "pct": v}, src)
+			"skill_dmg_deal": _push(t, {"kind": "skill_dmg_deal", "pct": v}, src)
+			"awaken_dmg_cap": _push(t, {"kind": "awaken_dmg_cap", "value": v}, src)
 			"skill_dmg_taken":
 				# "스킬에 입는 피해 10% 감소"(엘더 블랙퀸의 목도리). 음수 = 감소.
 				# 아티팩트의 `skill_dmg_taken_pct` 와 같은 지점에서 곱해진다.
