@@ -582,6 +582,21 @@ func _build_bg() -> void:
 	# 던전 배경(DungeonBG): 원작 scene/adventure/bg/<필드id>/ 의 원경 + 전경 2겹.
 	# 스테이지를 못 정하면 params.bg → battle_bg/bg_1 폴백.
 	var st: Dictionary = _stage_rec()
+	# 🟦 스토리 전투 배경(사용자 확정 2026-07-31: 기계 만드라고낙=몽환의 수정터 ·
+	#    정령 스파이크젤=오색호수 · 다크프로스티=칼바람의 산맥).
+	#    `stage` 를 그냥 넘기면 **그 던전의 적 편성이 이겨서** 스토리 몹이 사라진다
+	#    (`_setup_enemy` 는 stage.enemies 를 먼저 본다) ⇒ 배경 전용 인자를 따로 둔다.
+	#    500+/600+ 은 밤·카데스 변형 필드라 기본 필드로 되돌려 변형을 입힌다.
+	if st.is_empty() and _params.has("bg_stage"):
+		var f0 := int(_params.get("bg_stage", 0))
+		var mode := ""
+		if f0 > 600:
+			f0 -= 600; mode = "kades"
+		elif f0 > 500:
+			f0 -= 500; mode = "night"
+		var bst: Dictionary = Field.apply_variant(Data.stage(str(f0)), mode)
+		if not bst.is_empty() and DungeonBG.build(self, bst) != null:
+			return
 	if not st.is_empty() and DungeonBG.build(self, st) != null:
 		return
 	var bg := TextureRect.new()

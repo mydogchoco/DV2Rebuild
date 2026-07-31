@@ -482,7 +482,13 @@ func story_battle(battle_no: int) -> Dictionary:
 			continue
 		var e1 := _story_enemy(int(rec.get("monster_no", 0)), int(rec.get("level", 0)))
 		if not e1.is_empty():
-			return {"enemy": e1, "field": 0}
+			# 🟦 사용자 확정 2026-07-31: 스토리 전투 배경 = 그 몹이 속한 던전
+			#    (기계 만드라고낙 → 몽환의 수정터 · 정령 스파이크젤 → 오색호수 ·
+			#     다크프로스티 → 칼바람의 산맥). `story_monsters.stage` 가 그 값이다.
+			#    ⚠️ `_stage` 는 전투 씬에 넘길 값이라 적 레코드에 남기지 않는다.
+			var fld: int = int(e1.get("_stage", 0))
+			e1.erase("_stage")
+			return {"enemy": e1, "field": fld}
 	return {}
 
 ## 몬스터 번호 → 전투용 적 레코드. `story_monsters`(사용자 확정) 우선, 없으면 stages 의 적.
@@ -500,6 +506,9 @@ func _story_enemy(no: int, level: int) -> Dictionary:
 			"def": int(d.get("def", 1))}
 		if int(d.get("pure", 0)) > 0:
 			out["pure"] = int(d.get("pure", 0))   # "공격 시 고정 데미지" = 방어 무시 flat
+		# 배경으로 쓸 던전 번호(호출부가 꺼내 쓰고 지운다).
+		if int(d.get("stage", 0)) > 0:
+			out["_stage"] = int(d.get("stage", 0))
 		return out
 	for sid in stages.get("stages", {}).keys():
 		var st: Dictionary = stages["stages"][sid]

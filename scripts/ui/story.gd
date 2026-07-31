@@ -417,7 +417,9 @@ func _start_battle(battle_no: int) -> bool:
 	}
 	var fld := int(spec.get("field", 0))
 	if fld > 0:
-		p["bg"] = fld           # 이벤트 전투는 원작이 필드를 지정한다(602·24·601)
+		# 배경 전용 — 적 편성은 `enemy` 가 정한다(stage 를 넘기면 그 던전 적이 이긴다).
+		# 이벤트 전투는 원작이 필드를 지정하고(602·24·601), 1~78화는 그 몹의 던전이다.
+		p["bg_stage"] = fld
 	Scenes.goto("battle", p)
 	return true
 
