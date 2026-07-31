@@ -382,11 +382,14 @@ def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
     for sn, mname in STORY_ONLY:
         m = sm.get(mname, {})
         bno = (m.get("battle_no") or {}).get(str(sn))
-        lv = (adv.get(str(bno)) or {}).get("level", "") if bno else ""
-        note = (f"원작 전투번호 {bno} 로 확정 — 장소만 미상" if bno
-                else "사용자 확정: 이 회차의 스토리 전용 몹. 장소·레벨 미상")
-        rows.append([sn, titles.get(str(sn), ""), "", "", bno or "", 1, "", mname, lv,
-                     "O" if bno else "", note])
+        lv = m.get("level", "")          # 사용자 확정(셋 다 50)
+        st_id = m.get("stage")
+        rows.append([sn, titles.get(str(sn), ""), st_id or "",
+                     stages.get(str(st_id), {}).get("name", "") if st_id else "",
+                     bno or "", 1, "", mname, lv, "O",
+                     f"원작 전투번호 {bno} · 체{m.get('hp_max')}/공{m.get('att')}/방{m.get('def')}"
+                     + (f"/고정{m['pure']}" if m.get("pure") else "")
+                     + " — 사용자 확정, 확인만"])
 
     return ("scenario_battle.csv",
             ["회차", "제목", "필드번호", "장소", "원작전투번호", "슬롯",

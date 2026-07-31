@@ -48,19 +48,23 @@ OUT = ROOT / "data" / "story_monsters.json"
 
 # sprite_no, 이름, 등장 회차, 기본 스테이지(mapping_sheet 가 매단 곳), 스탯, 특수
 #   `pure` = 방어 무시 고정 대미지(battle.gd `_pure_damage`). 원작 위키 표현 "고정 데미지".
+#   `level` = 🟦 사용자 확정 2026-07-31 **셋 다 50 으로 통일**.
+#     원작 `initEventBattle`(battleNo 11·12·14)은 레벨을 리터럴로 안 들고 몬스터 DB 값을 쓴다
+#     (`setMonster(this, no, iVar3, …)`) — 그 DB 가 없으므로 사용자 확정값을 쓴다.
+#     switch 경로의 battleNo 15 는 원작이 Lv50 을 리터럴로 들고 있어 서로 어긋나지 않는다.
 MONSTERS = [
     {
         # 원작 `AdventureScene::initEventBattle` case 11 → 몬스터 #73. 사용자 확정 27화 ⇒ 11=27화.
         "id": 73, "id_confirmed": True, "battle_no": {"27": 11},
         "name": "기계 만드라고낙", "episodes": [27], "stage": 10,
-        "hp_max": 2170, "att": 185, "def": 185,
+        "hp_max": 2170, "att": 185, "def": 185, "level": 50,
         "_stats_status": "사용자 확정 2026-07-31",
     },
     {
         # `initEventBattle` case 12 → #74. 사용자 확정 28화 ⇒ 12=28화.
         "id": 74, "id_confirmed": True, "battle_no": {"28": 12},
         "name": "정령 스파이크젤", "episodes": [28], "stage": 11,
-        "hp_max": 2170, "att": 185, "def": 185,
+        "hp_max": 2170, "att": 185, "def": 185, "level": 50,
         "_stats_status": "사용자 확정 2026-07-31 (기계 만드라고낙과 같은 값)",
     },
     {
@@ -72,11 +76,12 @@ MONSTERS = [
         "episodes": [32, 33, 92], "stage": 14,
         # 원작 전투번호 ↔ 회차. 15 = 33화(사용자 확정 Lv50 #75 + <AdventureEvent33> 문자열),
         # 29 = 92화(getEventBattleData, 사용자 위키 재확인).
-        # 다크프로스티는 전투가 **셋**이다: `initEventBattle` case 14 · switch case 15(Lv50) ·
-        # 이벤트 29(92화). 32화·33화 중 어느 쪽이 14 이고 어느 쪽이 15 인지는 미확정이라
-        # 32 는 비워 둔다(주소 기반 추정은 11·12 에서 빗나갔으므로 근거로 쓰지 않는다).
-        "battle_no": {"33": 15, "92": 29}, "battle_no_unassigned": [14],
-        "hp_max": 1200, "att": 160, "def": 80, "pure": 1000,
+        # 전투가 **셋**이다: `initEventBattle` case 14 · switch case 15 · 이벤트 29(92화).
+        # 32화·33화 중 어느 쪽이 14/15 인지는 원작에서 못 갈랐지만,
+        # 🟦 사용자 확정 2026-07-31 "전부 50으로 통일" ⇒ **동작에 차이가 없다**
+        #    (switch 15 도 원작 Lv50 · 이벤트 29 도 lv50). 그래서 그대로 짝지어 둔다.
+        "battle_no": {"32": 14, "33": 15, "92": 29},
+        "hp_max": 1200, "att": 160, "def": 80, "pure": 1000, "level": 50,
         "_stats_status": "사용자 확정 2026-07-31 (32·33화 기준). 92화(원작 이벤트 전투 29)는 별도 스탯 lv50 hp1100/공200/방125 — story_subquest.json event_battle.",
         "_pure_basis": "사용자 확정: '공격 시 고정 데미지 1000'. 우리 전투의 `pure`"
                        "(방어·막기를 무시하고 더해지는 flat 피해, battle.gd::_pure_damage)에 해당한다.",
