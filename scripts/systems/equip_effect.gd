@@ -24,6 +24,29 @@ extends RefCounted
 const SRC := "equip:"
 
 
+## 장비의 **각성스킬 수정자**를 전투원에 찍는다. ⚠️ `AwakenSkill.apply_battle` **전에** 부를 것 —
+## 각성스킬이 효과를 심을 때 이 패치가 이미 붙어 있어야 한다(뒤에 부르면 아무 일도 안 한다).
+##
+## 전용 장비의 절반 가까이가 "[스킬] 효과 +20%" 처럼 각성스킬을 고치는 물건이라, 장비마다
+## 새 효과를 짜지 않고 **그 스킬의 표를 고쳐서 쓴다**. 문법은 [[AwakenSkill]] `PATCH_FIELD` 참조.
+##
+## 자기 각성스킬 번호와 맞는 수정자만 붙인다 — 다른 드래곤용 장비를 껴도 아무 일이 없다.
+static func awaken_mods(allies: Array, table: Dictionary) -> void:
+	for owner in allies:
+		var c := owner as Dictionary
+		var no := int(c.get("awaken_no", 0))
+		var mods: Array = []
+		if no > 0:
+			for key in (c.get("equip_keys", []) as Array):
+				var spec := rule_for(String(key), table)
+				if spec.is_empty() or not bool(spec.get("impl", false)):
+					continue
+				var m: Dictionary = spec.get("awaken_mod", {})
+				if not m.is_empty() and int(m.get("no", 0)) == no:
+					mods.append(m)
+		c[AwakenSkill.PATCH_FIELD] = mods
+
+
 ## 전투 시작 시 장비 효과를 파티에 반영한다. `allies` 를 직접 고친다(가변).
 ##
 ##   allies/enemies = Battle.make_combatant 결과 배열.

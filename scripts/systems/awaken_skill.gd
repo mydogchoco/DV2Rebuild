@@ -26,6 +26,25 @@ extends RefCounted
 ##          "중첩되는 각성스킬 효과에 대해서는 높은 수치만 적용됩니다")
 const STACK_ONCE := "once"
 
+# ── 장비 수정자 ──────────────────────────────────────────────────────────────
+## 전용 장비의 절반 가까이가 **각성 스킬을 고치는** 물건이다("[공격의 날개] 효과 +20%",
+## "[절망의 번개] 발동 횟수 2회 추가", "[신성한 유대] 효과가 아군 전체에 적용" …).
+## 그래서 장비마다 새 효과를 짜는 대신 **표를 고쳐서 쓰는 통로** 하나를 둔다.
+##
+##     EquipEffect.awaken_mods()  → 전투원에 `_awaken_patch` 를 찍는다 (apply_battle **전에**)
+##     AwakenSkill._patched()     → 그 스킬의 effect 사본에 패치를 먹인 뒤 평소대로 심는다
+##
+## 패치 문법(`data/equip_effects.json` 의 `awaken_mod`):
+##     {"no": 16,                                  ← 대상 각성스킬 번호(빌더가 이름→번호)
+##      "patch": {"ops.0.pct": "+20",              ← 점 경로. "+N" 가산 · "*N" 곱 · 그 밖은 대입
+##                "react.0.to": "ally",
+##                "dyn.0.ops.1.to": "ally"},
+##      "add_ops": [...], "add_react": [...],      ← 조항 추가(그 각성스킬이 발동할 때만)
+##      "explore": {"artifact_chance_pct": 100}}   ← 전투 밖(탐험) 보너스 덮어쓰기
+##
+## ⚠️ 패치는 **표를 건드리지 않는다** — 항상 사본에만 먹인다(`duplicate(true)`).
+const PATCH_FIELD := "_awaken_patch"
+
 
 ## 전투 시작 시 각성 스킬을 파티에 반영한다. `allies` 를 직접 고친다(가변).
 ##
@@ -53,6 +72,8 @@ static func apply_battle(allies: Array, enemies: Array, table: Dictionary,
 		var eff: Dictionary = s.get("effect", {})
 		if eff.is_empty() or not bool(eff.get("impl", false)):
 			continue
+		# 장비 수정자 — 이 소유자에게만 먹인 사본을 쓴다(표는 그대로).
+		eff = _patched(eff, owner, no)
 		if String(eff.get("stack", "")) == STACK_ONCE:
 			if used_once.has(no):
 				continue
@@ -97,12 +118,79 @@ static func apply_battle(allies: Array, enemies: Array, table: Dictionary,
 		var eff2: Dictionary = s2.get("effect", {})
 		if eff2.is_empty() or not bool(eff2.get("impl", false)):
 			continue
+		eff2 = _patched(eff2, owner2, no2)
 		if not Battle.effect_cond_ok(eff2.get("cond", null), owner2, allies, enemies, ctx):
 			continue
 		for op in (eff2.get("ops", []) as Array):
 			if (op as Dictionary).has("from"):
 				Battle.apply_effect_op(op as Dictionary, owner2, allies, enemies, ctx, no2)
 	return fired
+
+
+## 그 소유자에게 걸린 장비 수정자를 먹인 effect 사본. 없으면 원본 그대로 돌려준다.
+static func _patched(eff: Dictionary, owner: Dictionary, no: int) -> Dictionary:
+	var mods: Array = owner.get(PATCH_FIELD, [])
+	var hit: Array = []
+	for m in mods:
+		if int((m as Dictionary).get("no", 0)) == no:
+			hit.append(m)
+	if hit.is_empty():
+		return eff
+	var e := eff.duplicate(true)
+	for m in hit:
+		var mod := m as Dictionary
+		for path in (mod.get("patch", {}) as Dictionary):
+			_set_path(e, String(path), (mod["patch"] as Dictionary)[path])
+		for o in (mod.get("add_ops", []) as Array):
+			(e["ops"] as Array).append((o as Dictionary).duplicate(true))
+		if not (mod.get("add_react", []) as Array).is_empty():
+			if not e.has("react"):
+				e["react"] = []
+			for r in (mod["add_react"] as Array):
+				(e["react"] as Array).append((r as Dictionary).duplicate(true))
+	return e
+
+
+## 점 경로로 값을 바꾼다. `"+N"` 가산 · `"*N"` 곱 · 그 밖은 대입.
+## 경로가 실제로 없으면 **조용히 지나간다** — 표가 바뀌어 경로가 어긋난 것을 테스트가 잡는다.
+static func _set_path(root: Dictionary, path: String, spec) -> void:
+	var parts := path.split(".")
+	var cur = root
+	for i in parts.size() - 1:
+		var k := String(parts[i])
+		if cur is Array:
+			var idx := int(k)
+			if idx < 0 or idx >= (cur as Array).size():
+				return
+			cur = (cur as Array)[idx]
+		elif cur is Dictionary:
+			if not (cur as Dictionary).has(k):
+				return
+			cur = (cur as Dictionary)[k]
+		else:
+			return
+	var last := String(parts[parts.size() - 1])
+	var old = null
+	if cur is Dictionary:
+		old = (cur as Dictionary).get(last, null)
+	elif cur is Array:
+		var li := int(last)
+		if li < 0 or li >= (cur as Array).size():
+			return
+		old = (cur as Array)[li]
+	else:
+		return
+	var val = spec
+	if spec is String and (spec as String).length() > 1:
+		var s := spec as String
+		if s[0] == "+" or s[0] == "*":
+			var n := float(s.substr(1))
+			var base := float(old) if old != null else 0.0
+			val = (base + n) if s[0] == "+" else (base * n)
+	if cur is Dictionary:
+		(cur as Dictionary)[last] = val
+	else:
+		(cur as Array)[int(last)] = val
 
 
 static func _has_derived(eff: Dictionary) -> bool:
@@ -127,6 +215,13 @@ static func explore_bonus(party: Array, table: Dictionary) -> Dictionary:
 		if eff.is_empty() or not bool(eff.get("impl", false)):
 			continue
 		var ex: Dictionary = eff.get("explore", {})
+		# 장비 수정자의 탐험 조항(구드라의 가호 → 아티팩트 확률 100%). **덮어쓴다**(가산 아님).
+		for m in ((d as Dictionary).get(PATCH_FIELD, []) as Array):
+			var mod := m as Dictionary
+			if int(mod.get("no", 0)) == no and mod.has("explore"):
+				ex = ex.duplicate()
+				for k2 in (mod["explore"] as Dictionary):
+					ex[k2] = (mod["explore"] as Dictionary)[k2]
 		for k in out:
 			out[k] = int(out[k]) + int(ex.get(k, 0))
 	return out

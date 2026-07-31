@@ -128,9 +128,157 @@ func _init() -> void:
 	_test_atk_type(tbl, cfg)
 	# 11) 소규모 훅 — 크리 순서 · 연속공격 · 동적 · 각성기 상한 · 대상 속성.
 	_test_c_hooks(tbl, cfg, sdb)
+	# 12) 각성스킬 수정자 — 장비가 각성스킬의 표를 고쳐서 쓴다.
+	_test_awaken_mod(tbl, cfg)
 
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
+
+
+## A 묶음 — 장비가 각성스킬 표를 고치는 통로(`EquipEffect.awaken_mods` → `AwakenSkill._patched`).
+##
+## ⚠️ 순서: 수정자를 먼저 찍고 그 다음에 각성스킬을 심어야 한다. 뒤집으면 아무 일도 안 난다 —
+##    그 실수를 잡으려고 아래 마지막 항목에서 순서를 뒤집어 본다.
+func _test_awaken_mod(tbl: Dictionary, cfg: Dictionary) -> void:
+	var awt: Dictionary = _json("res://data/skill_awaken.json")
+
+	# 발레포르의 고리 — [공격의 날개](16) 데미지 20% 증가 → +20%p ⇒ 40%
+	var a := _mk_aw("A", "wind", 16, {"att": 100}, ["exclusive:발레포르의 고리"])
+	_fire([a], tbl, awt)
+	_eq("공격의 날개 20% → 40%", B._dmg_deal_mult(a), 1.4)
+	var plain := _mk_aw("P", "wind", 16, {"att": 100}, [])
+	_fire([plain], tbl, awt)
+	_eq("장비 없으면 20% 그대로", B._dmg_deal_mult(plain), 1.2)
+
+	# 프로스티의 무늬 — [보호의 날개](39) 받는 피해 10% 감소 → 20% 감소
+	var pr := _mk_aw("PR", "wind", 39, {"hp": 1000}, ["exclusive:프로스티의 무늬"])
+	_fire([pr], tbl, awt)
+	_eq("보호의 날개 10% → 20% 감소", B._dmg_taken_mult(pr), 0.8)
+
+	# 루시퍼의 날개장식 — [매의 눈](32) 방어무시 25 → 100
+	var lu := _mk_aw("LU", "wind", 32, {"att": 100}, ["exclusive:루시퍼의 날개장식"])
+	_fire([lu], tbl, awt)
+	_eq("매의 눈 25 → 100", B._eff(lu, "pure"), 100)
+
+	# 금오드래곤의고대목걸이 — [삼족오의 후예](56) 7% → 14% (세 조항 모두)
+	var gm := _mk_aw("GM", "light", 56, {"hp": 1000, "att": 100, "accuracy": 0},
+		["exclusive:금오드래곤의고대목걸이"])
+	_fire([gm], tbl, awt)
+	_eq("삼족오 체력 2배", int(gm["hp_max"]), 1140)
+	_eq("삼족오 공격력 2배", B._eff(gm, "att"), 114)
+	_eq("삼족오 명중률 2배", B._eff(gm, "accuracy"), 14)
+
+	# 헤네스의 지성의 왕관 — [자격을 갖춘 자](81) 5회 → 8회
+	var he := _mk_aw("HE", "wind", 81, {"hp": 100}, ["exclusive:헤네스의 지성의 왕관"])
+	_fire([he], tbl, awt)
+	_eq("자격을 갖춘 자 5 → 8회", _react_left(he, "skill_cast"), 8)
+
+	# 푸르푸르의 혼돈의 번개 — [절망의 번개](85) 3회 → 5회
+	var pu := _mk_aw("PU", "wind", 85, {"hp": 100}, ["exclusive:푸르푸르의 혼돈의 번개"])
+	_fire([pu], tbl, awt)
+	_eq("절망의 번개 3 → 5회", _react_left(pu, "skill_cast"), 5)
+
+	# 루키르의 바람의 날개 — [신뢰의 힘](63) 누적 대상이 자신 → 아군 전체
+	var lk := _mk_aw("LK", "wind", 63, {"att": 100}, ["exclusive:루키르의 바람의 날개"])
+	var mate := _mk_aw("MT", "wind", 0, {"att": 100}, [])
+	_fire([lk, mate], tbl, awt)
+	var foe := _mk_aw("F", "wind", 0, {"hp": 999999, "att": 1, "def": 10}, [])
+	var rr := RandomNumberGenerator.new()
+	B._aw_on_attack_done(lk, foe, rr)
+	_eq("신뢰의 힘이 아군에게도", B._eff(mate, "att"), 110)
+
+	# 프리스트의 빛나는 날개 — [순백의 빛](62) 명중 25 → 40, 대상에 아군 신성/빛 추가
+	var pf := _mk_aw("PF", "fire", 62, {"accuracy": 0}, ["exclusive:프리스트의 빛나는 날개"])
+	var holy := _mk_aw("HO", "holy", 0, {"accuracy": 0}, [])
+	var dark := _mk_aw("DK", "dark", 0, {"accuracy": 0}, [])
+	_fire([pf, holy, dark], tbl, awt)
+	_eq("자신 명중 25 → 40", B._eff(pf, "accuracy"), 40)
+	_eq("아군 신성에게도 적용", B._eff(holy, "accuracy"), 40)
+	_eq("그 밖의 속성엔 미적용", B._eff(dark, "accuracy"), 0)
+
+	# 샤마쉬의 흉갑 — [정의집행](86) 의 **추가대미지(관통)** 만 아군 전체로. 관통무시는 자신만.
+	var sh := _mk_aw("SH", "wind", 86, {"att": 200, "def": 300}, ["exclusive:샤마쉬의 흉갑"])
+	var sm := _mk_aw("SM", "wind", 0, {"att": 100, "def": 100}, [])
+	_fire([sh, sm], tbl, awt)
+	_eq("아군도 추가대미지(관통)", B._eff(sm, "pure"), 20)
+	_eq("관통 무시는 자신만", B._eff(sm, "depure"), 0)
+
+	# 말덱의 흡수의서 — 흡수 기준이 기본 → 최종(버프 포함) 능력치.
+	# 🟦 사용자 확정: 각성스킬은 기본, 이 장비가 최종으로 올린다.
+	var base_absorb := _absorb_att([])
+	var eff_absorb := _absorb_att(["exclusive:말덱의 흡수의서"])
+	_true("흡수 기준이 최종으로 (%d → %d)" % [base_absorb, eff_absorb], eff_absorb > base_absorb)
+
+	# 크로우 드래곤의 해골투구 — 막기 성공 시 [복수의 까마귀](40) 횟수 회복(최대 4).
+	var cr := _mk_aw("CR", "wind", 40, {"hp": 1000}, ["exclusive:크로우 드래곤의 해골투구"])
+	_fire([cr], tbl, awt)
+	_eq("복수의 까마귀 기본 2회", _react_left(cr, "hit_unguarded"), 2)
+	var attacker := _mk_aw("AK", "wind", 0, {"att": 10}, [])
+	B._aw_on_hit_unguarded(cr, attacker, rr)        # 1회 소모 → 1
+	_eq("한 번 썼다", _react_left(cr, "hit_unguarded"), 1)
+	for i in 6:
+		B._aw_on_block(cr, rr)                       # 회복 — 상한 4 에서 멈춘다
+	_eq("막기로 회복하되 최대 4", _react_left(cr, "hit_unguarded"), 4)
+
+	# 샤크곤의 물안경 — [구드라의 가호](17) 탐험 아티팩트 확률 50 → 100(덮어쓰기)
+	var e0 := {"awaken_no": 17, "equip_keys": []}
+	EE.awaken_mods([e0], tbl)
+	_eq("장비 없으면 50%", int(AwakenSkill.explore_bonus([e0], awt)["artifact_chance_pct"]), 50)
+	var e1 := {"awaken_no": 17, "equip_keys": ["exclusive:샤크곤의 물안경"]}
+	EE.awaken_mods([e1], tbl)
+	_eq("장비 끼면 100%", int(AwakenSkill.explore_bonus([e1], awt)["artifact_chance_pct"]), 100)
+
+	# 다른 드래곤의 각성스킬에는 걸리지 않는다.
+	var wrong := _mk_aw("WR", "wind", 39, {"att": 100}, ["exclusive:발레포르의 고리"])
+	_fire([wrong], tbl, awt)
+	_eq("각성스킬 번호가 다르면 무효", B._dmg_deal_mult(wrong), 1.0)
+
+	# ⚠️ 순서 회귀 — 각성스킬을 먼저 심으면 수정자가 안 먹는다(배선 사고 감지).
+	var late := _mk_aw("LT", "wind", 16, {"att": 100}, ["exclusive:발레포르의 고리"])
+	AwakenSkill.apply_battle([late], [], awt, {})
+	EE.awaken_mods([late], tbl)
+	_eq("순서를 뒤집으면 20% 그대로(= awaken_mods 를 먼저 불러야 한다)",
+		B._dmg_deal_mult(late), 1.2)
+
+
+## 각성스킬 번호를 가진 전투원.
+func _mk_aw(nm: String, el: String, awaken_no: int, stats: Dictionary, keys: Array) -> Dictionary:
+	var st := stats.duplicate()
+	st["equip_keys"] = keys
+	st["awaken_no"] = awaken_no
+	return B.make_combatant(nm, "ally", el, st)
+
+
+## 실제 배선 순서 그대로 — 수정자 먼저, 각성스킬 다음, 장비 효과 마지막.
+func _fire(party: Array, tbl: Dictionary, awt: Dictionary) -> void:
+	EE.awaken_mods(party, tbl)
+	AwakenSkill.apply_battle(party, [], awt, {})
+	EE.apply_battle(party, [], tbl, {})
+
+
+## 그 사건에 걸린 반응의 남은 횟수(첫 항목).
+func _react_left(c: Dictionary, on: String) -> int:
+	for e in (c.get("effects", []) as Array):
+		var d := e as Dictionary
+		if String(d.get("kind", "")) == B.REACT and String(d.get("on", "")) == on:
+			return int(d.get("left", -1))
+	return -999
+
+
+## [흡수의 힘](100) 이 흡수해 온 공격력 증가분. 최고 등급 아군에게 버프를 미리 얹어 두어
+## '기본'과 '최종'이 갈리게 만든다.
+func _absorb_att(keys: Array) -> int:
+	var tbl: Dictionary = _json("res://data/equip_effects.json")
+	var awt: Dictionary = _json("res://data/skill_awaken.json")
+	var me := _mk_aw("ME", "wind", 100, {"hp": 100, "att": 10, "def": 10}, keys)
+	me["grade"] = 1.0
+	var top := _mk_aw("TP", "wind", 0, {"hp": 1000, "att": 1000, "def": 100}, [])
+	top["grade"] = 9.0
+	# 버프 — 기본(1000)과 최종(2000)이 갈린다.
+	(top["effects"] as Array).append({"kind": "stat", "stat": "att", "mode": "pct",
+		"value": 100.0, "turns": -1, "src": "test"})
+	_fire([me, top], tbl, awt)
+	return B._eff(me, "att")
 
 
 ## C 묶음 — 크리 판정 순서 · 연속공격 · 동적 항목 · 각성기 상한 · 아군 속성 대상.

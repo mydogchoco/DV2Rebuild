@@ -19,6 +19,9 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 	return {
 		"name": name, "side": side, "element": element,
 		"hp_max": int(stats.get("hp", 1)), "hp": int(stats.get("hp", 1)),
+		# 버프가 얹히기 **전**의 최대 체력. 100 흡수의 힘이 '기본 능력치'를 읽을 때 쓴다
+		# (다른 스탯은 원시 필드가 그대로 남아 있지만 hp_max 는 _aw_add_stat 가 직접 고친다).
+		"hp_base": int(stats.get("hp", 1)),
 		"att": int(stats.get("att", 1)), "def": int(stats.get("def", 1)),
 		"cri": int(stats.get("cri", 10)), "evd": int(stats.get("evd", 10)), "blk": int(stats.get("blk", 10)),
 		# 장비 스탯(원작 info_item_acc 컬럼). 전부 0 기본 = 장비 없으면 종전과 완전히 동일한 전투.
@@ -580,6 +583,11 @@ static func resolve_awaken(attacker: Dictionary, enemies: Array, rng: RandomNumb
 		# 관통은 방어 무시 고정 피해라 각성기 배수의 대상이 아니다.
 		dmg = int(round(float(dmg) * _awaken_dmg_mult(attacker)))
 		dmg += _pure_damage(attacker, target)   # 관통 고정 피해는 각성기에도 더해진다
+		# 각성기는 원래 `dmg_taken`(받는 피해 배수)을 타지 않는다 — 28 대지의 시초의
+		# "각성기 피해량에는 적용되지 않음" 이 그래서 저절로 지켜진다.
+		# 전용 장비 파이썬의 갑옷이 그 예외를 연다("[대지의 시초]효과가 각성기에도 적용").
+		if _has_flag(target, "awaken_taken_applies"):
+			dmg = maxi(1, int(round(float(dmg) * _dmg_taken_mult(target))))
 		# 받는 쪽 상한 — "각성기에 받는 대미지 1000으로 제한"(피오드의 빛을 잃은 마석).
 		var acap := _awaken_taken_cap(target)
 		if acap > 0:
@@ -1575,6 +1583,24 @@ static func _restore_skill_use(owner: Dictionary, r: Dictionary, skills_db: Dict
 	return any
 
 
+## **다른 반응의 남은 횟수**를 되살린다 — 전용 장비 크로우 드래곤의 해골투구
+## ("막기 혹은 회피에 성공하면 각성스킬 [복수의 까마귀] 횟수를 1회 회복, 최대 4회").
+## `target_no` = 되살릴 반응의 각성스킬 번호 · `max` = 그 반응의 횟수 상한.
+static func _restore_react(owner: Dictionary, r: Dictionary) -> void:
+	var want := int(r.get("target_no", 0))
+	var cap := int(r.get("max", 0))
+	for e in (owner.get("effects", []) as Array):
+		var d := e as Dictionary
+		if String(d.get("kind", "")) != REACT or int(d.get("no", -1)) != want:
+			continue
+		if not d.has("left"):
+			continue                       # 무제한이면 되살릴 것이 없다
+		if cap > 0 and int(d["left"]) >= cap:
+			continue
+		d["left"] = int(d["left"]) + int(r.get("value", 1))
+		return
+
+
 ## 크리티컬이 터졌다 — 상대 최대 체력 비례 추가 피해(2 · 44).
 static func _aw_on_crit_bonus(_attacker: Dictionary, defender: Dictionary) -> int:
 	var bonus := 0
@@ -1622,6 +1648,9 @@ static func _aw_on_hit_unguarded(defender: Dictionary, attacker: Dictionary,
 ## 막기에 성공했다 — 64 신비한 보호(아군 버프 누적).
 static func _aw_on_block(defender: Dictionary, _rng: RandomNumberGenerator) -> void:
 	for r in _reacts(defender, "block"):
+		if String(r.get("do", "")) == "react_restore":
+			_restore_react(defender, r)
+			continue
 		if String(r.get("do", "")) == "acc":
 			# 65 신성 방패 "막기에 성공할 때 마다 자신의 합계 방어력 5%를 누적"
 			var nb := int(r.get("no", 0))
@@ -1645,6 +1674,9 @@ static func _aw_on_block(defender: Dictionary, _rng: RandomNumberGenerator) -> v
 static func _aw_on_evade(defender: Dictionary, attacker: Dictionary,
 		_rng: RandomNumberGenerator) -> void:
 	for r in _reacts(defender, "evade"):
+		if String(r.get("do", "")) == "react_restore":
+			_restore_react(defender, r)
+			continue
 		if String(r.get("do", "")) == "skill_restore":
 			if _restore_skill_use(defender, r, defender.get("_skills_db", {})):
 				_spend(r)
@@ -1918,7 +1950,8 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				_push(t, {"kind": "status", "flag": String(op["flag"])}, src)
 			"absorb_top":
 				_absorb_top(t, allies, float(op.get("pct", 0.0)),
-					op.get("stats", ["hp", "att", "def"]), src)
+					op.get("stats", ["hp", "att", "def"]), src,
+					bool(op.get("effective", false)))
 			_:
 				return false
 	return true
@@ -1933,8 +1966,13 @@ static func _push(c: Dictionary, e: Dictionary, src: String) -> void:
 
 ## 100 흡수의 힘 — "아군 드래곤 중 가장 등급이 높은 드래곤의 능력치를 30% 흡수해서
 ## 자신의 체/공/방에 합친다." 자기 자신이 최고 등급이면 자기 값을 흡수한다(설명이 제외하지 않는다).
+##
+## `effective` = **무엇을 흡수하는가**. 원작이 둘을 구분한다(전용 장비 말덱의 흡수의서가
+## "대상의 **기본** 능력치가 아니라 대상의 **최대** 능력치로 변경(아이템/스킬로 인한 변화량 포함)"
+## 이라고 못 박는다) ⇒ 기본값은 **기본 능력치**(버프 전)이고, 그 장비가 켜야 최종값을 읽는다.
+## 🟦 사용자 확정 2026-07-31 — 종전에는 늘 최종값을 읽어서 그 장비가 무효과였다.
 static func _absorb_top(owner: Dictionary, allies: Array, pct: float, stats: Array,
-		src: String) -> void:
+		src: String, effective := false) -> void:
 	var top: Dictionary = {}
 	var best := -INF
 	for c in allies:
@@ -1946,14 +1984,27 @@ static func _absorb_top(owner: Dictionary, allies: Array, pct: float, stats: Arr
 		return
 	for s in stats:
 		var key := String(s)
-		var add := float(_eff(top, key)) * pct / 100.0
+		# 기본 = 전투원의 원시 스탯 필드(효과 목록을 타지 않는다) · 최종 = `_eff`(버프 포함)
+		var base := float(_eff(top, key)) if effective else float(top.get(key, 0))
 		if key == "hp":
-			add = float(top.get("hp_max", 0)) * pct / 100.0
+			# 체력은 `_eff` 를 안 쓰므로 기본/최종 모두 hp_max 다 — 다만 최종은 버프가 이미
+			# 얹힌 hp_max 이고, 기본은 전투 시작 시점의 원시 최대체력(`hp_base`)이다.
+			base = float(top.get("hp_max", 0)) if effective 				else float(top.get("hp_base", top.get("hp_max", 0)))
+		var add := base * pct / 100.0
 		if add >= 1.0:
 			_aw_add_stat(owner, key, "flat", add, src)
 
 
 static func _targets(spec: String, owner: Dictionary, allies: Array) -> Array:
+	# 여러 대상을 `|` 로 이어 쓸 수 있다 — "자신의 스킬이 아군 신성/빛 드래곤에게도 적용"
+	# (프리스트의 빛나는 날개). 중복은 제거한다(자신이 신성이면 두 번 걸리면 안 된다).
+	if spec.contains("|"):
+		var uniq: Array = []
+		for part in spec.split("|"):
+			for t in _targets(String(part).strip_edges(), owner, allies):
+				if not uniq.has(t):
+					uniq.append(t)
+		return uniq
 	if spec == "self":
 		return [owner]
 	if spec == "ally":

@@ -41,6 +41,39 @@ def op(kind, **kw):
     return d
 
 
+
+# ── 각성스킬 수정자 ──────────────────────────────────────────────────────────
+#
+# 전용 장비의 절반 가까이가 **각성 스킬을 고치는** 물건이다.
+# 그래서 장비마다 새 효과를 짜지 않고, 그 스킬의 `effect` 를 **점 경로로 패치**해서 쓴다.
+# 통로 = `AwakenSkill._patched`(번역) — 자세한 문법은 그 파일의 `PATCH_FIELD` 주석.
+#
+# 🟦 "[스킬] 효과 +N%" 는 **퍼센트포인트 가산**으로 읽는다(사용자 확정 2026-07-31).
+#    예) [공격의 날개] "데미지 20% 증가" + 발레포르의 고리 "+20%" ⇒ 40% 증가.
+AWAKEN_NO: dict = {}          # 이름 → 번호. main() 이 skill_awaken.json 에서 채운다.
+
+
+def awk(name, patch=None, add_ops=None, add_react=None, explore=None, patch_new=None):
+    """그 각성스킬을 고치는 수정자 한 벌. 이름은 main() 이 번호로 바꾸며, 없으면 멈춘다.
+
+    `patch`     = **이미 있는** 경로를 고친다. 빌드 때 경로 존재를 검사한다(오타 방지).
+    `patch_new` = 표에 **없던 키**를 새로 넣는다(예: `ops.0.effective`). 검사에서 뺀다 —
+                  대신 부모 경로는 검사하므로 인덱스 오타는 그대로 잡힌다.
+    """
+    d = {"skill": name}
+    if patch or patch_new:
+        d["patch"] = dict(patch or {})
+        d["patch"].update(patch_new or {})
+        d["_patch_new"] = list((patch_new or {}).keys())
+    if add_ops:
+        d["add_ops"] = add_ops
+    if add_react:
+        d["add_react"] = add_react
+    if explore:
+        d["explore"] = explore
+    return d
+
+
 # ── 전용 장비 (equipment.json exclusive.list[].name 키) ──────────────────────
 #
 # 값 = {ops: [...], react: [...], cond: {...}, impl: bool, partial: str, why: str}
@@ -109,40 +142,83 @@ EXCLUSIVE = {
         "ops": [op("flag", flag="survive_once")]},
 
     # ── 미구현: 특정 스킬/각성스킬을 고치는 조항 ─────────────────────────────
+    # ── 각성스킬을 고치는 장비 ───────────────────────────────────────────────
+    "발레포르의 고리": {           # [공격의 날개](데미지 20% 증가) 효과 +20% ⇒ 40%
+        "awaken_mod": awk("공격의 날개", {"ops.0.pct": "+20"})},
+    "프로스티의 무늬": {           # [보호의 날개](받는 데미지 10% 감소) 효과 +10% ⇒ 20% 감소
+        # 표에서는 감소가 음수(pct -10)라 "+10%p" 는 -20 이다.
+        "awaken_mod": awk("보호의 날개", {"ops.0.pct": -20})},
+    "프리스트의 빛나는 날개": {      # [순백의 빛](명중률 25%) 이 아군 신성/빛에게도 + 효과 +15%
+        "awaken_mod": awk("순백의 빛", {
+            "ops.0.to": "self|ally_element:holy|ally_element:light",
+            "ops.0.value": "+15"})},
+    "아틀라스의 마력 수정": {       # [대지의 기둥] 게이지 회복량 30% 증가 ⇒ 30%+30%p = 60%
+        "awaken_mod": awk("대지의 기둥", {"ops.0.pct": "+30", "ops.1.pct": "+30"})},
+    "금오드래곤의고대목걸이": {      # [삼족오의 후예](체/공/명중 7%) 효과 2배
+        "awaken_mod": awk("삼족오의 후예", {
+            "ops.0.value": "*2", "ops.1.value": "*2", "ops.2.value": "*2"})},
+    "루시퍼의 날개장식": {         # [매의 눈] 방어무시 25 → 100
+        "awaken_mod": awk("매의 눈", {"ops.0.value": 100}),
+        "partial": "'묘안석과 중첩불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영"},
+    "살라의 화염창": {            # [푸른 화염] 으로 주는 상성 대미지 50% 증가
+        # 푸른 화염은 **모든 공격**을 유리 상성으로 만든다 ⇒ 그의 피해가 곧 '상성 대미지'다.
+        "awaken_mod": awk("푸른 화염", add_ops=[op("dmg_deal", pct=50)])},
+    "라이오스의 바람방패": {        # [고요한 바람](받는 피해 15 감소) 효과가 방어력 100당 3씩 증가
+        "awaken_mod": awk("고요한 바람", add_ops=[
+            op("dmg_taken_flat", **{"from": {"stat": "def", "ratio": 0.03}})])},
+    "파이썬의 갑옷": {            # [대지의 시초] 효과가 각성기에도 적용
+        # 각성기는 원래 받는피해 배수를 안 탄다 — 이 플래그가 그 예외를 연다(Battle.resolve_awaken).
+        "awaken_mod": awk("대지의 시초", add_ops=[
+            op("flag", flag="awaken_taken_applies", to="ally_element:earth")])},
+    "발칸의 푸른불꽃": {           # [지옥의 악귀] 효과에 크리티컬 파워 30% 추가
+        "awaken_mod": awk("지옥의 악귀", add_ops=[
+            op("stat", stat="cri_pow", mode="flat", value=30, to="ally")])},
+    "헤네스의 지성의 왕관": {       # [자격을 갖춘 자](전투당 5회) 효과 3회 추가
+        "awaken_mod": awk("자격을 갖춘 자", {"react.0.left": "+3"})},
+    "다르고스의 파괴의 힘": {       # [파괴의 힘] 발동 시 받는 데미지를 2회 1로 고정
+        # 패치는 각성스킬의 cond(아군 어둠 2명)를 통과한 뒤에 먹으므로 '발동 시' 가 지켜진다.
+        "awaken_mod": awk("파괴의 힘", add_react=[{"on": "pre_damage", "fix": 1, "left": 2}])},
+    "팔라곤의 권위의 투구": {       # [권위의 팔라곤] 공격력 증가량(방어력의 50%) → 150%
+        "awaken_mod": awk("권위의 팔라곤", {"ops.0.from.ratio": 1.5})},
+    "루키르의 바람의 날개": {       # [신뢰의 힘] 공격력 증가효과가 아군에게도 적용
+        "awaken_mod": awk("신뢰의 힘", {"react.0.to": "ally"})},
+    "나이트 드래곤의 기사 투구": {   # [빛의 기사] 체력 획득량 2배(상한도 함께)
+        "awaken_mod": awk("빛의 기사", {"ops.0.from.ratio": "*2", "ops.0.max": "*2"})},
+    "말덱의 흡수의서": {          # [흡수의 힘] 흡수 기준을 기본 → 최대(버프 포함) 능력치로
+        "awaken_mod": awk("흡수의 힘", patch_new={"ops.0.effective": True})},
+    "스트라의 방출의 서": {        # [방출의 힘] 각성 게이지 증가량 2배
+        "awaken_mod": awk("방출의 힘", {"react.0.gauge_pct": "*2"})},
+    "푸르푸르의 혼돈의 번개": {      # [절망의 번개](전투당 3회) 발동 횟수 2회 추가
+        "awaken_mod": awk("절망의 번개", {"react.0.left": "+2"})},
+    "사이커드래곤의 초록 번개": {    # [그림자 수호신] 받는 데미지 절반(20→10) · 아군 증뎀 10→30
+        "awaken_mod": awk("그림자 수호신", {"ops.0.pct": 10, "ops.1.pct": 30})},
+    "데스퍼라티오의 용암신발": {     # [잠재력] 100% 확률 발동 + 스킬 레벨 증가 +2 로 변경
+        "awaken_mod": awk("잠재력", {"ops.0.pct": 100, "ops.0.value": 2})},
+    "제피로스의 보석": {          # [잠재력] 발동 확률 +15%p (25 → 40)
+        "awaken_mod": awk("잠재력", {"ops.0.pct": "+15"})},
+    "크로우 드래곤의 해골투구": {    # 막기/회피 성공 시 [복수의 까마귀] 횟수 1회 회복(최대 4)
+        "awaken_mod": awk("복수의 까마귀", add_react=[
+            {"on": "block", "do": "react_restore", "target_no": 40, "max": 4},
+            {"on": "evade", "do": "react_restore", "target_no": 40, "max": 4}])},
+    "쏜 네일의 가시갑옷": {        # [가시와 못] 감소율·증가율을 모두 등급×2% 로
+        "awaken_mod": awk("가시와 못", {"ops.0.from.ratio": -2.0, "ops.1.from.ratio": 2.0})},
+    "아카이아의 성물": {          # [신성한 유대] 효과가 아군 전체에 적용
+        "awaken_mod": awk("신성한 유대", {"dyn.0.ops.0.to": "ally", "dyn.0.ops.1.to": "ally"})},
+    "샤마쉬의 흉갑": {           # [정의집행] 의 **추가대미지**(관통) 효과가 아군 전체에 적용
+        "awaken_mod": awk("정의집행", {"ops.1.to": "ally"})},
+    "샤크곤의 물안경": {          # [구드라의 가호] 아티팩트 획득 확률 100% 로 변경
+        "awaken_mod": awk("구드라의 가호", explore={"artifact_chance_pct": 100})},
+    "오르페우스의비석": {          # 위와 같은 문구
+        "awaken_mod": awk("구드라의 가호", explore={"artifact_chance_pct": 100})},
+
+    # ── 미구현: 기반 각성스킬이 아직 impl:false 이거나 일반 스킬을 고치는 것 ─────
     "번개고룡의 팬던트": {"impl": False, "why": "skill:심판의 날개"},
-    "발레포르의 고리": {"impl": False, "why": "skill:공격의 날개"},
-    "루시퍼의 날개장식": {"impl": False, "why": "skill:매의눈"},
-    "프로스티의 무늬": {"impl": False, "why": "skill:보호의 날개"},
-    "샤크곤의 물안경": {"impl": False, "why": "skill:구드라의 가호"},
-    "라이오스의 바람방패": {"impl": False, "why": "skill:고요한 바람"},
     "포세이돈의 삼지창": {"impl": False, "why": "skill:대양의 분노"},
-    "프리스트의 빛나는 날개": {"impl": False, "why": "skill:순백의 빛"},
-    "파이썬의 갑옷": {"impl": False, "why": "skill:대지의 시초"},
-    "발칸의 푸른불꽃": {"impl": False, "why": "skill:지옥의 악귀"},
-    "금오드래곤의고대목걸이": {"impl": False, "why": "skill:삼족오의 후예"},
     "블랙홀의 암흑결정체": {"impl": False, "why": "skill:블랙홀의 마력"},
-    "헤네스의 지성의 왕관": {"impl": False, "why": "skill:자격을 갖춘 자"},
     "아루루가의 물갈퀴": {"impl": False, "why": "skill:물의보호막"},
-    "아틀라스의 마력 수정": {"impl": False, "why": "skill:대지의 기둥"},
-    "다르고스의 파괴의 힘": {"impl": False, "why": "skill:파괴의 힘"},
     "커스리퍼의 뼈투구": {"impl": False, "why": "skill:뼈갑옷"},
-    "살라의 화염창": {"impl": False, "why": "skill:푸른화염"},
-    "팔라곤의 권위의 투구": {"impl": False, "why": "skill:권위의 팔라곤"},
-    "루키르의 바람의 날개": {"impl": False, "why": "skill:신뢰의 힘"},
-    "나이트 드래곤의 기사 투구": {"impl": False, "why": "skill:빛의 기사"},
-    "말덱의 흡수의서": {"impl": False, "why": "skill:흡수의 힘"},
-    "스트라의 방출의 서": {"impl": False, "why": "skill:방출의 힘"},
-    "푸르푸르의 혼돈의 번개": {"impl": False, "why": "skill:절망의 번개"},
-    "사이커드래곤의 초록 번개": {"impl": False, "why": "skill:그림자 수호신"},
-    "오르페우스의비석": {"impl": False, "why": "skill:구드라의 가호"},
-    "데스퍼라티오의 용암신발": {"impl": False, "why": "skill:잠재력"},
-    "제피로스의 보석": {"impl": False, "why": "skill:잠재력"},
     "콜테일의 헛된희망": {"impl": False, "why": "skill:타락한 드래곤"},
     "루페스의 결정화된 분노": {"impl": False, "why": "skill:복수의 거울"},
-    "크로우 드래곤의 해골투구": {"impl": False, "why": "skill:복수의 까마귀"},
-    "쏜 네일의 가시갑옷": {"impl": False, "why": "skill:가시와 못"},
-    "아카이아의 성물": {"impl": False, "why": "skill:신성한 유대"},
-    "샤마쉬의 흉갑": {"impl": False, "why": "skill:정의집행"},
     "불나래의 불꽃구슬": {"impl": False, "why": "skill:철갑방패 · 각인 에자녹의 권능"},
     "미니드래곤 고리": {"impl": False, "why": "skill:선제 공격"},
     "투탕카의 도리깨": {"impl": False, "why": "skill:선제 공격"},
@@ -280,7 +356,58 @@ def normalize(tbl: dict, texts: dict) -> dict:
     return out
 
 
+def resolve_awaken_mods(tbl: dict) -> None:
+    """`awaken_mod.skill`(이름) → `no`(번호). 이름이 없거나 그 스킬이 미구현이면 **멈춘다**.
+
+    ⚠️ 조용히 넘어가면 장비가 아무 일도 안 하는 채로 `impl:true` 가 되어 가장 나쁘다.
+       각성 표가 바뀌어 이름/경로가 어긋나는 순간 여기서 잡힌다.
+    """
+    sa = json.loads((REPO / "data" / "skill_awaken.json").read_text(encoding="utf-8"))
+    by_name = {s["name"]: s for s in sa["skills"]}
+    bad = []
+    for key, v in tbl.items():
+        mod = v.get("awaken_mod")
+        if not mod:
+            continue
+        s = by_name.get(mod["skill"])
+        if s is None:
+            bad.append("%s: 각성스킬 '%s' 이 표에 없다" % (key, mod["skill"]))
+            continue
+        if not (s.get("effect") or {}).get("impl"):
+            bad.append("%s: 각성스킬 '%s' 이 아직 impl:false" % (key, mod["skill"]))
+            continue
+        mod["no"] = s["no"]
+        # 패치 경로가 실제로 존재하는지 확인 — 오타/표 변경으로 조용히 무효가 되는 것을 막는다.
+        fresh = set(mod.pop("_patch_new", []))
+        for path in (mod.get("patch") or {}):
+            # 새 키는 **부모까지만** 검사한다(잎은 아직 없는 게 정상).
+            probe = path.rsplit(".", 1)[0] if path in fresh and "." in path else path
+            if not _path_exists(s["effect"], probe):
+                bad.append("%s: 패치 경로 '%s' 가 %s 의 effect 에 없다" % (key, probe, mod["skill"]))
+    if bad:
+        raise SystemExit("[build_equip_effects] 각성스킬 수정자 오류:\n  " + "\n  ".join(bad))
+
+
+def _path_exists(root, path: str) -> bool:
+    cur = root
+    for part in path.split("."):
+        if isinstance(cur, list):
+            i = int(part)
+            if i < 0 or i >= len(cur):
+                return False
+            cur = cur[i]
+        elif isinstance(cur, dict):
+            if part not in cur:
+                return False
+            cur = cur[part]
+        else:
+            return False
+    return True
+
+
 def main() -> None:
+    resolve_awaken_mods(EXCLUSIVE)
+    resolve_awaken_mods(SPECIAL)
     eq = json.loads(EQ.read_text(encoding="utf-8"))
     ex_text = {x["name"]: x.get("effect", "") for x in eq["exclusive"]["list"]}
     sp_text = {}

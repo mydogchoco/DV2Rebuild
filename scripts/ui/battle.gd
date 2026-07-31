@@ -468,7 +468,11 @@ var _equip_fired: Array = []       # 장비 조건부 효과로 실제로 걸린
 func _awaken_explore() -> Dictionary:
 	var lst: Array = []
 	for p in _party:
-		lst.append({"awaken_no": int((p as Dictionary).get("awaken_skill", 0))})
+		# 장비 수정자도 함께 넘긴다 — 구드라의 가호(아티팩트 확률)를 고치는 장비가 있다.
+		var e := {"awaken_no": int((p as Dictionary).get("awaken_skill", 0)),
+			"equip_keys": EquipEffect.keys_of((p as Dictionary).get("equip", {}))}
+		EquipEffect.awaken_mods([e], Data.equip_effects)
+		lst.append(e)
 	return AwakenSkill.explore_bonus(lst, Data.skill_awaken)
 func _apply_awaken_skills() -> void:
 	_awaken_fired = []
@@ -489,6 +493,8 @@ func _apply_awaken_skills() -> void:
 	var eb := Battle.make_combatant("E0", "enemy", String(_enemy.get("element", "")),
 		{"hp": int(_enemy.get("hp_max", 1)), "att": 1, "def": 1})
 	var _ectx := {"field_element": _field_element(), "enemy_boss": _is_boss()}
+	# ⚠️ 순서가 중요하다 — 장비의 **각성스킬 수정자**를 먼저 찍어야 각성스킬이 그 값으로 심는다.
+	EquipEffect.awaken_mods(pa, Data.equip_effects)
 	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, _ectx)
 	# 장비 조건부 효과 — 각성스킬과 같은 어휘·같은 시점(전투 시작 1회). 표는 data/equip_effects.json.
 	_equip_fired = EquipEffect.apply_battle(pa, [eb], Data.equip_effects, _ectx)
@@ -1131,13 +1137,9 @@ func _build_hud() -> void:
 	setb.add_theme_font_size_override("font_size", 20)
 	setb.position = Vector2(vis.x - 72, vis.y * 0.5 + fh + 40.0); setb.pressed.connect(_open_battle_settings)
 	hud.add_child(setb)
-	# 라운드 표시(원작 duel 턴 카운터)
-	_round_label = Label.new()
-	_round_label.add_theme_font_size_override("font_size", 16)
-	_round_label.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
-	_round_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-	_round_label.add_theme_constant_override("outline_size", 3)
-	_round_label.position = Vector2(104, 14); hud.add_child(_round_label)
+	# 🔴 2026-07-31 제거: "ROUND N" 라벨은 **자작**이었다. 원작 전투 HUD 에 라운드 표시가 없다 —
+	#   문자열 테이블에 `ROUND`/`라운드` 0건이고 AdventureScene 359메서드 어디에도 턴 카운터
+	#   표시가 없다(전량 디컴파일, [skip>8000] 0건). 턴 전환은 텍스트박스 문구로만 알린다.
 	_build_exp_panel(hud)
 	_build_mission_labels(hud)
 	_log("%s 이(가) 나타났다!" % String(_enemy["name"]))
@@ -1457,35 +1459,11 @@ func _evt_delay(ev: Dictionary) -> float:
 	return 0.6
 
 var _cur_round := 0
-var _round_label: Label
-
-## 원작 duel 라운드 전환(nextDuel/turnFinish): 라운드 라벨 갱신 + "ROUND N" 배너 팝.
-func _show_round(n: int) -> void:
-	if is_instance_valid(_round_label): _round_label.text = "ROUND %d" % n
-	if n <= 1: return   # 1라운드는 오프닝 배너로 대체
-	var vis := _vis()
-	var banner := Label.new(); banner.text = "ROUND %d" % n
-	banner.add_theme_font_size_override("font_size", 34)
-	banner.add_theme_color_override("font_color", Color(1, 0.92, 0.7))
-	banner.add_theme_color_override("font_outline_color", Color(0.2, 0.15, 0, 0.9))
-	banner.add_theme_constant_override("outline_size", 5)
-	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner.size = Vector2(vis.x, 44); banner.position = Vector2(0, vis.y * 0.14)
-	banner.z_index = 115; banner.modulate.a = 0.0; add_child(banner)
-	var t := banner.create_tween()
-	t.tween_property(banner, "modulate:a", 1.0, 0.2)
-	t.tween_interval(0.5)
-	t.tween_property(banner, "modulate:a", 0.0, 0.3)
-	t.tween_callback(banner.queue_free)
 
 func _play_event(ev: Dictionary) -> void:
-	# 원작 duel 구조(startDuel/nextDuel/turnFinish): 라운드가 바뀌면 라운드 표시 갱신.
+	# 라운드는 내부 상태로만 센다 — 화면 표시는 없다(위 _build_hud 의 제거 사유 참조).
 	if ev.has("round") and int(ev["round"]) != _cur_round:
 		_cur_round = int(ev["round"])
-		_show_round(_cur_round)
-	# 보스 2페이즈 전환(혼돈의 틈새) — logic 이 임계를 넘긴 타격에 `phase2` 를 실어 준다.
-	if bool(ev.get("phase2", false)):
-		_boss_phase2_fx()
 	match String(ev.get("type", "")):
 		"normal", "double", "awaken":
 			var atk: Dictionary = _find(String(ev.get("attacker", "")))
