@@ -56,6 +56,29 @@ OFF_SN, OFF_STEP = 0x168, 0x158
 MAX_STEP_INSNS, MAX_SCAN = 400, 300000
 
 
+## 미해석 구간을 건너뛰지 않는 명령 순회 — `main()` 이 Ghidra 핸들을 채운다.
+##
+## 🔴 모듈 수준 헬퍼(`iter_range`/`walk_case`/`default_is_user_talk`)도 **반드시** 이 경로를
+##    써야 한다. Ghidra 가 `setNext` 를 짧게 잡아 회차 case 블록을 미해석 바이트로 남기는데,
+##    `listing.getInstructionAfter` 는 그 구간을 조용히 건너뛴다 ⇒ case 블록 본문(대사 호출
+##    포함)이 통째로 안 보인다. `main()` 안만 고치고 여기를 안 고치면 표는 읽히는데
+##    **본문이 비어** "스텝 0 · 대사 0" 이 된다.
+NAV: dict = {}
+
+
+def nav_at(off: int):
+    fn = NAV.get("at")
+    return fn(off) if fn is not None else None
+
+
+def nav_after(ins):
+    return nav_at(ins.getAddress().getOffset() + ins.getLength())
+
+
+def nav_before(ins):
+    return nav_at(ins.getAddress().getOffset() - 4)   # ARM64 고정폭 4바이트
+
+
 def parse_args(argv):
     classes = []
     if "--all" in argv:
@@ -80,7 +103,37 @@ def main():
         mem = prog.getMemory()
 
         def at(off: int):
-            return listing.getInstructionAt(af.getAddress(off))
+            """그 주소의 명령. **없으면 강제로 해석한다.**
+
+            🔴 1~78화가 안 나오던 진짜 원인이 여기였다(2026-07-31 확정).
+               Ghidra 는 `Scenario1::setNext` 를 size=312 로 잡아 그 뒤 **회차 case 블록 전부를
+               미해석 바이트로 남긴다.** `getInstructionAfter` 는 미해석 구간을 **조용히
+               건너뛰므로**, 걸어가 보면 스텝 분기(`ldr [.,#0x158]` → 점프 테이블)가
+               통째로 안 보인다 ⇒ "스텝 분기가 없다"는 오판.
+               실제로는 회차 블록마다 표준형 스텝 스위치가 멀쩡히 있다:
+                   ldr x8,[sp,#0x50] ; ldr w8,[x8,#0x158] ; sub w8,w8,#1
+                   cmp w8,#N ; b.hi <default> ; ldrh w11,[x9,x8,LSL #1] ; br x10
+               (ARM64 는 4바이트 고정·정렬이라 강제 해석이 안전하다.)
+            """
+            a0 = af.getAddress(off)
+            ins = listing.getInstructionAt(a0)
+            if ins is None:
+                try:
+                    flat.disassemble(a0)
+                except Exception:                       # noqa: BLE001 — 데이터 구간이면 실패해도 됨
+                    return None
+                ins = listing.getInstructionAt(a0)
+            return ins
+
+        NAV["at"] = at
+
+        def after(ins):
+            """다음 명령 — **주소를 직접 더해** 미해석 구간을 건너뛰지 않게 한다."""
+            return at(ins.getAddress().getOffset() + ins.getLength())
+
+        def before(ins):
+            """앞 명령 — ARM64 고정폭이므로 4바이트 앞을 강제 해석해서 본다."""
+            return at(ins.getAddress().getOffset() - 4)
 
         def text(i) -> str:
             """`sub x1,x29,#0xd0` 형태로 정규화. ⚠️ `getDefaultOperandRepresentation` 은 `#` 을
@@ -98,71 +151,80 @@ def main():
             """
             win, cur = [], br_ins
             for _ in range(96):
-                cur = listing.getInstructionBefore(cur.getAddress())
+                cur = before(cur)
                 if cur is None:
                     break
                 win.append(cur)
             win.reverse()
-            kind = step_ld = None
-            start = 0
-            for idx, s2 in enumerate(win):
-                m = re.fullmatch(r"ldr (w\d+),\[x\d+,#(0x[0-9a-f]+)\]", text(s2))
-                if not m:
-                    continue
-                off = int(m.group(2), 0)
-                if off == OFF_SN:
-                    kind, start = "sn", idx
-                elif off == OFF_STEP:
-                    kind, start, step_ld = "step", idx, s2.getAddress().getOffset()
-            if kind is None:
+            rev = list(reversed(win))     # br 바로 앞부터 거슬러 올라간다
+            # ── ① 엔트리 로드에서 **레지스터를 확정**한다 ────────────────────────
+            #     ldrh w11,[x9, x8, LSL #0x1]   → 표 레지스터 x9 · 인덱스 레지스터 w8 · 폭 2
+            #
+            # 🔴 이 앵커가 없으면 조회가 통째로 어긋난다(2026-07-31 실측). 종전에는 `br` 에서
+            #    거슬러 첫 `add xN,xN,#imm` 을 adrp 짝으로 삼았는데, 그 자리에 있는 건
+            #    **스택 셋업**(`add x24,x24,#0x570`)이다 — 짝 `adrp x24` 가 없으니 tbl 이
+            #    None 이 되고 표가 통째로 버려졌다. 그래서 Scenario3~7 의 회차(sn) 표가
+            #    한 개도 안 잡혔다. 표 레지스터는 엔트리 로드가 정확히 알려 준다.
+            width, tbl_reg, idx_reg = 2, None, None
+            for s2 in rev:
+                m = re.fullmatch(r"ldr(b|h|sw) w\d+,\[(x\d+),[xw](\d+).*", text(s2))
+                if m:
+                    width = {"b": 1, "h": 2, "sw": 4}[m.group(1)]
+                    tbl_reg, idx_reg = m.group(2), "w" + m.group(3)
+                    break
+            if tbl_reg is None:
                 return None
-            # ── `br` 에서 **역방향**으로 지배 명령을 읽는다 ──────────────────────
-            # ⚠️ 종전에는 기준 `ldr` 뒤에서 **정방향 첫 항목**을 취했다. 그런데 `Scenario1` 처럼
-            #    한 번 읽은 sn 을 여러 구간(0~9 · 107~110 · …)으로 나눠 분기하면, 뒤쪽 표에
-            #    **앞 구간의 `cmp`** 가 달라붙어 엔트리 수가 틀린다(4엔트리 표를 10으로 읽었다).
-            #    표를 지배하는 cmp/sub/adrp/adr 은 언제나 그 `br` 직전 것이므로 역방향이 맞다.
-            rev = list(reversed(win[start:]))
+            # ── ② 표 주소 = adrp/add 쌍(그 레지스터의 것만) · 기준 주소 = adr ─────
             tbl = base = count = dflt = None
-            width = 2                    # 엔트리 폭(바이트)
-            add_reg = add_imm = None
-            cmp_reg = cmp_at = None
+            add_imm = None
+            cmp_at = None
             shift = 0
             for k, s2 in enumerate(rev):
                 t = text(s2)
-                # 엔트리 폭 — `ldrb`(1) / `ldrh`(2) / `ldrsw`(4). 레지스터 인덱스 형태만 해당.
-                # 🔴 Scenario1 의 첫 표는 `ldrb` 인데 전부 2바이트로 읽고 있었다 → 타깃이 전부 쓰레기.
-                if width == 2:
-                    m = re.fullmatch(r"ldr(b|h|sw) w\d+,\[x\d+,[xw]\d+.*", t)
-                    if m:
-                        width = {"b": 1, "h": 2, "sw": 4}[m.group(1)]
                 if dflt is None:
-                    m = re.fullmatch(r"b\.(hi|ls) (0x[0-9a-f]+)", t)
-                    if m and m.group(1) == "hi":
-                        dflt = int(m.group(2), 0)
+                    m = re.fullmatch(r"b\.hi (0x[0-9a-f]+)", t)
+                    if m:
+                        dflt = int(m.group(1), 0)
                 if base is None:
                     m = re.fullmatch(r"adr (x\d+),(0x[0-9a-f]+)", t)
                     if m:
                         base = int(m.group(2), 0)
-                if add_reg is None:
-                    m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
-                    if m:               # `\1` 역참조라 그룹은 (레지스터, 즉값) 둘뿐이다
-                        add_reg, add_imm = m.group(1), int(m.group(2), 0)
-                if tbl is None and add_reg is not None:
-                    m = re.fullmatch(rf"adrp {add_reg},(0x[0-9a-f]+)", t)
+                if add_imm is None:
+                    m = re.fullmatch(rf"add {tbl_reg},{tbl_reg},#(0x[0-9a-f]+|\d+)", t)
+                    if m:
+                        add_imm = int(m.group(1), 0)
+                if tbl is None and add_imm is not None:
+                    m = re.fullmatch(rf"adrp {tbl_reg},(0x[0-9a-f]+)", t)
                     if m:
                         tbl = int(m.group(1), 0) + add_imm
                 if count is None:
-                    m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
+                    m = re.fullmatch(rf"cmp {idx_reg},#(0x[0-9a-f]+|\d+)", t)
                     if m:
-                        count = int(m.group(2), 0) + 1
-                        cmp_reg, cmp_at = m.group(1), k
-            # 시프트(`sub wN,wM,#imm`)는 그 `cmp` **바로 앞** 몇 명령 안에 있는 것만 인정한다.
+                        count, cmp_at = int(m.group(1), 0) + 1, k
+            # ── ③ 시프트(`sub idx,src,#imm`)와 그 원본 레지스터 ──────────────────
+            src_reg = idx_reg
             if cmp_at is not None:
-                for s2 in rev[cmp_at + 1:cmp_at + 5]:
-                    m = re.fullmatch(rf"sub {cmp_reg},w\d+,#(0x[0-9a-f]+|\d+)", text(s2))
+                for s2 in rev[cmp_at + 1:cmp_at + 6]:
+                    m = re.fullmatch(rf"sub {idx_reg},(w\d+),#(0x[0-9a-f]+|\d+)", text(s2))
                     if m:
-                        shift = int(m.group(1), 0)
+                        src_reg, shift = m.group(1), int(m.group(2), 0)
                         break
+            # ── ④ 종류 = **그 원본 레지스터를 채운** `ldr wN,[x?,#0x158|0x168]` ──
+            #     위치(창 안 마지막)로 정하면 안 된다 — 미해석 구간을 강제 해석하면서
+            #     창에 남의 스텝 로드가 더 보이자 sn 표가 전부 step 으로 뒤집혔다.
+            kind, step_ld = None, None
+            for s2 in rev:
+                m = re.fullmatch(rf"ldr {src_reg},\[x\d+,#(0x[0-9a-f]+)\]", text(s2))
+                if not m:
+                    continue
+                off = int(m.group(1), 0)
+                if off not in (OFF_SN, OFF_STEP):
+                    continue
+                kind = "sn" if off == OFF_SN else "step"
+                step_ld = s2.getAddress().getOffset() if off == OFF_STEP else None
+                break
+            if kind is None:
+                return None
             if tbl and base and count:
                 return {"kind": kind, "tbl": tbl, "base": base, "count": count, "dflt": dflt,
                         "shift": shift, "step_ld": step_ld, "width": width,
@@ -222,7 +284,7 @@ def main():
                             reach = max(reach, entry_target(t, i))
                         if t["dflt"]:
                             reach = max(reach, t["dflt"])
-                cur = listing.getInstructionAfter(cur.getAddress())
+                cur = after(cur)
                 n += 1
             return entry, min(reach + 0x400, cap), tables
 
@@ -258,7 +320,7 @@ def main():
 
             # ── 대사 호출 위치(범위 기반) ────────────────────────────────────
             npc_talk_addr, user_talk_addrs, talker_addrs = None, set(), set()
-            for i in iter_range(listing, af, lo, hi):
+            for i in iter_range(at, after, lo, hi):
                 if i.getMnemonicString() != "bl":
                     continue
                 fl = i.getFlows()
@@ -274,7 +336,7 @@ def main():
                     talker_addrs.add(i.getAddress().getOffset())
             if npc_talk_addr is None and not talker_addrs:
                 names = {}
-                for i in iter_range(listing, af, lo, hi):
+                for i in iter_range(at, after, lo, hi):
                     if i.getMnemonicString() != "bl":
                         continue
                     fl = i.getFlows()
@@ -288,7 +350,7 @@ def main():
             slots: dict[str, str] = {}
             cur = at(npc_talk_addr) if npc_talk_addr is not None else None
             for _ in range(24 if cur is not None else 0):
-                cur = listing.getInstructionBefore(cur.getAddress())
+                cur = before(cur)
                 if cur is None:
                     break
                 m = re.fullmatch(r"(sub|add) (x[1-4]),(x29|sp),#(0x[0-9a-f]+|\d+)", text(cur))
@@ -342,12 +404,12 @@ def main():
                             fl2 = cur2.getFlows()
                             if not fl2:
                                 break
-                            cur2 = listing.getInstructionAt(fl2[0])
+                            cur2 = at(fl2[0].getOffset())
                             continue
                         if mn.startswith("b.") or mn.startswith("cb") or mn.startswith("tb"):
                             for f2 in cur2.getFlows():     # 조건 분기 — 타깃도 훑는다
                                 stack.append(f2.getOffset())
-                        cur2 = listing.getInstructionAfter(cur2.getAddress())
+                        cur2 = after(cur2)
                 return None
 
             def chain_from_block(start: int) -> dict[int, int]:
@@ -376,17 +438,17 @@ def main():
                     if m3:
                         stepreg = m3.group(1)
                         last = None
-                        cur3 = listing.getInstructionAfter(cur3.getAddress())
+                        cur3 = after(cur3)
                         continue
                     m3 = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t3)
                     if m3:
                         last = (m3.group(1), int(m3.group(2), 0))
-                        cur3 = listing.getInstructionAfter(cur3.getAddress())
+                        cur3 = after(cur3)
                         continue
                     m3 = re.fullmatch(r"b\.(eq|ne) (0x[0-9a-f]+)", t3)
                     if m3 and last and stepreg and last[0] == stepreg:
                         tgt3 = int(m3.group(2), 0)
-                        nxt = listing.getInstructionAfter(cur3.getAddress())
+                        nxt = after(cur3)
                         nxa = nxt.getAddress().getOffset() if nxt is not None else None
                         if m3.group(1) == "eq":
                             out2.setdefault(last[1], tgt3)
@@ -401,9 +463,9 @@ def main():
                         break
                     if cur3.getMnemonicString() == "b":     # 무조건 분기는 따라간다
                         fl3 = cur3.getFlows()
-                        cur3 = listing.getInstructionAt(fl3[0]) if fl3 else None
+                        cur3 = at(fl3[0].getOffset()) if fl3 else None
                         continue
-                    cur3 = listing.getInstructionAfter(cur3.getAddress())
+                    cur3 = after(cur3)
                 return out2
 
             def episode_of(step_tbl: dict) -> int | None:
@@ -420,7 +482,7 @@ def main():
                 def cmp_before(ins, depth=4):
                     c = ins
                     for _ in range(depth):
-                        c = listing.getInstructionBefore(c.getAddress())
+                        c = before(c)
                         if c is None:
                             return None
                         m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", text(c))
@@ -428,7 +490,7 @@ def main():
                             return int(m.group(2), 0)
                     return None
                 for src in prog.getReferenceManager().getReferencesTo(af.getAddress(sld)):
-                    b = listing.getInstructionAt(src.getFromAddress())
+                    b = at(src.getFromAddress().getOffset())
                     if b is not None:
                         v = cmp_before(b)
                         if v is not None:
@@ -437,6 +499,11 @@ def main():
                 return v
                 return None
 
+            if "--debug-tables" in sys.argv:
+                print(f"  [{cls}] 범위 {lo:#x}~{hi:#x} · 표 {len(tables)}")
+                for t0 in tables:
+                    print(f"     br@{t0['at']:#x} {t0['kind']:4} tbl={t0['tbl']:#x} "
+                          f"n={t0['count']} shift={t0['shift']} w={t0.get('width')}")
             body = Range(lo, hi)
             # 회차 → 스텝 테이블. sn 테이블이 있으면 **블록에서 도달하는 표**로 묶고,
             # 없으면(Scenario8) 표에서 가드를 거꾸로 찾는다.
@@ -488,13 +555,13 @@ def main():
                     else:
                         addrs = [entry_target(t, i) for i in range(t["count"])]
                     for a4 in addrs:
-                        f0.extend(walk_case(listing, af, fm, body, a4, slots,
+                        f0.extend(walk_case(at, after, fm, body, a4, slots,
                                             npc_talk_addr, user_talk_addrs, text,
                                             talker_addrs, rostr, None))
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
                 flow, t = best, (best_t or cands[0])
-                if t.get("dflt") and default_is_user_talk(listing, af, body, t["dflt"], user_talk_addrs):
+                if t.get("dflt") and default_is_user_talk(at, after, body, t["dflt"], user_talk_addrs):
                     flow.append({"op": "setUserTalk"})
                 out[str(sn)] = flow
                 talk = sum(1 for o in flow if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
@@ -541,39 +608,39 @@ class Range:
         return self.lo <= addr.getOffset() <= self.hi
 
 
-def iter_range(listing, af, lo: int, hi: int):
+def iter_range(_at, _after, lo: int, hi: int):
     """[lo, hi] 구간 명령 순회 — Ghidra 함수 경계를 믿을 수 없어 주소 범위로 훑는다."""
-    cur = listing.getInstructionAt(af.getAddress(lo))
+    cur = nav_at(lo)
     n = 0
     while cur is not None and n < MAX_SCAN:
         if cur.getAddress().getOffset() > hi:
             return
         yield cur
-        cur = listing.getInstructionAfter(cur.getAddress())
+        cur = nav_after(cur)
         n += 1
 
 
-def default_is_user_talk(listing, af, body, dflt: int, user_talk_addrs: set) -> bool:
+def default_is_user_talk(_at, _after, body, dflt: int, user_talk_addrs: set) -> bool:
     """default 블록이 `setUserTalk` 로 이어지는가(조건 분기 타깃까지 한 겹 들여다본다)."""
-    cur = listing.getInstructionAt(af.getAddress(dflt))
+    cur = nav_at(dflt)
     for _ in range(12):
         if cur is None or not body.contains(cur.getAddress()):
             return False
         if cur.getAddress().getOffset() in user_talk_addrs:
             return True
         for fl in cur.getFlows():
-            probe = listing.getInstructionAt(fl)
+            probe = nav_at(fl.getOffset())
             for _ in range(6):
                 if probe is None or not body.contains(probe.getAddress()):
                     break
                 if probe.getAddress().getOffset() in user_talk_addrs:
                     return True
-                probe = listing.getInstructionAfter(probe.getAddress())
-        cur = listing.getInstructionAfter(cur.getAddress())
+                probe = nav_after(probe)
+        cur = nav_after(cur)
     return False
 
 
-def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
+def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               npc_talk_addr: int, user_talk_addrs: set, text,
               talker_addrs: set | None = None, rostr=None,
               want_sn: int | None = None) -> list[dict]:
@@ -594,7 +661,7 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
     last_str = None
     store: dict[str, int] = {}
     ops: list[dict] = []
-    cur = listing.getInstructionAt(af.getAddress(tgt))
+    cur = nav_at(tgt)
     seen = set()
     for _ in range(MAX_STEP_INSNS):
         if cur is None or not body.contains(cur.getAddress()):
@@ -621,9 +688,9 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
                 fl3 = cur.getFlows()
                 if not fl3:
                     break
-                cur = listing.getInstructionAt(fl3[0])
+                cur = nav_at(fl3[0].getOffset())
                 continue
-            cur = listing.getInstructionAfter(cur.getAddress())
+            cur = nav_after(cur)
             continue
         m = re.fullmatch(r"(mov|movz) (w\d+),#(0x[0-9a-f]+|\d+)", t)
         if m:
@@ -692,11 +759,11 @@ def walk_case(listing, af, fm, body, tgt: int, slots: dict[str, str],
             fl = cur.getFlows()
             if not fl:
                 break
-            cur = listing.getInstructionAt(fl[0])
+            cur = nav_at(fl[0].getOffset())
             continue
         if cur.getMnemonicString() == "ret":
             break
-        cur = listing.getInstructionAfter(cur.getAddress())
+        cur = nav_after(cur)
     return ops
 
 

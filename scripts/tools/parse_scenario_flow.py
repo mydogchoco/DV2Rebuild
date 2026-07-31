@@ -132,6 +132,47 @@ def bg_table() -> dict[int, list[str]]:
     return out
 
 
+def bgm_table() -> dict[int, str]:
+    """`playBackGroundFieldMusic(int)` 의 필드 번호 → 트랙 이름(확장자 없이).
+
+    원작 @0165d74c 은 두 갈래다(디스어셈블 확인 2026-07-31):
+
+        cmp w1,#0x10 ; b.gt <이름표>          ← 16 이하
+          uVar1 = (param_1 == 0x10) ? 0x18 : param_1
+          CCString::createWithFormat("music/bg_%d.mp3", uVar1)
+        <이름표>: sub w8,w1,#0x12 ; cmp w8,#0x13 ; b.hi <무시> ; br  ← 18~37, 20엔트리
+          switch → "bg_colosseum" … "bg_world_wood"
+          CCString::createWithFormat("music/%s.mp3", 이름)
+
+    ⇒ 17(0x11)은 어느 갈래에도 없다(원작도 무음). 여기서 지어내지 않는다.
+    """
+    src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
+    ms = list(re.finditer(
+        r"/\* ==== playBackGroundFieldMusic @ [0-9a-f]+ \(size=(\d+)\)", src))
+    if not ms:
+        return {}
+    m = max(ms, key=lambda x: int(x.group(1)))
+    seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    out: dict[int, str] = {}
+    # 숫자 갈래 — 1~16. 16 만 bg_24 로 바뀐다(`uVar1 = 0x18; csel ... eq`).
+    if 'createWithFormat("music/bg_%d.mp3"' in seg:
+        for n in range(1, 17):
+            out[n] = "bg_%d" % (24 if n == 16 else n)
+    # 이름 갈래 — case 값이 곧 필드 번호다(`sub #0x12` 는 표 인덱스용이라 case 라벨은 원값).
+    cur: list[int] = []
+    for line in seg.splitlines():
+        cm = re.search(r"^\s*case (0x[0-9a-f]+|\d+):", line)
+        if cm:
+            cur.append(int(cm.group(1), 0))
+            continue
+        nm = re.search(r'&local_\w+,"([a-z_0-9]+)",(?:0x[0-9a-f]+|\d+)\)', line)
+        if nm and cur:
+            for c in cur:
+                out[c] = nm.group(1)
+            cur = []
+    return out
+
+
 def split_blocks(text: str):
     """람다 덤프를 (주소, 본문) 목록으로."""
     out = []
@@ -411,7 +452,10 @@ def accept_if_exact(flows: dict[str, list[dict]], scenarios: dict) -> dict[str, 
     """대사 스텝 수가 원작 대사 줄 수와 **정확히 일치**하는 회차만 통과시킨다."""
     ok = {}
     for sn, ops in flows.items():
-        talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk"))
+        # ⚠️ `setTalker` 도 대사 스텝이다 — 1~78화(`Scenario1~7`)는 NPC 를 번호가 아니라
+        #    **이름 문자열**로 넘기는 이 오버로드를 쓴다. 종전에는 이걸 안 세서 그 회차들이
+        #    전부 "흐름 대사 0" 으로 보였고, 추출이 성공한 뒤에도 게이트가 통째로 막았다.
+        talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
         lines = sum(len(p.get("lines", [])) for p in scenarios.get(sn, {}).get("parts", []))
         if lines and talk == lines:
             ok[sn] = ops
@@ -459,7 +503,7 @@ def main():
         classes = argv[argv.index("--classes") + 1].split(",")
     if not classes:
         classes = sorted(p.stem for p in LAMBDA.glob("*.c"))
-    npcs, bgs = npc_table(), bg_table()
+    npcs, bgs, bgms = npc_table(), bg_table(), bgm_table()
     scen = json.loads((REPO / "data" / "scenario.json").read_text(encoding="utf-8"))
     scenarios = scen.get("scenarios", {})
     flows: dict[str, list[dict]] = {}
@@ -495,11 +539,12 @@ def main():
         ),
         "npc_names": {str(k): v for k, v in sorted(npcs.items())},
         "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
+        "bgm": {str(k): v for k, v in sorted(bgms.items())},
         "flows": {k: flows[k] for k in sorted(flows, key=int)},
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)}")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)}")
 
 
 if __name__ == "__main__":
