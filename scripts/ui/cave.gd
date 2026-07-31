@@ -180,14 +180,17 @@ func _build_stage() -> void:
 	# 레시피 §1: 받침대 위 큰 드래곤이 화면 중앙 주역. ASSUMPTION: 미세 y는 F5로 보정.
 	_stage.position = Vector2(vis.x / 2.0, vis.y / 2.0 - 8.0)
 	add_child(_stage)
-	# 드래곤 클릭 영역(투명) — 클릭 시 love(터치) 모션 재생 후 wait 복귀
-	var btn := Button.new()
-	btn.flat = true
+	# 드래곤 클릭 영역(투명) — 클릭 시 love(터치) 모션 재생 후 wait 복귀.
+	# 🔴 `_stage` **뒤에** 붙는 형제라 화면 중앙을 통째로 덮는다. 알이 올라와 있을 때는
+	#    원작의 알 탭 영역(`onClickFatigue`, 250×300)을 가려 부화가 안 됐다(2026-08-01 사용자 보고
+	#    "터치해도 부화되지 않고 소리만 반복") → `_refresh_dragon` 이 알이면 꺼 준다.
+	_dragon_btn = Button.new()
+	_dragon_btn.flat = true
 	var bs := 320.0 * S1080
-	btn.size = Vector2(bs, bs)
-	btn.position = Vector2(vis.x / 2.0 - bs / 2.0, vis.y / 2.0 - bs / 2.0 - 26.0)   # ASSUMPTION: 드래곤 몸통 위치에 맞춰 F5 보정
-	btn.pressed.connect(_on_dragon_clicked)
-	add_child(btn)
+	_dragon_btn.size = Vector2(bs, bs)
+	_dragon_btn.position = Vector2(vis.x / 2.0 - bs / 2.0, vis.y / 2.0 - bs / 2.0 - 26.0)   # ASSUMPTION: 드래곤 몸통 위치에 맞춰 F5 보정
+	_dragon_btn.pressed.connect(_on_dragon_clicked)
+	add_child(_dragon_btn)
 
 ## 좌측 둥지 목록 — 원작 `CaveScene::setLeftWallLayer` + `addScroll` 1:1.
 ##
@@ -1823,6 +1826,9 @@ func _refresh_dragon() -> void:
 	dust.color_ramp = grad
 	_stage.add_child(dust)
 	var a := _active()
+	# 알 위에서는 드래곤 터치 영역을 끈다 — 안 끄면 알 탭 영역을 덮어 부화가 막힌다.
+	if is_instance_valid(_dragon_btn):
+		_dragon_btn.visible = not (not a.is_empty() and UserDB.is_egg(a))
 	if a.is_empty():
 		_build_stamina_gauge()
 		return
@@ -2295,6 +2301,10 @@ const EGG_STAND_DY := 80.0                  # 원작 pos y = visH*0.5 − 80
 const EGG_PLATE_DY := 137.0                 # 정보 판 pos y = visH*0.5 − 137
 const EGG_PLATE_SIZE := Vector2(180, 45)    # 9patch/dialogue_box CCSize(180,45)
 const EGG_DIA_COST := 300                   # onClickFatigue: isMEC ? 1500 : 300
+## 🟦 사용자 보정(2026-08-01): 알·둥지·정보 판을 통째로 오른쪽 5 · 아래 20 (디자인 포인트).
+## 원작 좌표 자체는 위 상수 그대로 두고 **컨테이너 두 개만** 옮긴다 — 원작 대조 시 리터럴이
+## 그대로 보여야 하기 때문. 되돌리려면 이 한 줄만 (0,0) 으로.
+const EGG_NUDGE := Vector2(5.0, 20.0)
 ## ⚠️ ASSUMPTION: 빛기둥 8발의 타격음. 원작은 `sResultEgg` 안의 **익명 람다**가 내는데
 ## 람다 본문은 디컴프 산출물(클래스 단위)에 없다 → 덤프에 남은 유일한 미사용 알 효과음을 쓴다.
 ## 원본이 특정되면 이 상수 한 줄만 고치면 된다.
@@ -2312,6 +2322,7 @@ var _egg_uid := 0
 var _egg_done := false              # 타이머 만료(= "완료" 상태)
 var _egg_busy := false              # 부화 연출 진행 중(중복 탭 차단)
 var _egg_action_tw: Tween = null    # setActionEgg 루프(탭 시 stopAllActions 로 죽인다)
+var _dragon_btn: Button = null      # 드래곤 터치 영역(알일 때는 꺼야 알 탭이 먹는다)
 var _egg_heartbeat: AudioStreamPlayer = null   # 원작 music/effect_heart_beat.mp3 루프
 
 ## 레이어 로컬(원작 cocos, y-up, 원점=좌하단) → `_egg_layer` 노드 좌표(y-down, 원점=anchor).
@@ -2347,7 +2358,7 @@ func _build_egg_on_stand(a: Dictionary) -> void:
 	_egg_layer = Node2D.new()
 	# 원작 주역 레이어 원점은 화면 (visW*0.5, visH*0.5−80) — 우리 `_stage` 원점보다
 	# 88pt 아래다(_stage 는 visH*0.5−8). 1080 공간에서 그만큼 내리고 역스케일한다.
-	_egg_layer.position = Vector2(0, (EGG_STAND_DY + 8.0) / S1080)
+	_egg_layer.position = Vector2(EGG_NUDGE.x, EGG_STAND_DY + 8.0 + EGG_NUDGE.y) / S1080
 	_egg_layer.scale = Vector2(1.0 / S1080, 1.0 / S1080)
 	_stage.add_child(_egg_layer)
 
@@ -2454,7 +2465,7 @@ func _egg_enhance_aura() -> void:
 ## 9patch/dialogue_box(capInsets 20,20,2,2) 180×45 @ (visW*0.5, visH*0.5−137).
 func _build_egg_plate() -> void:
 	var host := Node2D.new()
-	host.position = Vector2(0, (EGG_PLATE_DY + 8.0) / S1080)
+	host.position = Vector2(EGG_NUDGE.x, EGG_PLATE_DY + 8.0 + EGG_NUDGE.y) / S1080
 	host.scale = Vector2(1.0 / S1080, 1.0 / S1080)
 	_stage.add_child(host)
 	_egg_plate = Control.new()

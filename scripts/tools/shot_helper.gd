@@ -217,6 +217,8 @@ func _ready() -> void:
 			#   --blessed=1     축복 둥지(황금 월계관 nest_holy + 먼지 + 보너스 성급 분리 연출)
 			#   --enh=<0~3>     알 강화 단계(ani_egg_up1 오라 + 이름 "+N")
 			#   --tap=1         완료 상태에서 알을 탭해 부화 연출을 태운다(--wait 로 시점 선택)
+			#   --click=1       같은 일을 **실제 마우스 클릭 주입**으로 — 히트테스트까지 태운다
+			#                   (드래곤 터치영역이 알 탭을 덮던 회귀를 잡는 용도)
 			UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
 			var ce_did := 1
 			var ce_remain := 143997
@@ -240,6 +242,15 @@ func _ready() -> void:
 				var ce_node := _node_with_method(get_tree().root, "_on_egg_tap")
 				if ce_node != null: ce_node.call("_on_egg_tap")
 				else: print("SHOT caveegg: _on_egg_tap 노드 없음")
+			if "--click=1" in OS.get_cmdline_user_args():
+				# 알 중심(원작 탭 영역 250×300 의 한가운데) 화면 좌표에 실제 클릭을 넣는다.
+				var ce_vis := get_viewport().get_visible_rect().size
+				var ce_at := Vector2(ce_vis.x * 0.5 + 5.0, ce_vis.y * 0.5 - 30.0)
+				_click_at(ce_at)
+				await get_tree().process_frame
+				var ce_c := _node_with_method(get_tree().root, "_on_egg_tap")
+				print("SHOT caveegg click@", ce_at, " busy=", ce_c.get("_egg_busy") if ce_c else "?",
+					" done=", ce_c.get("_egg_done") if ce_c else "?")
 		"status":
 			# 상태창(StatusLayer) 검수 — 원작 진입점 그대로 **월드맵 위**에서 띄운다.
 			# 젬/스킬/장비 칸이 실제 장착분을 그리는지 보려고 임시로 채운다(begin_batch = 디스크 미기록).
