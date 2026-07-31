@@ -130,9 +130,116 @@ func _init() -> void:
 	_test_c_hooks(tbl, cfg, sdb)
 	# 12) 각성스킬 수정자 — 장비가 각성스킬의 표를 고쳐서 쓴다.
 	_test_awaken_mod(tbl, cfg)
+	# 13) 마지막 묶음 — 사망 트리거 · 관통 분배 · 스킬 지정 · PvE 조항만 살린 것.
+	_test_d_batch(tbl, cfg)
 
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
+
+
+## D 묶음 — 사망 트리거 · 관통 공통분배 · 스킬 지정 피해 · 컷 조항이 섞인 것의 PvE 조항.
+func _test_d_batch(tbl: Dictionary, cfg: Dictionary) -> void:
+	var awt: Dictionary = _json("res://data/skill_awaken.json")
+	var rng := RandomNumberGenerator.new()
+
+	# 쿠르파의 푸른갑주 — 아군 **그림자**가 쓰러지면 5턴간 공격력 50%.
+	var ku := _mk("KU", "light", {"att": 100}, ["exclusive:쿠르파의 푸른갑주"])
+	var sh := _mk("SH", "shadow", {"hp": 100}, [])
+	EE.apply_battle([ku, sh], [], tbl, {})
+	_eq("사망 전에는 그대로", B._eff(ku, "att"), 100)
+	sh["alive"] = false
+	B._aw_on_death(sh)
+	_eq("그림자 아군 사망 → 공격력 +50%", B._eff(ku, "att"), 150)
+	var ku2 := _mk("KU2", "light", {"att": 100}, ["exclusive:쿠르파의 푸른갑주"])
+	var fi := _mk("FI", "fire", {"hp": 100}, [])
+	EE.apply_battle([ku2, fi], [], tbl, {})
+	fi["alive"] = false
+	B._aw_on_death(fi)
+	_eq("다른 속성 아군 사망은 무효", B._eff(ku2, "att"), 100)
+
+	# 레지아나의 빛나는 깃털 — 자신이 죽으면 아군 각성기 피해 +50%.
+	var rg := _mk("RG", "shadow", {"hp": 100}, ["exclusive:레지아나의 빛나는 깃털"])
+	var ally := _mk("AL", "fire", {"att": 100}, [])
+	EE.apply_battle([rg, ally], [], tbl, {})
+	_eq("죽기 전에는 그대로", B._awaken_dmg_mult(ally), 1.0)
+	rg["alive"] = false
+	B._aw_on_death(rg)
+	_eq("사망 후 아군 각성기 +50%", B._awaken_dmg_mult(ally), 1.5)
+
+	# 엔젤 드래곤의티아라 — 자기 관통 0, 나머지 아군에게 1/N 씩.
+	var an := _mk("AN", "light", {"pure": 60}, ["exclusive:엔젤 드래곤의티아라"])
+	var m1 := _mk("M1", "light", {"pure": 0}, [])
+	var m2 := _mk("M2", "light", {"pure": 0}, [])
+	EE.apply_battle([an, m1, m2], [], tbl, {})
+	_eq("자기 관통은 0", B._eff(an, "pure"), 0)
+	_eq("아군 1 에게 30", B._eff(m1, "pure"), 30)
+	_eq("아군 2 에게 30", B._eff(m2, "pure"), 30)
+
+	# 번개고룡의 팬던트 — [심판의 날개](21) 을 쓸 때만 피해 200% 증가.
+	var bg := _mk("BG", "fire", {"att": 100}, ["exclusive:번개고룡의 팬던트"])
+	var tg := _mk("TG", "fire", {"hp": 999999, "def": 10}, [])
+	EE.apply_battle([bg], [tg], tbl, {})
+	bg["_cast_skill_id"] = 21
+	_eq("심판의 날개면 3배", int(B._deal_attack(bg, tg, 1000, true, rng, cfg, {})["damage"]), 3000)
+	bg["_cast_skill_id"] = 13
+	_eq("다른 스킬은 그대로", int(B._deal_attack(bg, tg, 1000, true, rng, cfg, {})["damage"]), 1000)
+
+	# 진의 나무비늘 — 아군 땅속성 수만큼 각성기 +20%, 최대 60%.
+	var jin := _mk("JN", "earth", {"att": 100}, ["exclusive:진의 나무비늘"])
+	var e1 := _mk("E1", "earth", {}, [])
+	EE.apply_battle([jin, e1], [], tbl, {})
+	_eq("땅 2마리 → 각성기 +40%", B._awaken_dmg_mult(jin), 1.4)
+	var jin2 := _mk("JN2", "earth", {"att": 100}, ["exclusive:진의 나무비늘"])
+	var many := [jin2]
+	for i in 5:
+		many.append(_mk("E%d" % i, "earth", {}, []))
+	EE.apply_battle(many, [], tbl, {})
+	_eq("상한 60%", B._awaken_dmg_mult(jin2), 1.6)
+
+	# 멜로우 드래곤의 부메랑 — 아군에 자신 말고 바람이 있으면 공격하지 않는다.
+	var me := _mk("ME", "wind", {"att": 100}, ["exclusive:멜로우 드래곤의 부메랑"])
+	var w2 := _mk("W2", "wind", {}, [])
+	EE.apply_battle([me, w2], [], tbl, {})
+	_true("바람 아군이 있으면 공격 안 함", B._has_flag(me, "no_attack"))
+	var solo := _mk("SO", "wind", {"att": 100}, ["exclusive:멜로우 드래곤의 부메랑"])
+	EE.apply_battle([solo, _mk("F2", "fire", {}, [])], [], tbl, {})
+	_true("혼자면 정상 공격", not B._has_flag(solo, "no_attack"))
+
+	# 워든의 부유검 — 디버프를 받는 동안에만 누적, 상한 1000.
+	var wd := _mk("WD", "wind", {"att": 100}, ["exclusive:워든의 부유검"])
+	var big := _mk("BG2", "wind", {"hp": 5000}, [])
+	EE.apply_battle([wd], [big], tbl, {})
+	B._aw_on_attack_done(wd, big, rng, 10)
+	_eq("디버프가 없으면 누적 없음", B._eff(wd, "att"), 100)
+	(wd["effects"] as Array).append({"kind": "stat", "stat": "def", "mode": "flat",
+		"value": -5.0, "turns": 3, "src": "test"})          # 디버프 하나
+	B._aw_on_attack_done(wd, big, rng, 10)
+	_eq("디버프 중이면 타겟 최대체력 10% 누적", B._eff(wd, "att"), 600)
+	for i in 10:
+		B._aw_on_attack_done(wd, big, rng, 10)
+	_eq("누적 상한 1000", B._eff(wd, "att"), 1100)
+
+	# 다크프로스티의 무늬 — 탐험 골드 증가량만큼 공격력%.
+	var dp := _mk("DP", "dark", {"att": 100, "explore_gold_pct": 50},
+		["exclusive:다크프로스티의 무늬"])
+	EE.apply_battle([dp], [], tbl, {})
+	_eq("골드 +50% → 공격력 +50%", B._eff(dp, "att"), 150)
+
+	# 익시아의 왕관 — [각성된 바람의 힘](20%) 세 조항 모두 +30%p ⇒ 50%
+	var ix := _mk_aw("IX", "wind", 7, {"hp": 1000, "att": 100, "def": 100},
+		["exclusive:익시아의 왕관"])
+	# ⚠️ [각성된 바람의 힘]은 "바람속성 지역" 조건이 붙어 있다 — ctx 를 줘야 발동한다.
+	var wctx := {"field_element": "wind"}
+	_fire([ix], tbl, awt, wctx)
+	_eq("각성된 바람의 힘 20% → 50%", B._eff(ix, "att"), 150)
+	var ix0 := _mk_aw("IX0", "wind", 7, {"hp": 1000, "att": 100, "def": 100}, [])
+	_fire([ix0], tbl, awt, wctx)
+	_eq("장비 없으면 20% 그대로", B._eff(ix0, "att"), 120)
+
+	# 피오드의 부서진 낙인 — 스킬 효과 레벨 +1
+	var fd := _mk("FD", "fire", {}, ["special:fiod:피오드의 부서진 낙인"])
+	EE.apply_battle([fd], [], tbl, {})
+	_eq("스킬 효과 레벨 +1", B._skill_level_bonus(fd), 1)
 
 
 ## A 묶음 — 장비가 각성스킬 표를 고치는 통로(`EquipEffect.awaken_mods` → `AwakenSkill._patched`).
@@ -250,10 +357,10 @@ func _mk_aw(nm: String, el: String, awaken_no: int, stats: Dictionary, keys: Arr
 
 
 ## 실제 배선 순서 그대로 — 수정자 먼저, 각성스킬 다음, 장비 효과 마지막.
-func _fire(party: Array, tbl: Dictionary, awt: Dictionary) -> void:
+func _fire(party: Array, tbl: Dictionary, awt: Dictionary, ctx: Dictionary = {}) -> void:
 	EE.awaken_mods(party, tbl)
-	AwakenSkill.apply_battle(party, [], awt, {})
-	EE.apply_battle(party, [], tbl, {})
+	AwakenSkill.apply_battle(party, [], awt, ctx)
+	EE.apply_battle(party, [], tbl, ctx)
 
 
 ## 그 사건에 걸린 반응의 남은 횟수(첫 항목).

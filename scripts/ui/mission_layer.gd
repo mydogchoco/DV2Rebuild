@@ -449,8 +449,38 @@ func _story_banner(win: Control, no: int) -> void:
 		if no_lines:
 			Toast.show(get_tree().current_scene, "이 회차 대사가 추출본에 없습니다 (%d화)" % epn)
 			return
-		var back := _back
-		var bp := _back_params
-		close()
-		Scenes.goto("story", {"no": epn, "part": 0, "back": back, "back_params": bp}))
+		var play := func() -> void:
+			var back := _back
+			var bp := _back_params
+			close()
+			Scenes.goto("story", {"no": epn, "part": 0, "back": back, "back_params": bp})
+		# 이미 본 회차는 **재관람 확인**을 먼저 띄운다 — 원작 `ScenarioManager::setIsReview`
+		# + 문자열 `<ScenarioReViewContent>` "{N화. 제목}을 다시보시겠습니까?".
+		if StoryProgress.seen(epn):
+			_confirm_review(epn, play)
+		else:
+			play.call())
 	win.add_child(pb)
+
+
+## 재관람 확인 — 원작 `<ScenarioReViewContent>` = "{#002940:%1$d화. %2$s}을 다시보시겠습니까?".
+## 원작은 `ScenarioManager::setIsReview(true)` 로 재관람 모드를 표시하는데, 우리는 관람 기록이
+## 이미 남아 있어(`scenario_<no>_0`) 완료 알림만 건너뛰면 된다(story.gd `_finish`).
+func _confirm_review(epn: int, play: Callable) -> void:
+	var ep := Data.story_episode(epn)
+	var p := OrigPopup.open(self, "다시보기", Vector2(640.0, 330.0))
+	var l := Label.new()
+	l.text = "%d화. %s을 다시보시겠습니까?" % [epn, String(ep.get("title", ""))]
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(0.16, 0.09, 0.0))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.position = Vector2(20.0, 62.0)
+	l.size = Vector2(p.win_size.x - 40.0, 80.0)
+	p.content.add_child(l)
+	p.add_action_button("확인", func() -> void:
+		p.close()
+		play.call(), 0, Vector2(200.0, 56.0),
+		Vector2(p.win_size.x * 0.5 - 110.0, p.win_size.y - 60.0))
+	p.add_action_button("취소", func() -> void: p.close(), 0, Vector2(200.0, 56.0),
+		Vector2(p.win_size.x * 0.5 + 110.0, p.win_size.y - 60.0))

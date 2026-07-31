@@ -12,14 +12,8 @@ var _sel_egg: String = ""   # 원작 EggSelectLayer: 선택한 알 종류(빈 �
 ## 효과는 자작 가산이 아니라 **위키 확정치**다 — 1강 7.0 / 2강 7.2 / 3강 7.5 등급 확정
 ## (labwiki.pdf §2.1). 환산은 logic 층(EggUpgrade.hatch_grade + Hatchery.stat_bonus_for_grade).
 
-## 그 알에 걸린 최고 강화 등급 1개를 소비한다(1회성).
-func _consume_egg_grade(key: String) -> int:
-	var counts := UserDB.egg_grade_counts(key)
-	var owned := EggUpgrade.owned_grades(UserDB.item_count(key), counts)
-	var step := int(owned[-1]) if not owned.is_empty() else 0
-	if step > 0:
-		UserDB.set_egg_grade_counts(key, EggUpgrade.after_consume(step, counts))
-	return step
+## 고른 알 칸의 강화 등급. v15 부터 **칸이 곧 등급**이라(`egg:17#2` — EggItem) 곁 테이블을
+## 건드릴 일이 없다 — 그 칸에서 1개를 빼면 등급도 함께 사라진다(호출측 `add_item(key, -1)`).
 
 var _params: Dictionary = {}   # 진입 params — `from` 으로 돌아갈 곳을 정한다(동굴/월드맵)
 
@@ -300,7 +294,7 @@ func _open_egg_history() -> void:
 			var ds := Sprite2D.new(); ds.texture = load(dp); ds.material = _pma; ds.scale = Vector2(0.7, 0.7)
 			ds.position = Vector2(36, 31); cell.add_child(ds)
 		var nm := Label.new()
-		nm.text = "%s   Lv.%d   ✓ 부화 완료" % [String(Data.get_dragon(int(dd["id"])).get("name", dd["id"])), int(dd["level"])]
+		nm.text = "%s   Lv.%d   ✓ 부화 완료" % [Icons.species_name(int(dd["id"])), int(dd["level"])]
 		nm.add_theme_font_size_override("font_size", 18); nm.add_theme_color_override("font_color", Color(0.3, 0.2, 0.05))
 		nm.position = Vector2(76, 18); nm.size = Vector2(BW - 190, 26); cell.add_child(nm)
 		vb.add_child(cell)
@@ -329,14 +323,14 @@ func _on_hatch() -> void:
 	if not eggs.is_empty():
 		# 원작 EggSelectLayer: 선택된 알 소비(미선택 시 첫 알).
 		var use_egg: String = _sel_egg if (_sel_egg != "" and eggs.has(_sel_egg)) else eggs[0]
-		# 연구소에서 강화해 둔 등급(원작 '알 강화'=부화 전 준비)을 여기서 소모한다.
-		# 높은 등급부터 쓴다 — 동굴 둥지(`cave.gd::_start_hatch`)와 같은 규칙.
-		egg_grade = _consume_egg_grade(use_egg)
+		# 연구소에서 강화해 둔 등급(원작 '알 강화'=부화 전 준비). **고른 칸이 곧 등급**이다.
+		egg_grade = EggItem.grade_of(use_egg)
 		UserDB.add_item(use_egg, -1)
 	elif not UserDB.spend("gold", 300):
 		_show_result(-1, "골드가 부족합니다")
 		return
-	var ids: Array = Data.dragon_ids()
+	# 무작위 부화 풀 — 지정 획득처 전용 종(커스텀 600·700·666·777)은 빠진다.
+	var ids: Array = Data.dragon_ids_random()
 	if ids.is_empty(): return
 	var r := RandomNumberGenerator.new(); r.randomize()
 	var did := int(ids[r.randi() % ids.size()])
@@ -375,7 +369,8 @@ func _on_combine() -> void:
 	elif not UserDB.spend("gold", 600):
 		_show_result(-1, "알 2개 또는 600골드 필요")
 		return
-	var ids: Array = Data.dragon_ids()
+	# 무작위 조합 풀 — 부화와 같은 규칙(커스텀 종 제외).
+	var ids: Array = Data.dragon_ids_random()
 	if ids.is_empty(): return
 	var r := RandomNumberGenerator.new(); r.randomize()
 	var did := int(ids[r.randi() % ids.size()])
@@ -441,7 +436,6 @@ func _hatch_burst(center: Vector2, did: int, msg: String, egg: Sprite2D) -> void
 	_result_box.add_child(dust)
 	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(dust): dust.queue_free())
 	# 드래곤 등장(스케일 인)
-	var ddef := Data.get_dragon(did)
 	var por := _portrait(did, "baby", 1.1)
 	if por:
 		por.position = center; por.scale = Vector2(0.1, 0.1); _result_box.add_child(por)
@@ -449,7 +443,7 @@ func _hatch_burst(center: Vector2, did: int, msg: String, egg: Sprite2D) -> void
 		tp.tween_property(por, "scale", Vector2(1.25, 1.25), 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tp.tween_property(por, "scale", Vector2(1.1, 1.1), 0.12)
 	var l := Label.new()
-	l.text = "%s  %s" % [msg if msg != "" else "새로운 드래곤!", String(ddef.get("name", "드래곤"))]
+	l.text = "%s  %s" % [msg if msg != "" else "새로운 드래곤!", Icons.species_name(did)]
 	l.add_theme_font_size_override("font_size", 26); l.add_theme_color_override("font_color", Color(1, 0.95, 0.5))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l.size = Vector2(vis.x, 32); l.position = Vector2(0, vis.y * 0.52)
 	l.modulate.a = 0.0; _result_box.add_child(l)

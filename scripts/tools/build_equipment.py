@@ -208,6 +208,29 @@ ARTIFACT_HIDDEN_NOTE = (
     "테라 = 스킬 발동 횟수 +1. 출처: 사용자 확정 2026-07-29(나무위키 §2.4 각주). "
     "⚠️ 우리 PDF 추출본에는 각주 본문이 없어 재확인 불가 — 값이 바뀌면 여기만 고치면 된다."
 )
+# 아티팩트 **합성**(원작 `ArtifactMix`, 마모루딕 연구소) — 재료 3개 + 골드로 등급 1단 상승.
+#   원작 클라가 갖고 있던 것: UI/연출/`ArtifactMixErrorMsg`("3개의 재료를 필요로 합니다") ·
+#   비용 공식 `setGold` = `표[getTypeLevel(대상)-1] × 채운 재료 수`(ArtifactMix.c:4692).
+#   유실된 것: 그 **표**(`AccountManager+0x118` = 서버가 내려준 배열)와 성공 확률.
+#   ⇒ `cost_per_material` 은 참조 영상 실측을 앵커로 우리가 채운다 —
+#      `docs/ref/uno/아티팩트합성3~5.png`: 위대한(index 4) 대상이 재료 1→3 개에서
+#      **150000 / 300000 / 450000** ⇒ 그 등급의 재료당 단가 = 150,000골드.
+#   나머지 등급은 그 앵커에서 등비(×2)로 내려/올려 잡았다.
+ARTIFACT_MIX = {
+    "materials": 3,
+    "cost_per_material": [9375, 18750, 37500, 75000, 150000, 0],
+    "same_type_required": True,
+    "success_pct": [100, 100, 100, 100, 100, 0],
+}
+ARTIFACT_MIX_NOTE = (
+    "⚠️ 자작(HARD RULE 6 예외) — 원작 비용표는 서버 배열(AccountManager+0x118)이라 유실. "
+    "배열 = 대상 아티팩트 등급 6단(파손된→전설의)의 **재료 1개당 골드**이고, 실제 비용은 "
+    "`단가 × 채운 재료 수`(원작 ArtifactMix::setGold 그대로). index 4(위대한)=150000 은 "
+    "docs/ref/uno/아티팩트합성3~5.png 실측이고 나머지는 거기서 ×2 등비. index 5(전설의)는 "
+    "더 올릴 등급이 없어 0(합성 불가). same_type_required/success_pct 도 자작 — 참조 영상에서는 "
+    "같은 종류 재료 3개로 위대한→전설의 승급이 한 번에 성공했다. 튜닝 노브 = "
+    "build_equipment.py ARTIFACT_MIX."
+)
 ARTIFACT_POWER_NOTE = (
     "⚠️ 자작(HARD RULE 6 예외) — 원작 아티팩트 수치는 서버 유실. 배열 = 등급 6단(파손된→전설의). "
     "power_lv = 스킬 효과 레벨 가산(각성스킬 83 '잠재력' +5 를 상한 앵커로 그 아래 +3). "
@@ -618,7 +641,8 @@ def build() -> dict:
                       "_note": "아티팩트는 스킬 발동확률/효과를 건드린다 — 스탯 장비와 계층이 다르다.",
                       "axes": ARTIFACT_AXES, "power": ARTIFACT_POWER,
                       "_power_authored": ARTIFACT_POWER_NOTE,
-                      "hidden": ARTIFACT_HIDDEN, "_hidden_source": ARTIFACT_HIDDEN_NOTE},
+                      "hidden": ARTIFACT_HIDDEN, "_hidden_source": ARTIFACT_HIDDEN_NOTE,
+                      "mix": ARTIFACT_MIX, "_mix_authored": ARTIFACT_MIX_NOTE},
         "option": OPTION,
         "pieces": pieces,
         "exclusive": {

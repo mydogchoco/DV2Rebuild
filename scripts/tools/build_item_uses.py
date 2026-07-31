@@ -50,6 +50,13 @@ ITEM_OFFLINE = {
     "mix_perfectbook": ("dummy", "groups.csv document/mix_book = 더미 아이템"),
     # groups.csv egg/element_egg: "단, 혼돈속성은 더미 데이터로 원작에서는 구현되지 않았음"
     "mall_chaos_egg": ("dummy", "혼돈속성 알은 원작에서 구현되지 않은 더미 데이터"),
+    # ⚠️ 2026-07-31 복구 — 이 근거는 `data/items.json` **에만** 있었고 여기엔 없어서
+    #   빌더를 돌리자 사라졌다(HEAD 에서 되살렸다). 값의 집은 빌더다.
+    "elixir": ("stub",
+               "위키 item.pdf §2.2 — 해골요새 상점의 임프 퐁에게 1다이아, 3개까지만 보유, "
+               "요새 안에서만 사용. 층 구조 요새 콘텐츠가 미구현이라 stub. "
+               "⚠️ 한때 행동불능 치료제로 잡았다가 되돌렸다"
+               "(사용자 정정 2026-07-29 — 그런 아이템은 없었다)."),
     # §2-1 온라인 CUT
     "ticket": ("cut", "토너먼트 티켓 = PvP. 오프라인 재구현에서 삭제(CLAUDE.md §2-1)"),
     # 장비 귀속·부가옵션 배선(2026-07-29). 원작 근거 = docs/ref/porting/EquipBelongOption.md
@@ -165,10 +172,16 @@ def main() -> int:
         off = ITEM_OFFLINE.get(key)
         if off is None and sub in GROUP_OFFLINE:
             off = GROUP_OFFLINE[sub]
-        if off and v.get("offline") != off[0]:
-            v["offline"] = off[0]
+        # ⚠️ 2026-07-31 수정: 종전엔 **상태가 바뀔 때만** 근거를 썼다
+        #   (`if off and v.get("offline") != off[0]`). build_items.py 가 이미 같은 offline 을
+        #   박아 둔 아이템은 근거가 영영 안 붙고, JSON 에 손으로 넣어 둔 근거는 재생성 때
+        #   조용히 사라졌다(실제로 `elixir._offline_basis` 를 그렇게 잃었다).
+        #   ⇒ 근거가 있으면 **항상** 쓴다. 카운터는 상태가 실제로 바뀐 것만 센다.
+        if off:
+            if v.get("offline") != off[0]:
+                v["offline"] = off[0]
+                n_off += 1
             v["_offline_basis"] = off[1]
-            n_off += 1
 
     items["_use_basis"] = (
         "각 아이템의 `use` = 무엇에 쓰이는가(가방 상세 표시용). 출처는 "

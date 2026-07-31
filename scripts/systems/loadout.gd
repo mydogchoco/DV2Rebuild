@@ -125,16 +125,41 @@ static func roll_scroll(scroll_key: String, table: Dictionary, skills_db: Dictio
 		return {}
 	return cand[rng.randi_range(0, cand.size() - 1)]
 
+## 순차 학습 게이트 — 원작 `Dragon::checkSkillList(no, level)`(`Dragon.c:815`, 반환 true = **불가**)
+## 의 반대. `BagPopup::onClickConfirm`(case 4, 0xdf5650)이 스킬 아이템을 쓰기 직전에 이걸 부르고,
+## 막히면 `CaveSkillUseMsg1` 팝업만 띄우고 끝낸다(서버 요청도 안 간다).
+##   · Lv.1   : 그 번호를 **아직 안 배웠을 때만** (`param_2 == 1` 분기 — 번호가 있으면 1 반환)
+##   · Lv.N≥2 : 그 번호를 **정확히 Lv.N-1 로** 갖고 있을 때만
+##              (else 분기 — `getNo()==no && getLevel()==level-1` 인 항목을 찾아야 0 반환)
+## ⇒ 3레벨 스크롤을 안 배운 드래곤에게 바로 쓸 수 없고, 배운 스킬의 레벨을 되돌릴 수도 없다.
+## 문구 근거: `<ToolTipDragonSkillExplain>` "스킬은 1등급 부터 순차적으로 강화하여야 하며
+## 한단계 높은 같은 스킬 스크롤을 이용하여 최대 5등급까지 강화 가능합니다."
+static func can_learn(pool: Array, skill_id: int, level: int) -> bool:
+	var have := -1
+	for s in pool:
+		if int((s as Dictionary).get("id", 0)) == int(skill_id):
+			have = int((s as Dictionary).get("level", 0))
+	if level <= 1:
+		return have < 0
+	return have == level - 1
+
+## 못 배우는 이유(원작은 사유를 구분하지 않고 한 문구만 띄운다 — `CaveSkillUseMsg1`).
+const LEARN_BLOCKED_MSG := "드래곤이 이미 배웠거나 아직 배울 수 없는 스킬입니다."
+
 ## 스킬 아이템 사용 → 학습 풀에 넣는다. 반환 {skills, ok, id, level, is_new, msg}.
 ##
-## 원작(`BagPopup.c:15353-15373`)은 **누적이 아니라 교체**다 — 같은 번호를 풀에서 먼저 지우고
-## 새 레벨로 다시 넣는다. 즉 3레벨 스킬을 배운 뒤 1레벨 스크롤을 쓰면 **1레벨로 내려간다.**
+## 원작(`BagPopup.c:6046` serverResult case 4)은 같은 번호를 풀에서 먼저 지우고 새 레벨로 다시
+## 넣는다 — 위 `can_learn` 게이트가 앞에 있으므로 이 교체는 **Lv.N-1 → Lv.N 강화**로만 일어난다.
+## (2026-07-31 정정: 종전 주석은 "1레벨 스크롤을 쓰면 1레벨로 내려간다"고 적었으나, 원작은
+##  `checkSkillList` 가 그 경우를 먼저 막는다. 게이트를 빠뜨려 다운그레이드가 가능했다.)
 ## 풀에는 상한이 없다(2칸은 장착칸 수이지 학습 풀 크기가 아니다).
 static func learn_from_item(pool: Array, skill_id: int, level: int, skills_db: Dictionary) -> Dictionary:
 	var sd: Dictionary = skills_db.get(str(skill_id), {})
 	if sd.is_empty():
 		return {"skills": pool, "ok": false, "msg": "알 수 없는 스킬입니다"}
 	var lv := clampi(level, 1, int(sd.get("max_level", 5)))
+	if not can_learn(pool, int(skill_id), lv):
+		return {"skills": pool, "ok": false, "msg": LEARN_BLOCKED_MSG}
 	var nm := String(sd.get("name", "스킬"))
 	var ns: Array = []
 	var was := 0

@@ -304,10 +304,8 @@ func _build_stage(a: Dictionary, stage_w: float, top: float, h: float, S: float)
 	var nb := _cspr("common_name_bg", S)
 	nb.position = Vector2(cx, nb_cy)
 	_root.add_child(nb)
-	var nick := String(a.get("nick", ""))
-	var dname := String(Data.get_dragon(id).get("name", "드래곤"))
 	# 원작도 이름만은 CCLabelTTF("Thonburi", 34)다(BMFont 아님).
-	var nl := _label(nick if nick != "" else dname, 28, Color(0.36, 0.22, 0.08))
+	var nl := _label(Icons.name_of(a), 28, Color(0.36, 0.22, 0.08))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	nl.size = Vector2(nb_w - 70.0, nb_h)
@@ -486,8 +484,7 @@ func _build_panel(a: Dictionary, W: float, top: float, S: float) -> float:
 	var lv := _bm_label("레벨 %d" % lvl, 18, Color.WHITE)   # 원작 subtitle ×0.7
 	lv.position = Vector2(100, 8); lv.size = Vector2(150, 24)
 	pane.add_child(lv)
-	var nick := String(a.get("nick", ""))
-	var nm := _label(nick if nick != "" else String(ddef.get("name", "드래곤")), 20,
+	var nm := _label(Icons.name_of(a), 20,
 		Color(0.9, 0.87, 0.8))
 	nm.position = Vector2(100, 32); nm.size = Vector2(160, 22)
 	pane.add_child(nm)

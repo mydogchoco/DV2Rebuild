@@ -212,7 +212,8 @@ EXCLUSIVE = {
         "awaken_mod": awk("구드라의 가호", explore={"artifact_chance_pct": 100})},
 
     # ── 미구현: 기반 각성스킬이 아직 impl:false 이거나 일반 스킬을 고치는 것 ─────
-    "번개고룡의 팬던트": {"impl": False, "why": "skill:심판의 날개"},
+    "번개고룡의 팬던트": {         # [심판의 날개](스킬 21) 사용 시 대미지 200% 증가
+        "ops": [op("skill_dmg_deal", pct=200, skill_id=21)]},
     "포세이돈의 삼지창": {         # [대양의 분노](방어율 -7 · 크리 +7) 효과 2배
         "awaken_mod": awk("대양의 분노",
             {"react.0.target_value": "*2", "react.0.self_value": "*2"})},
@@ -247,21 +248,46 @@ EXCLUSIVE = {
     "카일루스의 신성 방패": {"impl": False, "why": "skill:(각성스킬 누적)"},
     "디기의 금빛장식": {"impl": False, "why": "skill:(각성스킬 추가대미지 상한)"},
     "세로님의 전쟁보닛": {"impl": False, "why": "skill:팀버프 흑풍"},
-    "진의 나무비늘": {"impl": False, "why": "skill:(각성기 대미지) — awaken_dmg 는 있으나 '아군 땅속성 수만큼'의 per 대상이 각성기 배수와 맞물려야 한다"},
-    "레지아나의 빛나는 깃털": {"impl": False, "why": "skill:(사망 시 아군 각성기 강화)"},
+    "진의 나무비늘": {           # 아군 땅속성 수만큼 각성기 데미지 20% 증가(최대 60%)
+        "ops": [op("awaken_dmg", pct=20, per="ally_element:earth", max=60)]},
+    "레지아나의 빛나는 깃털": {     # 해당 드래곤 사망 시 아군 각성기 피해량 50% 증가
+        "react": [{"on": "death", "do": "party_buff", "to": "ally",
+                   "ops": [{"kind": "awaken_dmg", "pct": 50}]}]},
     "발로드의 갈기": {"ops": [op("awaken_dmg", pct=30)]},   # 각성기 피해량 30% 증가
 
     # ── 미구현: 오프라인 컷 콘텐츠 ───────────────────────────────────────────
     "청룡의 여의주": {"impl": False, "why": "cut — 토벌전(길드)"},
-    "익시아의 왕관": {"impl": False, "why": "cut — PvP"},
-    "솔라의 불꽃구슬": {"impl": False, "why": "cut — PvP"},
-    "수라드래곤의고대 장식": {"impl": False, "why": "cut — PvP"},
-    "프로스트랩터의 얼음수정": {"impl": False, "why": "cut — PvP"},
+    # ── 컷 조항이 섞인 것 — **PvE 조항만 살린다**(🟦 사용자 확정 2026-07-31) ────────
+    # 원문이 "PvP 에서도 적용되고 **효과가 30% 증가**" 처럼 컷 조항과 PvE 조항을 한 문장에
+    # 담고 있다. PvP 조항은 버리고 증가분만 반영한다. 증가분은 "+N%" 규약대로 퍼센트포인트다.
+    "익시아의 왕관": {           # [각성된 바람의 힘] 효과 +30%p
+        "awaken_mod": awk("각성된 바람의 힘", {
+            "ops.0.value": "+30", "ops.1.value": "+30", "ops.2.value": "+30"}),
+        "partial": "'바람속성 필드에서 PvP 전투에도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영"},
+    "솔라의 불꽃구슬": {          # [각성된 빛의 힘] 효과 +30%p
+        "awaken_mod": awk("각성된 빛의 힘", {
+            "ops.0.value": "+30", "ops.1.value": "+30", "ops.2.value": "+30"}),
+        "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영"},
+    "수라드래곤의고대 장식": {      # [각성된 불의 힘] 효과 +30%p
+        "awaken_mod": awk("각성된 불의 힘", {
+            "ops.0.value": "+30", "ops.1.value": "+30", "ops.2.value": "+30"}),
+        "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영"},
+    "프로스트랩터의 얼음수정": {     # [각성된 어둠의 힘] 효과 +30%p
+        "awaken_mod": awk("각성된 어둠의 힘", {
+            "ops.0.value": "+30", "ops.1.value": "+30", "ops.2.value": "+30"}),
+        "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영"},
     "바리안의 백색갑옷": {"impl": False, "why": "cut — 순위쟁탈전"},
-    "다크프로스티의 무늬": {"impl": False, "why": "cut — 탐험 골드 획득 증가량 참조"},
+    "다크프로스티의 무늬": {       # 탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가
+        # 그 '증가량' 은 컷된 값이 아니라 **우리도 갖고 있는 값**이다(각성스킬의 탐험 보너스).
+        # ui/battle.gd 가 전투원의 `explore_gold_pct` 에 실어 주고 여기서 파생값으로 읽는다.
+        "ops": [op("stat", stat="att", mode="pct",
+                   **{"from": {"stat": "explore_gold_pct", "ratio": 1.0}})]},
 
     # ── 미구현: 엔진에 개념이 없다 ───────────────────────────────────────────
-    "엔젤 드래곤의티아라": {"impl": False, "why": "engine — 자기 관통을 아군에게 '공통분배'하는 대상 연산이 없다"},
+    "엔젤 드래곤의티아라": {       # 자신의 방어 관통을 0 으로, 나머지 아군에게 공통분배
+        "ops": [op("pen_share")],
+        "partial": "'공통분배' 를 **똑같이 나눠 주는 것**으로 읽었다(아군마다 전액이 아니라 1/N). "
+                   "원문이 갈라 주지 않아 둘 중 하나를 골라야 했다"},
     "엔투라스의 불꽃 주먹": {       # 크리티컬 발동 시 상대의 현재 방어력 절반 무시
         "ops": [op("crit_pen", pct=50)]},
     "글라시아의 왕관": {           # 상대의 회피율이 0%가 되면 반드시 크리티컬
@@ -277,10 +303,18 @@ EXCLUSIVE = {
         "react": [{"on": "attack_done", "do": "heal_pct", "pct": 1,
                    "when": {"kind": "self_hp_at_most", "pct": 20}}],
         "partial": "'피의 갈증과 중첩 불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영"},
-    "워든의 부유검": {"impl": False, "why": "engine — 디버프 피격 중 공격력 누적 강화"},
+    "워든의 부유검": {           # 디버프를 받는 동안 일반공격 시 타겟 최대체력 10%만큼 공격력 강화(최대 1000)
+        # `when` 이 발화 시점 조건 — '상처 파악'(스킬 23)은 세지 않는다.
+        "react": [{"on": "attack_done", "do": "stack_from_target", "stat": "att",
+                   "pct": 10, "max_total": 1000,
+                   "when": {"kind": "has_debuff", "except_src": [23]}}]},
     "모노케로스의붉은 보주": {"impl": False, "why": "engine — 피해 누적 후 방출(전투 중 1회)"},
     "발록의 전투갑주": {"impl": False, "why": "engine — 회피한 상대가 자기 턴에 반격당하는 역공 구조"},
-    "쿠르파의 푸른갑주": {"impl": False, "why": "engine — 아군 사망 트리거 + 5턴 한정 버프"},
+    "쿠르파의 푸른갑주": {         # 아군 그림자 드래곤이 쓰러지면 5턴간 공격력 50% 상승
+        # 죽는 쪽이 반응을 갖고 있어야 하므로 **그림자 아군에게** 심는다(plant).
+        "react": [{"on": "death", "do": "party_buff", "plant": "ally_element:shadow",
+                   "to": "ally", "turns": 5,
+                   "ops": [{"kind": "stat", "stat": "att", "mode": "pct", "value": 50}]}]},
     "오울드라의 어둠갑옷": {        # 전투시작 시 모든 대미지를 1로 막아주는 보호막 1회 **전체** 적용
         # `plant: ally` = 아군 전원에게 각자 1회씩 심는다(각자 자기 몫의 left 를 갖는다).
         "react": [{"on": "pre_damage", "fix": 1, "left": 1, "plant": "ally"}]},
@@ -297,7 +331,11 @@ EXCLUSIVE = {
                    **{"from": {"stat": "blk", "ratio": 1.0}})]},
     "현무드래곤의동방갑옷": {       # 아군 물속성 드래곤의 피해량 10% 증가
         "ops": [op("dmg_deal", pct=10, to="ally_element:aqua")]},
-    "멜로우 드래곤의 부메랑": {"impl": False, "why": "engine — 조건부로 '공격하지 않는다'(행동 자체를 막는 규칙)"},
+    "멜로우 드래곤의 부메랑": {     # 아군에 자신 제외 바람속성이 있으면 멜로우는 공격하지 않는다
+        # 멜로우 자신이 바람이라 "자신을 제외하고 1마리" = 파티 바람 2마리 이상이다.
+        # `no_attack` 은 각성스킬 51 빛의 환희가 쓰는 것과 같은 플래그다.
+        "cond": {"kind": "party_element_count", "value": "wind", "min": 2},
+        "ops": [op("flag", flag="no_attack")]},
 }
 
 # ── 특수 장비 (해골요새·발록·피오드) — 키는 "<계열>:<이름>" ──────────────────
@@ -308,7 +346,8 @@ SPECIAL = {
         "ops": [op("stat", stat="cri_pow", mode="flat", value=100)]},
     "balrog:카이저 발록의 투구": {   # 공격 시 상대 남은 체력의 5% 비례 추가 대미지(최대 300)
         "react": [{"on": "attack_target_hp", "do": "cur_pct", "pct": 5, "max": 300}]},
-    "fiod:피오드의 부서진 낙인": {"impl": False, "why": "skill:(착용자 스킬 효과 +1)"},
+    "fiod:피오드의 부서진 낙인": {   # 착용한 드래곤의 스킬 효과 +1
+        "ops": [op("skill_level", value=1)]},
     "fiod:피오드의 빛을 잃은 마석": {  # 각성기에 받는 대미지 1000 으로 제한
         "ops": [op("awaken_dmg_cap", value=1000)]},
     "fiod:피오드의 텅 빈 모래시계": {  # 타겟 최대 체력 1마다 0.002% 의, 타겟 최대체력 비례 추가대미지(최대 300)

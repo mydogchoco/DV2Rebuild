@@ -68,7 +68,6 @@ func _rebuild() -> void:
 	_build_field_buff()
 	_build_textbox()
 	_build_hud()
-	_build_team_buff_badges()   # 원작 TeamBuff::createIcon — 활성 조합버프 배지
 	_maybe_team_buff_intro()    # 원작 AdventureScene::setCheckTeamBuff — 조합 연출 뒤 전투 시작
 
 # ---------- 데이터 조립 ----------
@@ -487,6 +486,9 @@ func _apply_awaken_skills() -> void:
 		st["grade"] = float(pd.get("grade", 0.0))
 		st["dragon_id"] = int(pd.get("id", 0))
 		st["atk_type"] = String(pd.get("atk_type", ""))
+		# 전용 장비 다크프로스티의 무늬 — "탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가".
+		# 그 증가량은 우리도 갖고 있다(각성스킬의 탐험 보너스) → 전투원에 실어 준다.
+		st["explore_gold_pct"] = int(_awaken_explore().get("gold_pct", 0))
 		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
 		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
 		pa.append(c)
@@ -543,52 +545,12 @@ func _team_buff_list(party: Array) -> Array:
 		return []
 	return TeamBuff.active_buffs(_party_race_keys(party), table)
 
-## 활성 팀버프 배지 — 아이콘 조립만 원작 `TeamBuff::createIcon`(TeamBuff.c:658-669)을 따른다
-## (`battle/<res>/combine_outline.png` 위에 `combine_mark.png` 를 겹친다).
-## res 이름 = team_buffs.json 의 img (Combine1..24 ↔ battle/* 폴더 1:1 확인분).
-##
-## ⚠️ **배치는 자작이다.** `createIcon` 호출자를 전수 조회하면 `SkinPopup` 하나뿐이고
-##    (`grep -rn createIcon docs/ref/orig_code/decomp/`), 원작 전투 HUD 에는 이 배지가 없다.
-##    원작이 조합 버프를 알리는 방법은 전투 시작 직전의 **연출**(`CombineElementsLayer`,
-##    `docs/ref/porting/CombineElementsLayer.md`) 이다 — 그건 `_maybe_team_buff_intro` 로 이식했다.
-##    지울지 남길지는 사용자 판단이라 남겨 두되, 크기 버그만 고친다.
-## 🔴 2026-07-31 수정: 배지 배율이 `ASSET_SCALE*0.5` 였다 — combine_outline 프레임이 411px 라
-##    한 변 274pt 짜리 원판이 EXP HUD 를 덮고 있었다(3마리 파티 + 조합 성립 때만 나와서 여태
-##    못 봤다). 프레임 실폭에서 목표 높이로 역산한다.
-const TEAM_BADGE_PX := 52.0        # 배지 한 변(디자인 pt) — 아래 x 간격(58)에 맞춘 값
-func _build_team_buff_badges() -> void:
-	if _active_team_buffs.is_empty():
-		return
-	var lay := CanvasLayer.new(); lay.layer = 8; add_child(lay)
-	var x := 18.0
-	for b in _active_team_buffs:
-		var res := String((b as Dictionary).get("img", ""))
-		if res == "":
-			continue                     # 25~30(그림자 계열)은 구판 덤프에 아이콘 없음
-		var dir := "battle_combine_%s" % res
-		var holder := Node2D.new()
-		# EXP 바(y≈115)와 미션 2줄(y≈172/238) 아래로 내린다 — 종전 y=118 은 EXP 바를 덮었다.
-		holder.position = Vector2(x + 26.0, 296.0)
-		lay.add_child(holder)
-		var man := _man(dir)
-		var ow := float((man.get("battle_%s_combine_outline" % res, {}) as Dictionary).get("w", 0))
-		var k: float = (TEAM_BADGE_PX / ow) if ow > 0.0 else 0.125
-		for frame in ["combine_outline", "combine_mark"]:
-			var pth := "res://assets/converted/%s/battle_%s_%s.tres" % [dir, res, frame]
-			if not ResourceLoader.exists(pth):
-				continue
-			var sp := Sprite2D.new(); sp.texture = load(pth); sp.material = _pma
-			sp.scale = Vector2(k, k)
-			holder.add_child(sp)
-		var nm := Label.new(); nm.text = String((b as Dictionary).get("name", ""))
-		nm.add_theme_font_size_override("font_size", 13)
-		nm.add_theme_color_override("font_color", Color(1, 0.95, 0.75))
-		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		nm.add_theme_constant_override("outline_size", 4)
-		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nm.size = Vector2(96, 18); nm.position = Vector2(x - 22.0, 324.0)
-		lay.add_child(nm)
-		x += 58.0
+## 🔴 2026-07-31 제거: 전투 HUD 의 **팀버프 배지는 자작**이었다.
+## `TeamBuff::createIcon` 호출자를 전수 조회하면 `SkinPopup`(드래곤 정보 팝업) **하나뿐**이고
+## (`grep -rn createIcon docs/ref/orig_code/decomp/`), 원작 전투 화면엔 이 배지가 없다.
+## 원작이 조합 버프를 알리는 유일한 방법 = 전투 개시 직전의 연출 `CombineElementsLayer`
+## (`docs/ref/porting/CombineElementsLayer.md`) — 아래 `_maybe_team_buff_intro` 로 이식돼 있다.
+## 수치 적용은 `_team_buff_delta` 가 그대로 담당한다(화면 표시만 사라진다).
 
 func _team_buff_delta(party: Array) -> Dictionary:
 	var table: Dictionary = Data.team_buffs
@@ -1172,10 +1134,14 @@ func _build_exp_panel(hud: CanvasLayer) -> void:
 	bg.size = Vector2(w, h)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bg)
-	# 날개 EXP 아트 — 원작 앵커(0,0.5) @ (-10, h*0.5+5).
-	var wing := _spr("adventure_ui", "scene_adventure_bonus_exp_mini", _adv, S)
-	if wing:
-		var wi: Dictionary = _adv.get("scene_adventure_bonus_exp_mini", {})
+	# 날개 EXP 아트 — 원작 `setExpAddIcon` 은 **두 장을 같은 자리에 겹쳐** 붙인다:
+	#   ① `bonus_exp_mini2.png` 를 먼저(뒤) ② `bonus_exp_mini.png` 를 나중(앞)
+	#   둘 다 앵커(0,0.5) @ (-10, h*0.5 + 5). 종전엔 ②만 그려서 뒷장이 빠져 있었다(2026-07-31 보강).
+	for key in ["scene_adventure_bonus_exp_mini2", "scene_adventure_bonus_exp_mini"]:
+		var wing := _spr("adventure_ui", key, _adv, S)
+		if wing == null:
+			continue
+		var wi: Dictionary = _adv.get(key, {})
 		wing.position = Vector2(-10.0 + float(wi.get("w", 64)) * S * 0.5, h * 0.5 - 5.0)
 		root.add_child(wing)
 	_exp_label = _bmf_label("subtitle", S)
@@ -1498,7 +1464,9 @@ func _play_event(ev: Dictionary) -> void:
 				if bool(ev.get("block", false)):
 					_fx_text(dfn, "battle_block_kr", "BLOCK", Color(0.6, 0.8, 1.0)); Bgm.sfx("effect_block")
 				if bool(ev.get("dead", false)): _kill(dfn)
-				if int(ev.get("lifesteal", 0)) > 0: _heal(atk, int(ev["lifesteal"]))
+				if int(ev.get("lifesteal", 0)) > 0:
+					_vamp_impact(dfn, atk)          # 원작 setVampImpact
+					_heal(atk, int(ev["lifesteal"]))
 				if int(ev.get("reflect", 0)) > 0:
 					_hurt(atk, int(ev["reflect"]), false)
 					if bool(ev.get("reflect_dead", false)): _kill(atk)
@@ -1516,12 +1484,12 @@ func _play_event(ev: Dictionary) -> void:
 		"dot", "timed":
 			var tg: Dictionary = _find(String(ev.get("target", "")))
 			_hurt(tg, int(ev.get("damage", 0)), false)
-			_status_badge(tg, "dot")
+			_bicon_add(tg, int(ev.get("source", 0)))   # 원작 Bicon = 그 효과를 건 스킬 아이콘
 			_burning_fx(tg)   # 원작 setViewBurningEffect: 지속피해 화염 연출
 			if bool(ev.get("dead", false)): _kill(tg)
 			_log("%s 지속피해 %d" % [_disp(ev.get("target", "")), int(ev.get("damage", 0))])
 		"status_skip":
-			_status_badge(_find(String(ev.get("actor", ""))), "stun")
+			_bicon_add(_find(String(ev.get("actor", ""))), int(ev.get("source", 0)))
 			_log("%s 행동불가!" % _disp(ev.get("actor", "")))
 
 ## 스킬 이벤트 연출(증분 3). 공격형=피해, 힐/디버프/정화 각 표시. per-드래곤 spine은 폴리시 TODO.
@@ -1548,13 +1516,13 @@ func _play_skill(ev: Dictionary) -> void:
 		_hurt(caster, int(ev["self_loss"]), false)
 	if ev.has("debuff"):
 		_fx_text(tgt, "", String(ev["debuff"]), Color(0.9, 0.6, 1.0))
-		_status_badge(tgt, "debuff")
+		_bicon_add(tgt, int(ev.get("skill_id", 0)))
 	if bool(ev.get("cleanse", false)):
 		_fx_text(tgt, "", "정화", Color(0.7, 1.0, 0.8))
 	# 버프/방어 카테고리 스킬 → 시전자에 강화 배지.
 	var scat := String(Data.skills.get(str(int(ev.get("skill_id", 0))), {}).get("category", ""))
 	if scat == "buff" or scat == "defense":
-		_status_badge(caster, "buff")
+		_bicon_add(caster, int(ev.get("skill_id", 0)))
 	_log("%s 발동 — %s" % [sname, _disp(ev.get("caster", ""))])
 
 ## 스킬 카테고리별 이펙트(원작 skillMimic/skillBomb/skillBlock 분기).
@@ -2474,49 +2442,215 @@ func _set_gauge(v: Dictionary, val: float) -> void:
 		(fill as ColorRect).color = Color(1, 0.95, 0.5) if val >= 100.0 else Color(1, 0.8, 0.25)
 
 ## 상태효과 배지(원작 버프/디버프/DoT 표시): 대상 위에 상태 아이콘이 뜨고 잠시 유지 후 페이드.
-const _STATUS_DEF := {
-	"dot":    {"txt": "독", "col": Color(0.6, 1.0, 0.3)},    # 지속피해
-	"debuff": {"txt": "▼", "col": Color(0.9, 0.5, 1.0)},    # 약화
-	"buff":   {"txt": "▲", "col": Color(0.5, 1.0, 0.6)},    # 강화
-	"stun":   {"txt": "!", "col": Color(1.0, 0.9, 0.3)},    # 행동불가
-}
-func _status_badge(v: Dictionary, kind: String) -> void:
-	if v.is_empty() or not v.has("center"): return
-	var d: Dictionary = _STATUS_DEF.get(kind, {})
-	if d.is_empty(): return
+## 전투 승리 시 드래곤별 경험치 바 — 원작 **`SmallExpLayer`**(`SmallExpLayer.c`, 전량 디컴파일).
+## 원작 `AdventureScene::setDragonExpIncrease` → `setDragonExpLabel(dragon, pos, …)` 가 만들고
+## `MoveBy(0.25, (0, …+110))` + `EaseExponentialOut` 으로 카드 위로 떠오르게 한다.
+##
+## 원작 구성(`SmallExpLayer::initWidget` @00d11e3c · `setExpFinish` @00d1214c):
+##   · `9patch/dialogue_box` 스케일9, capInsets **(10,10,4,4)**, contentSize **(250, 60)**, 앵커(0.5,0.5)
+##   · `common/bar_bg2` 앵커(0.5,0.5) @ (w/2, h/2 **- 5**)
+##   · `common/bar_exp` 앵커(0,0) — `Delay(0.5)` 뒤 `ScaleTo(0.6, 비율, 1.0)` 로 차오른다
+##   · `scene/adventure/icon_exp` 앵커(0,0.5) + 획득량 BMFont(font_subtitle) 앵커(0,0.5)
+##   · 등장 = `Delay(0.3)` → `Spawn(FadeTo(0.25,255), EaseExponentialOut(MoveBy(0.25,(0,25))))`
+##          → `ScaleTo(0.25, s+0.2)` → `ScaleTo(0.25, s)`
+const _SMALLEXP_SIZE := Vector2(250.0, 60.0)
+func _small_exp_layer(uid: int, gained: int, slot: int) -> void:
+	print("[DBG smallexp] uid=", uid, " gained=", gained, " slot=", slot)
+	if gained <= 0:
+		return
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty():
+		return
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var w := _SMALLEXP_SIZE.x
+	var h := _SMALLEXP_SIZE.y
+	# 원작은 드래곤 카드 위 좌표를 넘겨받는다 — 우리 카드 3칸 배치에 맞춰 그 위로 띄운다.
+	var col := vis.x * (0.18 + 0.32 * float(clampi(slot, 0, 2)))
+	# 결산 오버레이(CanvasLayer 60)보다 위에 떠야 한다 — 원작도 보상 시퀀스 위에 뜬다.
+	var lay := CanvasLayer.new(); lay.layer = 62; add_child(lay)
+	var root := Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.position = Vector2(col - w * 0.5 * S, vis.y - 200.0)
+	root.scale = Vector2(S, S)
+	root.modulate.a = 0.0
+	lay.add_child(root)
+	var box := NinePatchRect.new()
+	box.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
+	box.patch_margin_left = 10; box.patch_margin_right = 10
+	box.patch_margin_top = 4; box.patch_margin_bottom = 4
+	box.size = Vector2(w, h)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(box)
+	# 경험치 게이지 — bar_bg2 위에 bar_exp(앵커 좌하단)를 얹어 가로로 채운다.
+	var cm := _man("common_ui")
+	var bg := _spr("common_ui", "common_bar_bg2", cm, 1.0)
+	if bg:
+		bg.position = Vector2(w * 0.5, h * 0.5 - 5.0)
+		root.add_child(bg)
+		var fill := _spr("common_ui", "common_bar_exp", cm, 1.0)
+		if fill:
+			var fw := float((cm.get("common_bar_exp", {}) as Dictionary).get("w", 1))
+			var fh := float((cm.get("common_bar_exp", {}) as Dictionary).get("h", 1))
+			fill.centered = false                                   # 원작 앵커(0,0)
+			fill.position = Vector2(-fw * 0.5, -fh * 0.5)
+			bg.add_child(fill)
+			var lv := int(d.get("level", 1))
+			var need := maxi(1, LevelSystem.exp_to_next(Data.level_curve, lv))
+			var ratio: float = clampf(float(int(d.get("exp", 0)) + gained) / float(need), 0.0, 1.0)
+			fill.scale = Vector2(0.0, 1.0)
+			var tf := fill.create_tween()
+			tf.tween_interval(0.5)                                   # 원작 Delay(0.5)
+			tf.tween_property(fill, "scale", Vector2(ratio, 1.0), 0.6)
+	var ic := _spr("adventure_ui", "scene_adventure_icon_exp", _adv, 1.0)
+	if ic:
+		ic.position = Vector2(18.0, h * 0.5 + 16.0)
+		root.add_child(ic)
+	var lb := _bmf_label("subtitle", 1.0)
+	lb.text = "+%d" % gained
+	lb.position = Vector2(36.0, h * 0.5 + 4.0)
+	root.add_child(lb)
+	# 등장 안무(원작 setExpFinish 그대로).
+	var t := root.create_tween()
+	t.tween_interval(0.3)
+	t.tween_property(root, "modulate:a", 1.0, 0.25)
+	t.parallel().tween_property(root, "position:y", root.position.y - 25.0, 0.25) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	t.tween_property(root, "scale", Vector2(S + 0.2, S + 0.2), 0.25)
+	t.tween_property(root, "scale", Vector2(S, S), 0.25)
+	t.tween_interval(1.2)
+	t.tween_property(root, "modulate:a", 0.0, 0.3)
+	t.tween_callback(lay.queue_free)
+	print("[DBG smallexp] built pos=", root.position, " lay=", lay.layer, " box_ok=", root.get_child_count())
+
+## 흡혈 임팩트 — 원작 `AdventureScene::setVampImpact` @00ca52e4 (`(피격 위치, 시전자 위치)`).
+## 원작이 하는 일 두 가지:
+##   ① `common/backlight1.png` 를 피격 지점에 anchor(0.5,0.5)·scale **0.1**·색 **(0xdb,0x83,0x83)**
+##      으로 놓고 → ScaleTo(0.3, 0.4) → (0.1↔0.4 3회 맥동) + RepeatForever(RotateBy(0.5, 360°))
+##      → MoveTo(0.6, 시전자) + FadeOut(0.3)  = 붉은 구슬이 돌며 시전자에게 빨려간다
+##   ② 파티클 `particle/scene/adventure/pt_skill_14_vamp.plist` 를 같은 지점에 scale **0.8**
+##
+## ⚠️ ①의 `common/backlight1.png` 은 **추출 아틀라스에 없다** — `grep -c backlight1
+##    DV2/480/common.img_plist` → 0 (backlight3·backlight4 만 실재). 그림이 없으니 흉내 내지 않고
+##    **파티클(②)만** 낸다(CLAUDE.md §3). 프레임을 확보하면 여기 한 곳에 ①을 더하면 된다.
+func _vamp_impact(victim: Dictionary, attacker: Dictionary) -> void:
+	if victim.is_empty() or not victim.has("center"):
+		return
+	CocosParticle.spawn(self, "pt_skill_14_vamp", victim["center"], 131, 0.6)
+
+## 버프/디버프 아이콘(원작 **Bicon**) — 전투원에 걸린 효과를 **그 효과를 건 스킬 아이콘**으로 쌓아 둔다.
+##
+## 🔴 2026-07-31 교체: 종전엔 `독`·`▲`·`▼`·`!` **텍스트 글리프**를 그렸다 — 전부 자작이었다.
+##   원작은 `AdventureScene::setBiconSkillSetting` @00ca42b4 이 **`skill/%d.png`(스킬 아이콘)**을
+##   띄우고, `InterFace::setBiconPositioning` @00d3c3f0 이 전투원마다 행으로 늘어놓는다
+##   (`CCArray` @InterFace+0x120, 기준점 `getBuffDebuffBasicPoint`).
+##
+## 원작 안무(setBiconSkillSetting 그대로):
+##   Spawn(EaseExponentialInOut(MoveBy 0.4), ScaleTo(0.4, 0.5))
+##   → ScaleTo(0.4, 1.8) → ScaleTo(0.4, 1.5) → ScaleTo(0.2, 1.7) → ScaleTo(0.2, 0.7)
+##   → Spawn(EaseExponentialInOut(MoveTo 0.4, 슬롯), ScaleTo(0.4, 0.1)) → FadeOut(0.2)
+## 정렬은 MoveTo(0.2) 로 `기준점 + (270*n, dy)`.
+##
+## ⚠️ 간격 리터럴 270 은 원작 InterFace 의 좌표계(카드가 훨씬 크다) 값이라 그대로 쓰면 화면을
+##   벗어난다 → **아이콘 실폭 비율로 환산**해 쓴다(원작 리터럴은 `_BICON_STEP_ORIG` 에 보존).
+##   원작 카드 계층(InterFace)을 그대로 이식하면 그때 리터럴로 되돌린다.
+const _BICON_STEP_ORIG := 270.0        # 원작 setBiconPositioning 가로 간격
+const _BICON_ICON_PX := 75.0           # skill/%d.png 실측(전 48종 동일)
+const _BICON_SCALE := 0.42             # 카드 위에 얹히는 크기(아이콘 75px → 약 31pt)
+const _BICON_MAX := 4                  # 카드 폭을 넘지 않는 선
+
+## 전투원 뷰에 스킬 아이콘 하나를 붙인다. skill_id 가 없으면(=출처 불명) 아무것도 안 한다 —
+## 원작도 스킬 아이콘이 근거라 "출처 없는 배지"는 존재할 수 없다.
+func _bicon_add(v: Dictionary, skill_id: int) -> void:
+	if v.is_empty() or not v.has("center") or skill_id <= 0:
+		return
+	var path := "res://assets/converted/skill/skill_%d.tres" % skill_id
+	if not ResourceLoader.exists(path):
+		return
+	var row: Array = v.get("bicons", [])
+	if row.size() >= _BICON_MAX:
+		var old: Sprite2D = row.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
 	var c: Vector2 = v["center"]
 	var offs := -74.0 if v.get("kind") == "enemy" else -96.0
-	var badge := Label.new()
-	badge.text = String(d["txt"])
-	badge.add_theme_font_size_override("font_size", 24)
-	badge.add_theme_color_override("font_color", d["col"])
-	badge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	badge.add_theme_constant_override("outline_size", 5)
-	badge.position = c + Vector2(-12, offs)
-	badge.z_index = 96
-	badge.pivot_offset = Vector2(12, 12); badge.scale = Vector2(0.4, 0.4)
-	add_child(badge)
-	var t := badge.create_tween()
-	t.tween_property(badge, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
-	t.tween_interval(1.7)
-	t.tween_property(badge, "modulate:a", 0.0, 0.5)
-	t.tween_callback(badge.queue_free)
+	var ico := Sprite2D.new()
+	ico.texture = load(path)
+	ico.material = _pma
+	ico.z_index = 96
+	ico.position = c                                   # 전투원 위에서 튀어나온다
+	ico.scale = Vector2.ONE * _BICON_SCALE * 0.5       # 원작 첫 Spawn 의 ScaleTo(0.4, 0.5)
+	add_child(ico)
+	row.append(ico)
+	v["bicons"] = row
+	# 원작 스케일 비트 그대로(0.5 → 1.8 → 1.5 → 1.7 → 0.7 → 슬롯).
+	var t := ico.create_tween()
+	t.tween_property(ico, "position", c + Vector2(0, offs * 0.4), 0.4) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+	t.parallel().tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 0.5, 0.4)
+	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.8, 0.4)
+	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.5, 0.4)
+	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.7, 0.2)
+	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 0.7, 0.2)
+	t.tween_callback(_bicon_positioning.bind(v))
+	_bicon_positioning(v)
 
+## 원작 `InterFace::setBiconPositioning` — 행을 기준점부터 일정 간격으로 다시 늘어놓는다(MoveTo 0.2).
+func _bicon_positioning(v: Dictionary) -> void:
+	var row: Array = v.get("bicons", [])
+	var live: Array = []
+	for s in row:
+		if is_instance_valid(s):
+			live.append(s)
+	v["bicons"] = live
+	if live.is_empty() or not v.has("center"):
+		return
+	var c: Vector2 = v["center"]
+	var offs := -74.0 if v.get("kind") == "enemy" else -96.0
+	var step := _BICON_ICON_PX * _BICON_SCALE * (_BICON_STEP_ORIG / 256.0)   # 원작 비율 환산
+	var x0 := c.x - step * (live.size() - 1) * 0.5
+	for i in live.size():
+		var s: Sprite2D = live[i]
+		var tw := s.create_tween()
+		tw.tween_property(s, "position", Vector2(x0 + step * i, c.y + offs), 0.2)
+		tw.parallel().tween_property(s, "scale", Vector2.ONE * _BICON_SCALE, 0.2)
+
+## 스킬명 표시 — 원작 `AdventureScene::setSkillEffectName` @00ca3040.
+##
+## 🔴 2026-07-31 교체: 종전엔 30px 노란 라벨을 화면 y=150 에 그냥 얹었다(자작).
+##   원작은 **`9patch/dialogue_box` 스케일9 패널 + `CCLabelTTF("Thonburi", 23)`** 이고,
+##   패널 크기는 글자 크기 + **(20, 20)**, 라벨은 패널 중앙, 패널 앵커는 **(0.5, 0)** 이다.
+##   (setSkillEffectName 리터럴: `9patch/dialogue_box.png` · `effect_skill_%d.mp3`)
 func _skill_banner(name: String) -> void:
+	if name == "":
+		return
 	var vis := _vis()
+	var holder := Control.new()
+	holder.z_index = 110
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(holder)
 	var l := Label.new()
 	l.text = name
-	l.add_theme_font_size_override("font_size", 30)
-	l.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6))
-	l.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0.0, 0.9))
-	l.add_theme_constant_override("outline_size", 6)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.size = Vector2(vis.x, 40); l.position = Vector2(0, 150)
-	l.z_index = 110
-	add_child(l)
-	var t := create_tween()
-	t.tween_property(l, "modulate:a", 0.0, 0.9).from(1.0)
-	t.tween_callback(l.queue_free)
+	l.add_theme_font_size_override("font_size", 23)          # 원작 CCLabelTTF(…, 23.0)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(l)
+	l.reset_size()
+	var box := NinePatchRect.new()                            # 원작 CCScale9Sprite
+	box.texture = load("res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres")
+	box.patch_margin_left = 10; box.patch_margin_right = 10
+	box.patch_margin_top = 4; box.patch_margin_bottom = 4
+	box.size = l.size + Vector2(20, 20)                       # 원작 setContentSize(w+20, h+20)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(box)
+	holder.move_child(box, 0)                                 # 패널이 라벨 아래
+	# 앵커(0.5, 0) = 가로 중앙 기준. 원작 좌표계는 y-up 이라 화면 위쪽 1/4 자리에 둔다.
+	box.position = Vector2(vis.x * 0.5 - box.size.x * 0.5, vis.y * 0.22)
+	l.position = box.position + Vector2(10, 10)
+	var t := holder.create_tween()
+	t.tween_interval(0.7)
+	t.tween_property(holder, "modulate:a", 0.0, 0.2).from(1.0)
+	t.tween_callback(holder.queue_free)
 
 ## 전투 오프닝(원작 OpeningBattleScene): "전투 시작!" 배너가 좌→우로 스윕 + 살짝 플래시.
 ## 이 전투가 보스 조우인지(스테이지 마지막 조우). params.boss로도 강제 가능.
@@ -2538,84 +2672,61 @@ func _is_boss() -> bool:
 	var enc := int(_params.get("enc", 0))
 	return total > 0 and enc + 1 >= total
 
+## 전투 개시 연출. **일반 조우엔 아무 연출도 없다** — 보스일 때만 `setNormalBossShowEffect`.
+##
+## 🔴 2026-07-31 제거: 종전엔 "전투 시작!" 반투명 띠 스윕 + 흰 플래시를 그렸는데 **전부 자작**이었다.
+##   원작 `setEventFightStart`(AdventureScene.c)는 `Delay→CallFunc` 두 개가 전부고,
+##   주석이 출처로 적어 둔 `OpeningBattleScene` 은 **프롤로그 전용**이다(`OpeningScene` 만 호출).
 func _battle_opening() -> void:
-	var vis := _vis()
-	var boss := _is_boss()
-	if boss:
-		_boss_show_effect()   # 원작 setNormalBossShowEffect: 보스 전용 등장 연출
-	# 배너 띠(반투명 검정) + 텍스트. 화면 밖 좌측서 진입 → 정지 → 우측으로 퇴장.
-	var band := Control.new(); band.z_index = 130; add_child(band)
-	var strip := ColorRect.new()
-	strip.color = Color(0.2, 0.03, 0.02, 0.78) if boss else Color(0.08, 0.05, 0.02, 0.72)
-	strip.size = Vector2(vis.x, 84); strip.position = Vector2(0, vis.y * 0.4)
-	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	band.add_child(strip)
-	if boss and ResourceLoader.exists("res://assets/converted/adventure_ui/scene_adventure_txt_boss1_kr.tres"):
-		# 원작 setNormalBossShowEffect: txt_boss{1~4}_kr = "보"·"스"·"출"·"현" 정품 스타일 텍스트.
-		var cy := vis.y * 0.4 + 42.0
-		var sc := 1.15
-		var cw := 86.0 * sc
-		var gap := 6.0
-		var startx := vis.x * 0.5 - (4.0 * cw + 3.0 * gap) * 0.5 + cw * 0.5
-		for ci in 4:
-			var cs := _spr("adventure_ui", "scene_adventure_txt_boss%d_kr" % (ci + 1), _adv, sc)
-			if cs:
-				cs.position = Vector2(startx + ci * (cw + gap), cy)
-				band.add_child(cs)
-				cs.scale *= 0.4   # 팝인
-				cs.create_tween().tween_property(cs, "scale", Vector2(sc, sc), 0.22).set_trans(Tween.TRANS_BACK).set_delay(0.28 + ci * 0.05)
-	else:
-		var l := Label.new()
-		l.text = "전투 시작!"
-		l.add_theme_font_size_override("font_size", 46)
-		l.add_theme_color_override("font_color", Color(1.0, 0.92, 0.5))
-		l.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0.0, 0.9))
-		l.add_theme_constant_override("outline_size", 6)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.size = Vector2(vis.x, 60); l.position = Vector2(0, vis.y * 0.4 + 12)
-		band.add_child(l)
-	band.position = Vector2(-vis.x, 0)
-	var t := band.create_tween()
-	t.tween_property(band, "position:x", 0.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_interval(0.36)
-	t.tween_property(band, "position:x", vis.x, 0.26).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.tween_callback(band.queue_free)
-	# 진입 순간 살짝 흰 플래시
-	var flash := ColorRect.new()
-	flash.color = Color(1, 1, 1, 0.0); flash.z_index = 129
-	flash.set_anchors_preset(Control.PRESET_FULL_RECT); flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(flash)
-	var tf := flash.create_tween()
-	tf.tween_property(flash, "color:a", (0.55 if _is_boss() else 0.35), 0.12)
-	tf.tween_property(flash, "color:a", 0.0, 0.3)
-	tf.tween_callback(flash.queue_free)
+	if _is_boss():
+		_boss_show_effect()
 
-## 원작 setNormalBossShowEffect: 보스 등장 연출 — 붉은 비네트 + 보스 스파인 확대·흔들림(포효 느낌).
+## 원작 `AdventureScene::setNormalBossShowEffect` @00c7d0d8 — "보"·"스"·"출"·"현" 4글자가
+## 화면 밖에서 날아와 자리를 잡는다. 리터럴은 딱 둘뿐이다(`effect_cut_in.mp3`, `txt_boss%d_%s.png`)
+## — 붉은 비네트도, 보스 스프라이트 확대·흔들림도 원작엔 없다(2026-07-31 제거).
+##
+## 원작 그대로:
+##   레이어 z=999998, 사운드 `music/effect_cut_in.mp3`
+##   글자 i 초기 scale **2.0**, 시작 위치(cocos, W=가로 H=세로, Y0=H*0.75):
+##     1 `(-300-W, Y0)`  2 `(W*0.35, Y0+300)`  3 `(W*0.7, Y0+300)`  4 `(W+300, Y0)`
+##   각각 `Delay(0.6/0.9/1.2/1.5)` → `Spawn(ScaleTo(0.75, 1.0), EaseExponentialIn(MoveTo(0.8, 목표)))`
+##   목표 x = 중앙 `-260 / -130+20 / +130-20 / +260`, y = `H*0.75` (가운뎃 간격만 넓다 — 원작 그대로)
+## ⚠️ `local_22c`(시작 y)는 Ghidra 가 대입을 잃었다. 목표 y 와 같은 `H*0.75` 로 읽는 것이
+##   1·4번 글자가 수평으로 날아오는 유일한 해석이라 그렇게 둔다(# ASSUMPTION).
+const _BOSS_GLYPH_DELAY: Array[float] = [0.6, 0.9, 1.2, 1.5]
+const _BOSS_GLYPH_DX: Array[float] = [-260.0, -110.0, 110.0, 260.0]
 func _boss_show_effect() -> void:
 	var vis := _vis()
-	# 붉은 비네트(상하 붉은 띠가 밀려오며 페이드)
-	var vig := ColorRect.new(); vig.color = Color(0.6, 0.0, 0.0, 0.0); vig.z_index = 125
-	vig.set_anchors_preset(Control.PRESET_FULL_RECT); vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(vig)
-	var vt := vig.create_tween()
-	vt.tween_property(vig, "color:a", 0.28, 0.2)
-	vt.tween_property(vig, "color:a", 0.0, 0.6)
-	vt.tween_callback(vig.queue_free)
-	# 보스 스파인 확대 펄스 + 좌우 흔들림(포효)
-	var ev: Dictionary = _views.get("E0", {})
-	var node = ev.get("node", null)
-	if node != null and is_instance_valid(node) and node is Node2D:
-		var n2d := node as Node2D
-		var base: Vector2 = ev.get("base_pos", n2d.position)
-		var s0: Vector2 = n2d.scale
-		var t := n2d.create_tween()
-		t.tween_property(n2d, "scale", s0 * 1.14, 0.25).set_trans(Tween.TRANS_BACK)
-		# 흔들림
-		for i in 4:
-			t.tween_property(n2d, "position", base + Vector2(10, 0), 0.05)
-			t.tween_property(n2d, "position", base + Vector2(-10, 0), 0.05)
-		t.tween_property(n2d, "position", base, 0.05)
-		t.tween_property(n2d, "scale", s0, 0.2)
+	var S := Design.ASSET_SCALE
+	var cx := vis.x * 0.5
+	var y := Design.flip_y(vis.y * 0.75, vis.y)      # cocos y-up → Godot
+	var layer := Node2D.new()
+	layer.z_index = 130
+	add_child(layer)
+	Bgm.sfx("effect_cut_in")                         # 원작 setPlayEffectSound(music/effect_cut_in.mp3)
+	# 시작 위치도 cocos 리터럴 그대로 옮긴다(y 는 flip).
+	var starts := [
+		Vector2(-300.0 - vis.x, y),
+		Vector2(vis.x * 0.35, y - 300.0),
+		Vector2(vis.x * 0.7, y - 300.0),
+		Vector2(vis.x + 300.0, y),
+	]
+	for i in 4:
+		var g := _spr("adventure_ui", "scene_adventure_txt_boss%d_kr" % (i + 1), _adv, 2.0 * S)
+		if g == null:
+			continue
+		g.position = starts[i]
+		layer.add_child(g)
+		var t := g.create_tween()
+		t.tween_interval(_BOSS_GLYPH_DELAY[i])
+		t.tween_property(g, "scale", Vector2.ONE * S, 0.75)
+		t.parallel().tween_property(g, "position", Vector2(cx + _BOSS_GLYPH_DX[i], y), 0.8) \
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	# 마지막 글자가 자리를 잡고(1.5+0.8) 잠깐 머문 뒤 레이어째 사라진다.
+	# ⚠️ 원작 지연은 `fVar24 + 1.0` 인데 Ghidra 가 fVar24 의 마지막 대입을 잃었다 → 2.3 으로 읽는다.
+	var tl := layer.create_tween()
+	tl.tween_interval(2.3 + 0.4)
+	tl.tween_callback(layer.queue_free)
 
 ## 원작 setSuperAttackStart + makeSkillParticle: 각성기(awaken 평타) 발동 연출.
 ## 금빛 화면 플래시 + "각성기!" 배너 + 시전자 발광 + 방사 파티클.
@@ -3054,6 +3165,8 @@ func _finish() -> void:
 		# 클라 CheckLevelUp이 적용만 했다(reverse_engineering.md §Tier2) — 서버유실분을 LevelSystem이 대신 계산.
 		var levelups: Array = []
 		for pv in _party:
+			# 원작 setDragonExpIncrease → setDragonExpLabel: 드래곤마다 SmallExpLayer 를 띄운다.
+			_small_exp_layer(int(pv["uid"]), exp_r, int(_party.find(pv)))
 			var lev := _grant_exp(int(pv["uid"]), exp_r)
 			if int(lev.get("levels_gained", 0)) > 0:
 				levelups.append({"name": String(pv["name"]), "ev": lev})
@@ -3328,55 +3441,12 @@ func _retry_button(bg_key: String, label_key: String, man: Dictionary,
 ## 원작 대형 버튼 — `9patch/btn*` 프레임 위에 라벨. 레퍼런스의 그만하기/계속하기 크기(약 280×86)를 따른다.
 ## (계속/그만은 위 `_retry_buttons` 가 원작 프레임으로 그린다 — 여기 남은 호출처는
 ##  '월드맵으로'·'재도전' 처럼 원작에 대응 프레임이 없는 버튼뿐이다.)
-## 2페이즈 진입 연출. 원작 전용 자산이 없다(§4-A — 배리어/중상 프레임·문자열 0건) →
-## 보유 프레임으로만 알린다: 화면 전체 붉은 플래시 + 경고 텍스트(`scene_adventure_txt_danger`
-## 가 있으면 그것, 없으면 라벨) + 보스에게 지속 오라 대신 한 번의 강조.
-## 원본 자산을 확보하면 여기 한 곳만 교체하면 된다.
-var _phase2_shown := false
-func _boss_phase2_fx() -> void:
-	if _phase2_shown:
-		return
-	_phase2_shown = true
-	var vis := _vis()
-	var flash := ColorRect.new()
-	flash.color = Color(0.8, 0.05, 0.05, 0.0)
-	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash.z_index = 118
-	add_child(flash)
-	var tw := flash.create_tween()
-	tw.tween_property(flash, "color:a", 0.45, 0.12)
-	tw.tween_property(flash, "color:a", 0.0, 0.5)
-	tw.tween_callback(flash.queue_free)
-	var l := Label.new()
-	l.text = "%s 이(가) 중상을 입고 몸을 웅크렸다!" % String(_enemy.get("name", "보스"))
-	l.add_theme_font_size_override("font_size", 30)
-	l.add_theme_color_override("font_color", Color(1, 0.85, 0.5))
-	l.add_theme_color_override("font_outline_color", Color(0.25, 0.02, 0.02, 0.95))
-	l.add_theme_constant_override("outline_size", 6)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.size = Vector2(vis.x, 40)
-	l.position = Vector2(0, vis.y * 0.3)
-	l.pivot_offset = Vector2(vis.x * 0.5, 20)
-	l.scale = Vector2(0.4, 0.4)
-	l.z_index = 126
-	add_child(l)
-	var t2 := l.create_tween()
-	t2.tween_property(l, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
-	t2.tween_interval(1.1)
-	t2.tween_property(l, "modulate:a", 0.0, 0.35)
-	t2.tween_callback(l.queue_free)
-	Bgm.sfx("effect_chaos_explosion")   # 보유 음원(DV2/music/effect_chaos_explosion.mp3)
-	var pct := int(round(100.0 - _phase2_mult_pct()))
-	_log("%s 이(가) 중상 상태에 들어갔다 — 받는 피해 %d%% 감소." % [String(_enemy.get("name", "보스")), pct])
-
-## 2페이즈 피해 배수를 % 로(로그 문구용). 데이터가 없으면 100(= 감면 없음).
-func _phase2_mult_pct() -> float:
-	var st := _stage_rec()
-	if not Darknix.is_summon_stage(st):
-		return 100.0
-	var p: Dictionary = (st["summon"] as Dictionary).get("phase2", {})
-	return float(p.get("damage_taken_mult", 1.0)) * 100.0
+## 🔴 2026-07-31 제거: 2페이즈 **진입 연출**(붉은 플래시 + "중상을 입고 몸을 웅크렸다" 배너
+##   + effect_chaos_explosion + 전투 로그)은 전부 자작이었다. 근거:
+##   · 문자열 테이블에 `중상` **0건**
+##   · 디컴프 397클래스에 phase/2페이즈 개념 **0건** — 원작 보스는 단일 페이즈다
+##   피해 감면 **기전**(아래 `_apply_boss_phase`)은 사용자가 만든 데이터(`stages.json summon.phase2`)라
+##   남긴다. 다만 **화면에는 아무것도 알리지 않는다** — 원작에 그 알림이 없다.
 
 ## 보스 2페이즈 배선 — 데이터(`stages.json` `summon.phase2`)를 전투원에 실어 준다.
 ## logic(`Battle._apply_dmg`)은 스테이지를 모르고 전투원의 필드만 본다(§8.2 단방향 의존).

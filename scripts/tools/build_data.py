@@ -105,6 +105,9 @@ def build_dragons(csv_path):
             if r["name"].strip()]   # 이름 칸이 아예 빈 행 = 미기입 → 건너뛴다
                                     # (낱말 `null` 은 '정해지지 않음' 이라 아래에서 따로 다룬다)
     by_name = {r["name"].strip(): r["id"].strip() for r in rows}
+    # 각성스킬 열 이름은 안내문이 괄호로 붙어 있다("각성스킬id(skill_awaken.csv의 id 숫자)")
+    # → 접두사로 찾는다. 시트에서 열 이름을 다듬어도 안 깨지게.
+    awaken_col = next((k for k in (rows[0] if rows else {}) if k.startswith("각성스킬id")), None)
 
     out = []
     for r in rows:
@@ -152,9 +155,17 @@ def build_dragons(csv_path):
         }
         # 도감 설명(사용자 기입). 원작 도감 텍스트는 서버 소유라 유실됐고, 자작 드래곤은
         # 애초에 사용자만 쓸 수 있다 → CSV 열을 그대로 싣는다.
-        desc = (r.get("도감 설명") or "").strip()
+        # 엑셀/웹에서 붙여 넣은 텍스트에 U+00A0(비분리 공백)이 82군데 섞여 있다. 도감 설명은
+        # 원작 비트맵 폰트(font_common)로 그리는데 그 글리프가 없어 두부로 뜬다 → 보통 공백으로.
+        desc = (r.get("도감 설명") or "").replace(" ", " ").strip()
         if desc:
             e["desc"] = desc
+        # 각성 스킬 배정(사용자 기입). 값 = docs/input/sheets/skill_awaken.csv 의 id.
+        # 이 열이 **드래곤별 배정의 정본**이다 — skill_awaken.csv 의 `비고`(드래곤 이름들)는
+        # 같은 사실을 스킬 쪽에서 적은 것이라 `build_skill_awaken.py` 가 둘을 대조한다.
+        aw = (r.get(awaken_col) or "").strip() if awaken_col else ""
+        if aw.isdigit():
+            e["awaken_skill"] = int(aw)
         if by_player:
             # 이름·속성·디자인이 **플레이어 선택권**으로 정해지는 드래곤(600·700).
             # 사용자 확정(2026-07-30): **기본적으로 도감에서 제외**하고 특수 트리거로만 보인다.
@@ -166,6 +177,18 @@ def build_dragons(csv_path):
             e["_dex_hidden_basis"] = ("이름 미정(CSV `null`) = 미구현 더미. 사용자 확정 2026-07-30: "
                                       "기본 제외 · 특수 트리거(보유 이력)로만 도감 노출.")
             e["_player_basis"] = note
+        if (r["generation"].strip() or "") == "커스텀":
+            # **커스텀 세대(600·700·666·777)는 무작위 입수 경로에서 통째로 빠진다.**
+            # 사용자 확정(2026-07-30): 지정된 방법으로만 얻는다 —
+            #   · 600(수비형)·700(공격형) = 점술집 '드래곤 소환'(`scripts/systems/summon.gd`)
+            #   · 666 샛별 · 777 한울    = 점술집 '카드 코드'(`magicshop.gd::_grant_card_reward`)
+            # `dex_hidden`(600·700)과는 다른 축이다 — 666·777 은 도감에 정상 등재되지만
+            # 뽑기·부화·조합 같은 **랜덤 풀에는 절대 들어가지 않는다**.
+            # 이 플래그를 보는 곳: `Data.dragon_ids_random()` · `EggGacha.candidates()`.
+            e["acquire_locked"] = True
+            e["_acquire_basis"] = ("커스텀 세대 = 지정 획득처 전용(사용자 확정 2026-07-30). "
+                                   "600·700=드래곤 소환 / 666·777=카드 코드. "
+                                   "가챠·부화·조합·탐험 등 무작위 풀에서 제외.")
         if art != did:
             # render 층은 `Data.art_id(id)` 로 이 값을 읽어 아트 경로를 만든다.
             e["art_id"] = int(art)

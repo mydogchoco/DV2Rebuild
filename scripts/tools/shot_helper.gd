@@ -236,6 +236,27 @@ func _ready() -> void:
 			if int(UserDB.get_dragon(cs_uid).get("level", 1)) < 35:
 				UserDB.set_dragon_field(cs_uid, "level", 40)
 			Scenes.goto("cave", {})
+		"artmix":
+			# 아티펙트 합성(원작 ArtifactMix) 검수 — 아티팩트 4개를 임시로 넣고 창을 연다.
+			# begin_batch = 디스크 미기록.
+			UserDB.begin_batch()
+			var am_base := Equipment.item_key("artifact:이그니스:4")
+			var am_mat := Equipment.item_key("artifact:이그니스:3")
+			UserDB.add_item(am_base, 1)
+			UserDB.add_item(am_mat, 3)
+			UserDB.add_currency("gold", 1000000)
+			Scenes.goto("mamorudiclab", {})
+			for i in 30: await get_tree().process_frame
+			var am_n := _find_method_node(get_tree().root, "_open_artifact_mix")
+			if am_n == null:
+				print("SHOT: mamorudiclab 없음")
+			else:
+				var am_p = ArtifactMixPopup.open(am_n, am_base)
+				for i in 10: await get_tree().process_frame
+				# 재료 3칸을 채운 상태(참조 아티팩트합성5.png)로 맞춘다.
+				am_p.set("_mats", [am_mat, am_mat, am_mat])
+				am_p.call("_refresh")
+				print("SHOT artmix cost=", am_p.call("_cost"))
 		"skillpop":
 			# 스킬 장착 창(원작 SkillsPopup 이식) 검수 — 학습 풀을 임시로 채우고 칸 0 을 연다.
 			# begin_batch = 디스크 미기록.

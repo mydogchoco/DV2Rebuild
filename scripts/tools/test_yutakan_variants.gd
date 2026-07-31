@@ -69,6 +69,24 @@ func _run() -> void:
 			String(st.get("name", "?")), "O" if ok_bg else "X", want_id, "O" if ok else "X",
 			lv0, hp0, int(round(hp0 * m)), m])
 
+	# 던전 속성 — 카데스 미각성 페널티('던전 속성과 같은 속성 → -25%')와 필드버프·각성스킬
+	# 필드조건이 전부 이 값으로 판정된다. 두 가지를 못박는다:
+	#   1) 변형(밤·카데스)이 낮 던전의 속성을 그대로 물려받는다(사용자 확인 2026-07-31)
+	#   2) 정규화 후 값이 **드래곤 속성 어휘**(earth/aqua/…)와 같은 집합이다 —
+	#      stages.json 은 ground/water 로 적혀 있어 정규화 없이는 흙·물 던전이 영원히 불일치였다.
+	print("── 던전 속성 상속 · 정규화 ──")
+	const CANON := ["earth", "aqua", "fire", "wind", "light", "dark", "holy", "chaos", "shadow"]
+	for f in NIGHT_FIELDS:
+		var day := Drops.normalize_element(Data.stage(str(f)).get("element", ""))
+		var ni := Drops.normalize_element(Data.stage(str(500 + f)).get("element", ""))
+		var ka := Drops.normalize_element(Data.stage(str(600 + f)).get("element", ""))
+		var ok_same: bool = day == ni and day == ka
+		var ok_canon: bool = CANON.has(day)
+		if not (ok_same and ok_canon):
+			fail += 1
+		print("  %-3d %-14s %s (밤 %s / 카데스 %s)%s" % [f, String(Data.stage(str(f)).get("name", "?")),
+			day, ni, ka, "" if (ok_same and ok_canon) else "  ✗"])
+
 	print("── 변형 없는 필드(6·8·15)는 500/600 대를 만들지 않는다 ──")
 	for f in [6, 8, 15]:
 		for off in [500, 600]:

@@ -17,7 +17,8 @@ extends RefCounted
 ##   그 이외의 드래곤은 50% 나 능력치가 깎여 나간다."
 ##
 ##   dragon_element = 드래곤 속성(dragons.json element)
-##   field_element  = 그 던전의 속성(stages.json field_element, 없으면 몬스터 최빈 속성)
+##   field_element  = 그 던전의 속성(stages.json `element` — 밤·카데스 변형도 같은 값을 물려받는다.
+##                    호출부 `battle.gd::_field_element`)
 static func penalty_pct(cfg: Dictionary, awakened: bool, dragon_element: String,
 		field_element: String) -> int:
 	if awakened:
@@ -26,6 +27,10 @@ static func penalty_pct(cfg: Dictionary, awakened: bool, dragon_element: String,
 	if p.is_empty():
 		return 0
 	# 우선순위는 위키 서술 순서 그대로 — 혼돈/신성이 먼저다(속성이 같아도 35%).
+	# ℹ️ 이 순서가 결과를 바꾸는 경우(혼돈/신성 드래곤 × 혼돈/신성 던전)는 **실제로 안 생긴다** —
+	#    카데스 던전 12곳의 속성은 earth/aqua/fire/wind/light/dark 뿐이다
+	#    (🟦 사용자 확인 2026-07-31: 혼돈·신성 카데스 던전은 존재하지 않는다).
+	#    던전 속성 일람은 `test_yutakan_variants.gd` 의 '던전 속성 상속·정규화' 절이 찍어 준다.
 	if p.has(dragon_element):
 		return int(p[dragon_element])
 	if dragon_element != "" and dragon_element == field_element:

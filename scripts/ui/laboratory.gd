@@ -1169,8 +1169,7 @@ func _dragon_card(dd: Dictionary, produce: bool, min_grade: float, min_level: in
 		nb.position = Vector2(18.0, 244.0)
 		card.add_child(nb)
 	var nl := Label.new()
-	var nick := String(dd.get("nickname", ""))
-	nl.text = "레벨%d %s" % [lvl, nick if nick != "" else String(ddef.get("name", "?"))]
+	nl.text = "레벨%d %s" % [lvl, Icons.name_of(dd, "?")]
 	nl.add_theme_font_size_override("font_size", 17)
 	nl.add_theme_color_override("font_color", Color(1, 0.97, 0.85))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1257,7 +1256,7 @@ func _confirm_crystal(produce: bool, slot_i: int, uid: int) -> void:
 	var dd := UserDB.get_dragon(uid)
 	if dd.is_empty(): return
 	var ddef := Data.get_dragon(int(dd.get("id", 0)))
-	var name := String(ddef.get("name", "?"))
+	var name := Icons.name_of(dd, "?")
 	var gr := _grade_of(dd)
 	var pop := OrigPopup.open(self, "결정 생산" if produce else "결정 추출", Vector2(640.0, 440.0))
 	var por := _portrait_sprite(int(dd.get("id", 0)),
@@ -1713,26 +1712,21 @@ func _fill_slot(slot: Control, item_key: String, icon_scale := 0.7) -> void:
 ## 재료 3칸의 정체는 원작 `setEgg` 의 빈 슬롯 아이콘이 근거(icon_element/icon_stoneheart/icon_crystal,
 ## :4767/:4761/:4754). 판정은 `isPosibleUpgrade` :1120 = 칸별 "보유수 ≥ 요구수"뿐.
 ## 규칙 = `EggUpgrade`(logic) · 재료·비용 = data/upgrade_egg.json · 등급표 = data/laboratory.json.
-## 등급 보유는 UserDB.egg_grade_counts(알키 → {등급: 개수}) — 원작의 개체(Egg) grade 대체(§EggUpgrade).
+## 등급은 **인벤 키에 실린다**(`egg:17#2` — `EggItem`, v15). 원작 `AccountManager::setInfoEggs` 가
+## 등급별로 목록 항목을 따로 두는 것과 같아서, 같은 종류라도 0강/2강은 **다른 인벤 칸**이다.
 ##
-## 선택 상태 `_sel_egg_up` = "<알키>#<현재등급>" (원작이 **알 개체**를 고르는 것에 대응 —
-## 같은 종류라도 0강/2강은 다른 대상이다).
+## 선택 상태 `_sel_egg_up` = **그 인벤 키 그대로**. (v14 까지는 "<알키>#<등급>" 이라는 화면 전용
+## 합성 id 였는데, 이제 그 형식이 곧 진짜 키라 변환이 필요 없다.)
 var _sel_egg_up := ""
 
 func _egg_cfg() -> Dictionary:
 	return _cfg().get("egg_upgrade", {})
 
-## "<키>#<등급>" → [키, 등급]. 형식이 아니거나 이미 없는 알이면 ["", 0].
+## 선택된 알 → [인벤키, 등급]. 이미 없는 알이면 ["", 0].
 func _sel_egg_parts() -> Array:
-	if _sel_egg_up == "":
+	if _sel_egg_up == "" or UserDB.item_count(_sel_egg_up) <= 0:
 		return ["", 0]
-	var parts := _sel_egg_up.split("#")
-	var key := String(parts[0])
-	var grade := int(parts[1]) if parts.size() > 1 else 0
-	var counts := UserDB.egg_grade_counts(key)
-	if EggUpgrade.owned_at(grade, UserDB.item_count(key), counts) <= 0:
-		return ["", 0]
-	return [key, grade]
+	return [_sel_egg_up, EggItem.grade_of(_sel_egg_up)]
 
 ## items.json·드래곤 정의는 `element`/`subcategory` 가 **명시적 null** 인 항목이 있다.
 ## `String(null)` 은 Godot 4.7 에서 런타임 에러("Invalid call 'String' constructor")이므로
@@ -1741,18 +1735,24 @@ func _sfield(d: Dictionary, key: String) -> String:
 	var v = d.get(key)
 	return v if typeof(v) == TYPE_STRING else ""
 
-func _egg_element(key: String) -> String:
-	if key.begins_with("egg:"):
-		return _sfield(EggGacha.item_def(key, Data.dragons), "element")
-	return _sfield(Data.get_item(key), "element")
+## 강화 등급 접미사를 뗀 기본키. items.json 조회·레시피 매칭(`type` 열)은 전부 이쪽이다.
+func _egg_base(key: String) -> String:
+	return EggItem.base_of(key)
 
+func _egg_element(key: String) -> String:
+	var base := _egg_base(key)
+	if base.begins_with("egg:"):
+		return _sfield(EggGacha.item_def(base, Data.dragons), "element")
+	return _sfield(Data.get_item(base), "element")
+
+## 보유한 알 **인벤 키**(등급 변형 포함 — `egg:17` 과 `egg:17#2` 는 서로 다른 항목이다).
 func _owned_eggs() -> Array:
 	var out: Array = []
 	for k in UserDB.inventory().keys():
 		var key := String(k)
 		var it: Dictionary = EggGacha.item_def(key, Data.dragons)
 		if it.is_empty():
-			it = Data.get_item(key)
+			it = Data.get_item(_egg_base(key))
 		# 뽑기 알(의문의 알 등)은 종이 정해지지 않은 개봉 아이템 — 강화/방생 대상이 아니다.
 		if EggGacha.is_gacha_egg(it):
 			continue
@@ -1761,27 +1761,26 @@ func _owned_eggs() -> Array:
 	out.sort()
 	return out
 
-## 보유 알을 **(종류 × 강화 등급)** 으로 펼친 선택 목록. 원작이 알 개체를 고르는 것에 대응한다.
-## id = "<키>#<등급>", 이름 뒤에 원작 표기와 같은 `+N`(둥지 배지, hatchery.gd 참조)을 붙인다.
+## 강화 대상 목록. v15 부터 **인벤 칸 하나가 곧 (종류 × 등급) 하나**라 펼칠 것이 없다
+## (원작이 알 개체를 고르는 것에 대응 — EggItem 주석). 이름 뒤 `+N` 은 둥지 배지와 같은 표기.
 func _owned_egg_grade_entries() -> Array:
 	var out: Array = []
 	for k in _owned_eggs():
 		var key := String(k)
-		var counts := UserDB.egg_grade_counts(key)
-		var inv := UserDB.item_count(key)
-		var it: Dictionary = EggGacha.item_def(key, Data.dragons)
-		if it.is_empty(): it = Data.get_item(key)
-		for g in EggUpgrade.owned_grades(inv, counts):
-			var grade := int(g)
-			out.append({
-				"id": "%s#%d" % [key, grade],
-				"icon_key": key,
-				"name": _iname(key) + ("  +%d" % grade if grade > 0 else ""),
-				"element": _sfield(it, "element"),
-				"count": EggUpgrade.owned_at(grade, inv, counts),
-				"badge": ("+%d" % grade) if grade > 0 else "",
-				"desc": _sfield(it, "desc"),
-			})
+		var base := _egg_base(key)
+		var grade := EggItem.grade_of(key)
+		var it: Dictionary = EggGacha.item_def(base, Data.dragons)
+		if it.is_empty(): it = Data.get_item(base)
+		out.append({
+			"id": key,
+			"icon_key": base,
+			"name": _iname(base) + ("  +%d" % grade if grade > 0 else ""),
+			"element": _sfield(it, "element"),
+			"count": UserDB.item_count(key),
+			"badge": ("+%d" % grade) if grade > 0 else "",
+			"desc": _sfield(it, "desc"),
+		})
+	out.sort_custom(func(a, b): return String(a["id"]) < String(b["id"]))
 	return out
 
 func _body_egg_upgrade(pop: OrigPopup) -> void:
@@ -1884,7 +1883,9 @@ func _upgrade_egg() -> void:
 	var grade := int(sel[1])
 	if key == "": return
 	var ecfg := _egg_cfg()
-	var recipe: Dictionary = EggUpgrade.recipe_for(key, _egg_element(key), grade, Data.upgrade_egg, ecfg)
+	# 레시피 `type` 열은 **기본키**로 맞춘다(`mall_back_egg` — 등급은 grade 인자가 이미 나른다).
+	var recipe: Dictionary = EggUpgrade.recipe_for(_egg_base(key), _egg_element(key), grade,
+		Data.upgrade_egg, ecfg)
 	if recipe.is_empty():
 		_toast("이 알은 더 강화할 수 없어.")
 		return
@@ -1902,11 +1903,15 @@ func _upgrade_egg() -> void:
 		var md: Dictionary = m
 		UserDB.use_item(String(md.get("item", "")), int(md.get("count", 1)))
 	UserDB.spend("gold", gold)
+	# v15: 강화 = **인벤 스택을 옮기는 일**. 고른 칸에서 1개를 빼고 다음 등급 칸에 1개를 넣는다
+	# (원작이 그 `Egg` 개체의 grade 를 올려 목록의 다른 항목이 되는 것과 같다 — EggItem).
+	var up_key := EggUpgrade.upgraded_key(key)
 	var g := int(recipe.get("target_grade", grade + 1))
-	UserDB.set_egg_grade_counts(key, EggUpgrade.after_upgrade(grade, UserDB.egg_grade_counts(key)))
-	_sel_egg_up = "%s#%d" % [key, g]        # 연속 강화를 위해 올라간 알을 그대로 물고 있는다
+	UserDB.use_item(key, 1)
+	UserDB.add_item(up_key, 1)
+	_sel_egg_up = up_key                    # 연속 강화를 위해 올라간 알을 그대로 물고 있는다
 	_toast("%s 을(를) +%d강으로 강화했어! 부화 등급 %.1f 확정." % [
-		_iname(key), g, EggUpgrade.hatch_grade(g, ecfg)])
+		_iname(_egg_base(key)), g, EggUpgrade.hatch_grade(g, ecfg)])
 	_refresh_feature()
 	_refresh_money()
 
@@ -2418,8 +2423,7 @@ func _enhance_dragon_card(dd: Dictionary) -> Control:
 		nb.position = Vector2(18.0, 252.0)
 		card.add_child(nb)
 	var nl := Label.new()
-	var nick := String(dd.get("nickname", ""))
-	nl.text = "레벨%d %s" % [lvl, nick if nick != "" else String(ddef.get("name", "?"))]
+	nl.text = "레벨%d %s" % [lvl, Icons.name_of(dd, "?")]
 	nl.add_theme_font_size_override("font_size", 17)
 	nl.add_theme_color_override("font_color", Color(1, 0.97, 0.85))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2672,8 +2676,7 @@ func _enh_material_card(md: Dictionary, need_grade: float, cost: Dictionary) -> 
 		nb.position = Vector2(18.0, 228.0)
 		card.add_child(nb)
 	var nl := Label.new()
-	var nick := String(md.get("nickname", ""))
-	nl.text = "레벨%d %s" % [lvl, nick if nick != "" else String(ddef.get("name", "?"))]
+	nl.text = "레벨%d %s" % [lvl, Icons.name_of(md, "?")]
 	nl.add_theme_font_size_override("font_size", 17)
 	nl.add_theme_color_override("font_color", Color(1, 0.97, 0.85))
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2745,8 +2748,7 @@ func _confirm_enhance(uid: int, slot_id: String, mat_uid: int, n: int) -> void:
 			nb.position = Vector2(cx - 104.0, 306.0)
 			pop.content.add_child(nb)
 		var nl := Label.new()
-		var nick := String(dd.get("nickname", ""))
-		nl.text = "레벨%d %s" % [lvl, nick if nick != "" else String(ddef.get("name", "?"))]
+		nl.text = "레벨%d %s" % [lvl, Icons.name_of(dd, "?")]
 		nl.add_theme_font_size_override("font_size", 15)
 		nl.add_theme_color_override("font_color", Color(1, 0.97, 0.85))
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

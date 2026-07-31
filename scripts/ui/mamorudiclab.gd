@@ -317,7 +317,9 @@ func _stop_talk() -> void:
 ## 어둡게 그리고 누르면 알린다.
 const MENU_CARDS := [
 	{"title": "드래곤 각성", "icon": "icon_dragon_evolution", "kind": KIND_AWAKEN},
-	{"title": "아티펙트 합성", "icon": "icon_artifact_mix", "kind": -2},
+	# 아티펙트 합성은 화면 전환이 아니라 **이 배경 위에 뜨는 팝업**이다(원작 ArtifactMix =
+	# PopupLayer, 참조 `docs/ref/uno/아티팩트합성5.png` 에서 아래 대사창이 그대로 보인다).
+	{"title": "아티펙트 합성", "icon": "icon_artifact_mix", "kind": -2, "popup": "artifact_mix"},
 	{"title": "각성의마석 제작", "icon": "icon_evolution_make", "kind": KIND_STONE},
 	{"title": "마공학 대장간", "icon": "", "kind": -2},
 	{"title": "아티펙트 제련", "icon": "", "kind": -2},
@@ -336,7 +338,7 @@ func _build_menu(_vis: Vector2) -> void:
 	for i in MENU_CARDS.size():
 		var ent: Dictionary = MENU_CARDS[i]
 		var c: Vector2 = centers[i]
-		var impl := int(ent["kind"]) >= 0
+		var impl := int(ent["kind"]) >= 0 or String(ent.get("popup", "")) != ""
 		var card := Control.new()
 		card.position = c - Vector2(cw, ch) * 0.5
 		card.size = Vector2(cw, ch)
@@ -359,12 +361,21 @@ func _build_menu(_vis: Vector2) -> void:
 				card.add_child(ic)
 		var b := Button.new(); b.flat = true; b.size = Vector2(cw, ch)
 		b.pressed.connect(func():
-			if impl:
+			if String(ent.get("popup", "")) == "artifact_mix":
+				_open_artifact_mix()
+			elif impl:
 				_kind = int(ent["kind"])
 				_rebuild()
 			else:
 				_say("(%s — 아직 구현되지 않은 기능입니다.)" % String(ent["title"])))
 		card.add_child(b)
+
+## 아티펙트 합성(원작 `ArtifactMix`) — 포팅 카드 `docs/ref/porting/ArtifactMix.md`.
+## 대상을 안 넘기면 창이 먼저 고르기 층을 띄운다(원작 `ArtifactBox` → `ArtifactMix::create`).
+func _open_artifact_mix() -> void:
+	var p := ArtifactMixPopup.open(self)
+	p.closed.connect(func(): _say("좋은 아티펙트가 나왔길 바라네."))
+
 
 # ============================================================ kind 0 — 드래곤 각성
 

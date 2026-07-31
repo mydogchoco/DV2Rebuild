@@ -1,0 +1,448 @@
+{
+  "_source": "몬스터별 고유 드랍. 키 = stages.json 의 적 `id`(스프라이트/몬스터 번호). 사용자가 docs/input/sheets/monster_drop_pool.csv 에 채우고 scripts/tools/build_monster_drops.py --import 로 반영한다.",
+  "_authored": "원작 드랍표는 서버 소유였다(AdventureScene::initJsonReward 에 확률이 없다) → 자작 데이터. 사용자 확정 2026-07-31: 밤 공용 조우 몬스터(#160 골드 임프·#161 실버 임프·#162 검은 로브의 사도, +실측으로 #175 칼리고마가도 12지역 공용)와 혼돈의 틈새 랜덤 보스(#36 다크닉스·#138 그리파르·#139 발레포르)는 **몬스터별로** 고유 드랍을 갖는다.",
+  "_stacking": "지역 표(stages.json `drops`)와 **합산**된다 — 한 조우에서 둘 다 판정한다. 판정 = scripts/systems/drops.gd `roll_monster`.",
+  "_key_note": "data/monsters.json 은 **이름**으로 키가 잡힌 위키 추출본이라 런타임 조인에 못 쓴다. 전투가 쥐고 있는 것은 stages.json 의 적 `id` 다.",
+  "drops": {
+    "36": [
+      {
+        "kind": "egg",
+        "dragon": 53,
+        "dragon_name": "다크닉스",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "138": [
+      {
+        "kind": "egg",
+        "dragon": 4037,
+        "dragon_name": "그리파르",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "139": [
+      {
+        "kind": "egg",
+        "dragon": 3034,
+        "dragon_name": "발레포르",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "160": [
+      {
+        "kind": "item",
+        "key": "jewel_amethyst",
+        "item_name": "자수정",
+        "weight": 3,
+        "chance": 100.0,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "kind": "item",
+        "key": "jewel_emerald",
+        "item_name": "에메랄드",
+        "weight": 2,
+        "chance": 100.0,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "kind": "item",
+        "key": "jewel_ruby",
+        "item_name": "루비",
+        "weight": 1,
+        "chance": 100.0,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "kind": "item",
+        "key": "jewel_sapphire",
+        "item_name": "사파이어",
+        "weight": 1,
+        "chance": 100.0,
+        "min": 5,
+        "max": 15
+      }
+    ],
+    "161": [
+      {
+        "kind": "item",
+        "key": "jewel_amethyst",
+        "item_name": "자수정",
+        "weight": 5,
+        "chance": 100.0,
+        "min": 1,
+        "max": 5
+      },
+      {
+        "kind": "item",
+        "key": "jewel_emerald",
+        "item_name": "에메랄드",
+        "weight": 3,
+        "chance": 100.0,
+        "min": 1,
+        "max": 5
+      },
+      {
+        "kind": "item",
+        "key": "jewel_ruby",
+        "item_name": "루비",
+        "weight": 1,
+        "chance": 100.0,
+        "min": 1,
+        "max": 5
+      },
+      {
+        "kind": "item",
+        "key": "jewel_sapphire",
+        "item_name": "사파이어",
+        "weight": 1,
+        "chance": 100.0,
+        "min": 1,
+        "max": 5
+      }
+    ],
+    "162": [
+      {
+        "kind": "skill_scroll",
+        "skill": 60,
+        "skill_name": "야수의 본능",
+        "level_weights": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 14,
+        "skill_name": "피의 갈증",
+        "level_weights": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "163": [
+      {
+        "kind": "skill_scroll",
+        "skill": 32,
+        "skill_name": "신경독소",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "164": [
+      {
+        "kind": "skill_scroll",
+        "skill": 29,
+        "skill_name": "치유의 빛",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 26,
+        "skill_name": "빛의 정화",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "165": [
+      {
+        "kind": "skill_scroll",
+        "skill": 21,
+        "skill_name": "심판의 날개",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 60,
+        "skill_name": "야수의 본능",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "166": [
+      {
+        "kind": "skill_scroll",
+        "skill": 24,
+        "skill_name": "어둠의 손길",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 28,
+        "skill_name": "교차막기",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "167": [
+      {
+        "kind": "skill_scroll",
+        "skill": 56,
+        "skill_name": "망각의 망치",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "168": [
+      {
+        "kind": "skill_scroll",
+        "skill": 11,
+        "skill_name": "철갑 방패",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 12,
+        "skill_name": "신의 결계",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "169": [
+      {
+        "kind": "skill_scroll",
+        "skill": 14,
+        "skill_name": "피의 갈증",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 13,
+        "skill_name": "복수의 거울",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "170": [
+      {
+        "kind": "skill_scroll",
+        "skill": 54,
+        "skill_name": "시한폭탄",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "171": [
+      {
+        "kind": "skill_scroll",
+        "skill": 120,
+        "skill_name": "무언의 압박",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 70,
+        "skill_name": "자연의 수호",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "172": [
+      {
+        "kind": "skill_scroll",
+        "skill": 53,
+        "skill_name": "거신의 돌격",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 54,
+        "skill_name": "시한폭탄",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "173": [
+      {
+        "kind": "skill_scroll",
+        "skill": 23,
+        "skill_name": "상처 파악",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 36,
+        "skill_name": "신의 분노",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "174": [
+      {
+        "kind": "skill_scroll",
+        "skill": 11,
+        "skill_name": "철갑 방패",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      },
+      {
+        "kind": "skill_scroll",
+        "skill": 160,
+        "skill_name": "마비의 구름",
+        "level_weights": [
+          7,
+          2,
+          1,
+          1
+        ],
+        "weight": 1,
+        "chance": 100.0
+      }
+    ],
+    "175": [
+      {
+        "kind": "currency",
+        "currency": "diamond",
+        "chance": 1.0,
+        "min": 100,
+        "max": 200
+      }
+    ]
+  }
+}

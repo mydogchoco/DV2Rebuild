@@ -49,6 +49,9 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# 해골요새 특수 장비가 "체방형 드래곤을 공격 시 25% 추가 대미지" 처럼 **양쪽 유형**을 본다.
 		# 스탯 곡선(stat_table)의 축과 같은 값이라 별도 표가 필요 없다.
 		"atk_type": String(stats.get("atk_type", "")),
+		# 이 파티의 **탐험 골드 증가량(%)**. 전투 계수가 아니라 참조값이다 —
+		# 전용 장비 다크프로스티의 무늬가 "그 증가량만큼 공격력% 증가" 라고 이 값을 읽는다.
+		"explore_gold_pct": int(stats.get("explore_gold_pct", 0)),
 		"skills": norm, "skill_uses": {}, "effects": [],
 		# 장착 중인 장비의 카탈로그 키(EquipEffect.keys_of). 조건부 효과를 심을 때만 쓰고,
 		# 스탯은 이미 Equipment.apply 로 stats 에 반영돼 들어온다.
@@ -153,11 +156,19 @@ static func _crit_pen_pct(c: Dictionary) -> float:
 
 ## **스킬 피해에만** 걸리는 **주는** 피해 배수 — "스킬 피해량 증가"(타로스의 용암구슬).
 ## 평타·각성기가 지나는 `dmg_deal` 과 통로가 다르다.
+## `skill_id` 를 붙이면 **그 스킬을 쓸 때만** 걸린다("[심판의 날개] 사용 시 대미지 200% 증가"
+## — 번개고룡의 팬던트). 안 붙이면 모든 스킬에 걸린다(타로스의 용암구슬).
 static func _skill_dmg_deal_mult(c: Dictionary) -> float:
+	var now := int(c.get("_cast_skill_id", 0))
 	var pct := 0.0
 	for e in (c.get("effects", []) as Array):
-		if String((e as Dictionary).get("kind", "")) == "skill_dmg_deal":
-			pct += float((e as Dictionary).get("pct", 0.0))
+		var d := e as Dictionary
+		if String(d.get("kind", "")) != "skill_dmg_deal":
+			continue
+		var only := int(d.get("skill_id", 0))
+		if only > 0 and only != now:
+			continue
+		pct += float(d.get("pct", 0.0))
 	return maxf(0.0, 1.0 + pct / 100.0)
 
 
@@ -1487,6 +1498,20 @@ static func _aw_on_attack_done(attacker: Dictionary, defender: Dictionary,
 				if h > 0:
 					attacker["hp"] = mini(int(attacker["hp_max"]), int(attacker["hp"]) + h)
 					_spend(r)
+			"stack_from_target":
+				# 워든의 부유검 — "타겟 **최대 체력의 10%** 만큼 공격력 강화(최대 1000)".
+				# 누적 크기가 상대에게서 오므로 `_stack_up` 의 고정 value 대신 여기서 계산한다.
+				# 조건("디버프의 영향을 받는 동안")은 항목의 `when` 이 이미 걸렀다.
+				var step := float(defender.get("hp_max", 0)) * float(r.get("pct", 0.0)) / 100.0
+				var cur := float(r.get("stack", 0.0))
+				var cap2 := float(r.get("max_total", 0.0))
+				if cap2 > 0.0:
+					step = minf(step, cap2 - cur)
+				if step >= 1.0:
+					r["stack"] = cur + step
+					_aw_add_stat(attacker, String(r.get("stat", "att")), "flat", step,
+						"react:%d" % int(r.get("no", 0)))
+					_spend(r)
 			"stack":
 				if _stack_up(r, attacker, attacker.get("_party", [])):
 					_spend(r)
@@ -1768,6 +1793,21 @@ static func _aw_on_death(dead: Dictionary) -> void:
 				(c2["effects"] as Array).append(re)
 			_spend(r)
 			continue
+		# 아군 사망을 계기로 **살아남은 편에게 효과를 건다** — 전용 장비 쿠르파의 푸른갑주
+		# ("아군 그림자 드래곤이 쓰러지면 5턴간 공격력 50% 상승") · 레지아나의 빛나는 깃털
+		# ("사망 시 아군 각성기 피해량 50% 증가"). `turns` 를 주면 한시 효과다.
+		if String(r.get("do", "")) == "party_buff":
+			for t4 in _targets(String(r.get("to", "ally")), dead, dead.get("_party", [])):
+				var c4 := t4 as Dictionary
+				if not bool(c4.get("alive", true)) or c4 == dead:
+					continue
+				for o in (r.get("ops", []) as Array):
+					var e4 := (o as Dictionary).duplicate(true)
+					e4["turns"] = int(r.get("turns", -1))
+					e4["src"] = "death:%d" % int(r.get("no", 0))
+					(c4["effects"] as Array).append(e4)
+			_spend(r)
+			continue
 		for t in (dead.get("_party", []) as Array):
 			var c := t as Dictionary
 			if not bool(c.get("alive", true)):
@@ -1992,7 +2032,8 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 	if op.has("max"):
 		v = minf(v, float(op["max"]))
 	# 값이 없는 연산(면역 부여·흡수)은 0 이어도 정상이다.
-	const VALUELESS := ["absorb_top", "status_immune", "skill_level_proc", "flag", "initiative"]
+	const VALUELESS := ["absorb_top", "status_immune", "skill_level_proc", "flag", "initiative",
+		"pen_share"]
 	if is_zero_approx(v) and not (String(op.get("kind", "")) in VALUELESS):
 		return false
 
@@ -2031,7 +2072,18 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				_push(t, {"kind": "initiative", "side": String(t.get("side", "ally"))}, src)
 			"crit_pen":      _push(t, {"kind": "crit_pen", "pct": v}, src)
 			"double_dmg":    _push(t, {"kind": "double_dmg", "pct": v}, src)
-			"skill_dmg_deal": _push(t, {"kind": "skill_dmg_deal", "pct": v}, src)
+			"skill_dmg_deal":
+				_push(t, {"kind": "skill_dmg_deal", "pct": v,
+					"skill_id": int(op.get("skill_id", 0))}, src)
+			"pen_share":
+				# 엔젤 드래곤의티아라 — "자신의 방어 관통을 0으로 감소, 나머지 아군에게 공통분배".
+				var mine := _eff(t, "pure")
+				var others := _targets("ally_others", t, allies)
+				if mine > 0 and not others.is_empty():
+					_aw_add_stat(t, "pure", "flat", -float(mine), src)
+					var each := float(mine) / float(others.size())
+					for o2 in others:
+						_aw_add_stat(o2, "pure", "flat", each, src)
 			"awaken_dmg_cap": _push(t, {"kind": "awaken_dmg_cap", "value": v}, src)
 			"skill_dmg_taken":
 				# "스킬에 입는 피해 10% 감소"(엘더 블랙퀸의 목도리). 음수 = 감소.

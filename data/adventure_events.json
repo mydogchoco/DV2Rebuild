@@ -1,0 +1,77 @@
+{
+  "_source": "탐험 이벤트 큐 설정. 판정 = scripts/systems/adventure_run.gd(logic). 포팅 카드 = docs/ref/porting/AdventureEventFlow.md",
+  "_orig": "원작은 이 큐를 서버가 통째로 내려줬다 — AdventureScene::ResponseAdventureSequance 가 파싱하던 `exe_event` 배열이 그것이고, 클라에는 '무엇이 언제 나오는가'를 정하는 코드가 없다(initEvent 는 받은 값으로 switch 만 한다). 따라서 아래 확률은 전부 자작 튜닝 노브다.",
+  "_orig_enum": {
+    "_note": "원작 initEvent() switch 값 ↔ 우리 문자열 키. 재디컴프본(--max 24000) 기준.",
+    "1": "nothing      setEventNothing",
+    "2/4": "monster    setEventMonster",
+    "0x13": "heal_holy  setEventHealArea(true)   music/effect_holy_well_2.mp3",
+    "0x14": "heal_plain setEventHealArea(false)  music/effect_water_in.mp3",
+    "0x15": "treasure   setEventTreasure(true)   music/effect_box_peong.mp3",
+    "0x16": "quest      setEventQuest",
+    "0x18/0x19": "cardgame setEventDungeonCardGame1/2",
+    "0x1a": "shop       setEventDungeonShop",
+    "0x1b": "choice     setEventDungeonChoice  (해골요새 전용, game_skullfortress/choice_road.hb)"
+  },
+  "_rule": "한 조우 스텝에 사전 이벤트는 **최대 1개**. 마지막은 항상 몬스터. 보스 조우와 랜덤보스 스테이지에는 사전 이벤트가 붙지 않는다(원작도 보스 앞에는 setAlertMonster 컷인만 온다).",
+  "_prev_behavior": "🟠 2026-07-30 이전에는 회복샘 0.34 · 보물 0.22 · 갈림길 0.18 · 상점 0.15 · 카드 0.13 을 각자 **독립으로** 굴려 한 조우에 여러 개가 동시에 터졌다. 아래 가중치는 그때의 이벤트 발생 총량과 비슷하게 잡되 배타 선택으로 바꾼 값이다.",
+  "steps": {
+    "max_events_per_step": 1,
+    "nothing_weight": 120,
+    "events": [
+      {
+        "type": "treasure",
+        "weight": 22,
+        "_note": "원작 setEventTreasure(0x15). 일반 지역에도 나온다."
+      },
+      {
+        "type": "heal_plain",
+        "weight": 14,
+        "needs_hurt": true,
+        "min_enc": 1,
+        "_note": "원작 setEventHealArea(false) — 평범한 샘(effect_water_in, 청록 틴트). 다친 상태에서만."
+      },
+      {
+        "type": "heal_holy",
+        "weight": 6,
+        "needs_hurt": true,
+        "min_enc": 1,
+        "_note": "원작 setEventHealArea(true) — 성스러운 샘(effect_holy_well_2, 흰 틴트). 더 드물다."
+      },
+      {
+        "type": "choice",
+        "weight": 12,
+        "fortress_only": true,
+        "_note": "원작 setEventDungeonChoice(0x1b) = 해골요새 전용(서버 API game_skullfortress/choice_road.hb). 원작 4변형의 버튼 프레임(choice_up/pass/drink/open)은 추출 에셋에 없다 — CLAUDE.md §10 표."
+      },
+      {
+        "type": "shop",
+        "weight": 10,
+        "fortress_only": true,
+        "_note": "원작 setEventDungeonShop(0x1a) → DungeonShopScene."
+      },
+      {
+        "type": "cardgame",
+        "weight": 9,
+        "fortress_only": true,
+        "_note": "원작 setEventDungeonCardGame1/2(0x18/0x19). 어느 쪽인지도 서버가 정했다(유실) → 반반."
+      }
+    ]
+  },
+  "night": {
+    "_rule": "유타칸 밤 = **한 번 진입하면 이벤트 1회만 조우하고 탐험이 끝난다**(사용자 확정 2026-07-31). 원작 문구가 그대로 확인된다 — stringsData_KR <NightTutorial_talk10> '강력한 만큼 긴 전투 때문에 탐험은 단 한번! 계속 이어갈 수가 없어.' 원작 코드도 같다: AdventureScene::checkAdventureNightEnd 가 m_nEventType 을 0x1d(=Finish)로 놓고 텍스트 한 줄 + CCDelayTime(2.0) 뒤 런을 끝낸다. 호출 게이트 = getDBYutakanNight() != 0 && (필드%500)이 1~15 중 6·8 제외.",
+    "_outcomes": "셋 중 하나: ① 아무것도 찾지 못했다(원작 setEventNothing, 문구 <AdventureNothing> '해가 질 때까지 돌아다녔지만 아무것도 찾지 못했다.') ② 랜덤 인카운터 몬스터(밤 12지역 공용 4종 — #160 골드 임프·#161 실버 임프·#162 검은 로브의 사도·#175 블랙 윗치) ③ 그 지역 밤 보스.",
+    "_weights_basis": "🟦 사용자 확정 2026-07-31: **2 : 3 : 5**. 원작 확률은 클라에 없다 — 이벤트 목록 자체가 서버 exe_event 소유였고(ResponseAdventureSequance), checkAdventureNightEnd 는 확률이 아니라 '조우 뒤 무조건 종료' 판정이다. 즉 유실 확정 → 사용자 지정값.",
+    "weights": {
+      "nothing": 2,
+      "encounter": 3,
+      "boss": 5
+    },
+    "_within_group": "어느 공용 몬스터/어느 보스인지는 그 그룹 안에서 stages.json 밤 편성의 weight 비례로 고른다(현재 공용 4종 전부 1 = 균등). 종전의 편성 weight(보스 7 : 공용 각 1)는 이 3분할이 대신하므로 그룹 선택에는 쓰이지 않는다."
+  },
+  "run": {
+    "_note": "도망(원작 setEventRun = 0x9) 성공률. 클라에 판정 코드가 없다 — 서버가 결과를 내려줬다. 자작값.",
+    "chance": 0.75,
+    "boss_chance": 0.4
+  }
+}

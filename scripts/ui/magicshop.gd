@@ -102,6 +102,10 @@ var _money_root: Control
 ## 드래곤 소환 화면 상태 — 재료로 고른 개체 uid, 부를 종(600/700). 팝업 재빌드를 넘어 유지된다.
 var _summon_uid := 0
 var _summon_species := Summon.SPECIES_DEF
+## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, opts}.
+var _egg_reveal: Array = []
+## 커스텀 종의 표시 이름 — 마스터 데이터에 이름이 없다(플레이어 선택권 드래곤).
+const SPECIES_LABEL := {Summon.SPECIES_DEF: "수비형", Summon.SPECIES_ATK: "공격형"}
 
 func _items() -> Array:
 	return ITEMS[clampi(_floor, 0, ITEMS.size() - 1)]
@@ -553,7 +557,8 @@ func _body_code(pop: OrigPopup) -> void:
 			return
 		msg.text = ""
 		_toast(String(res.get("msg", "")) if String(res.get("msg", "")) != "" else "코드를 사용했습니다!")
-		_refresh_feature(),
+		# 알 보상이 있으면 뽑기 알 개봉과 같은 공개 연출로 보여 준다(없으면 곧바로 갱신).
+		_reveal_eggs("코드에 응답하여 %s의 알이 나타났습니다."),
 		0, Vector2(220.0, 52.0))
 
 ## 카드 코드를 판정하고 **보상을 지급**한다. 못 쓰는 코드면 빈 사전.
@@ -570,12 +575,20 @@ func _redeem_code(code: String) -> Dictionary:
 		return {}
 	var mark := CardCode.used_key(code, Data.card_codes)
 	var used: Array = UserDB.get_pmeta("used_card_codes", [])
-	var once := bool(res.get("once", true))
-	if once and used.has(mark):
-		return {}                       # 한 번 쓴 코드는 재사용 불가
+	# 사용 횟수 제한 — 표의 `사용제한` 열(0=무제한 / N=N번까지). 옛 표에는 `once` 만 있다.
+	var uses := int(res.get("uses", 1 if bool(res.get("once", true)) else 0))
+	if uses > 0:
+		var spent := 0
+		for m in used:
+			if String(m) == mark:
+				spent += 1
+		if spent >= uses:
+			return {}                   # 정해진 횟수를 다 썼다
+	_egg_reveal.clear()                 # 이번 코드가 준 알만 공개한다(지난 지급분 누수 방지)
 	for r in res.get("rewards", []):
 		_grant_card_reward(r)
-	if once:
+	if uses > 0:
+		# 쓸 때마다 한 칸씩 쌓는다 — 같은 해시가 몇 번 있는지가 곧 사용 횟수다.
 		var arr: Array = (used as Array).duplicate()
 		arr.append(mark)
 		UserDB.set_pmeta("used_card_codes", arr)
@@ -595,12 +608,38 @@ func _grant_card_reward(r: Dictionary) -> void:
 		"egg":
 			# 뽑기 알과 같은 가상 인벤 키 — 가방에서 개봉한다([[dv2-gacha-egg-mechanic]]).
 			UserDB.add_item("egg:%d" % int(r.get("k", 0)), n)
+			# 알은 토스트로 흘리지 않고 뽑기 알 개봉과 **같은 공개 연출**을 준다(사용자 요청).
+			for i in n:
+				_egg_reveal.append({"did": int(r.get("k", 0)), "opts": {}})
 		"dragon":
 			for i in n:
 				UserDB.add_dragon(int(r.get("k", 0)))
 		"flag":
 			# 해금 플래그 — 평문 이름은 빌드·세이브 어디에도 없다(해시 키만).
 			UserDB.set_pmeta(String(r.get("k", "")), true)
+
+
+## 알 획득 공개(`EggResultPopup`) — 뽑기 알 개봉(`cave.gd::_show_egg_result`)과 **같은 창**이다.
+## 여러 개면 확인할 때마다 하나씩 이어서 보여 주고, 마지막이 닫히면 화면을 갱신한다.
+## 알이 없으면 아무것도 하지 않고 곧바로 갱신한다(호출부가 분기하지 않게).
+##
+## `_egg_reveal` 한 칸 = `{"did": 드래곤id, "opts": {name/art_id/element}}`.
+## opts 는 **마스터에 값이 없는 커스텀 종(600/700)** 용이다 — 이름·속성·그림을 재료에게서
+## 물려받으므로(`Summon.plan` inherit) 소환이 채워 넣는다. 일반 종은 비워 두면 된다.
+func _reveal_eggs(msg_fmt: String) -> void:
+	if _egg_reveal.is_empty():
+		_refresh_feature()
+		return
+	var e: Dictionary = _egg_reveal.pop_front()
+	var did := int(e.get("did", 0))
+	var opts: Dictionary = e.get("opts", {})
+	# 문구에 들어갈 이름 — 이름표와 같은 순서로 떨어진다(빈 이름이면 "%s의" 가 뻥 뚫린다).
+	var nm := String(opts.get("name", ""))
+	if nm == "":
+		var mn = Data.get_dragon(did).get("name")
+		nm = String(mn) if typeof(mn) == TYPE_STRING and String(mn) != "" else "새로운 알"
+	var pop := EggResultPopup.open(self, did, "", msg_fmt % nm, opts)
+	pop.closed.connect(func(): _reveal_eggs(msg_fmt))
 
 ## 원작 `DrinkCraftLayer`(드링크 강화) — 물약에 **정기**를 넣어 다음 단계로 올린다.
 ## 근거: `MagicWelcomeDrink` "…정기를 사용하면 기본적인 자양강장제를 강화시킬 수 있어요."
@@ -819,16 +858,20 @@ func _body_alchemy(pop: OrigPopup) -> void:
 		plus.position = Vector2(376.0, y0 + 145.0)
 		pop.content.add_child(plus)
 	# 결과칸 — 확률 리본 + 결과 자리(제작 전에는 무엇이 나올지 모른다 = 원작도 비어 있다).
+	# 리본 문구는 **실제 판정값**이다 — 종전엔 "혼성젬 확률 100%" 하드코딩이라
+	# 샌즈의 눈물을 넣어도 아무 변화가 없었다(2026-07-31 수정).
 	var rib := Label.new()
-	rib.text = "혼성젬 확률  100%"
+	rib.text = "샌즈의 젬 확률  %d%%" % Gem.sands_chance(Data.gems, _sands_bonus_pct())
 	rib.add_theme_font_size_override("font_size", 18)
 	rib.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
 	rib.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rib.position = Vector2(440.0, y0); rib.size = Vector2(280.0, 26.0)
+	# 결과칸 위에 얹는다. 오른쪽은 샌즈의 눈물 투입 칸 자리라 폭을 그만큼 줄였다.
+	rib.position = Vector2(435.0, y0); rib.size = Vector2(180.0, 26.0)
 	pop.content.add_child(rib)
+	_alchemy_sands_slot(pop, y0)
 	var box := Panel.new()
-	box.size = Vector2(200.0, 210.0)
-	box.position = Vector2(480.0, y0 + 40.0)
+	box.size = Vector2(180.0, 210.0)
+	box.position = Vector2(435.0, y0 + 40.0)
 	var bs := StyleBoxFlat.new()
 	bs.bg_color = Color(0, 0, 0, 0.28)
 	bs.corner_radius_top_left = 14; bs.corner_radius_top_right = 14
@@ -864,26 +907,118 @@ func _body_alchemy(pop: OrigPopup) -> void:
 		w2.position = Vector2(56.0, H - 52.0); w2.size = Vector2(380.0, 24.0)
 		pop.content.add_child(w2)
 
+## 제작에 넣을 **샌즈의 눈물** 아이템 키. ""=미투입. 창을 닫으면 사라지는 화면 상태다.
+var _sands_key := ""
+
+## 지금 고른 눈물의 보너스(%). 미투입이거나 다 써 버렸으면 0.
+func _sands_bonus_pct() -> int:
+	if _sands_key == "" or UserDB.item_count(_sands_key) <= 0:
+		return 0
+	return Gem.sands_bonus(_sands_key, Data.gems)
+
+
+## 원작 `UpgradeGemLayer::initMenu` 의 **투입 슬롯**(UpgradeGemLayer.c:1054~1090):
+##   `RoundedLayer((w−100)/4, (h−100)/4×1.25, 0x66000000)` 을 `CCMenuItemImageEx` 로 감싸
+##   `(w/2 + 230, h/2)` 에 ×0.95 로 놓고, 그 안에 `alchemy/posion_bg`(tag 8000)와
+##   라벨(tag 9000, maxWidth 120)을 겹친다. 위에는 `9patch/train_box3` 230×43 띠.
+## 우리 팝업은 크기가 달라 좌표는 결과칸 오른쪽으로 옮기되 **구성은 원작 그대로**다.
+## 클릭 = 미투입 → 10% → 20% → 미투입 순환(원작 `onClickItemMenu` 는 보유 목록 팝업이지만
+##   우리 눈물은 2종뿐이라 순환이 같은 일을 더 적은 클릭으로 한다). # ASSUMPTION: 순환 방식
+func _alchemy_sands_slot(pop: OrigPopup, y0: float) -> void:
+	var tears: Array = (Data.gems.get("craft", {}) as Dictionary).get("sands_tear_items", [])
+	if tears.is_empty():
+		return
+	# 팝업은 800×480 이고 재료 3줄이 56~336, 결과칸이 435~615 을 쓴다 → 그 오른쪽.
+	# 원작은 `(w/2 + 230, h/2)` = (630, 240) 중심인데 우리 결과칸이 거기 있어 조금 더 오른쪽이다.
+	var slot := Control.new()
+	slot.position = Vector2(635.0, y0 + 40.0)
+	slot.size = Vector2(150.0, 160.0)
+	pop.content.add_child(slot)
+	# 띠 — 원작 `9patch/train_box3` 230×43 anchor(0.5,0), 슬롯 위.
+	var band := AtlasUI.nine("ninepatch_ui", "9patch_train_box3", Vector2(150.0, 34.0))
+	if band:
+		band.position = Vector2(0, -40.0)
+		band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(band)
+	var bl := Label.new()
+	bl.text = "샌즈의 눈물"
+	bl.add_theme_font_size_override("font_size", 17)
+	bl.add_theme_color_override("font_color", Color(1, 0.96, 0.86))
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bl.position = Vector2(0, -36.0); bl.size = Vector2(150.0, 26.0)
+	bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(bl)
+	# 투입 칸 배경 — 원작 `alchemy/posion_bg`.
+	# 47×88px 프레임 → ×0.9×(4/3) = 56×106pt. 중심 (75,62) 이면 9~115 를 쓴다.
+	var pbg := AtlasUI.spr("magicshop_alchemy", "scene_magicshop_alchemy_posion_bg",
+		Design.ASSET_SCALE * 0.9)
+	if pbg:
+		pbg.position = Vector2(75.0, 62.0)
+		slot.add_child(pbg)
+	# 고른 눈물의 아이콘 + 보유 수. 미투입이면 안내 문구.
+	var cur := _sands_bonus_pct()
+	if _sands_key != "" and cur > 0:
+		var ip := Data.item_icon_path(_sands_key)
+		if ip != "" and ResourceLoader.exists(ip):
+			var ic := Sprite2D.new()
+			ic.texture = load(ip); ic.material = AtlasUI.pma()
+			ic.position = Vector2(75.0, 58.0); ic.scale = Vector2(0.5, 0.5)
+			slot.add_child(ic)
+	var sl := Label.new()
+	sl.text = ("+%d%%  (%d개)" % [cur, UserDB.item_count(_sands_key)]) if cur > 0 else "넣지 않음"
+	sl.add_theme_font_size_override("font_size", 16)
+	sl.add_theme_color_override("font_color", Color(1, 0.96, 0.86) if cur > 0
+		else Color(0.85, 0.80, 0.72))
+	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sl.position = Vector2(0, 120.0); sl.size = Vector2(150.0, 24.0)   # 병 아래(115) 밑
+	sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(sl)
+	var b := Button.new()
+	b.flat = true
+	b.size = Vector2(150.0, 148.0)
+	b.tooltip_text = "혼성젬 제작에 넣으면 샌즈의 젬이 나올 확률이 오릅니다 (클릭해서 바꾸기)"
+	b.pressed.connect(_cycle_sands)
+	slot.add_child(b)
+
+
+## 미투입 → 보유한 눈물 순서대로 → 다시 미투입. 안 가진 것은 건너뛴다.
+func _cycle_sands() -> void:
+	var tears: Array = (Data.gems.get("craft", {}) as Dictionary).get("sands_tear_items", [])
+	var owned: Array = []
+	for t in tears:
+		var k := String((t as Dictionary).get("item", ""))
+		if UserDB.item_count(k) > 0:
+			owned.append(k)
+	if owned.is_empty():
+		_toast("샌즈의 눈물이 없습니다 (용액 상점에서 살 수 있어요)")
+		return
+	var i := owned.find(_sands_key)
+	_sands_key = "" if i == owned.size() - 1 else String(owned[i + 1] if i >= 0 else owned[0])
+	_refresh_feature()
+
+
 func _craft_hybrid_gem() -> void:
 	for k: String in POWDERS:
 		if UserDB.item_count(k) < ALCHEMY_COST:
 			_toast("마법가루가 모자라요."); return
+	var bonus := _sands_bonus_pct()          # 투입 전에 확정(차감하면서 0이 되면 안 된다)
 	if not UserDB.spend("gold", ALCHEMY_GOLD):
 		_toast("골드가 부족합니다"); return
 	for k: String in POWDERS:
 		UserDB.use_item(k, ALCHEMY_COST)
-	# 결과 = 혼성젬 중 무작위 1종, 최소 티어(위키: "가장 초기의 작은 젬이 나온다").
-	var pool: Array = []
-	for name in (Data.gems.get("gems", {}) as Dictionary):
-		if String(Data.gems["gems"][name].get("category", "")) == "hybrid":
-			pool.append(String(name))
-	if pool.is_empty():
-		_toast("젬 데이터가 비어 있습니다"); return
+	# 결과 = 혼성젬 중 1종, 최소 티어(위키: "가장 초기의 작은 젬이 나온다").
+	# 샌즈의 눈물을 넣었으면 샌즈의 젬 확률이 그만큼 오른다 — 판정은 logic 층(§8.2).
+	if bonus > 0:
+		UserDB.use_item(_sands_key, 1)
 	var r := RandomNumberGenerator.new(); r.randomize()
-	var got := String(pool[r.randi() % pool.size()])
+	var got := Gem.craft_hybrid(Data.gems, bonus, r)
+	if got == "":
+		_toast("젬 데이터가 비어 있습니다"); return
 	# 🔴버그수정(2026-07-27): 가루 60개를 먹고 **pmeta 문자열 + 토스트만** 남기고 젬을 주지 않았다.
 	#   이제 실제 젬 아이템을 인벤에 넣는다(가상 키 `gem:<이름>:<티어>`, 위키 §2.2 "가장 초기의 젬").
 	UserDB.add_item(Gem.item_key(got, 0), 1)
+	if bonus > 0 and UserDB.item_count(_sands_key) <= 0:
+		_sands_key = ""                      # 마지막 하나를 썼으면 칸을 비운다
 	_toast("%s 을(를) 제작했습니다! (가방 젬 탭)" % got)
 	_refresh_feature()
 
@@ -1694,23 +1829,44 @@ func _body_egg(pop: OrigPopup) -> void:
 	col.add_child(b)
 
 ## 원작 <MagicTitleSlot>뽑기 — <MagicWelcomeSlot> "뽑기는 **골드를 사용하여** 여러 가지
-## 아이템을 획득하는 요긴한 방법 입니다." 품목표·확률은 서버 유실.
+## 아이템을 획득하는 요긴한 방법 입니다."
 ## 원작 `SlotLayer::initWidget`(재디컴프 `docs/ref/orig_code/decomp/SlotLayer.c:1855-1935`) 1:1.
 ##   · 릴 배경 `scene/magicshop/slotBG`(117×198px) **3개** @ `(창폭/2 + (−158 + 158·i), 창높이/2)`
 ##   · 릴 내용 `SlotRoller`(세로로 굴러가는 아이템 목록) @ 같은 자리(−157 + 157·i)
 ##   · 그 위에 `scene/magicshop/slot_frame`(407×226px) 을 z=1 로 덮는다
 ##   · 실행 = `RoundedButton(200×56)` @ `(창폭×0.25, 60)` + `common/coin_small1` 가격
-## 우리 추가분: 10연속 버튼(원작엔 없다 — 오프라인 편의). 원작 자리 반대쪽 `(창폭×0.75, 60)`.
-## ⚠️ 가격·확률은 원작 서버 데이터라 유실 → `data/drops.json` `slot`(자작, 사용자 확정 2026-07-27).
+##
+## ★ **잭팟이다**(사용자 지적 2026-07-30 → 디컴프로 확인). `SlotLayer::ResponseSlot` :897
+##     if (r1 == r2 && r1 == r3) { 결과 = r1; addItem/addEgg(결과, cnt) } else { 결과 = 0 }
+##   릴 3개가 전부 같을 때만 그 아이템을 준다. 아니면 꽝 —
+##   `ResponseSlotResult` 가 `music/effect_item_failed.mp3` + <MagicSlotFail> 를 낸다.
+##   성공은 `successPopup` 이 `music/effect_dragon_incubation.mp3` 와 함께 획득물을 공개하고,
+##   당첨 칸은 `SlotRoller::successEffect`(FadeOut/In 0.25s ×2)로 깜빡인다.
+##   정지는 순차적이다 — `CCDelayTime(2.0 + i×0.5)` 로 릴 i 를 세운다.
+## 10연속도 **원작에 있다**(`makeMassiveButton`→`onClickMassive`→`requestSlotTen` →
+##   `game_fortune/generate_reels_v2.hb` count=10, 결과는 `ShowGetItemDetailLayer` = 우리
+##   `GetItemPopup`). 종전 주석의 "원작엔 없다"는 오기였다.
+## ⚠️ 가격·확률·품목표는 원작 서버 데이터라 유실 → `data/drops.json` `slot`
+##   (사용자 확정 2026-07-30: 성공률 20% · 1회 1,000골드 · 혼성/소울젬 + LV±1 + 고대 포탈 +
+##   의문의 알 + 빛나는 의문의 알). 판정은 전부 `Drops.roll_slot`(logic) 이 하고 여기는 그린다.
+const SLOT_STOP_BASE := 2.0    # 원작 CCDelayTime(… + 2.0)
+const SLOT_STOP_STEP := 0.5    # 릴 i 는 그보다 i×0.5 초 늦게 선다
+const SLOT_TICK := 0.06        # 굴러가는 얼굴 교체 주기(원작 SlotRoller 는 픽셀 스크롤)
 var _reels: Array = []
+var _slot_faces: Array = []    # Drops.slot_faces(...) — 릴 품목표(인덱스가 곧 릴 값)
+var _slot_btns: Array = []     # 굴리는 동안 잠글 버튼(원작 isAnimate 가드)
+var _slot_spin := false
 
 func _body_slot(pop: OrigPopup) -> void:
 	var W: float = pop.win_size.x
 	var H: float = pop.win_size.y
 	var cfg: Dictionary = Data.drops.get("slot", {})
-	var price := int(cfg.get("price_gold", 5000))
+	var price := int(cfg.get("price_gold", 1000))
 	var cy := H * 0.5 + 14.0
+	_slot_faces = Drops.slot_faces(Data.drops, Data.gems)
 	_reels = []
+	_slot_btns = []
+	_slot_spin = false
 	for i in 3:
 		var bgspr := AtlasUI.spr("magicshop_ui", "scene_magicshop_slotBG", Design.ASSET_SCALE)
 		if bgspr != null:
@@ -1728,7 +1884,9 @@ func _body_slot(pop: OrigPopup) -> void:
 		face.position = Vector2(75.0, 125.0)
 		reel.add_child(face)
 		_reels.append(face)
-	_spin_reels(false)
+		if not _slot_faces.is_empty():
+			# 시작 얼굴은 품목표에 고르게 흩어 놓는다(젬만 셋 보이면 품목이 젬뿐인 줄 알게 된다).
+			_slot_set_face(face, int(round(float(i) * float(_slot_faces.size() - 1) / 2.0)))
 	var frame := AtlasUI.spr("magicshop_ui", "scene_magicshop_slot_frame", Design.ASSET_SCALE)
 	if frame != null:
 		frame.position = Vector2(W * 0.5, cy)
@@ -1736,78 +1894,154 @@ func _body_slot(pop: OrigPopup) -> void:
 		pop.content.add_child(frame)
 	# 원작은 가격(`common/coin_small1` + 금액)을 **실행 버튼의 자식**으로 붙인다 → 버튼 라벨이
 	# 곧 가격이고, 코인은 그 왼쪽에 온다. 버튼을 먼저 만들고 코인을 그 위에 얹는다(그리기 순서).
-	pop.add_action_button("   %s" % AtlasUI.comma(price), func(): _pull_slot(price), 0,
-		Vector2(200.0, 56.0), Vector2(W * 0.25, H - 46.0))
-	pop.add_action_button("10연속", func(): _pull_slot(price, 10), 2, Vector2(200.0, 56.0),
-		Vector2(W * 0.75, H - 46.0))
+	_slot_btns.append(pop.add_action_button("   %s" % AtlasUI.comma(price),
+		func(): _pull_slot(price), 0, Vector2(200.0, 56.0), Vector2(W * 0.25, H - 46.0)))
+	_slot_btns.append(pop.add_action_button("10연속", func(): _pull_slot(price, 10), 2,
+		Vector2(200.0, 56.0), Vector2(W * 0.75, H - 46.0)))
 	var coin := AtlasUI.spr("common_ui", "common_coin_small1", Design.ASSET_SCALE)
 	if coin != null:
 		coin.position = Vector2(W * 0.25 - 46.0, H - 46.0)
 		pop.content.add_child(coin)
 
-## 릴 3개를 굴린다. `land` 가 true 면 마지막에 실제 결과 아이콘에서 멈춘다.
-## 원작 `SlotRoller` 는 아이템 목록을 세로로 굴리는 ClippingLayer 다 — 여기서는 얼굴만 바꿔 흉내낸다.
-func _spin_reels(animate: bool, results: Array = []) -> void:
-	var pool: Array = []
-	for name in (Data.gems.get("gems", {}) as Dictionary):
-		var t := Icons.gem_texture(String(Data.gems["gems"][name].get("code", "")), 0)
-		if t != null:
-			pool.append(t)
-	if pool.is_empty():
+## 릴 품목 아이콘. 원작은 릴 전용 아틀라스 `item/item_small/slot_item`(SlotRoller::init 이
+## 프리로드한다 — 고대 포탈·의문의 알 프레임이 실재)을 쓰므로 **그 프레임을 먼저** 찾고,
+## 거기 없는 품목만 평소 젬/아이템 아이콘으로 떨어진다.
+func _slot_face_tex(face: Dictionary) -> Texture2D:
+	var key := String(face.get("key", ""))
+	if String(face.get("kind", "")) == "item":
+		var p := "res://assets/converted/slot_item/item_item_small_slot_item_%s.tres" % key
+		if ResourceLoader.exists(p):
+			return load(p)
+		var ip := Data.item_icon_path(key)
+		return load(ip) if ip != "" and ResourceLoader.exists(ip) else null
+	var nm := String(face.get("gem_name", ""))
+	return Icons.gem_texture(String(Gem.gem_def(nm, Data.gems).get("code", "")),
+		int(face.get("tier", 0)))
+
+func _slot_set_face(face: Sprite2D, idx: int) -> void:
+	if not is_instance_valid(face) or _slot_faces.is_empty():
 		return
+	var f: Dictionary = _slot_faces[posmod(idx, _slot_faces.size())]
+	var t := _slot_face_tex(f)
+	face.texture = t
+	# 릴 창(150×250 클리핑)에 맞춘다 — 젬(작은 아이콘)과 릴 전용 프레임(≈70px)이 섞인다.
+	if t != null:
+		var h := float(t.get_height())
+		face.scale = Vector2.ONE * (1.0 if h <= 0.0 else clampf(96.0 / h, 0.8, 2.0))
+
+## 릴 3개를 굴려 `reels`(품목표 인덱스) 에서 순차적으로 세운다 → 다 서면 `on_done`.
+## 원작 `ResponseSlot` 의 `CCDelayTime(2.0 + i×0.5)` 3연속 콜백과 같은 타이밍이다.
+func _slot_roll(reels: Array, on_done: Callable) -> void:
+	if _reels.is_empty() or _slot_faces.is_empty():
+		on_done.call(); return
+	_slot_spin = true
+	_slot_lock(true)
+	var n := _slot_faces.size()
+	var last := _reels.size() - 1
 	for i in _reels.size():
 		var face: Sprite2D = _reels[i]
 		if not is_instance_valid(face):
 			continue
-		var target: Texture2D = pool[randi() % pool.size()]
-		if i < results.size() and results[i] is Texture2D:
-			target = results[i]
-		if not animate:
-			face.texture = target
+		face.modulate.a = 1.0
+		var steps := int((SLOT_STOP_BASE + SLOT_STOP_STEP * i) / SLOT_TICK)
+		var tw := face.create_tween()
+		for s in steps:
+			# 이웃한 얼굴이 순서대로 지나간다(원작 SlotRoller = 품목 목록을 세로로 스크롤).
+			var idx := (i * 3 + s + 1) % n
+			tw.tween_callback(func(): _slot_set_face(face, idx))
+			tw.tween_interval(SLOT_TICK)
+		var res_idx := int(reels[i]) if i < reels.size() else 0
+		tw.tween_callback(func(): _slot_set_face(face, res_idx))
+		if i == last:
+			tw.tween_callback(func():
+				_slot_spin = false
+				_slot_lock(false)
+				on_done.call())
+
+## 당첨 칸 깜빡임 — 원작 `SlotRoller::successEffect`(FadeOut 0.25 → FadeIn 0.25 ×2).
+func _slot_blink() -> void:
+	for f in _reels:
+		var face: Sprite2D = f
+		if not is_instance_valid(face):
 			continue
 		var tw := face.create_tween()
-		for step in 8 + i * 3:
-			var t2: Texture2D = pool[randi() % pool.size()]
-			tw.tween_callback(func(): face.texture = t2)
-			tw.tween_interval(0.05)
-		tw.tween_callback(func(): face.texture = target)
+		for _r in 2:
+			tw.tween_property(face, "modulate:a", 0.0, 0.25)
+			tw.tween_property(face, "modulate:a", 1.0, 0.25)
 
-## 골드 뽑기 실행 — 결과는 가방 젬 탭으로 들어간다.
+func _slot_lock(on: bool) -> void:
+	for b in _slot_btns:
+		if not is_instance_valid(b):
+			continue
+		var root: Control = b
+		root.modulate.a = 0.5 if on else 1.0
+		for c in root.get_children():
+			if c is Button:
+				(c as Button).disabled = on
+
+## 골드 뽑기 실행. 판정은 `Drops.roll_slot`(logic) — 여기서는 굴리고 보여 준다.
+## 원작 흐름: 요청 → 응답에서 즉시 addItem → 릴 정지 연출 → `ResponseSlotResult` 가 성공/꽝 처리.
+## 지급을 먼저 하는 것도 원작과 같다(연출 도중 창을 닫아도 획득물을 잃지 않는다).
 func _pull_slot(price: int, count := 1) -> void:
+	if _slot_spin:
+		return                                    # 원작 `SlotLayer::isAnimate` 가드
+	if _slot_faces.is_empty():
+		_toast("뽑기 품목표가 비어 있습니다"); return
 	if not UserDB.spend("gold", price * count):
 		_toast("골드가 부족하네요"); return          # 원작 <MagicErrorMsg2>
 	var rng := RandomNumberGenerator.new(); rng.randomize()
-	var got: Array = []
-	for _i in count:
-		var k := Drops.roll_gem_slot(Data.drops, Data.gems, rng)
-		if k == "":
+	var results := Drops.roll_slot_many(Data.drops, Data.gems, rng, count)
+	var got: Dictionary = {}                      # 인벤 키 → 개수
+	for r in results:
+		var res: Dictionary = r
+		if not bool(res.get("win", false)):
 			continue
-		UserDB.add_item(k, 1)
-		got.append(k)
-	if got.is_empty():
-		_toast("젬 데이터가 비어 있습니다"); return
-	# 원작 <MagicSlotSucces> "축하드려요! 뽑기에 성공하여 %s을(를) 획득하셨어요~"
-	var names: PackedStringArray = []
-	for k in got:
-		var g := Gem.parse_item_key(String(k))
-		names.append(Gem.display_name(String(g["name"]), int(g["tier"]), Data.gems))
-	# 원작 `SlotLayer` 도 결과 대사에 표정 4 를 쓴다.
-	_toast("축하드려요! %s 획득! (가방 젬 탭)" % ", ".join(names), 4)
-	# 릴을 굴려 결과에서 멈춘다(원작 SlotRoller). 팝업을 통째로 다시 그리면 릴이 초기화되므로
-	# 여기서는 재화 표시만 갱신한다.
-	var faces: Array = []
-	for k in got:
-		var g2 := Gem.parse_item_key(String(k))
-		var t := Icons.gem_texture(
-			String(Gem.gem_def(String(g2["name"]), Data.gems).get("code", "")), int(g2["tier"]))
-		if t != null:
-			faces.append(t)
-		if faces.size() >= 3:
-			break
-	_spin_reels(true, faces)
+		var k := String(res.get("key", ""))
+		var c := int(res.get("count", 1))
+		if k == "" or c <= 0:
+			continue
+		UserDB.add_item(k, c)
+		got[k] = int(got.get(k, 0)) + c
 	if is_instance_valid(_money_root):
 		_money_root.queue_free()
 	_build_money(_vis())
+	var last: Dictionary = results[results.size() - 1]
+	var win := bool(last.get("win", false))
+	_slot_roll(last.get("reels", [0, 0, 0]), func(): _slot_result(got, win, count))
+
+## 릴이 다 선 뒤의 성공/꽝 처리 — 원작 `ResponseSlotResult`.
+func _slot_result(got: Dictionary, last_win: bool, count: int) -> void:
+	if last_win:
+		_slot_blink()                             # 원작 SlotRoller::successEffect
+	if got.is_empty():
+		Bgm.sfx("effect_item_failed")             # 원작 ResponseSlotResult 의 꽝 효과음
+		# 원작 <MagicSlotFail>. 유리아의 결과 표정은 4(§REACTION_EMOTIONS).
+		_toast("운이 좋지 않은 날인가요? 행운을 빌어요!", 4)
+		return
+	Bgm.sfx("effect_dragon_incubation")           # 원작 successPopup 의 성공 효과음
+	var names: PackedStringArray = []
+	var entries: Array = []
+	for k in got:
+		names.append(_slot_prize_name(String(k)))
+		entries.append({"key": String(k), "count": int(got[k])})
+	if count <= 1:
+		# 원작 <MagicSlotSucces>
+		_toast("축하드려요!\n뽑기에 성공하여 %s을(를) 획득하셨어요~ 오늘은 운이 좋으시네요!"
+			% ", ".join(names), 4)
+	else:
+		var wins := 0
+		for k in got:
+			wins += int(got[k])
+		_toast("%d회 중 %d번 당첨! %s을(를) 획득하셨어요~" % [count, wins, ", ".join(names)], 4)
+	# 원작 10연속 결과창 `ShowGetItemDetailLayer` 이식본.
+	GetItemPopup.open(self, entries)
+
+## 당첨 품목 표시 이름 — 젬 키는 티어까지 붙는다.
+func _slot_prize_name(key: String) -> String:
+	if key.begins_with("gem:"):
+		var g := Gem.parse_item_key(key)
+		return Gem.display_name(String(g["name"]), int(g["tier"]), Data.gems)
+	return Data.item_name(key)
 
 func _comma(n: int) -> String:
 	var s := str(n)
@@ -2126,22 +2360,24 @@ func _body_trans(pop: OrigPopup) -> void:
 
 	# 받침대 위 재료 드래곤 — 고르기 전에는 비어 있다.
 	var mat := UserDB.get_dragon(_summon_uid)
-	if not Summon.can_be_material(mat):
+	if not Summon.can_be_material(mat, _grade_of(mat)):
 		mat = {}
 		_summon_uid = 0
 	if not mat.is_empty():
-		var por := _dragon_portrait(mat, 120.0)
-		if por != null:
-			por.position = Vector2(cx, cy - 10.0)
-			pop.content.add_child(por)
+		_add_stand_dragon(pop.content, mat, Vector2(cx, cy + STAND_FOOT_Y))
 
 	# 이름표(원작 `common/name_bg`) — 받침대에 선 드래곤 이름.
 	# ⚠️ 창 높이가 480pt 뿐이고 하단 실행 버튼이 `win_size.y - 60` 을 차지한다 → 이름표는
 	#    cy+92 가 상한이다(그 아래로 내리면 실행 버튼과 겹친다, 2026-07-30 스크린샷 검수).
+	# ⚠️ 스파인 씬은 슬롯마다 z_index 를 갖는다(z_as_relative 라 홀더 기준으로 더해진다) →
+	#    형제 순서만으로는 이름표가 드래곤 밑에 깔려 **글자가 안 보였다**(2026-07-30 검수).
+	#    이름표와 글자를 명시적으로 위에 올린다.
+	const NAMEPLATE_Z := 50
 	var nb := AtlasUI.spr("common_ui", "common_name_bg", S)
 	var nbs := AtlasUI.size_pt("common_ui", "common_name_bg")
 	if nb != null:
 		nb.position = Vector2(cx, cy + 92.0)
+		nb.z_index = NAMEPLATE_Z
 		pop.content.add_child(nb)
 	var nl := Label.new()
 	nl.text = _dragon_label(mat) if not mat.is_empty() else "드래곤을 골라주세요"
@@ -2154,6 +2390,7 @@ func _body_trans(pop: OrigPopup) -> void:
 	nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	nl.size = Vector2(nbs.x, nbs.y)
 	nl.position = Vector2(cx - nbs.x * 0.5, cy + 92.0 - nbs.y * 0.5)
+	nl.z_index = NAMEPLATE_Z
 	pop.content.add_child(nl)
 
 	var head := _note("가장 소중한 드래곤을 골라주세요.\n"
@@ -2164,7 +2401,7 @@ func _body_trans(pop: OrigPopup) -> void:
 
 	# 버튼 한 줄에 [종 선택…][재료 선택] 을 모두 넣는다 — 창 높이가 빠듯해 행을 더 못 쓴다.
 	# 종 선택 = 600 수비형 / 700 공격형(이미 가진 종은 목록에 없다).
-	var names := {Summon.SPECIES_DEF: "수비형", Summon.SPECIES_ATK: "공격형"}
+	var names := SPECIES_LABEL
 	var bw := 150.0
 	var gap := 12.0
 	var n := avail.size() + 1                      # 종 버튼들 + '재료 선택'
@@ -2193,7 +2430,53 @@ func _body_trans(pop: OrigPopup) -> void:
 		btn.modulate = Color(0.72, 0.72, 0.72)
 
 
-## 재료 후보 목록. 알·잠금 개체와 커스텀 종은 `Summon.can_be_material` 이 걸러 낸다.
+## 받침대 위 드래곤 — 초상(정지 그림)이 아니라 **스파인 대기모션**을 세운다(사용자 요청 2026-07-30).
+## 씬 규약은 동굴과 같다(`cave.gd::DRAGON_SCENE`): `scenes/dragons/dragon_<art_id>_<단계>.tscn`
+## 을 인스턴스화하고 `AnimationPlayer` 의 `"wait"`(대기) 를 재생한다.
+##
+## 크기 — 이 창은 480pt 높이에 위(y≈140 종/재료 버튼)·아래(이름표 cy+92, 실행 버튼 y≈420)가
+## 이미 차 있다. 동굴은 전체화면에서 1.9배로 그리므로 그 비율을 그대로 쓰면 버튼을 덮는다
+## ⇒ `STAND_SPINE_SCALE` 로 줄인다. 발밑 기준점은 받침대 윗면(`STAND_FOOT_Y`).
+##
+## ⚠️ 스파인 씬은 저작권상 gitignore 라 머신마다 빌드 상태가 다르다 — 없으면 종전처럼
+##    초상으로 떨어진다(cave.gd 가 같은 이유로 폴백을 둔다).
+## 받침대 `recall_stand`(229×91px × S×0.8 = 244×97pt)는 cy+52 에 중심을 둔다 → 윗면 = cy+3.5.
+## 발을 그 위에 올린다. 아래로 더 내리면 이름표(cy+92, 높이 ≈41pt → 윗변 cy+72)를 침범한다.
+const STAND_SPINE_SCALE := 0.55
+const STAND_FOOT_Y := 6.0
+
+func _add_stand_dragon(parent: Node, mat: Dictionary, foot: Vector2) -> void:
+	var art := Icons.art_id_of(mat)
+	var stage_name := Growth.stage_for_level(int(mat.get("level", 1)))
+	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [art, stage_name]
+	if ResourceLoader.exists(path):
+		var holder := Node2D.new()
+		holder.scale = Vector2(STAND_SPINE_SCALE, STAND_SPINE_SCALE)
+		holder.position = foot
+		parent.add_child(holder)
+		holder.add_child(load(path).instantiate())
+		var ap := holder.get_child(0).get_node_or_null("AnimationPlayer")
+		if ap and ap.has_animation("wait"):
+			ap.play("wait")
+		return
+	# 폴백 — 스파인 씬이 아직 빌드되지 않은 종.
+	var por := _dragon_portrait(mat, 110.0)
+	if por != null:
+		por.position = foot - Vector2(0, 54.0)
+		parent.add_child(por)
+
+
+## 개체 파생 등급(§K-10) — cave.gd `_grade_of` 와 같은 계산이다(부화 편차 + 레벨업 롤 편차).
+## 기준선 모드는 data 노브(`level_curve.json` 의 `grade`) — logic 이 파일을 모르게 여기서 주입한다(§8.2).
+func _grade_of(inst: Dictionary) -> float:
+	if inst.is_empty():
+		return -1.0
+	return Growth.compute_grade(Data.get_dragon(int(inst.get("id", 0))), Data.stat_table,
+		inst.get("stat_bonus", {}), inst.get("gain_log", []), Data.level_curve.get("grade", {}))
+
+
+## 재료 후보 목록. 알·잠금 개체와 커스텀 종, **자격 미달**(레벨·등급)은 `Summon.can_be_material`
+## 이 걸러 낸다. 하한은 그 상수(`MATERIAL_MIN_LEVEL` · `MATERIAL_MIN_GRADE`)가 단일 출처다.
 func _open_summon_picker() -> void:
 	if not is_instance_valid(_popup):
 		return
@@ -2206,11 +2489,17 @@ func _open_summon_picker() -> void:
 		scroll.size.y = maxf(80.0, scroll.size.y - 72.0)
 	var cands := []
 	for d in UserDB.dragons():
-		if Summon.can_be_material(d):
+		if Summon.can_be_material(d, _grade_of(d)):
 			cands.append(d)
+	# 자격을 목록 위에 적어 둔다 — 후보가 비었을 때 "왜 없는지" 를 알 수 있어야 한다.
+	var req := _note("재료 자격: 레벨 %d 이상 · 등급 %.1f 이상\n(알·잠긴 드래곤과 소환으로 얻은 드래곤은 제외)"
+		% [Summon.MATERIAL_MIN_LEVEL, Summon.MATERIAL_MIN_GRADE])
+	req.custom_minimum_size = Vector2(0, 46)
+	req.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(req)
 	if cands.is_empty():
-		var e := _note("고를 수 있는 드래곤이 없습니다.\n(알과 잠긴 드래곤은 선택할 수 없습니다.)")
-		e.custom_minimum_size = Vector2(0, 60)
+		var e := _note("자격을 갖춘 드래곤이 없습니다.")
+		e.custom_minimum_size = Vector2(0, 40)
 		e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(e)
 	var rw: float = _popup.win_size.x - 100.0
@@ -2245,7 +2534,7 @@ func _do_summon() -> void:
 	var plan := Summon.plan(_summon_species, mat,
 		Data.get_dragon(int(mat.get("id", 0))),
 		bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false)),
-		UserDB.dex_step(_summon_species))
+		UserDB.dex_step(_summon_species), _grade_of(mat))
 	if plan.is_empty():
 		_toast("지금은 소환할 수 없습니다.")
 		return
@@ -2258,8 +2547,23 @@ func _do_summon() -> void:
 	_summon_uid = 0
 	# 원작 `music/effect_combine.mp3` — 교배(breeding)가 쓰는 합성 효과음. 같은 성격이라 재사용.
 	Bgm.sfx("effect_combine")
-	_toast("소환진이 빛나고, 새로운 알이 되어 둥지에 놓였습니다.")
-	_refresh_feature()
+	# 뽑기 알 개봉과 같은 공개 연출(`EggResultPopup`). 소환한 알은 가방이 아니라 **둥지**로 간다.
+	# 커스텀 종은 마스터에 이름·속성·초상이 없다 → 재료에게 물려받은 것을 그대로 넘긴다.
+	var inh: Dictionary = plan.get("inherit", {})
+	var sp := int(plan["species"])
+	# **종 이름을 재료에게서 물려받는다**(사용자 확정 2026-07-30) — 예: 고대신룡 "별밤이"를
+	# 수비형 재료로 쓰면 600 의 종 이름이 "별밤이". 종당 1마리 상한이라 세이브당 한 번만 정해진다.
+	# 이후 모든 표시는 `Icons.species_name` / `Icons.name_of` 가 이 값을 읽는다.
+	var sname := String(inh.get("name", ""))
+	if sname != "":
+		UserDB.set_species_name(sp, sname)
+	_egg_reveal = [{"did": sp, "opts": {
+		# 폴백이 "수비형"/"공격형" 이던 것을 종 이름으로 바꿨다 — 재료 이름이 곧 종 이름이다.
+		"name": sname if sname != "" else String(SPECIES_LABEL.get(sp, "")),
+		"art_id": int(inh.get("art_id", sp)),
+		"element": inh.get("element", null),
+	}}]
+	_reveal_eggs("소환진이 빛나고, %s의 알이 되어 둥지에 놓였습니다.")
 
 
 ## 개체 표시명 — 별명이 있으면 별명, 없으면 종 이름. 커스텀 종은 마스터 이름이 비어 있어

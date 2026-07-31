@@ -6,19 +6,84 @@ extends Node
 const DIR := "res://assets/music/%s.mp3"
 const FADE := 0.6
 
+# ── 사용자 볼륨 (원작 SettingLayer 의 슬라이더 2개) ─────────────────────────
+# 원작은 `CocosDenshion::SimpleAudioEngine` 의 **배경음/효과음 두 계통**을 따로 조절한다
+# (`SettingLayer::setVolume` — tag 1 → setBackgroundMusicVolume, tag 2 → setEffectsVolume).
+# 우리는 그 두 계통을 AudioServer 버스로 만든다: BGM 은 Music, 효과음·구역앰비언트는 Sfx.
+# 값은 0.0~1.0 선형이고 원작 기본은 **0.5** (`IntroScene.c:12633 getFloatForKey(…, 0.5)`).
+# `_base_vol` 은 그와 별개인 **믹스 레벨**(곡이 원래 큰 것을 깎아 둔 값)이라 그대로 둔다.
+const MUSIC_BUS := "Music"
+const SFX_BUS := "Sfx"
+const PREF_MUSIC := "MUSICVOLUME"      # 원작 CCUserDefault 키 그대로
+const PREF_EFFECT := "EFFECTVOLUME"
+const VOL_DEFAULT := 0.5
+
 var _a: AudioStreamPlayer   # 현재 재생
 var _b: AudioStreamPlayer   # 크로스페이드 대상
 var _cur := ""
 var _fade: Tween             # 진행 중인 크로스페이드(새 play가 오면 죽인다)
 var _base_vol := -9.0
 var _muted := false
+var _music_vol := VOL_DEFAULT
+var _effect_vol := VOL_DEFAULT
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_a = AudioStreamPlayer.new(); _a.bus = "Master"; add_child(_a)
-	_b = AudioStreamPlayer.new(); _b.bus = "Master"; add_child(_b)
+	_ensure_bus(MUSIC_BUS)
+	_ensure_bus(SFX_BUS)
+	var prefs := SaveSystem.load_prefs()
+	_music_vol = clampf(float(prefs.get(PREF_MUSIC, VOL_DEFAULT)), 0.0, 1.0)
+	_effect_vol = clampf(float(prefs.get(PREF_EFFECT, VOL_DEFAULT)), 0.0, 1.0)
+	_apply_bus(MUSIC_BUS, _music_vol)
+	_apply_bus(SFX_BUS, _effect_vol)
+	_a = AudioStreamPlayer.new(); _a.bus = MUSIC_BUS; add_child(_a)
+	_b = AudioStreamPlayer.new(); _b.bus = MUSIC_BUS; add_child(_b)
 	# 원작 effect_button: 전역 버튼 클릭음(모든 BaseButton pressed → SFX).
 	get_tree().node_added.connect(_on_node_added)
+
+## 이름으로 조회해 중복 생성을 막는다(AudioServer 버스는 세션 전역).
+func _ensure_bus(name: String) -> int:
+	var idx := AudioServer.get_bus_index(name)
+	if idx >= 0:
+		return idx
+	idx = AudioServer.bus_count
+	AudioServer.add_bus(idx)
+	AudioServer.set_bus_name(idx, name)
+	AudioServer.set_bus_send(idx, "Master")
+	return idx
+
+## 0.0 은 `linear_to_db` 가 -inf 라 버스 mute 로 처리한다.
+func _apply_bus(name: String, v: float) -> void:
+	var idx := _ensure_bus(name)
+	AudioServer.set_bus_mute(idx, v <= 0.0)
+	AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(v, 0.0005)))
+
+func music_volume() -> float:
+	return _music_vol
+
+func effects_volume() -> float:
+	return _effect_vol
+
+## 원작 `SettingLayer::setVolume` tag 1. 소리는 즉시 반영된다.
+## `persist=false` = 드래그 중(파일 쓰기 없음). 원작도 값 저장은 창을 닫을 때 한 번이다
+## (`~SettingLayer` 가 setFloatForKey → flush).
+func set_music_volume(v: float, persist := true) -> void:
+	_music_vol = clampf(v, 0.0, 1.0)
+	_apply_bus(MUSIC_BUS, _music_vol)
+	if persist:
+		_store_pref(PREF_MUSIC, _music_vol)
+
+## 원작 `SettingLayer::setVolume` tag 2.
+func set_effects_volume(v: float, persist := true) -> void:
+	_effect_vol = clampf(v, 0.0, 1.0)
+	_apply_bus(SFX_BUS, _effect_vol)
+	if persist:
+		_store_pref(PREF_EFFECT, _effect_vol)
+
+func _store_pref(key: String, v: float) -> void:
+	var prefs := SaveSystem.load_prefs()
+	prefs[key] = v
+	SaveSystem.save_prefs(prefs)
 
 func _on_node_added(n: Node) -> void:
 	if n is BaseButton and not (n as BaseButton).pressed.is_connected(_click_sfx):
@@ -72,7 +137,7 @@ func sfx(track: String) -> void:
 	var st := _make_stream(track)
 	if st == null: return
 	if st is AudioStreamMP3: st.loop = false
-	var p := AudioStreamPlayer.new(); p.bus = "Master"; p.stream = st; p.volume_db = _base_vol
+	var p := AudioStreamPlayer.new(); p.bus = SFX_BUS; p.stream = st; p.volume_db = _base_vol
 	add_child(p); p.play()
 	p.finished.connect(func(): if is_instance_valid(p): p.queue_free())
 
@@ -154,6 +219,8 @@ func area_clear() -> void:
 
 ## 구역 슬롯 i 전용 버스(팬 이펙트 포함). 없으면 만들고, 있으면 재사용한다.
 ## ⚠️ AudioServer 버스는 세션 전역이다 — 이름으로 조회해 중복 생성을 막는다.
+## 원작 구역 앰비언트는 `SoundManager::playEffect` = **효과음 계통**이라 Sfx 버스로 보낸다
+## (`WorldMapLayer::setWorldMapSound`). 그래서 효과음 슬라이더가 이것까지 함께 줄인다.
 func _area_bus(i: int) -> int:
 	var name := AREA_BUS % i
 	var idx := AudioServer.get_bus_index(name)
@@ -162,7 +229,7 @@ func _area_bus(i: int) -> int:
 	idx = AudioServer.bus_count
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, name)
-	AudioServer.set_bus_send(idx, "Master")
+	AudioServer.set_bus_send(idx, SFX_BUS)
 	AudioServer.add_bus_effect(idx, AudioEffectPanner.new())
 	return idx
 

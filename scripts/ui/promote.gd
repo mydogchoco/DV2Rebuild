@@ -423,7 +423,7 @@ func _open_send(camp: int) -> void:
 			"kind": "dragon",
 			"title": _dragon_label(d),
 			"big": "%d" % lv,
-			"desc": String(Data.get_dragon(int(d.get("id", 0))).get("name", "")),
+			"desc": Icons.species_name(int(d.get("id", 0))),
 			"spine_uid": uid,
 			"value": uid,
 		})
@@ -575,7 +575,7 @@ func _pick_parent(slot: int) -> void:
 			"kind": "dragon",
 			"title": _dragon_label(d),
 			"big": "%d" % int(d.get("level", 1)),
-			"desc": String(Data.get_dragon(int(d.get("id", 0))).get("name", "")),
+			"desc": Icons.species_name(int(d.get("id", 0))),
 			"spine_uid": uid,
 			"value": uid,
 		})
@@ -712,7 +712,7 @@ func _stored_row(d: Dictionary, cost: int) -> Control:
 	if bar != null:
 		row.add_child(bar)
 	var uid := int(d.get("uid", -1))
-	var nm := String(Data.get_dragon(int(d.get("id", 1))).get("name", "드래곤"))
+	var nm := Icons.species_name(int(d.get("id", 1)))
 	var l := Label.new()
 	l.text = "%s  ·  Lv %d" % [nm, int(d.get("level", 1))]
 	l.add_theme_font_size_override("font_size", 17)
@@ -828,7 +828,7 @@ func _dragon_label(d: Dictionary) -> String:
 	var nm := String(d.get("name", ""))
 	if nm != "" and nm != "드래곤":
 		return nm
-	return String(Data.get_dragon(int(d.get("id", 0))).get("name", "드래곤"))
+	return Icons.name_of(d)
 
 func _portrait(uid: int) -> Sprite2D:
 	var t := _portrait_tex(uid)

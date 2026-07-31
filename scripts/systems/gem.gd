@@ -345,6 +345,60 @@ static func roll_upgrade(gems_field: Dictionary, slot: int, table: Dictionary,
 	return {"field": {"types": types(gems_field), "slots": en}, "ok": ok,
 			"broken": not ok, "chance": chance}
 
+# ======================= 혼성젬 제작 (원작 UpgradeGemLayer 모드 1) =======================
+## 제작으로 나올 수 있는 젬 = `category == "hybrid"` 전부. 이름순으로 고정해 **재현 가능**하게
+## 둔다(같은 시드 → 같은 결과, §4). 표가 비면 빈 배열.
+static func hybrid_pool(table: Dictionary) -> Array:
+	var out: Array = []
+	for name in (table.get("gems", {}) as Dictionary):
+		if String((table["gems"][name] as Dictionary).get("category", "")) == "hybrid":
+			out.append(String(name))
+	out.sort()
+	return out
+
+
+## 이 아이템이 '샌즈의 눈물'이면 그 보너스(%), 아니면 0.
+## 출처 = data/gems.json `craft.sands_tear_items[]`(위키 §2.2 — 제작 시 샌즈젬 확률 +10/+20%).
+static func sands_bonus(item_key: String, table: Dictionary) -> int:
+	for s in ((table.get("craft", {}) as Dictionary).get("sands_tear_items", []) as Array):
+		if String((s as Dictionary).get("item", "")) == item_key:
+			return int((s as Dictionary).get("sands_bonus_pct", 0))
+	return 0
+
+
+## 제작 결과가 **샌즈의 젬**일 확률(%). 눈물을 안 넣으면 균등(1/N), 넣으면 그만큼 더한다.
+## ⚠️ 위키는 "+10%/+20%" 라고만 적는다 — 기준선(균등)에 **가산**으로 읽었다.
+##   나머지 확률은 다른 혼성젬들이 균등하게 나눠 가진다.
+static func sands_chance(table: Dictionary, bonus_pct: int) -> int:
+	var pool := hybrid_pool(table)
+	if pool.is_empty():
+		return 0
+	var base := int(round(100.0 / float(pool.size())))
+	return clampi(base + maxi(0, bonus_pct), 0, 100)
+
+
+## 혼성젬 제작 — 결과 젬 이름 1개. `bonus_pct` = 투입한 샌즈의 눈물 보너스(0이면 균등).
+## **순수 로직**이다 — 재료 차감·인벤 반영은 호출부(render) 몫(§8.2).
+static func craft_hybrid(table: Dictionary, bonus_pct: int = 0,
+		rng: RandomNumberGenerator = null) -> String:
+	var pool := hybrid_pool(table)
+	if pool.is_empty():
+		return ""
+	var sands := String((table.get("craft", {}) as Dictionary).get("sands_gem_name", "샌즈의 젬"))
+	if not pool.has(sands):
+		sands = ""
+	var roll := int((rng.randf() if rng != null else randf()) * 100.0)
+	if sands != "" and roll < sands_chance(table, bonus_pct):
+		return sands
+	# 샌즈 이외에서 균등 1개. (샌즈가 풀에 없으면 전체에서 균등)
+	var rest: Array = pool.duplicate()
+	if sands != "":
+		rest.erase(sands)
+	if rest.is_empty():
+		return sands
+	return String(rest[(rng.randi() if rng != null else randi()) % rest.size()])
+
+
 ## 파손 복구 다이아 — 위키 §2.2 표(18단계, 값이 정확히 단계+1). 이름이 우리 `shapes` 와
 ## 다르므로(짱돌/삼각젬 … vs 자갈/삼각형 …) **순서(index)** 로 맞춘다.
 static func repair_cost(tier: int, table: Dictionary) -> int:

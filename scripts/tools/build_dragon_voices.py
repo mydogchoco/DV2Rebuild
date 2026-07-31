@@ -28,6 +28,7 @@
 """
 import json
 import random
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,6 +47,18 @@ ANCHORS = {3020: 4, 3001: 2}   # 라 솔라 / 루시퍼 (성체)
 
 
 def main() -> None:
+    # ⚠️ 2026-07-31: 이 스크립트는 **임시 배정 생성기**이고, 그 자리는 이미 사용자 검수분이
+    # 차지했다(dragons.csv 의 voice_해치/해츨링/성체 371종 → build_dragon_voice_sheet.py --apply).
+    # 그대로 돌리면 검수분 1,113칸이 난수로 덮인다 → 덮어쓰기 전에 막는다.
+    # 정말 처음부터 다시 뽑을 때만 --force. 이후 검수분은 시트에서 다시 --apply 해야 한다.
+    if OUT.exists() and "--force" not in sys.argv:
+        cur = json.loads(OUT.read_text(encoding="utf-8"))
+        if "dragons.csv" in str(cur.get("_re_basis", "")):
+            print("[build_dragon_voices] 중단 — data/dragon_voices.json 은 **사용자 검수분**이다"
+                  "(dragons.csv voice_* 열). 이 스크립트는 최초 임시 배정용이라 덮으면 검수가"
+                  " 날아간다.\n  · 시트를 고쳤으면: python scripts/tools/build_dragon_voice_sheet.py"
+                  " --apply\n  · 정말 임시 배정으로 되돌리려면: --force")
+            return
     rows = json.loads(DRAGONS.read_text(encoding="utf-8"))
     if isinstance(rows, dict):
         rows = rows.get("dragons", list(rows.values()))

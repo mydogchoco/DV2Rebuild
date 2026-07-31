@@ -243,7 +243,11 @@ def main():
     add("scroll_gold", "doc", "에자녹의 기억(골드)", "document", "memory_random")
     for i in range(1, 6):
         add("s_skillbook%d" % i, "doc", "에자녹의 권능(%d레벨)" % i, "document", "memory_select")
-    add("s_skillbook", "doc", "에자녹의 권능", "document", "memory_select", offline="stub")
+    # ⚫ `s_skillbook`(등급 없는 '에자녹의 권능', 아이템번호 453)은 **넣지 않는다** —
+    #   원작 `ItemSkillSelectPopup::init` 의 레벨 계산은 `param_1 - 0x1c6`(454~458 = 1~5레벨)이라
+    #   453 은 조건에 안 걸려 레벨이 0으로 남는다(data/skill_scrolls.json `_basis` 참조).
+    #   즉 원작에서도 쓸 수 없던 구판 잔존 더미다 ⇒ 🟦사용자 확정 2026-07-31 **구현에서 제외**.
+    #   아이콘(`item_doc/item_doc_s_skillbook`)은 남아 있으니 근거가 생기면 이 줄만 되살리면 된다.
 
     # ---------------- quest / spc ----------------
     add("quest_herb", "quest", "약초", "consumable", "story", offline="stub")

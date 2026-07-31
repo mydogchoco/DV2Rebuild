@@ -8,6 +8,14 @@ const BACKUP_NAME := "save_0.bak.json"
 const SAVE_PATH := "user://" + SAVE_NAME
 const BACKUP_PATH := "user://" + BACKUP_NAME
 
+## 환경설정(볼륨 등) — **세이브와 별도 파일**이다.
+## 원작도 계정 데이터(서버)와 환경설정(`CCUserDefault`)을 분리했다:
+##   `SettingLayer::~SettingLayer` 가 `CCUserDefault::setFloatForKey("MUSICVOLUME"/"EFFECTVOLUME")`
+##   → `IntroScene` 이 `getFloatForKey(…, 0.5)` 로 읽는다(SettingLayer.c:3363 · IntroScene.c:12633).
+## 이 분리 덕에 '세이브 데이터 초기화'가 볼륨 설정까지 날리지 않는다.
+const PREFS_NAME := "prefs.json"
+const PREFS_PATH := "user://" + PREFS_NAME
+
 ## data를 디스크에 저장. 덮어쓰기 전에 기존 세이브를 백업으로 복사(쓰기 중단 대비).
 func save(data: Dictionary) -> bool:
 	if FileAccess.file_exists(SAVE_PATH):
@@ -46,3 +54,18 @@ func clear() -> void:
 	var dir := DirAccess.open("user://")
 	if dir and dir.file_exists(SAVE_NAME):
 		dir.remove(SAVE_NAME)
+
+# ============================================================ 환경설정(prefs)
+## 원작 `CCUserDefault` 대응. 키는 원작 그대로 쓴다(MUSICVOLUME / EFFECTVOLUME).
+## 손상되면 빈 dict — 소비자가 기본값을 적용한다(원작 getFloatForKey 의 default 인자와 같은 역할).
+func load_prefs() -> Dictionary:
+	var d = _read(PREFS_PATH)
+	return d if d is Dictionary else {}
+
+func save_prefs(prefs: Dictionary) -> bool:
+	var f := FileAccess.open(PREFS_PATH, FileAccess.WRITE)
+	if f == null:
+		push_error("[Save] cannot write " + PREFS_PATH); return false
+	f.store_string(JSON.stringify(prefs, "\t"))
+	f.close()
+	return true

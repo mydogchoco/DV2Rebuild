@@ -36,10 +36,27 @@ OUT = REPO / "data" / "npc_face.json"
 
 SLOT = {0x150: "eye", 0x15C: "mouth", 0x168: "arm_r", 0x174: "arm_l"}
 
+# ── 눈맞춤 보정(디자인 px) ────────────────────────────────────────────────
+# 추출한 좌표는 **원작 값 그대로**다. 그런데 몇몇 NPC 는 우리 몸통 프레임과 원작 contentSize
+# 기준이 달라 파츠가 어긋난다(몸통 그림에 이미 눈이 그려져 있으면 눈이 네 개로 보인다).
+# 그런 것만 여기서 밀어 준다 — **원작 좌표는 건드리지 않는다**.
+#   pong: 사용자 실측 2026-07-31 "오른쪽 30, 아래 55" → 스크린샷 재실측 세로 +50 →
+#         사용자 재확인 세로 -15 → 가로 +4 → 가로 -1. 단위 = **디자인 px**.
+NUDGE = {
+    "pong": [35.0, 90.0],
+}
+
 # --- 디컴프 토큰 ---------------------------------------------------------
 # 이름 비교: 4글자는 int32, 8글자는 int64 상수 비교, 그 외는 memcmp 리터럴
 RE_NAME_INT = re.compile(r"\*\(int \*\)pbVar\d+ == (0x[0-9a-f]+)")
 RE_NAME_LONG = re.compile(r"\*\(long \*\)pbVar\d+ == (0x[0-9a-f]+)")
+# ⚠️ Ghidra 는 같은 비교를 **부등호로 뒤집어** 내기도 한다:
+#       if (*(int *)pbVar16 != 0x676e6f70) { …다른 NPC… } else { …그 NPC 좌표… }
+#    이때 그 NPC 의 블록은 **else 쪽**이다. `==` 만 받던 종전 패턴은 이 형태를 통째로 놓쳐
+#    `pong`(임프상인)·`pino` 같은 NPC 가 npc_face.json 에서 빠져 있었다 — 얼굴 파츠가
+#    아예 안 그려지던 원인(2026-07-31 수정).
+RE_NAME_INT_NE = re.compile(r"\*\(int \*\)pbVar\d+ != (0x[0-9a-f]+)")
+RE_NAME_LONG_NE = re.compile(r"\*\(long \*\)pbVar\d+ != (0x[0-9a-f]+)")
 # ⚠️ 길이 인자는 10 이상이면 Ghidra 가 **16진수**로 낸다(`,0xb)` `,0xc)` …).
 #    `\d+` 만 받던 종전 패턴은 그 블록들을 통째로 놓쳐, 앞선 **짧은 이름 NPC 가 뒤따르는
 #    10글자 이상 NPC 들의 좌표를 전부 흡수**했다. 실제 사고: mamorudic(9자)이 ghostpirate·
@@ -72,13 +89,31 @@ def int_to_name(hexstr: str, width: int) -> str:
 
 
 def slice_set_target(text: str) -> str:
-    """setTarget 본문(가장 큰 정의)만 잘라낸다."""
-    marks = [m.start() for m in re.finditer(r"cocos2d::NpcManager::setTarget", text)]
-    if not marks:
+    """setTarget 본문(**가장 큰** 정의)만 잘라낸다.
+
+    🔴 2026-07-31 수정: 종전엔 `cocos2d::NpcManager::setTarget` **텍스트의 마지막 등장**부터
+    잘랐다. 그런데 이 파일에는 같은 이름의 정의가 여럿 있고(16바이트 thunk + 인라인 사본),
+    마지막 등장이 **18,144바이트 본문이 아니었다.** 그래서 실제 표를 못 읽고 사본을 읽고
+    있었다 — `pong`(임프상인) 이 통째로 빠져 있던 원인이다.
+    이제 `/* ==== setTarget @ addr (size=N) ==== */` 마커에서 **size 가 가장 큰 것**을 고른다.
+    """
+    marks = [(m.start(), m.group(1), int(m.group(2)))
+             for m in re.finditer(r"/\* ==== (\w+) @ [0-9a-f]+ \(size=(\d+)\) ==== \*/", text)]
+    best = None
+    for i, (pos, name, size) in enumerate(marks):
+        if name != "setTarget":
+            continue
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(text)
+        if best is None or size > best[2]:
+            best = (pos, end, size)
+    if best is None:
         raise SystemExit("setTarget 정의를 찾지 못했다")
-    start = marks[-1]
-    end = text.find("/* ==== ", start + 10)
-    return text[start:end if end > 0 else len(text)]
+    body = text[best[0]:best[1]]
+    # ⚠️ Ghidra 주석 안에도 중괄호가 있다(`/* try { // ... */`) → else/깊이 추적이 망가진다.
+    #    주석을 **같은 길이의 공백**으로 지운다(줄 번호·컬럼 보존).
+    body = re.sub(r"/\*.*?\*/", lambda m: " " * len(m.group(0)), body, flags=re.S)
+    body = re.sub(r"//[^\n]*", lambda m: " " * len(m.group(0)), body)
+    return body
 
 
 def main() -> int:
@@ -93,7 +128,21 @@ def main() -> int:
     out: dict[str, dict[str, dict[str, list[float] | None]]] = {}
 
     in_switch = False
+    # `!= 이름` 으로 열린 if 를 추적한다 — 그 if 가 닫히고 나오는 `else` 블록이 그 NPC 것이다.
+    #   pending[(depth)] = 이름
+    pending_ne: dict[int, str] = {}
+    depth = 0
     for ln in lines:
+        for rx, width in ((RE_NAME_INT_NE, 4), (RE_NAME_LONG_NE, 8)):
+            m = rx.search(ln)
+            if m:
+                nm = int_to_name(m.group(1), width)
+                if nm.isalnum():
+                    pending_ne[depth] = nm
+        # `}` 로 닫힌 뒤 같은 깊이에서 else 를 만나면 그 이름으로 전환한다.
+        if re.match(r"^\s*else\s*\{?\s*$", ln) and depth in pending_ne:
+            cur_name, cur_emo, in_switch = pending_ne.pop(depth), None, False
+        depth += ln.count("{") - ln.count("}")
         for rx, width in ((RE_NAME_INT, 4), (RE_NAME_LONG, 8)):
             m = rx.search(ln)
             if m:
@@ -144,6 +193,9 @@ def main() -> int:
     # 정렬 + 메타
     doc = {
         "_source": "docs/ref/orig_code/decomp/NpcManager.c :: NpcManager::setTarget (libgame.so 하드코딩)",
+        "_nudge_note": ("nudge = 우리 몸통 프레임 기준과 원작 contentSize 기준이 달라 어긋나는 "
+                        "NPC 만 눈으로 맞춘 보정값(**디자인 px**). 원작 좌표(npc)는 손대지 않는다."),
+        "nudge": NUDGE,
         "_note": (
             "몸통(body_N, 앵커 0.5/0) 로컬 **포인트** 좌표. y 는 몸통 상단에서 아래로 내려간 거리"
             "(원작 표현 bodyH - N 을 N 으로 저장). null = 그 표정에서 화면 밖으로 치움(=미표시)."

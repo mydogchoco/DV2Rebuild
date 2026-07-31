@@ -104,16 +104,30 @@ func _open_party_select() -> void:
 		_run_party = picked
 		_params["party_ready"] = true
 		_event_open = false
+		# 편성 → 레벨업창 → 이벤트 큐 순으로 **하나씩** 흘린다.
+		# (셋을 동시에 띄우면 CanvasLayer 가 겹친다 — 이벤트 큐를 도입한 이유와 같은 문제다.)
 		if _pending_levelup_after_party:
 			_pending_levelup_after_party = false
-			_open_levelup_result())
+			if _open_levelup_result():
+				return
+		_advance_step())
 
 var _rboss_enc := -1   # 랜덤 보스 스테이지: 이번 진입에 선택된 보스 인덱스(-1=일반)
+## 소환형(혼돈의 틈새)에서 **월드맵 소환 때 확정된** 보스 인덱스. -1=소환형 아님/미소환.
+## 이벤트 큐나 재추첨이 이걸 덮지 못하게 마지막에 다시 박는다.
+var _dk_pin := -1
 func _rebuild() -> void:
 	for c in get_children():
 		c.queue_free()
 	_done = false; _t = 0.0
-	_stage = Data.stage(String(_params.get("stage", "")))
+	_done_battle_ready = false        # 조우 전 선택지는 조우당 1번(씬 재빌드마다 초기화)
+	_ready_layer = null
+	# 유타칸 밤(+500)·카데스(+600)는 원작에서 **별도 필드 레코드**였다(Field.c setInfo) —
+	# `stages.json` 의 night/kades 블록을 덮어 재현한다(Field.apply_variant, logic).
+	# 🔴 2026-07-31 이전에는 이 해석이 없어 밤에도 낮 몬스터가 나왔다.
+	_stage = Field.apply_variant(Data.stage(String(_params.get("stage", ""))),
+		Drops.mode_of(bool(_params.get("hero", false)),
+			bool(_params.get("night", false)), bool(_params.get("kades", false))))
 	if _stage.get("bg") != null and not _params.has("bg"):
 		_params["bg"] = int(_stage["bg"])
 	# 원작: 비전투 탐험 = 던전 고유 BGM(Field.getSoundPath, setIsBasicBg=true). 전투 진입 시 battle이 bg_colosseum_battle_2로 전환.
@@ -131,16 +145,47 @@ func _rebuild() -> void:
 		if not bosses.is_empty():
 			var rr := RandomNumberGenerator.new(); rr.randomize()
 			_rboss_enc = _pick_weighted(bosses, rr)
+	# 🔒 소환형(혼돈의 틈새) — **여기서 다시 뽑지 않는다.** 어느 보스인지는 월드맵에서
+	# 소환할 때 이미 정해졌고(원작 `getDarkNixStatus`, 서버가 소환 시점에 확정) 그 개체가
+	# 월드맵 스파인으로 상주 중이다. 매 진입 재추첨하면 화면의 보스와 실제로 싸우는 보스가
+	# 달라진다. 원작 `AdventureScene` 도 서버가 내려준 몬스터를 그대로 받는다(pop_darknix.hb).
+	_dk_pin = -1
+	if Darknix.is_summon_stage(_stage):
+		_dk_pin = Darknix.enemy_index(_stage["summon"], UserDB.darknix(),
+			int(Time.get_unix_time_from_system()))
+		if _dk_pin >= 0:
+			_rboss_enc = _dk_pin
 	_build_bg()
 	_build_walk()
 	_build_topinfo()
 	_build_narration()   # 원작 BattleTextBox: 탐험 서사가 흐르는 하단 전폭 텍스트박스
-	if _rboss_enc < 0:
-		_build_fountain()
-		_maybe_treasure()   # 원작 setEventTreasure: 조우 전 가끔 보물상자
-		_maybe_choice()   # 원작 setEventDungeonChoice: 조우 전 가끔 갈림길 선택
-		_maybe_shop()   # 원작 setEventDungeonShop: 조우 전 가끔 떠돌이 상점
-		_maybe_cardgame()   # 원작 setEventDungeonCardGame: 조우 전 가끔 카드 뽑기
+	# 🟠 2026-07-30: 여기서 회복샘·보물·갈림길·상점·카드게임을 **각자 독립 확률로 동시에** 굴리던
+	#   자리다. 원작은 이벤트 큐의 **순차 스텝**이라(포팅 카드 AdventureEventFlow.md §1) 큐 생성은
+	#   AdventureRun(logic)에 넘기고, 여기서는 배열만 받아 둔다. 재생은 `_advance_step` 이 하나씩.
+	_steps = AdventureRun.build_steps(_stage, Data.adventure_events,
+		int(_params.get("enc", 0)),
+		{
+			"hurt": not (_params.get("hp_state", {}) as Dictionary).is_empty(),
+			"fortress": _is_fortress(),
+			"random_boss": _rboss_enc >= 0,
+			"night": _is_night(),
+			# 소환형은 밤과 같은 단일 조우(100% 보스). 사전 이벤트도 '아무것도 못 찾음'도 없다.
+			"single_boss": _dk_pin >= 0,
+		},
+		_step_rng())
+	_step_i = 0
+	# 밤은 큐가 **조우 대상까지** 정한다(2:3:5 로 아무것도/공용몹/지역보스). 그 선택을
+	# 기존 '강제 조우 인덱스' 통로(`_rboss_enc`)에 실어 아래 연출·전투가 그대로 따라오게 한다.
+	for s in _steps:
+		if String((s as Dictionary).get("type", "")) == AdventureRun.MONSTER \
+				and (s as Dictionary).has("enemy_index"):
+			_rboss_enc = int((s as Dictionary)["enemy_index"])
+	# 🔴 2026-07-31 (사용자 지적: "나갔다 다시 들어가면 소환한 보스가 아닌 다른 보스가 나온다").
+	#   소환형은 **큐가 정하게 두면 안 된다** — 어느 보스인지는 월드맵에서 소환할 때 이미
+	#   확정됐고 그 개체가 스파인으로 상주 중이다. 위 큐 루프가 핀을 덮어쓰고 있었다.
+	#   (그 위 `random_boss` 재추첨도 같은 이유로 무효화된다.)
+	if _dk_pin >= 0:
+		_rboss_enc = _dk_pin
 	_build_hud()
 	_maybe_dungeon_tutorial()   # 원작 DungeonTutorialLayer: 최초 던전 진입 시 튜토리얼
 	# 출전 인원 확정 — 원작은 **입장 후**에 편성한다(월드맵 팝업에는 편성 단계가 없다).
@@ -155,8 +200,113 @@ func _rebuild() -> void:
 	if _party_capacity() == 3 and not bool(_params.get("party_ready", false)):
 		_pending_levelup_after_party = true   # 편성 → 레벨업창 순서로 하나씩(둘 다 배회를 멈춘다)
 		_open_party_select()
-	else:
-		_open_levelup_result()   # 직전 전투에서 오른 레벨 → 결과창(닫기 전까지 배회 정지)
+	elif not _open_levelup_result():
+		# 레벨업 결과창이 없을 때만 곧바로 이벤트 큐로. 있으면 그 창의 닫기 콜백이 이어받는다.
+		_advance_step()
+
+# ---------- 이벤트 큐 재생 (원작 initEvent → setNextEventChange → setNextEventExe) ----------
+#
+# 큐 자체는 `AdventureRun`(logic)이 만들고, 여기서는 **하나씩 꺼내 재생**한다.
+# 원작은 스텝 사이에 `CCDelayTime(0.3)` + 텍스트박스 대기를 뒀다(`setNextEventExe`/`setEventFunc`)
+# → 우리도 `_STEP_DELAY` 만큼 쉬고 다음으로 간다.
+var _steps: Array = []      # 이번 조우 구간의 이벤트 열. 마지막은 항상 monster.
+var _step_i := 0
+const _STEP_DELAY := 0.3    # 원작 setNextEventExe 의 CCDelayTime(0.3)
+
+## 큐 생성용 RNG. 스테이지·조우 인덱스로 시드를 고정해 **씬이 다시 지어져도 같은 큐**가 나오게
+## 한다(종전 `_maybe_*` 들도 같은 방식이었다 — 재빌드마다 이벤트가 바뀌면 안 된다).
+func _step_rng() -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	# `run_seed` 는 **이번 진입** 고유값(월드맵이 넣고 전투가 이월한다). 이게 빠지면
+	# 같은 지역·같은 조우번호가 영영 같은 큐를 낸다 — 밤(1회 조우)에서 특히 치명적이다.
+	r.seed = hash("advq_%s_%d_%d" % [String(_params.get("stage", "")),
+		int(_params.get("enc", 0)), int(_params.get("run_seed", 0))])
+	return r
+
+## 다음 스텝으로. 사전 이벤트면 그것을 열고(끝나면 다시 이 함수를 부른다), 몬스터면 배회 시작.
+func _advance_step() -> void:
+	if _done or not is_inside_tree():
+		return
+	while _step_i < _steps.size():
+		var ev: Dictionary = _steps[_step_i]
+		_step_i += 1
+		if String(ev.get("type", "")) == AdventureRun.MONSTER:
+			_begin_walk()
+			return
+		if _play_event(ev):
+			return                    # 화면을 열었다 — 콜백이 _advance_step 을 다시 부른다
+	_begin_walk()                     # 큐가 비었다(있을 수 없지만 방어)
+
+## 사전 이벤트 1개 재생. **화면을 열었으면 true**(그 이벤트의 종료 콜백이 다음 스텝을 부른다).
+func _play_event(ev: Dictionary) -> bool:
+	match String(ev.get("type", "")):
+		AdventureRun.NOTHING:
+			# 원작 `setEventNothing`(이벤트 1). 문구도 원작 그대로 —
+			# stringsData_KR `<AdventureNothing>`.
+			# 밤에서는 이게 **종료 이벤트**다(NightTutorial_talk10 "탐험은 단 한번!").
+			_narrate("해가 질 때까지 돌아다녔지만 아무것도 찾지 못했다.")
+			if AdventureRun.is_final(ev):
+				_end_run_after(2.0)   # 원작 checkAdventureNightEnd 의 CCDelayTime(2.0)
+				return true
+			return false
+		AdventureRun.HEAL_HOLY:
+			_show_fountain(true)
+			return true
+		AdventureRun.HEAL_PLAIN:
+			_show_fountain(false)
+			return true
+		AdventureRun.TREASURE:
+			_open_treasure(_event_rng("treasure"))
+			return true
+		AdventureRun.CHOICE:
+			_open_choice(_event_rng("choice"))
+			return true
+		AdventureRun.SHOP:
+			_open_shop(_event_rng("shop"))
+			return true
+		AdventureRun.CARDGAME:
+			# 어느 종류인지도 서버가 정했다(0x18/0x19) → 유실. 반반으로 고른다. # ASSUMPTION
+			var r := _event_rng("card")
+			_open_cardgame("match" if r.randf() < 0.5 else "avoid")
+			return true
+	return false                      # nothing 등 — 화면 없이 지나간다
+
+## 이벤트 내부 판정용 RNG(보상 굴림 등). 큐 RNG 와 분리해 이벤트별로 고정한다.
+func _event_rng(tag: String) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("%s_%s_%d" % [tag, String(_params.get("stage", "")), int(_params.get("enc", 0))])
+	return r
+
+## 이벤트가 끝났다 → 원작처럼 0.3초 쉬고 다음 스텝.
+func _step_done() -> void:
+	_event_open = false
+	if _done or not is_inside_tree():
+		return
+	get_tree().create_timer(_STEP_DELAY).timeout.connect(func():
+		if is_instance_valid(self):
+			_advance_step())
+
+## 유타칸 밤인가. 드랍 풀·필드 레코드·이벤트 큐가 전부 이 플래그를 본다.
+func _is_night() -> bool:
+	if _params.has("night"):
+		return bool(_params.get("night"))
+	return String(_stage.get("variant", "")) == "night"
+
+## 원작 `checkAdventureNightEnd` — 텍스트 한 줄을 읽을 시간을 주고 런을 끝낸다
+## (원작은 `m_nEventType = 0x1d`(Finish) + `CCDelayTime(2.0)`).
+func _end_run_after(secs: float) -> void:
+	_done = true
+	get_tree().create_timer(secs).timeout.connect(func():
+		if is_instance_valid(self):
+			Scenes.goto("worldmap", {"region": _params.get("region", "yutakan"),
+				"night": _is_night()}))
+
+## 배회 시작 — 사전 이벤트가 전부 끝난 뒤에만 불린다.
+func _begin_walk() -> void:
+	if _done:
+		return
+	_walking = true
+	_start_walk_cycle()
 
 ## 출전 인원 중 굶은 드래곤이 있으면 안내 후 월드맵으로 돌려보낸다. 종료했으면 true.
 ## 문구는 사용자 확정(2026-07-30). 판정은 `ItemEffect`(logic 층).
@@ -175,14 +325,23 @@ func _check_starving_end() -> bool:
 
 ## 직전 전투에서 넘어온 레벨업 결과창. 열려 있는 동안 `_event_open` 으로 배회를 멈춘다
 ## (사용자 지시 2026-07-27). 원작에는 이 창이 없었고 하단 텍스트박스 한 줄뿐이었다 —
-## 근거·판단은 `scripts/ui/levelup_result.gd` 헤더에 정리해 뒀다.
-func _open_levelup_result() -> void:
+## 근거·판단은 `scripts/ui/levelup_screen.gd` 헤더에 정리해 뒀다.
+## **창을 열었으면 true** — 그때는 닫기 콜백이 이벤트 큐를 이어받는다(호출부가 이 값을 본다).
+##
+## 🔀 2026-07-31: 자작 모달 `LevelUpResult` 를 버리고 **동굴에서 축복 아이템을 쓸 때와
+##   완전히 같은 화면**(`LevelUpScreen`)을 쓴다. 사용자 지시 — "축복류 아이템과 똑같은
+##   레벨업 팝업을 공유해야 해." 아이템 슬롯·능력치 다시뽑기·AUTO 까지 동일하다.
+func _open_levelup_result() -> bool:
 	var q: Array = _params.get("levelups", [])
 	if q.is_empty():
-		return
+		return false
 	_params.erase("levelups")          # 씬이 재빌드돼도 두 번 뜨지 않게
 	_event_open = true
-	LevelUpResult.open(self, q, func(): _event_open = false)
+	# 여러 마리가 올랐으면 한 마리씩 차례로. 전부 닫히면 이벤트 큐를 잇는다.
+	LevelUpScreen.open_queue(self, q, func():
+		_event_open = false
+		_advance_step())
+	return true
 
 ## 원작 DungeonTutorialLayer: 최초 던전 진입 시 튜토리얼 이미지 페이지(dungeon_tutorial_N_KR.jpg) + next.
 ## 근거: DungeonTutorialLayer.c initWidget(VisibleRect 전체 + dungeon_tutorial_%d_%s.jpg + btn_arrow2 setNext).
@@ -288,23 +447,8 @@ func _grant_gold(amount: int) -> int:
 ##
 ## 🟠 정정(2026-07-28): 종전 구현은 "3장 중 1장을 골라 골드/아이템" 이라는 **자작**이었다.
 ##   원작이 2종이라는 것도, 짝맞추기가 있다는 것도 반영돼 있지 않았다. 전면 교체한다.
-##   등장 확률 13%(타 이벤트 배타)는 그대로 둔다 — 원작 값은 서버 소유라 유실이다.
-func _maybe_cardgame() -> void:
-	if not _is_fortress():
-		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
-	if _healed or _event_open:
-		return
-	var enc := int(_params.get("enc", 0))
-	var total := int((_stage.get("enemies", []) as Array).size())
-	if total > 0 and enc + 1 >= total:
-		return
-	var r := RandomNumberGenerator.new()
-	r.seed = hash("card_%s_%d" % [String(_params.get("stage", "")), enc])
-	if r.randf() >= 0.13:
-		return
-	# 어느 종류인지도 서버가 정했다(0x18/0x19) → 유실. 반반으로 고른다. # ASSUMPTION
-	_open_cardgame("match" if r.randf() < 0.5 else "avoid")
-
+##   등장 확률(원작 값은 서버 소유라 유실)은 `data/adventure_events.json` 로 옮겼다 —
+##   이제 다른 이벤트와 **한 스텝을 두고 배타 추첨**된다(AdventureRun.build_steps).
 func _open_cardgame(mode: String) -> void:
 	_event_open = true
 	Bgm.sfx("effect_card_shuffle")
@@ -356,7 +500,7 @@ func _on_cardgame_done(res: Dictionary) -> void:
 (%s)" % [line, msg]) if win else line)
 	else:
 		_narrate("%s" % msg if win else "꽝!")
-	_event_open = false
+	_step_done()
 
 ## 카드 보상 1건 지급. 반환 = 표시 문구.
 ##   heal/buff 는 **이번 탐험의 전투 상태**에 얹고(물약과 같은 통로), gold/diamond/egg 는 UserDB.
@@ -397,22 +541,8 @@ func _grant_card_reward(rw: Dictionary) -> String:
 				per * tier, turns]
 	return "꽝"
 
-## 원작 setEventDungeonShop: 조우 전 ~15%(타 이벤트 배타) 떠돌이 상인 → 아이템 3종 판매(골드).
-func _maybe_shop() -> void:
-	if not _is_fortress():
-		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
-	if _healed or _event_open:
-		return
-	var enc := int(_params.get("enc", 0))
-	var total := int((_stage.get("enemies", []) as Array).size())
-	if total > 0 and enc + 1 >= total:
-		return
-	var r := RandomNumberGenerator.new()
-	r.seed = hash("shop_%s_%d" % [String(_params.get("stage", "")), enc])
-	if r.randf() >= 0.15:
-		return
-	_open_shop(r)
-
+## 원작 setEventDungeonShop(0x1a): 떠돌이 상인 → 아이템 3종 판매(골드).
+## 등장 확률은 `data/adventure_events.json`(해골요새 전용, 다른 이벤트와 배타 추첨).
 func _open_shop(r: RandomNumberGenerator) -> void:
 	# 원작 DungeonShopScene 1:1(순수 클라). 근거: DungeonShopScene.c playBackground(1378)="music/bg_shop.mp3",
 	#   setTalker(상인 NPC), common/item_bg 아이템셀 + coin_small1 + money_bg_castle. 오버레이 적응(전용씬 아님).
@@ -478,26 +608,16 @@ func _open_shop(r: RandomNumberGenerator) -> void:
 	var leave := Button.new(); leave.text = "떠나기"; leave.size = Vector2(160, 44)
 	leave.position = Vector2(vis.x * 0.5 - 80, vis.y * 0.36 + 3 * 92.0)
 	leave.pressed.connect(func():
-		_event_open = false
 		Bgm.play(_explore_bgm())   # 원작 던전 BGM 복귀
-		if is_instance_valid(layer): layer.queue_free())
+		if is_instance_valid(layer): layer.queue_free()
+		_step_done())
 	layer.add_child(leave)
 
-## 원작 setEventDungeonChoice: 조우 전 ~18% 갈림길(다른 이벤트와 배타). 두 길 중 선택 → 즉시 결과.
-func _maybe_choice() -> void:
-	if not _is_fortress():
-		return                             # Dungeon 키워드 = 해골 요새 전용(위 주석)
-	if _healed or _event_open:
-		return
-	var enc := int(_params.get("enc", 0))
-	var total := int((_stage.get("enemies", []) as Array).size())
-	if total > 0 and enc + 1 >= total:
-		return
-	var r := RandomNumberGenerator.new()
-	r.seed = hash("choice_%s_%d" % [String(_params.get("stage", "")), enc])
-	if r.randf() >= 0.18:
-		return
-	_open_choice(r)
+## 원작 setEventDungeonChoice(0x1b): 갈림길. 두 길 중 선택 → 즉시 결과.
+## 등장 확률은 `data/adventure_events.json`(해골요새 전용, 다른 이벤트와 배타 추첨).
+## ⚠️ 원작의 4변형(사다리/물약/샘/상자 + 성공·실패 문구 `AdventureDungeonChoice1~4`)은
+##   버튼 라벨 프레임(`choice_up/pass/drink/open`)이 추출 에셋에 없어 아직 이식하지 못했다 —
+##   아래 '안전한 길/위험한 길'은 **자작**이다(포팅 카드 AdventureEventFlow.md §4).
 
 func _open_choice(r: RandomNumberGenerator) -> void:
 	_event_open = true
@@ -572,23 +692,11 @@ func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: Canva
 	for c in layer.get_children():
 		if c is Button: c.queue_free()
 	get_tree().create_timer(1.2).timeout.connect(func():
-		_event_open = false
-		if is_instance_valid(layer): layer.queue_free())
+		if is_instance_valid(layer): layer.queue_free()
+		_step_done())
 
-## 원작 setEventTreasure: 조우 전 ~22% 보물상자 등장(회복샘·탐색과 배타). 클릭해서 열면 골드+아이템.
-func _maybe_treasure() -> void:
-	if _healed or _event_open:
-		return
-	var enc := int(_params.get("enc", 0))
-	var total := int((_stage.get("enemies", []) as Array).size())
-	if total > 0 and enc + 1 >= total:
-		return   # 보스 조우 제외
-	var r := RandomNumberGenerator.new()
-	r.seed = hash("treasure_%s_%d" % [String(_params.get("stage", "")), enc])
-	if r.randf() >= 0.22:
-		return
-	_open_treasure(r)
-
+## 원작 setEventTreasure(0x15): 보물상자. 클릭해서 열면 골드+아이템.
+## 등장 확률은 `data/adventure_events.json`(다른 이벤트와 배타 추첨).
 func _open_treasure(r: RandomNumberGenerator) -> void:
 	_event_open = true   # 보행 정지
 	var vis := _vis()
@@ -629,37 +737,49 @@ func _open_treasure(r: RandomNumberGenerator) -> void:
 		if got != "":
 			UserDB.add_item(got, 1)
 		else:
-			# 젬/장비가 안 나오면 기존 소비/재료 풀에서(ASSUMPTION — 상자 개봉표 유실).
-			var pool: Array = Data.items_by("consumable") + Data.items_by("material")
-			if not pool.is_empty():
-				got = pool[r.randi() % pool.size()]
-				UserDB.add_item(got, 1)
+			# 젬/장비가 안 나오면 **화이트리스트 안에서만** 다시 굴린다(사용자 확정 2026-07-31):
+			# 먹이(그 지역 속성) → 속성 정기 순. 지역 속성이 비어 있으면(우노) 골드만 나온다.
+			# 🟠 걷어낸 것: `items_by("consumable")+items_by("material")` 폴백 —
+			#   지역과 무관한 아무 재료나 상자에서 나오던 경로다.
+			if grng.randf() < float((Data.drops.get("food", {}).get("chance", {}) as Dictionary).get(Drops.SOURCE_CHEST, 0.0)):
+				got = Drops.roll_food(Data.items, _stage.get("element", ""), grng)
+				if got != "":
+					UserDB.add_item(got, 1)
+			if got == "":
+				var ess := Drops.roll_essence(Data.drops, Data.items,
+					_stage.get("element", ""), Drops.SOURCE_CHEST, grng)
+				if not ess.is_empty():
+					got = String(ess["key"])
+					UserDB.add_item(got, int(ess["count"]))
 		title.text = "보물!  +골드 %d" % gold
 		var t := chest.create_tween()
 		t.tween_property(chest, "scale", Vector2(2.9, 2.9), 0.14).set_trans(Tween.TRANS_BACK)
 		t.parallel().tween_property(chest, "rotation", 0.0, 0.14)
 		t.tween_interval(0.7)
 		t.tween_callback(func():
-			_event_open = false
 			layer.queue_free()
-			if got != "": _show_loot(got)))
+			if got != "": _show_loot(got)
+			_step_done()))
 
-## 회복샘(원작 setEventHealArea): 다친 파티(hp_state 존재)일 때 enc>0 비보스 조우에서 ~1/3 확률 발동 → 파티 회복.
-func _build_fountain() -> void:
-	var enc := int(_params.get("enc", 0))
-	var total := int((_stage.get("enemies", []) as Array).size())
-	var hurt: Dictionary = _params.get("hp_state", {})
-	if enc <= 0 or (total > 0 and enc + 1 >= total) or hurt.is_empty():
-		return
-	var r := RandomNumberGenerator.new()
-	r.seed = hash("fountain_%s_%d" % [String(_params.get("stage", "")), enc])
-	if r.randf() >= 0.34:
-		return
+## 회복샘 — 원작 `setEventHealArea(bool)` (0x13 = 성스러운 / 0x14 = 평범한).
+##
+## ⚠️ **원작에는 선택지가 없다.** `setEventHealArea` 는 버튼을 만들지 않고 연출과 회복만 한다
+##   (`BattleDragon::getHealAreaRecoverHp()` 만큼). 선택형 샘은 별개 이벤트인
+##   `setEventDungeonChoice`(해골요새 전용, 프레임 미보유)다 — 포팅 카드 §4.
+##
+## 원작 연출(리터럴 그대로):
+##   · `music/effect_holy_well_2.mp3`(성스러운) / `music/effect_water_in.mp3`(평범한)
+##   · 평범한 쪽은 샘 스프라이트에 청록 틴트(ccColor3B 0x80bf/0xf2), 성스러운 쪽은 WHITE
+##   · `scene/adventure/fountain/dv2_fountain_base.png` + `dv2_fountain_01~05.png`
+##   · 제목 라벨: ScaleTo(0.4, 1.7) + RotateBy(0.2, 380°) 로 회전하며 커진 뒤
+##     0.7초 뒤 위로 MoveBy(0.2, +100)
+##   · 파티클 `particle/scene/adventure/pt_monster_income_1.plist`
+##
+## holy = 0x13(성스러운) / false = 0x14(평범한).
+func _show_fountain(holy: bool) -> void:
+	_event_open = true
 	_healed = true    # 이 조우 전투는 풀피로 시작(hp_state 초기화)
-	_show_fountain()
-
-## 회복샘 시각 연출(그래픽 + 초록 힐 발광 + 상승 파티클 + 안내). _build_fountain 게이트 통과 시 호출.
-func _show_fountain() -> void:
+	Bgm.sfx("effect_holy_well_2" if holy else "effect_water_in")
 	var vis := _vis()
 	# 회복샘 그래픽(원작 scene/adventure/fountain). 없으면 힐 크로스 아이콘.
 	var f := _spr("adventure_ui", "scene_adventure_fountain_dv2_fountain_base", _adv, 0.7)
@@ -667,6 +787,9 @@ func _show_fountain() -> void:
 		f = _spr("common_ui", "common_icon_greencross", _man("common_ui"), 1.2)
 	if f:
 		f.position = Vector2(vis.x * 0.5, FLOOR * 0.5); add_child(f)
+		# 원작 setEventHealArea: 평범한 쪽(0x14)만 청록 틴트를 먹인다(ccColor3B 0x80bf/0xf2).
+		if not holy:
+			f.modulate = Color8(0xbf, 0x80, 0xf2)
 	# 초록 힐 발광(그라디언트) + 상승 파티클(원작 회복 연출 강화).
 	var grad := Gradient.new()
 	grad.set_color(0, Color(0.4, 1.0, 0.5, 0.5)); grad.set_color(1, Color(0.4, 1.0, 0.5, 0.0))
@@ -690,12 +813,92 @@ func _show_fountain() -> void:
 	heal.scale_amount_min = 6.0; heal.scale_amount_max = 14.0; heal.color = Color(0.5, 1.0, 0.6, 0.9)
 	add_child(heal)
 	var t := Label.new()
-	t.text = "회복의 샘!  파티가 회복되었습니다"
+	t.text = "성스러운 회복의 샘!  파티가 회복되었습니다" if holy \
+		else "회복의 샘!  파티가 회복되었습니다"
 	t.add_theme_font_size_override("font_size", 22)
-	t.add_theme_color_override("font_color", Color(0.6, 1, 0.7))
+	t.add_theme_color_override("font_color", Color(1, 1, 0.75) if holy else Color(0.6, 1, 0.7))
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.size = Vector2(vis.x, 28); t.position = Vector2(0, vis.y * 0.34)
+	t.pivot_offset = Vector2(vis.x * 0.5, 14)
 	add_child(t)
+	# 원작 제목 등장 — ScaleTo(0.4, 1.7) + RotateBy(0.2, 380°) 뒤 0.7초 후 위로 MoveBy(0.2, +100).
+	t.scale = Vector2(0.2, 0.2)
+	var tw := t.create_tween()
+	tw.tween_property(t, "scale", Vector2(1.7, 1.7), 0.4).set_trans(Tween.TRANS_BACK)
+	tw.parallel().tween_property(t, "rotation", TAU + deg_to_rad(20.0), 0.2)
+	tw.tween_property(t, "rotation", 0.0, 0.13)
+	tw.tween_property(t, "scale", Vector2.ONE, 0.1)
+	tw.tween_interval(0.7)
+	# Cocos y-up → Godot y-down 이라 부호를 뒤집는다(원작은 +100 = 위로).
+	tw.tween_property(t, "position:y", t.position.y - 100.0, 0.2)
+	# 회복샘은 원작에서 **선택지 없이** 흘러가는 스텝이다 → 연출이 끝나면 다음 스텝으로.
+	tw.tween_callback(_step_done)
+
+## 혼돈의 틈새 화염 — 원작 `AdventureScene::init`(:20929)이 **다크닉스 모드일 때만**
+## `particle/scene/adventure/pt_monster_fire_back.plist` 를 새 CCLayer(z=999999 / tag=0x9c)에
+## 담아 `VisibleRect::bottom()` 에 놓는다. 문자열도 이 연출을 말한다 —
+## `<AdventureField_8>` "작열하는 화염 속에서 무시무시한 존재가 당신을 기다립니다."
+## 변환 = `scripts/tools/particle_export.py` → assets/converted/particles/pt_monster_fire_back.json.
+func _build_chaos_fire() -> void:
+	if not Darknix.is_summon_stage(_stage):
+		return
+	var f := FileAccess.open("res://assets/converted/particles/pt_monster_fire_back.json", FileAccess.READ)
+	if f == null:
+		return
+	var c = JSON.parse_string(f.get_as_text())
+	if typeof(c) != TYPE_DICTIONARY:
+		return
+	var vis := get_viewport_rect().size
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1)); g.set_color(1, Color(1, 1, 1, 0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g; tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5); tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 32; tex.height = 32
+	var p := CPUParticles2D.new()
+	p.texture = tex
+	var m := CanvasItemMaterial.new()
+	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD if bool(c.get("additive", true)) \
+		else CanvasItemMaterial.BLEND_MODE_MIX
+	p.material = m
+	p.amount = int(c.get("amount", 30))
+	p.lifetime = float(c.get("lifetime", 6.0))
+	p.lifetime_randomness = float(c.get("lifetime_randomness", 0.0))
+	p.direction = Vector2(float(c["direction"][0]), float(c["direction"][1]))
+	p.spread = float(c.get("spread", 0.0))
+	p.initial_velocity_min = maxf(0.0, float(c.get("vmin", 0.0)))
+	p.initial_velocity_max = maxf(0.0, float(c.get("vmax", 0.0)))
+	p.gravity = Vector2(float(c["gravity"][0]), float(c["gravity"][1]))
+	p.radial_accel_min = float(c.get("radial_min", 0.0))
+	p.radial_accel_max = float(c.get("radial_max", 0.0))
+	p.tangential_accel_min = float(c.get("tangential_min", 0.0))
+	p.tangential_accel_max = float(c.get("tangential_max", 0.0))
+	# ⚠️ `scale_min/max` 는 **이미 최종 배율**이다 — `particle_export.py` 가 절차생성 점 텍스처
+	#    기준(BASE=32px)으로 나눠 놓는다. 여기에 또 곱하면 입자가 그만큼 커진다
+	#    (🔴 2026-07-31: ×24 를 곱해 화면이 하얗게 덮였다).
+	p.scale_amount_min = float(c.get("scale_min", 0.1))
+	p.scale_amount_max = float(c.get("scale_max", 1.0))
+	# 수명에 따라 줄어드는 크기(원작 finishParticleSize / startParticleSize).
+	var er := float(c.get("scale_end_ratio", 1.0))
+	if not is_equal_approx(er, 1.0):
+		var sc := Curve.new()
+		sc.add_point(Vector2(0.0, 1.0))
+		sc.add_point(Vector2(1.0, maxf(0.01, er)))
+		p.scale_amount_curve = sc
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(float(c["emit_rect"][0]), maxf(1.0, float(c["emit_rect"][1])))
+	# 🔴 `color` 만 주면 시작색이 수명 내내 유지된다 — 가산 블렌드에서는 입자가 절대 사라지지
+	#    않고 계속 쌓여 화면이 하얗게 된다. 원작 plist 는 start→finish 알파 램프를 갖는다.
+	var cs: Array = c.get("color_start", [1, 1, 1, 1])
+	var ce: Array = c.get("color_end", [0, 0, 0, 0])
+	var cg := Gradient.new()
+	cg.set_color(0, Color(float(cs[0]), float(cs[1]), float(cs[2]), float(cs[3])))
+	cg.set_color(1, Color(float(ce[0]), float(ce[1]), float(ce[2]), float(ce[3])))
+	p.color_ramp = cg
+	# 원작 VisibleRect::bottom() = 화면 하단 중앙.
+	p.position = Vector2(vis.x * 0.5, vis.y)
+	p.z_index = 60          # 배경 위·텍스트박스 아래(원작 z=999999 는 그 레이어 안에서의 값)
+	add_child(p)
 
 var _bg_node: Control            # 정지 배경 — 배회 사본을 이 **바로 위**에 넣는다
 
@@ -703,6 +906,7 @@ func _build_bg() -> void:
 	# 던전 배경(DungeonBG) — 원작 scene/adventure/bg/<필드id>/ 의 원경 bg.jpg + 전경 bg_item.
 	# battle과 동일 리졸버라 탐험/전투 배경이 일치한다.
 	_bg_node = DungeonBG.build(self, _stage)
+	_build_chaos_fire()
 	if _bg_node != null:
 		return
 	var bg := TextureRect.new()
@@ -752,8 +956,8 @@ func _build_walk() -> void:
 	_cam = Camera2D.new()          # setAllViewShake 전용 — 보행 bob 은 원작에 없다
 	_cam.position = vis * 0.5
 	add_child(_cam); _cam.make_current()
-	_walking = true
-	_start_walk_cycle()
+	# ⚠️ 여기서 배회를 **시작하지 않는다**. 사전 이벤트(회복샘·보물·상점…)가 먼저 끝나야 한다 —
+	#   시작은 `_begin_walk()` 가 이벤트 큐의 monster 스텝에서 부른다(원작 순차 스텝 구조).
 
 ## 배경 사본 한 장 = 한 사이클. 끝나면 스스로 다음 사이클을 걸거나(원작 재귀) 조우로 넘어간다.
 func _start_walk_cycle() -> void:
@@ -832,7 +1036,10 @@ func _build_topinfo() -> void:
 	nm.text = String(_stage.get("name", "던전"))
 	var vlab := String(_stage.get("variant_label", ""))   # 밤 / 카데스의 공간
 	if vlab != "": nm.text += " — %s" % vlab
-	if total > 0: nm.text += "   (%d/%d)" % [enc + 1, total]
+	# 조우 카운터는 **여러 번 싸우는 던전에서만** 뜻이 있다. 밤·소환형(혼돈의 틈새)은
+	# 조우가 1회뿐인데 `enemies` 배열 길이(=후보 수)를 그대로 써서 "(1/3)" 이 떴다
+	# — 페이즈가 3개인 것처럼 보인다(2026-07-31 사용자 지적). 단일 조우면 숨긴다.
+	if total > 0 and _rboss_enc < 0: nm.text += "   (%d/%d)" % [enc + 1, total]
 	nm.add_theme_font_size_override("font_size", 22)
 	nm.add_theme_color_override("font_color", Color.WHITE)
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1393,7 +1600,7 @@ func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
 	else:
 		mnode = _spr("adventure_ui", "scene_adventure_shadow", _adv, 2.0)
 	if mnode == null:
-		_go_battle(); return
+		_show_battle_ready(is_boss); return
 	# ── showMonsterShadow: 지면 그림자 + 숨쉬는 스케일 루프
 	var sbase := 1.5 * (1.3 if is_boss else 1.0)
 	var sh := _spr("adventure_ui", "scene_adventure_shadow", _adv, sbase)
@@ -1419,7 +1626,98 @@ func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
 	t.tween_property(mnode, "scale", full, 0.2)
 	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -30.0), 0.2)
 	t.tween_interval(0.55)
-	t.tween_callback(_go_battle)
+	# 원작은 몬스터가 착지한 **뒤** `setReadyFight`(0x17) → `setBattleReady` 로 선택지를 띄운다.
+	# 전투는 '싸운다'를 눌러야 시작된다(포팅 카드 AdventureEventFlow.md §2).
+	t.tween_callback(_show_battle_ready.bind(is_boss))
+
+# ---------- 조우 전 선택지 — 원작 setBattleReady ----------
+#
+# 원작 구성(재디컴프 리터럴 그대로):
+#   좌: `scene/adventure/btn2.png`(초록, 262×94) + `choice_fight_%s.png`   tag 0xbbe → onClickFight
+#   우: `scene/adventure/btn1.png`(붉은)        + `choice_run_%s.png`      tag 0xbbf → onClickRun
+#       (해골요새 = `getIsDungeonMode()` 면 `choice_giveup_%s.png` '포기한다')
+#   등장: `CCMoveTo(0.5)` + `CCEaseExponentialInOut` — 화면 밖에서 밀려 들어온다.
+#
+# 단일 버튼(도망 불가)은 **영웅 난이도 + hard-auto 부스트 결제**일 때뿐이라 ⚫CUT →
+# 우리는 항상 두 버튼(판정 = `AdventureRun.offers_escape`).
+const _READY_BTN := Vector2(262.0, 94.0)      # scene/adventure/btn1|btn2 실측
+var _ready_layer: CanvasLayer
+
+func _show_battle_ready(is_boss: bool) -> void:
+	if _done_battle_ready:
+		return
+	_done_battle_ready = true
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var w := _READY_BTN.x * S
+	# 원작 배치(setBattleReady/setRetryButton 공통): Cocos 좌표로 y = **화면높이*0.5 + 20**,
+	# x = 중앙 ∓ (버튼폭*0.5 + 50). Cocos 는 원점이 좌하단이므로 y 를 뒤집으면
+	#   godot_y = visH - (visH*0.5 + 20) = visH*0.5 - 20   → 화면 47% 지점(하단 텍스트박스 위).
+	# ⚠️ 2026-07-31 수정: 처음엔 `local_12c` 를 버튼 높이로 읽어 하단에 붙였는데, 그러면
+	#   하단 전폭 텍스트박스를 덮는다. 레퍼런스(docs/ref/orig_image/battle/전리품드랍후.png)의
+	#   버튼은 화면 46~47% 지점이라 `local_12c` = **가시영역 높이**가 맞다.
+	var y := vis.y * 0.5 - 20.0
+	_ready_layer = CanvasLayer.new(); _ready_layer.layer = 60
+	add_child(_ready_layer)
+	# 좌 = 싸운다(btn2 초록) · 우 = 도망간다/포기한다(btn1 붉은).
+	# ⚠️ 원작 setRetryButton 은 붉은 '그만하기'가 좌, 초록 '계속하기'가 우인데
+	#   setBattleReady 는 그 반대다(fight=btn2 를 먼저 만들고 tag 0xbbe 를 준다).
+	_ready_button("scene_adventure_btn2", "scene_adventure_choice_fight_KR",
+		Vector2(vis.x * 0.5 - (w * 0.5 + 50.0), y), Vector2(-w - 60.0, y), _on_choice_fight)
+	_ready_button("scene_adventure_btn1", AdventureRun.escape_frame(_is_fortress()),
+		Vector2(vis.x * 0.5 + (w * 0.5 + 50.0), y), Vector2(vis.x + w + 60.0, y),
+		_on_choice_run.bind(is_boss))
+	_narrate("어떻게 하시겠습니까?")
+
+var _done_battle_ready := false
+
+## 버튼 1개 — 배경 프레임 + 라벨 프레임을 얹고 화면 밖(from)에서 목표(to)로 0.5초 슬라이드.
+func _ready_button(bg_key: String, label_key: String, to: Vector2, from: Vector2,
+		cb: Callable) -> void:
+	var S := Design.ASSET_SCALE
+	var holder := Node2D.new()
+	holder.position = from
+	_ready_layer.add_child(holder)
+	var bg := _spr("adventure_ui", bg_key, _adv, S)
+	if bg:
+		holder.add_child(bg)
+	var lb := _spr("adventure_ui", label_key, _adv, S)
+	if lb:
+		holder.add_child(lb)
+	var hit := Button.new()
+	hit.flat = true
+	hit.size = _READY_BTN * S
+	hit.position = -_READY_BTN * S * 0.5
+	hit.pressed.connect(cb)
+	holder.add_child(hit)
+	# 원작 CCMoveTo(0.5) + CCEaseExponentialInOut.
+	var tw := holder.create_tween()
+	tw.tween_property(holder, "position", to, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+
+func _clear_battle_ready() -> void:
+	if is_instance_valid(_ready_layer):
+		_ready_layer.queue_free()
+	_ready_layer = null
+
+## 원작 onClickFight — 그대로 전투로.
+func _on_choice_fight() -> void:
+	_clear_battle_ready()
+	_go_battle()
+
+## 원작 onClickRun(→ setEventRun 0x9). 성공하면 전투 없이 이번 조우를 넘기고,
+## 실패하면 그대로 싸운다. 성공률은 서버 소유였다 → `data/adventure_events.json` `run`(자작).
+func _on_choice_run(is_boss: bool) -> void:
+	_clear_battle_ready()
+	var r := _event_rng("run")
+	if not AdventureRun.run_succeeds(Data.adventure_events, is_boss, r):
+		_narrate("도망치지 못했다!")
+		get_tree().create_timer(1.0).timeout.connect(_go_battle)
+		return
+	# 도망 성공 = 탐험 종료(월드맵 복귀). 원작 setEventRun 도 런을 끝낸다.
+	_narrate("무사히 도망쳤다.")
+	get_tree().create_timer(1.2).timeout.connect(func():
+		if is_instance_valid(self):
+			Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")}))
 
 ## 원작 AdventureMapLayer setShakeMap+setArriveParticle: 몬스터 리빌 순간 화면 흔들림 + 도착 파티클.
 func _arrive_impact(x: float, y: float, is_boss: bool) -> void:
@@ -1588,6 +1886,9 @@ func _go_battle() -> void:
 		# 카데스의 공간 여부는 스테이지 id(601+)로 이미 정해지지만, 전투가 다시 계산하지 않도록
 		# 명시해서 넘긴다(아티팩트 드롭·미각성 페널티가 여기에 걸린다).
 		"kades": _is_kades(), "field": _base_field(),
+		# 밤 변형 여부도 넘긴다 — 드랍 풀이 일반/영웅/밤으로 나뉜다(Drops.mode_of).
+		"night": bool(_params.get("night", false)),
+		"run_seed": int(_params.get("run_seed", 0)),
 		"party_uids": _run_party.duplicate(), "hero": bool(_params.get("hero", false))})
 
 ## 편성에서 `weight`(기본 1) 비례로 하나를 고른다. 합이 0 이면 균등.

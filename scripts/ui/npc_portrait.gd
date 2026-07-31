@@ -105,9 +105,33 @@ func _build(body_index: int) -> void:
 	_art_emo = _resolve_art_emotion()
 	_eye_fr = _frames("eye", _art_emo)
 	_mouth_fr = _frames("mouth", _art_emo)
+	_drop_duplicate_mouth()
 	var pos := _face_pos()
 	_eye = _attach_part("eye", pos.get("eye", null))
 	_mouth = _attach_part("mouth", pos.get("mouth", null))
+
+## 입 프레임이 눈 프레임과 **같은 그림**이면 입을 그리지 않는다.
+##
+## 🔴 2026-07-31 (사용자 신고 "퐁 눈이 4개"): 임프 퐁의 아틀라스는 `mouth_1_1` 이
+##   `eye_1_1`(뜬 눈)과 **완전히 같은 region**(160,324,77,23)이다 — 입 그림이 따로 없고
+##   눈 프레임을 재사용한다. 둘 다 그리면 눈 한 쌍이 입 자리에 또 그려져 **눈이 네 개**가 된다.
+##   프레임 자체를 비교하므로 퐁 말고 같은 사정인 NPC 가 있어도 함께 걸린다.
+func _drop_duplicate_mouth() -> void:
+	if _eye_fr.is_empty() or _mouth_fr.is_empty():
+		return
+	var er := _region_of("eye", _eye_fr[0])
+	var mr := _region_of("mouth", _mouth_fr[0])
+	if er != Rect2() and er == mr:
+		_mouth_fr = []
+
+## 그 파츠 프레임의 아틀라스 region. 없으면 Rect2().
+func _region_of(slot: String, frame: int) -> Rect2:
+	var key := "npc_%s_%s_%d_%d" % [npc_name, slot, _art_emo, frame]
+	var path := "res://assets/converted/%s/%s.tres" % [_dir, key]
+	if not ResourceLoader.exists(path):
+		return Rect2()
+	var t := load(path)
+	return (t as AtlasTexture).region if t is AtlasTexture else Rect2()
 
 ## 표정만 갈아끼운다(몸통은 그대로). 원작 `setTalker` 는 **대사를 낼 때마다** 표정을 바꾼다 —
 ## `NpcManager::setTarget` → `setNpcEye` / `setNpcMouse` 가 매 호출 새 표정으로 파츠를 다시 붙인다.
@@ -133,6 +157,7 @@ func set_emotion(e: int) -> void:
 	_art_emo = _resolve_art_emotion()
 	_eye_fr = _frames("eye", _art_emo)
 	_mouth_fr = _frames("mouth", _art_emo)
+	_drop_duplicate_mouth()
 	_eye_i = 0
 	_mouth_i = 0
 	_eye_next = _t + FIRST_DELAY
@@ -201,6 +226,12 @@ func _attach_part(slot: String, slot_pos) -> Sprite2D:
 	var tl := Vector2(
 		float(slot_pos[0]) / S - float(bi.get("w", 0)) * 0.5,
 		float(slot_pos[1]) / S - float(bi.get("h", 0)) * 0.5)
+	# 눈맞춤 보정 — `data/npc_face.json` `nudge`(디자인 px). 원작 좌표는 그대로 두고
+	# 우리 몸통 프레임 기준이 달라 어긋나는 NPC 만 밀어 준다(extract_npc_face.py NUDGE).
+	# 예: pong 은 몸통 그림에 이미 눈이 그려져 있어 어긋나면 **눈이 네 개**로 보인다.
+	var nd: Array = (Data.npc_face.get("nudge", {}) as Dictionary).get(npc_name, [])
+	if nd.size() >= 2:
+		tl += Vector2(float(nd[0]), float(nd[1])) / S
 	if slot == "eye":
 		_eye_tl = tl
 	else:

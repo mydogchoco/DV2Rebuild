@@ -153,6 +153,25 @@ def main() -> int:
         doc["_unmatched_note"] = ("dragons.json 에서 이름을 못 찾은 항목. 오탈자이거나 "
                                   "우리 도감에 없는 드래곤이다 — 사용자 확인 대상.")
 
+    # ---- 교차검증: 같은 사실이 시트 두 곳에 적혀 있다 ----
+    # 여기(`비고` = 스킬 → 드래곤 이름들) 와 `dragons.csv` 의 `각성스킬id` 열(드래곤 → 스킬 no).
+    # 후자가 정본(`build_data.py` 가 dragons.json `awaken_skill` 로 싣는다) — 어긋나면
+    # 어느 한쪽 시트를 고치다 만 것이므로 조용히 넘기지 않고 보고한다(HARD RULE 6).
+    drift = []
+    for d in dragons:
+        did = int(d["id"])
+        sheet = int(d.get("awaken_skill", 0))
+        here = by_dragon.get(str(did), [])
+        if sheet and sheet not in here:
+            drift.append((did, d.get("name", ""), sheet, here))
+        elif not sheet and here:
+            drift.append((did, d.get("name", ""), 0, here))
+    if drift:
+        doc["_drift"] = [{"dragon": i, "name": n, "dragons_csv": s, "sheet_비고": h}
+                         for i, n, s, h in drift]
+        doc["_drift_note"] = ("dragons.csv `각성스킬id`(정본) 와 skill_awaken.csv `비고` 가 "
+                              "가리키는 배정이 다르다 — 한쪽 시트만 고친 상태다.")
+
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
     print("skills: %d" % len(skills))
     print("dragons mapped: %d" % len(by_dragon))
@@ -160,6 +179,12 @@ def main() -> int:
         print("UNMATCHED %d:" % len(unmatched))
         for n, nm in unmatched:
             print("  no=%d  %s" % (n, nm))
+    if drift:
+        print("DRIFT %d (dragons.csv vs skill_awaken.csv 비고):" % len(drift))
+        for i, n, s, h in drift:
+            print("  id=%d %s  dragons.csv=%s  비고=%s" % (i, n, s or "-", h or "-"))
+    else:
+        print("drift: none (dragons.csv 각성스킬id 와 비고 배정 일치)")
     return 0
 
 

@@ -34,6 +34,11 @@ import json
 import sys
 from pathlib import Path
 
+# 윈도 콘솔 기본 코드페이지(cp949)에는 em dash 가 없어 출력에서 터진다 — 파일은 이미 쓴
+# 뒤라 조용한 실패가 아니라 '성공했는데 exit 1' 이 된다. 표준출력만 UTF-8 로 고정한다.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = ROOT / "docs" / "input" / "dragons" / "dragons.csv"
 VOICES = ROOT / "data" / "dragon_voices.json"

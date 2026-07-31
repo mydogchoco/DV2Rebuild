@@ -24,6 +24,11 @@ extends RefCounted
 ##   · 커스텀 종은 `stages` 가 비어 있다 — 그림·속성·별명을 **재료 드래곤에서 물려받는다**
 ##     (`data/dragons.json` 600/700 의 `_player_basis`: "선택권으로 지정한 드래곤의 디자인,
 ##     속성, 별명을 따름").
+##   · **종 이름도 재료를 따른다**(사용자 확정 2026-07-30): 마스터 `name` 은 비어 있고
+##     (`name_from_player: true`) 재료 드래곤의 이름이 그대로 600·700 의 종 이름이 된다 —
+##     예: 고대신룡 "별밤이"를 수비형 재료로 쓰면 600 의 종 이름이 "별밤이".
+##     "재료의 이름" = 별명이 있으면 별명, 없으면 재료의 종 이름.
+##     종당 1마리 상한이라 세이브당 이름이 하나로 정해진다(저장 = `UserDB.set_species_name`).
 ##
 ## ⚠️ 해금 플래그의 **이름은 빌드에 남기지 않는다**(사용자 요청 2026-07-30 — 게임 파일을 뜯어
 ##    트리거 조건을 미리 보는 것을 막는다). 세이브에도 코드에도 아래 해시만 존재한다.
@@ -59,31 +64,50 @@ static func available_species(steps: Dictionary) -> Array:
 	return out
 
 
+## 재료 자격 하한 — 🟦 사용자 확정(2026-07-30). 밸런스 노브라 여기 한 곳에서만 바꾼다.
+## 소환은 재료를 **소멸**시키고 최고 등급 알을 주므로, 아무 개체나 갈아 넣지 못하게 막는다.
+## ⚠️ 등급 눈금은 우리 것(`Growth.compute_grade`, 기준선 7.0)이다 — 원작 0~6 눈금이 아니다.
+##    7.0 은 "모든 롤이 기준선 그대로"이고, 그 위는 부화 편차 + 초월(아모르의 축복 등)로만 오른다
+##    (축복 1회 = +0.3). 10.0 = 기준선 대비 Δhp/4 + Δatt + Δdef = 30.
+const MATERIAL_MIN_LEVEL := 45
+const MATERIAL_MIN_GRADE := 10.0
+
 ## 재료로 쓸 수 있는 드래곤인가.
 ## 알·잠금(방생 잠금) 개체는 제외한다 — 방생과 같은 성격의 소멸이라 같은 가드를 쓴다.
 ## 이미 커스텀 종인 개체도 제외한다(600을 700으로 되굴리는 것은 상한 규칙을 우회한다).
-static func can_be_material(inst: Dictionary) -> bool:
+##
+## `grade` = `Growth.compute_grade` 결과. **호출측이 계산해 넘긴다** — 등급은 마스터 정의와
+## 스탯표가 있어야 나오는데(§8.2) 그것들을 여기서 읽으면 logic 이 data 로더에 매이기 때문이다.
+## 넘기지 않으면 기본값 -1 이라 등급 조건에서 **막힌다**(자격 검사는 열린 실패보다 닫힌 실패가 낫다).
+static func can_be_material(inst: Dictionary, grade := -1.0) -> bool:
 	if inst.is_empty():
 		return false
 	if bool(inst.get("egg", false)) or bool(inst.get("locked", false)):
 		return false
-	return not SPECIES.has(int(inst.get("id", 0)))
+	if SPECIES.has(int(inst.get("id", 0))):
+		return false
+	if int(inst.get("level", 0)) < MATERIAL_MIN_LEVEL:
+		return false
+	return grade >= MATERIAL_MIN_GRADE
 
 
 ## 변환 한 건의 **결과만** 산출한다(§8.3 — 상태 반영·연출은 호출측).
 ## 반환:
 ##   {} = 불가(해금 안 됐거나 종이 이미 있거나 재료가 부적격)
-##   {"species", "grade", "seconds", "inherit": {"art_id", "element", "nickname"}}
+##   {"species", "grade", "seconds", "inherit": {"art_id", "element", "nickname", "name"}}
 ##     inherit = 커스텀 종이 물려받을 것. 호출측이 알 레코드에 실어 준다.
+##     `name` 만 개체가 아니라 **종**에 붙는다(`UserDB.set_species_name`).
+##   material_grade = `Growth.compute_grade(재료)` — 자격 하한 검사에 쓴다(위 주석 참조).
 static func plan(species: int, material: Dictionary, material_master: Dictionary,
-		flag: bool, owned_step: int) -> Dictionary:
+		flag: bool, owned_step: int, material_grade := -1.0) -> Dictionary:
 	if not unlocked(flag):
 		return {}
 	if not species_available(species, owned_step):
 		return {}
-	if not can_be_material(material):
+	if not can_be_material(material, material_grade):
 		return {}
 	var grade := Hatchery.GRADE_MAX
+	var nick := String(material.get("nickname", ""))
 	return {
 		"species": species,
 		"grade": grade,
@@ -93,6 +117,8 @@ static func plan(species: int, material: Dictionary, material_master: Dictionary
 			# 경우까지 그대로 물려받게 — build_dragon_art_alias.py 의 art_id 규약).
 			"art_id": int(material_master.get("art_id", material.get("id", 0))),
 			"element": material_master.get("element", null),
-			"nickname": String(material.get("nickname", "")),
+			"nickname": nick,
+			# 새 **종 이름** = 재료의 이름(별명 우선, 없으면 재료의 종 이름).
+			"name": nick if nick != "" else String(material_master.get("name", "")),
 		},
 	}

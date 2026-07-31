@@ -15,7 +15,10 @@ func _initialize() -> void:
 		push_error("no " + root_dir); quit(1); return
 	DirAccess.make_dir_recursive_absolute("res://scenes/worldmap_fx")
 	for sub in da.get_directories():
-		if not sub.begins_with("scenespine_ani_"):
+		# ⚠️ 종전엔 `scenespine_ani_` 만 받았다. 월드맵 스파인 중에는 스켈레톤 이름이 `ani_` 로
+		#   시작하지 않는 것이 있다 — 임프상인은 스켈레톤 `worldmap_imp_spine` + 아틀라스
+		#   `ani_imp_spine` 로 **이름이 서로 다르다**(2026-07-31).
+		if not sub.begins_with("scenespine_"):
 			continue
 		var d2 := DirAccess.open("%s/%s" % [root_dir, sub])
 		if d2 == null:

@@ -681,3 +681,76 @@ static func unbind(equip_field: Dictionary, slot_id: String) -> Dictionary:
 			(s as Dictionary)["belong"] = 0
 			return out
 	return {}
+
+# --- 아티팩트 합성(원작 ArtifactMix) -----------------------------------------
+## 원작 = 마모루딕 연구소 '아티펙트 합성'. 대상 아티팩트 1개 + **재료 3개** + 골드로
+## 대상의 등급을 1단 올린다. 포팅 카드 = `docs/ref/porting/ArtifactMix.md`.
+##
+## 원작 클라가 갖고 있던 것(디컴프 실측):
+##   · 재료 3칸 고정 — `onClickMix` 가 세 슬롯 중 하나라도 -1 이면 토스트
+##     `<ArtifactMixErrorMsg>`("아티펙트 합성에는 3개의 재료를 필요로 합니다.")
+##   · 비용 = `표[getTypeLevel(대상)-1] × 채운 재료 수` (`ArtifactMix::setGold`)
+## 유실된 것: 그 표(서버 배열)와 성공 확률 → `data/equipment.json` `artifacts.mix`(자작).
+
+## 인벤 키/카탈로그 키 → {type, grade}. 아티팩트가 아니면 {}.
+static func artifact_of(key: String) -> Dictionary:
+	var cat := parse_item_key(key)
+	if cat == "":
+		cat = key
+	var p := cat.split(":")
+	if p.size() != 3 or String(p[0]) != "artifact":
+		return {}
+	return {"type": String(p[1]), "grade": int(p[2])}
+
+static func artifact_mix_cfg(table: Dictionary) -> Dictionary:
+	return (table.get("artifacts", {}) as Dictionary).get("mix", {})
+
+## 재료 하나당 골드(원작 setGold 의 서버 배열 자리). 대상이 최고 등급이면 0.
+static func artifact_mix_unit_cost(table: Dictionary, base_key: String) -> int:
+	var a := artifact_of(base_key)
+	if a.is_empty():
+		return 0
+	var arr: Array = artifact_mix_cfg(table).get("cost_per_material", [])
+	var g := int(a["grade"])
+	return int(arr[g]) if g >= 0 and g < arr.size() else 0
+
+## 원작 `setGold` 그대로 — 단가 × 채운 재료 수.
+static func artifact_mix_cost(table: Dictionary, base_key: String, filled: int) -> int:
+	return artifact_mix_unit_cost(table, base_key) * maxi(filled, 0)
+
+## 그 아티팩트를 대상으로 삼을 수 있나(최고 등급은 더 올릴 데가 없다).
+static func artifact_mix_upgradable(table: Dictionary, base_key: String) -> bool:
+	var a := artifact_of(base_key)
+	if a.is_empty():
+		return false
+	var grades: Array = (table.get("artifacts", {}) as Dictionary).get("grades", [])
+	return int(a["grade"]) + 1 < grades.size() \
+		and artifact_mix_unit_cost(table, base_key) > 0
+
+## 재료로 쓸 수 있나. `same_type_required` 면 대상과 같은 종류여야 한다(자작 규칙).
+## 대상 그 자체(같은 인벤 키의 같은 개체)는 호출부가 수량으로 걸러야 한다.
+static func artifact_mix_material_ok(table: Dictionary, base_key: String, mat_key: String) -> bool:
+	var b := artifact_of(base_key)
+	var m := artifact_of(mat_key)
+	if b.is_empty() or m.is_empty():
+		return false
+	if bool(artifact_mix_cfg(table).get("same_type_required", true)):
+		return String(m["type"]) == String(b["type"])
+	return true
+
+## 합성 결과 인벤 키(등급 +1). 대상의 개체 정보(귀속·강화·옵션)는 그대로 승계한다.
+static func artifact_mix_result(table: Dictionary, base_key: String) -> String:
+	var a := artifact_of(base_key)
+	if a.is_empty() or not artifact_mix_upgradable(table, base_key):
+		return ""
+	return item_key("artifact:%s:%d" % [String(a["type"]), int(a["grade"]) + 1],
+		item_key_meta(base_key))
+
+## 성공 확률(%) — 자작. 현재 표는 전부 100 이라 실패 분기는 데이터로만 열려 있다.
+static func artifact_mix_success_pct(table: Dictionary, base_key: String) -> int:
+	var a := artifact_of(base_key)
+	if a.is_empty():
+		return 0
+	var arr: Array = artifact_mix_cfg(table).get("success_pct", [])
+	var g := int(a["grade"])
+	return int(arr[g]) if g >= 0 and g < arr.size() else 100

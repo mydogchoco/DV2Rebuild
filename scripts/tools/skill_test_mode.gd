@@ -20,7 +20,10 @@ func _ready() -> void:
 	for k in ["s_skillbook1", "s_skillbook3", "s_skillbook5"]:
 		UserDB.add_item(k, 5)
 	# ② 이미 만들어진 스킬 아이템(가방 '스킬' 탭에서 바로 사용 가능)
-	UserDB.add_item(Loadout.item_key(11, 3), 3)
+	#    ⚠️ 순차 학습(`Loadout.can_learn`)이라 Lv.1 부터 차례로만 쓸 수 있다 — 게이트를 눈으로
+	#    확인하도록 11 은 Lv.1~3 을 모두, 12 는 **Lv.5 만** 준다(12 는 거부 문구가 떠야 정상).
+	for lv in [1, 2, 3]:
+		UserDB.add_item(Loadout.item_key(11, lv), 2)
 	UserDB.add_item(Loadout.item_key(12, 5), 2)
 	# ③ 레벨 자동 습득을 보려면 레벨을 올려야 한다 — Lv+1 과 축복을 넉넉히
 	UserDB.add_item("level_up", 60)

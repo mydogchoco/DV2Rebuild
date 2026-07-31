@@ -29,10 +29,12 @@ static func key_for(dragon_id: int) -> String:
 	return KEY_PREFIX + str(dragon_id)
 
 ## `egg:123` → 123. 가상 알 키가 아니면 0.
+## 강화 등급 접미사(`egg:123#2`)는 여기서 떼어낸다 — 등급이 달라도 **같은 드래곤의 알**이다(EggItem).
 static func dragon_of(key: String) -> int:
-	if not key.begins_with(KEY_PREFIX):
+	var base := EggItem.base_of(key)
+	if not base.begins_with(KEY_PREFIX):
 		return 0
-	var s := key.substr(KEY_PREFIX.length())
+	var s := base.substr(KEY_PREFIX.length())
 	return int(s) if s.is_valid_int() else 0
 
 ## 가상 알 키 → 아이템 정의(가방이 쓰는 형식). 키가 아니거나 모르는 드래곤이면 {}.
@@ -50,6 +52,7 @@ static func item_def(key: String, dragons: Dictionary) -> Dictionary:
 		"tier": int(d.get("star", 0)),
 		"stack": true,
 		"offline": "impl",
+		"egg_grade": EggItem.grade_of(key),   # 강화 등급은 키에 실린다(EggItem)
 	}
 
 ## 개봉 결과 드래곤 id. 뽑을 수 없으면 0.
@@ -146,6 +149,11 @@ static func candidates(dragons: Dictionary, star: int, element: String,
 		# 사용자 확정(2026-07-30): 600·700 은 도감에서도 특수 트리거로만 보이고,
 		# 뽑기·부화 같은 입수 경로에는 아예 등장하지 않는다.
 		if bool(d.get("dex_hidden", false)):
+			continue
+		# 커스텀 세대(600·700·666·777)는 **지정 획득처 전용**(사용자 확정 2026-07-30) —
+		# 소환·카드 코드로만 얻는다. 666·777 은 도감에 보이므로 dex_hidden 이 아니고,
+		# 이 플래그로만 걸린다. 데이터 = `dragons.json.acquire_locked`(build_data.py).
+		if bool(d.get("acquire_locked", false)):
 			continue
 		if int(d.get("star", 0)) != star:
 			continue

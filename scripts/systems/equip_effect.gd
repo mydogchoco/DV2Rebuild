@@ -81,10 +81,13 @@ static func apply_battle(allies: Array, enemies: Array, table: Dictionary,
 						1.0, SRC):
 					any = true
 			for r in (spec.get("react", []) as Array):
-				# `plant: "ally"` = 반응을 **아군 전원에게 각자** 심는다("모든 대미지를 1로
-				# 막아주는 보호막 1회 **전체** 적용" — 오울드라의 어둠갑옷). 각자 자기 몫의
-				# 횟수(`left`)를 갖는다. 기본은 착용자 자신에게만.
-				var plant: Array = allies if String((r as Dictionary).get("plant", "")) == "ally" 					else [owner]
+				# `plant` = 반응을 **누구에게 심을 것인가**(대상 표기는 ops 의 `to` 와 같다).
+				#   "ally"                 아군 전원에게 각자 (오울드라의 어둠갑옷 보호막)
+				#   "ally_element:shadow"  그 속성 아군에게 (쿠르파의 푸른갑주 — 죽는 쪽이
+				#                          반응을 갖고 있어야 사망 시점에 터진다)
+				# 각자 자기 몫의 횟수(`left`)를 갖는다. 없으면 착용자 자신에게만.
+				var where := String((r as Dictionary).get("plant", ""))
+				var plant: Array = Battle._targets(where, owner, allies) if where != "" 					else [owner]
 				for who in plant:
 					var re := (r as Dictionary).duplicate(true)
 					re.erase("plant")

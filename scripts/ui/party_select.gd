@@ -199,7 +199,7 @@ static func _build(host: Node, current: Array, on_confirm: Callable, require_con
 		var down := UserDB.is_down(uid)
 
 		var nm := Label.new()
-		nm.text = "%s   Lv.%d" % [String(ddef.get("name", "드래곤")), int(d.get("level", 1))]
+		nm.text = "%s   Lv.%d" % [Icons.name_of(d), int(d.get("level", 1))]
 		if down:
 			nm.text += "   [행동불능 %s]" % Incapacitation.remain_text(
 				UserDB.cure_time(uid), int(Time.get_unix_time_from_system()))

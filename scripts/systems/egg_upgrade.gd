@@ -14,10 +14,11 @@
 #   1강 = 부화 등급 7.0 확정 · 2강 = 7.2 · 3강 = 7.5. (4강 8.0 은 이벤트 전용이라 강화 불가.)
 #   즉 강화한 알은 둥지의 **랜덤 등급 굴림(3.0~7.0)을 대체**한다 → Hatchery.grade_for_step.
 #
-# ⚠️ 원작과 우리의 차이(문서화된 ASSUMPTION):
-#   원작의 알은 서버 객체(`Egg`)라 **개체마다** grade 를 들고 다녔다. 우리 알은 인벤토리의 스택
-#   아이템이라 개체가 없다 → 세이브에 "알키 → {등급: 개수}" 곁 테이블을 둔다(UserDB.egg_grade_counts).
-#   0강 개수 = 인벤 보유수 − 강화된 개수 합.
+# 등급을 어디에 두는가(v15, 2026-07-31):
+#   원작의 알은 서버 객체(`Egg`)라 **개체마다** grade 를 들고 다니고, 계정 목록을 읽는
+#   `AccountManager::setInfoEggs` 가 행마다 개체를 따로 넣으므로 **같은 알이라도 등급이 다르면
+#   가방에서 다른 칸**이다. 우리는 그것을 **인벤 키 접미사**로 옮겼다 → `EggItem`(`egg:17#2`).
+#   ⚠️ v14 까지는 `meta.egg_grades` 곁 테이블이라 한 칸에 등급이 섞였다(🟦사용자 지적으로 폐기).
 #
 # ⚠️ 이 파일은 로직만: 노드/씬/스프라이트/사운드/UserDB 참조 금지(§8.2 단방향 의존).
 class_name EggUpgrade
@@ -90,7 +91,11 @@ static func row_for(egg_key: String, grade: int, up_data: Dictionary) -> Diction
 	return fallback
 
 
-# ── 등급별 보유 개수(세이브 곁 테이블) ────────────────────────────────────────
+# ── 구형 세이브(v14 이하) 읽기 ───────────────────────────────────────────────
+## ⚠️ v15 부터 등급은 **인벤 키에 실린다**(`egg:17#2` — `EggItem`). 아래 `normalize` 는
+##    구형 곁 테이블(`meta.egg_grades`)을 인벤 키로 옮기는 **마이그레이션 전용**이다.
+##    새 코드에서 쓰지 말 것 — 등급 조회는 `EggItem.grade_of(key)`, 보유수는 `item_count(key)`.
+##
 ## 세이브에 든 값을 {등급(int) → 개수(int)} 로 정규화. 0 이하 등급/개수는 버린다.
 ## 구형(v12 이하)은 `{알키: 등급(int)}` 이었다 → 그 등급 1개로 읽는다.
 static func normalize(entry) -> Dictionary:
@@ -108,60 +113,7 @@ static func normalize(entry) -> Dictionary:
 	return out
 
 
-## 강화된 알 총 개수(등급 1 이상).
-static func upgraded_total(counts: Dictionary) -> int:
-	var n := 0
-	for g in counts:
-		n += int(counts[g])
-	return n
-
-
-## 그 등급의 보유 개수. 0강 = 인벤 보유수 − 강화된 개수 합(음수는 0으로 자른다).
-static func owned_at(grade: int, inv_count: int, counts: Dictionary) -> int:
-	if grade <= 0:
-		return maxi(0, inv_count - upgraded_total(counts))
-	return maxi(0, int(counts.get(grade, 0)))
-
-
-## 보유한 등급 목록(0 포함, 개수>0 인 것만). 오름차순.
-static func owned_grades(inv_count: int, counts: Dictionary) -> Array:
-	var out: Array = []
-	if owned_at(0, inv_count, counts) > 0:
-		out.append(0)
-	var gs: Array = counts.keys()
-	gs.sort()
-	for g in gs:
-		if int(counts[g]) > 0:
-			out.append(int(g))
-	return out
-
-
-## grade 알 1개를 grade+1 로 올린 새 counts. 저장 형식(문자열 키)으로 돌려준다.
-static func after_upgrade(grade: int, counts: Dictionary) -> Dictionary:
-	var d := counts.duplicate()
-	if grade > 0:
-		var left := int(d.get(grade, 0)) - 1
-		if left > 0: d[grade] = left
-		else: d.erase(grade)
-	d[grade + 1] = int(d.get(grade + 1, 0)) + 1
-	return to_save(d)
-
-
-## grade 알 1개를 소비(부화)한 새 counts. 0강 소비는 곁 테이블을 건드리지 않는다.
-static func after_consume(grade: int, counts: Dictionary) -> Dictionary:
-	var d := counts.duplicate()
-	if grade > 0:
-		var left := int(d.get(grade, 0)) - 1
-		if left > 0: d[grade] = left
-		else: d.erase(grade)
-	return to_save(d)
-
-
-## {int → int} → 세이브용 {문자열 → int}. JSON 왕복에서 키 타입이 흔들리지 않게 한다.
-static func to_save(counts: Dictionary) -> Dictionary:
-	var out: Dictionary = {}
-	for g in counts:
-		var n := int(counts[g])
-		if int(g) > 0 and n > 0:
-			out[str(int(g))] = n
-	return out
+## 알 1개를 **한 단계 올린 뒤의 인벤 키**. v15 부터 강화는 인벤 스택을 옮기는 일이다 —
+## 호출측이 `use_item(from_key, 1)` + `add_item(to_key, 1)` 로 끝낸다(곁 테이블 없음).
+static func upgraded_key(item_key: String) -> String:
+	return EggItem.key(EggItem.base_of(item_key), EggItem.grade_of(item_key) + 1)

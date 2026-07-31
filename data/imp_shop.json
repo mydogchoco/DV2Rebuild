@@ -1,0 +1,154 @@
+{
+  "_source": "임프상인(원작 `ImpShopScene`) 재고·가격. 원작 재고는 서버가 `shop_list`/`item_no`/`count` 로 내려줬다(유실) → 사용자 확정 + 자작 가격.",
+  "_orig": "원작 클래스는 온전하다 — 상점 쪽(showItem/showItemBuy/onClickItemBuy/setSeller/setTreasureView/onClickTab)은 전부 클라 로직이고, 랭킹 쪽(requestRankCave/responseRankCave/onClickRanker + game_treasure/get_treasurehunter_data.hb + my_rank/treasure_week_rank/week_reward)만 서버 소유였다. NPC = `\"pong\"`(<NPC_pong>임프 퐁</NPC_pong>), 진입 = 월드맵 사이드메뉴(<worldmap_side_menu_4_4>임프상인</worldmap_side_menu_4_4>).",
+  "_cut": "⚫ **주간 트레저헌터 랭킹은 통째로 CUT**(사용자 확정 2026-07-31, CLAUDE.md §2-1 온라인 삭제). 원작이 콜로세움 주간 타이머(`ColosseumWeekReset` + `scene/colosseum/week_time`)를 재사용하던 부분도 함께 뺀다.",
+  "_currency": "화폐 = **보석**(임프 보물). 원작 <ShopWelcomeImp7> \"나는 금화 따윈 받지 않아. 멋진 보석을 가져오라고 애송이!\" 골드를 받지 않는다. 보석은 밤 지역의 골드/실버 임프가 떨군다(<NightTutorial_talk11>, data/monster_drops.json #160·#161).",
+  "_price_basis": "🟦 사용자 확정 2026-07-31: **한 아이템은 한 종류의 보석만** 받는다. 희귀도 자수정<에메랄드<루비<사파이어 를 장비 등급에 태웠다. 수량은 서버 유실이라 자작 노브다. 등급별: 0=자수정12 · 1=자수정30 · 2=에메랄드20 · 3=에메랄드45 · 4=루비30 · 5=사파이어25.",
+  "_stock_basis": "재고 = **묘안석·흑요석·백금석 계열 장비 전 등급**(사용자 확정). 정의 단일 출처는 data/equipment.json `basic` 이라 여기에 스탯을 복제하지 않는다(§8.1) — `key` 로만 가리킨다.",
+  "stock": [
+    {
+      "key": "basic:묘안석:0",
+      "name": "작은 묘안석",
+      "kind": "묘안석",
+      "grade": 0,
+      "currency": "jewel_amethyst",
+      "price": 12
+    },
+    {
+      "key": "basic:묘안석:1",
+      "name": "깨진 묘안석",
+      "kind": "묘안석",
+      "grade": 1,
+      "currency": "jewel_amethyst",
+      "price": 30
+    },
+    {
+      "key": "basic:묘안석:2",
+      "name": "묘안석",
+      "kind": "묘안석",
+      "grade": 2,
+      "currency": "jewel_emerald",
+      "price": 20
+    },
+    {
+      "key": "basic:묘안석:3",
+      "name": "세공 묘안석",
+      "kind": "묘안석",
+      "grade": 3,
+      "currency": "jewel_emerald",
+      "price": 45
+    },
+    {
+      "key": "basic:묘안석:4",
+      "name": "고급 묘안석",
+      "kind": "묘안석",
+      "grade": 4,
+      "currency": "jewel_ruby",
+      "price": 30
+    },
+    {
+      "key": "basic:묘안석:5",
+      "name": "전설의 묘안석",
+      "kind": "묘안석",
+      "grade": 5,
+      "currency": "jewel_sapphire",
+      "price": 25
+    },
+    {
+      "key": "basic:흑요석:0",
+      "name": "작은 흑요석",
+      "kind": "흑요석",
+      "grade": 0,
+      "currency": "jewel_amethyst",
+      "price": 12
+    },
+    {
+      "key": "basic:흑요석:1",
+      "name": "깨진 흑요석",
+      "kind": "흑요석",
+      "grade": 1,
+      "currency": "jewel_amethyst",
+      "price": 30
+    },
+    {
+      "key": "basic:흑요석:2",
+      "name": "흑요석",
+      "kind": "흑요석",
+      "grade": 2,
+      "currency": "jewel_emerald",
+      "price": 20
+    },
+    {
+      "key": "basic:흑요석:3",
+      "name": "세공 흑요석",
+      "kind": "흑요석",
+      "grade": 3,
+      "currency": "jewel_emerald",
+      "price": 45
+    },
+    {
+      "key": "basic:흑요석:4",
+      "name": "고급 흑요석",
+      "kind": "흑요석",
+      "grade": 4,
+      "currency": "jewel_ruby",
+      "price": 30
+    },
+    {
+      "key": "basic:흑요석:5",
+      "name": "전설의 흑요석",
+      "kind": "흑요석",
+      "grade": 5,
+      "currency": "jewel_sapphire",
+      "price": 25
+    },
+    {
+      "key": "basic:백금석:0",
+      "name": "작은 백금석",
+      "kind": "백금석",
+      "grade": 0,
+      "currency": "jewel_amethyst",
+      "price": 12
+    },
+    {
+      "key": "basic:백금석:1",
+      "name": "깨진 백금석",
+      "kind": "백금석",
+      "grade": 1,
+      "currency": "jewel_amethyst",
+      "price": 30
+    },
+    {
+      "key": "basic:백금석:2",
+      "name": "백금석",
+      "kind": "백금석",
+      "grade": 2,
+      "currency": "jewel_emerald",
+      "price": 20
+    },
+    {
+      "key": "basic:백금석:3",
+      "name": "세공 백금석",
+      "kind": "백금석",
+      "grade": 3,
+      "currency": "jewel_emerald",
+      "price": 45
+    },
+    {
+      "key": "basic:백금석:4",
+      "name": "고급 백금석",
+      "kind": "백금석",
+      "grade": 4,
+      "currency": "jewel_ruby",
+      "price": 30
+    },
+    {
+      "key": "basic:백금석:5",
+      "name": "전설의 백금석",
+      "kind": "백금석",
+      "grade": 5,
+      "currency": "jewel_sapphire",
+      "price": 25
+    }
+  ]
+}

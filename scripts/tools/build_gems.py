@@ -104,12 +104,79 @@ TIER_OVERRIDES = {
 }
 
 # 위키 §2.2 용액표 — 혼성젬 강화용. points=[min,max] 또는 success_pct.
+# ⚠️ 2026-07-31 사고 기록 — 아래 §위키층은 한때 `data/gems.json` **에만** 손으로 들어 있었고
+#   이 빌더에는 없었다. 그래서 `build_gems.py` 를 한 번 돌리는 것만으로 위키 실측표
+#   (by_tier_pct·cost_gold·disassemble·potion_shop·sands_tear_items·용액 item/make_gold)가
+#   통째로 사라졌다. 그 값들을 **여기로 옮겨** 재생성해도 살아남게 한다.
+#   출처는 전부 docs/ref/orig_image/shop/점술집_젬강화.pdf (엑사, 2016-08-13 실측 글).
+WIKI_REF = ("docs/ref/orig_image/shop/점술집_젬강화.pdf — '[드빌2] 점술집 연금술의 모든것-"
+            "혼성젬 강화 정보' (엑사, 2016-08-13). 등급별 강화 확률/비용/복구비용 표를 "
+            "직접 실측해 올린 글이다.")
+
+# [용액 제작] 4종은 제작비가 모두 1,000G. `item` = data/items.json 키(설명문도 이 표에서 나온다).
 POTIONS = [
-    {"name": "절제의 용액", "cost_dust_each": 1, "points": [1, 5]},
-    {"name": "지혜의 용액", "cost_dust_each": 2, "points": [1, 10]},
-    {"name": "용기의 용액", "cost_dust_each": 3, "points": [1, 25]},
-    {"name": "정의의 용액", "cost_dust_each": 4, "points": [1, 50]},
-    {"name": "초월의 용액", "cost_note": "13강 이상 젬 분해", "success_pct": 15},
+    {"item": "alchemy_moderation", "name": "절제의 용액", "make_gold": 1000,
+     "cost_dust_each": 1, "points": [1, 5]},
+    {"item": "alchemy_wisdom", "name": "지혜의 용액", "make_gold": 1000,
+     "cost_dust_each": 2, "points": [1, 10]},
+    {"item": "alchemy_courage", "name": "용기의 용액", "make_gold": 1000,
+     "cost_dust_each": 3, "points": [1, 25]},
+    {"item": "alchemy_justice", "name": "정의의 용액", "make_gold": 1000,
+     "cost_dust_each": 4, "points": [1, 50]},
+    # [용액 상점] 전용 2종 — 고정치.
+    {"item": "alchemy_glory", "name": "영광의 용액", "shop_only": True, "points": [10, 10]},
+    {"item": "alchemy_legend", "name": "전설의 용액", "shop_only": True, "points": [25, 25]},
+    {"item": "alchemy_special", "name": "초월의 용액",
+     "cost_note": "13강 이상 젬 분해로만 획득", "success_pct": 15},
+]
+
+POTIONS_SOURCE = ("docs/ref/orig_image/shop/점술집_젬강화.pdf — [용액 제작] 절제 1~5 / "
+                  "지혜 1~10 / 용기 1~25 / 정의 1~50, **제작 비용은 모두 1,000G**. "
+                  "[용액 상점] 영광 +10(고정) / 전설 +25(고정) / 샌즈의 눈물 10%·20%. "
+                  "초월의 용액은 강화 확률 +15%.")
+
+# 등급별 강화 성공률(%) — **용액 미투입 기준** 실측표. 종전 ASSUMPTION 공식(100-5×티어)을 폐기했다.
+SUCCESS_BY_TIER = {
+    "1": 60, "2": 57, "3": 54, "4": 51, "5": 49, "6": 46,
+    "7": 43, "8": 41, "9": 38, "10": 35, "11": 33, "12": 30,
+    "13": 27, "14": 24, "15": 22, "16": 19, "17": 16, "18": 14,
+}
+# 강화 비용(골드) — 규칙 3,000 + 600×(티어-1).
+COST_GOLD_BY_TIER = {str(t): 3000 + 600 * (t - 1) for t in range(1, 19)}
+
+# [젬 분해] — 일반 젬을 분해하면 마법가루. 13강 이상은 초월의 용액도 함께.
+DISASSEMBLE = {
+    "_source": "docs/ref/orig_image/shop/점술집_젬강화.pdf — [젬 분해].",
+    "_rule": ("일반 젬을 분해하면 마법가루가 나온다. **13강 이상**(공/방의 젬 +25, "
+              "체력의 젬 +100) 젬을 분해하면 초월의 용액이 같이 나온다 — 1개당 강화 등급에 "
+              "따라 최소 1 ~ 최대 36개."),
+    "special_min_tier": 13,
+    "special_min": 1,
+    "special_max": 36,
+    "_prototype_note": "원형젬 1개 분해 = 마법가루 2,666개 + 초월의 용액 36개(글쓴이 실측).",
+    "prototype_dust": 2666,
+    "prototype_special": 36,
+}
+
+# [용액 상점] 품목 4종. ⚠️ 판매 **가격**만 위키에도 없어 자작 튜닝 노브다.
+POTION_SHOP = {
+    "_source": ("docs/ref/orig_image/shop/점술집_젬강화.pdf — [용액 상점] 품목 4종"
+                "(영광의 용액 +10 고정 / 전설의 용액 +25 고정 / 샌즈의 눈물 10%·20%)."),
+    "_price_note": ("⚠️ 판매 가격은 위키 글에도 없다(서버 유실) → 아래는 자작 튜닝 노브. "
+                    "글쓴이가 '굳이 상점에서 영광이나 전설을 살 필요가 없다'고 쓴 만큼 "
+                    "제작(1,000G)보다 비싸게 잡았다."),
+    "items": [
+        {"item": "alchemy_glory", "price": 8000, "cur": "gold"},
+        {"item": "alchemy_legend", "price": 25, "cur": "diamond"},
+        {"item": "alchemy_platinum_01", "price": 15, "cur": "diamond"},
+        {"item": "alchemy_platinum_02", "price": 30, "cur": "diamond"},
+    ],
+}
+
+# 혼성젬 제작에 넣는 '샌즈의 눈물' 2종 — 샌즈젬 확률 보너스.
+SANDS_TEARS = [
+    {"item": "alchemy_platinum_01", "name": "샌즈의 눈물(10%)", "sands_bonus_pct": 10},
+    {"item": "alchemy_platinum_02", "name": "샌즈의 눈물(20%)", "sands_bonus_pct": 20},
 ]
 
 # 위키 §3 소울젬 강화 비용(10단계). dust=젬가루, mat=발록 재료, core=발록의 핵.
@@ -251,6 +318,17 @@ def build() -> dict:
             "_source": "위키 §2.2 — 혼성젬 제작: 공/방/체 가루 각 20개, 결과 종류 랜덤. 샌즈의 눈물 투입 시 샌즈젬 확률↑.",
             "hybrid_dust_each": 20,
             "sands_tear_item": "샌즈의 눈물",
+            "sands_tear_items": SANDS_TEARS,
+            "_sands_source": ("docs/ref/orig_image/shop/점술집_젬강화.pdf — 혼성젬 제작 시 "
+                              "넣으면 샌즈젬이 나올 확률이 각각 +10%/+20%. 안 넣어도 제작은 된다."),
+            # 눈물이 확률을 올려 주는 **대상 젬**. `Gem.craft_hybrid` 가 이 이름으로 풀에서 찾는다.
+            "sands_gem_name": "샌즈의 젬",
+            "_chance_note": (
+                "기준선은 혼성젬 풀 균등(7종 → 약 14%)이고 눈물은 거기에 +10/+20%p 를 더한다. "
+                "위키가 '+10%/+20%' 라고만 적어 기준선이 무엇인지 안 밝혔다 → 가산으로 읽었다 "
+                "(ASSUMPTION). 나머지 확률은 다른 혼성젬이 균등하게 나눠 갖는다. "
+                "판정은 scripts/systems/gem.gd `sands_chance`/`craft_hybrid`."
+            ),
         },
         "upgrade": {
             "_source": "위키 §2.2(혼성 강화/복구·용액) · §3(소울젬 강화 비용).",
@@ -262,24 +340,34 @@ def build() -> dict:
                 "사용자가 '하락 = 초기화(0%)' 로 확정했다."
             ),
             "success": {
-                "_re_basis": (
-                    "⚠️ ASSUMPTION — 강화 실패율은 위키에도 원작 문자열에도 없다(복구 다이아표만 있다). "
-                    "사용자 확정(2026-07-27): '실패율은 나도 기억이 나지 않으니 assumption 으로 채우자'. "
-                    "실패가 존재하는 근거는 <MagicWelcomeGem> '실패할 수도 있으니 신중하게 도전하세요!' "
-                    "와 <MagicGemFail>, 그리고 자산 scene/magicshop/gem_fail·btn_gemrepair 다."
-                ),
-                "_formula": "성공률(%) = clamp(start - step×티어, floor, 100) + 연금포인트, 100 상한",
-                "base_pct_start": 100,
-                "step_pct": 5,
+                "_source": ("docs/ref/orig_image/shop/점술집_젬강화.pdf 표 — "
+                            "**용액 미투입 기준** 등급별 성공률(실측)."),
+                "_supersedes": ("이전 값은 ASSUMPTION 공식(start 100 - step 5×티어)이었다. "
+                                "위키 실측표가 확보돼 폐기한다."),
+                "_formula": ("성공률(%) = by_tier_pct[티어] + 연금술 포인트"
+                             "(용액 투입 합, 100 초과 시 0으로 초기화), 100 상한"),
+                "by_tier_pct": SUCCESS_BY_TIER,
+                "floor_pct": 14,          # 표가 18강 14% 에서 끝난다 — 그 밖은 이 값으로 고정
+                "_soul_note": "소울젬은 위키 표에 없다 → 종전 ASSUMPTION 공식을 유지한다.",
                 "base_pct_soul_start": 90,
                 "step_pct_soul": 7,
-                "floor_pct": 10,
             },
             "potions": POTIONS,
-            "repair_diamond": REPAIR_DIA,
+            "repair_diamond": dict(REPAIR_DIA, _source=(
+                "docs/ref/orig_image/shop/점술집_젬강화.pdf 표 — 복구 비용(다이아) = "
+                "티어 번호와 동일(1~18). 기존 값과 일치 확인.")),
             "soul_steps": SOUL_UPGRADE,
             "promote": PROMOTE_COST,
+            "_wiki_ref": WIKI_REF,
+            "cost_gold": {
+                "_source": ("docs/ref/orig_image/shop/점술집_젬강화.pdf 표 — 강화 비용(골드). "
+                            "규칙: 3,000 + 600×(티어-1)."),
+                "by_tier": COST_GOLD_BY_TIER,
+            },
+            "_potions_source": POTIONS_SOURCE,
         },
+        "disassemble": DISASSEMBLE,
+        "potion_shop": POTION_SHOP,
     }
 
 

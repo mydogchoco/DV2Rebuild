@@ -24,11 +24,29 @@ const SALT_ID := "dv2.cc.id.v1"
 const SALT_KEY := "dv2.cc.key.v1"
 const DEFAULT_ITER := 10000
 
-## 입력 정규화 — 영숫자만 남기고 대문자로. 하이픈·공백 표기 차이를 흡수한다.
+## 한글 코드에 섞여 들어오는 문장부호. 여기 있는 것만 버린다(글자는 무엇이든 남긴다).
+## ⚠️ `scripts/tools/build_card_codes.py` 의 `PUNCT_EXTRA` 와 **한 글자도 다르면 안 된다.**
+const PUNCT_EXTRA := "·—–―…“”‘’、。，．！？：；（）［］｛｝「」『』〈〉《》〜～"
+## 눈에 안 보이는 공백류 — 소스에 그대로 넣으면 편집기·파서가 삼킬 수 있어 **코드포인트로** 적는다.
+const SPACE_CP := [0x00A0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,
+	0x2007, 0x2008, 0x2009, 0x200A, 0x200B, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF]
+
+## 입력 정규화 — 글자·숫자만 남기고 ASCII 는 대문자로. 하이픈·공백·문장부호를 흡수한다.
+##
+## **한글 코드를 지원한다**(사용자 표가 한국어 문장을 코드로 쓴다 — 2026-07-31).
+## 종전 구현은 ASCII 영숫자만 남겨서 한글 코드가 빈 문자열이 됐고, 그런 코드는
+## 빌드에서도 조용히 빠졌다. 비-ASCII 는 대소문자 변환을 걸지 않는다 —
+## GDScript `to_upper()` 와 Python `.upper()` 가 특수 문자에서 갈라질 수 있어서다.
+##
+## ⚠️ 한글 자모 결합은 NFC 전제다(Windows IME 입력 = NFC, CSV 도 NFC 로 확인).
 static func normalize(code: String) -> String:
 	var out := ""
-	for c in code.to_upper():
+	for c in code:
 		if (c >= "0" and c <= "9") or (c >= "A" and c <= "Z"):
+			out += c
+		elif c >= "a" and c <= "z":
+			out += c.to_upper()
+		elif c.unicode_at(0) >= 0x80 and not PUNCT_EXTRA.contains(c) and not SPACE_CP.has(c.unicode_at(0)):
 			out += c
 	return out
 

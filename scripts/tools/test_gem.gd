@@ -182,6 +182,29 @@ func _init() -> void:
 		var fixed := G.repair(broke, 0)
 		fails += _true("복구되면 파손 해제", not G.is_broken(G.entries(fixed)[0]))
 		fails += _true("복구 후 효과 부활", int(G.aggregate(fixed, table)["flat"]["hp"]) > 0)
+	# ── 혼성젬 제작 + 샌즈의 눈물(위키 §2.2 — 제작 시 샌즈젬 확률 +10/+20%) ──────────
+	fails += _eq("혼성젬 풀", G.hybrid_pool(table).size(), 7)
+	fails += _eq("눈물 보너스 10%", G.sands_bonus("alchemy_platinum_01", table), 10)
+	fails += _eq("눈물 보너스 20%", G.sands_bonus("alchemy_platinum_02", table), 20)
+	fails += _eq("눈물 없음 = 균등", G.sands_chance(table, 0), 14)      # round(100/7)
+	fails += _eq("눈물 10% 투입", G.sands_chance(table, 10), 24)
+	fails += _eq("눈물 20% 투입", G.sands_chance(table, 20), 34)
+	# 실제 굴림이 그 확률에 수렴하나(시드 고정 5,000회, ±3%p 허용).
+	for probe in [[0, 14], [10, 24], [20, 34]]:
+		var rc := RandomNumberGenerator.new()
+		rc.seed = 20260731
+		var hit := 0
+		var seen: Dictionary = {}
+		for i in 5000:
+			var got := G.craft_hybrid(table, int(probe[0]), rc)
+			seen[got] = true
+			if got == "샌즈의 젬":
+				hit += 1
+		var pct := hit * 100.0 / 5000.0
+		fails += _true("제작 샌즈율(보너스 %d) %.1f%% ≈ %d%%" % [probe[0], pct, probe[1]],
+			absf(pct - float(probe[1])) <= 3.0)
+		fails += _eq("제작 결과 종류(보너스 %d)" % probe[0], seen.size(), 7)
+
 	# 연금 상태(points/potions)가 entries 왕복에서 보존돼야 한다
 	var keep := G.entries(ap["field"])
 	fails += _eq("entries 가 포인트 보존", int((keep[0] as Dictionary).get("points", -1)), int(ap["points"]))

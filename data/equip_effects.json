@@ -772,9 +772,14 @@
    "text": "각성스킬 [구드라의 가호]인한 아펙 획득 확률이 100%로 변경"
   },
   "번개고룡의 팬던트": {
-   "impl": false,
-   "why": "skill:심판의 날개",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "skill_dmg_deal",
+     "pct": 200,
+     "skill_id": 21
+    }
+   ],
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "자신이 [심판의 날개] 사용 시 대미지 200% 증가"
@@ -958,18 +963,35 @@
    "text": "팀버프 [흑풍]을 활성화한 경우 자신은 공격하지 않음"
   },
   "진의 나무비늘": {
-   "impl": false,
-   "why": "skill:(각성기 대미지) — awaken_dmg 는 있으나 '아군 땅속성 수만큼'의 per 대상이 각성기 배수와 맞물려야 한다",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "awaken_dmg",
+     "pct": 20,
+     "per": "ally_element:earth",
+     "max": 60
+    }
+   ],
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "아군 땅 속성 드래곤 수만큼 진의 각성기 데미지 20%증가(최대 60%)"
   },
   "레지아나의 빛나는 깃털": {
-   "impl": false,
-   "why": "skill:(사망 시 아군 각성기 강화)",
+   "react": [
+    {
+     "on": "death",
+     "do": "party_buff",
+     "to": "ally",
+     "ops": [
+      {
+       "kind": "awaken_dmg",
+       "pct": 50
+      }
+     ]
+    }
+   ],
+   "impl": true,
    "ops": [],
-   "react": [],
    "dyn": [],
    "text": "해당 드래곤 사망시,아군 각성기 피해량 50%증가"
   },
@@ -994,32 +1016,68 @@
    "text": "[몬스터헌터] 효과가 토벌전 몬스터에게도 적용"
   },
   "익시아의 왕관": {
-   "impl": false,
-   "why": "cut — PvP",
+   "awaken_mod": {
+    "skill": "각성된 바람의 힘",
+    "patch": {
+     "ops.0.value": "+30",
+     "ops.1.value": "+30",
+     "ops.2.value": "+30"
+    },
+    "no": 7
+   },
+   "partial": "'바람속성 필드에서 PvP 전투에도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영",
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "자신의 [각성된 바람의 힘]효과가 바람속성 필드에서 PvP전투에도 P vP에도 적용되고 효과가 30% 증가"
   },
   "솔라의 불꽃구슬": {
-   "impl": false,
-   "why": "cut — PvP",
+   "awaken_mod": {
+    "skill": "각성된 빛의 힘",
+    "patch": {
+     "ops.0.value": "+30",
+     "ops.1.value": "+30",
+     "ops.2.value": "+30"
+    },
+    "no": 9
+   },
+   "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영",
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "자신의 '각성된 빛의 힘'의 효과가 PvP에서도 적용+효과 30%증가"
   },
   "수라드래곤의고대 장식": {
-   "impl": false,
-   "why": "cut — PvP",
+   "awaken_mod": {
+    "skill": "각성된 불의 힘",
+    "patch": {
+     "ops.0.value": "+30",
+     "ops.1.value": "+30",
+     "ops.2.value": "+30"
+    },
+    "no": 8
+   },
+   "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영",
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "자신의 '각성된 불꽃의 힘'의 효과가 PvP에서도 적용+효과 30%증가"
   },
   "프로스트랩터의 얼음수정": {
-   "impl": false,
-   "why": "cut — PvP",
+   "awaken_mod": {
+    "skill": "각성된 어둠의 힘",
+    "patch": {
+     "ops.0.value": "+30",
+     "ops.1.value": "+30",
+     "ops.2.value": "+30"
+    },
+    "no": 10
+   },
+   "partial": "'PvP 에서도 적용' 은 오프라인에서 뺀 콘텐츠라 미반영",
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
@@ -1034,17 +1092,30 @@
    "text": "[순위쟁탈전]에서 아군 드래곤이 공격력과 피해량이 20% 증가."
   },
   "다크프로스티의 무늬": {
-   "impl": false,
-   "why": "cut — 탐험 골드 획득 증가량 참조",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "stat",
+     "stat": "att",
+     "mode": "pct",
+     "from": {
+      "stat": "explore_gold_pct",
+      "ratio": 1.0
+     }
+    }
+   ],
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가"
   },
   "엔젤 드래곤의티아라": {
-   "impl": false,
-   "why": "engine — 자기 관통을 아군에게 '공통분배'하는 대상 연산이 없다",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "pen_share"
+    }
+   ],
+   "partial": "'공통분배' 를 **똑같이 나눠 주는 것**으로 읽었다(아군마다 전액이 아니라 1/N). 원문이 갈라 주지 않아 둘 중 하나를 골라야 했다",
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "자신의 방어 관통을 0으로 감소, 나머지 아군 드래곤에게 공통분배"
@@ -1132,10 +1203,23 @@
    "text": "자신의 체력 20% 이하일 때 공격 시, 체력 1% 회복 + 자신이 주는 대미 지 25% 증가(피의 갈증과 중첩 불가)"
   },
   "워든의 부유검": {
-   "impl": false,
-   "why": "engine — 디버프 피격 중 공격력 누적 강화",
+   "react": [
+    {
+     "on": "attack_done",
+     "do": "stack_from_target",
+     "stat": "att",
+     "pct": 10,
+     "max_total": 1000,
+     "when": {
+      "kind": "has_debuff",
+      "except_src": [
+       23
+      ]
+     }
+    }
+   ],
+   "impl": true,
    "ops": [],
-   "react": [],
    "dyn": [],
    "text": "상처파악을 제외한 모든 디버프의 영향을 받는 동안 자신이 일반공격 시 타겟 최대 체력의 10% 만큼 공격력 강화 (최대 1000)"
   },
@@ -1156,10 +1240,25 @@
    "text": "해당 드래곤의 공격을 회피한 경우, 회피한 상대 드래곤이 자신에 턴에 자신을 공격 ( 전투당 최대 2회 )"
   },
   "쿠르파의 푸른갑주": {
-   "impl": false,
-   "why": "engine — 아군 사망 트리거 + 5턴 한정 버프",
+   "react": [
+    {
+     "on": "death",
+     "do": "party_buff",
+     "plant": "ally_element:shadow",
+     "to": "ally",
+     "turns": 5,
+     "ops": [
+      {
+       "kind": "stat",
+       "stat": "att",
+       "mode": "pct",
+       "value": 50
+      }
+     ]
+    }
+   ],
+   "impl": true,
    "ops": [],
-   "react": [],
    "dyn": [],
    "text": "아군 그림자 속성 드래곤이 체력이 0이 되면, 5턴간 공격력 50% 상승"
   },
@@ -1255,9 +1354,18 @@
    "text": "아군 물속성 드래곤의 피해량 10% 증가"
   },
   "멜로우 드래곤의 부메랑": {
-   "impl": false,
-   "why": "engine — 조건부로 '공격하지 않는다'(행동 자체를 막는 규칙)",
-   "ops": [],
+   "cond": {
+    "kind": "party_element_count",
+    "value": "wind",
+    "min": 2
+   },
+   "ops": [
+    {
+     "kind": "flag",
+     "flag": "no_attack"
+    }
+   ],
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "아군에 자신을 제외한 바람속성 드래곤이 있는 경우 멜로우는 공격하지 않는다."
@@ -1305,9 +1413,13 @@
    "text": "공격 시 상대 드래곤 남은 체력의 5%에 비례하는 추가 대미지(최대 300)"
   },
   "fiod:피오드의 부서진 낙인": {
-   "impl": false,
-   "why": "skill:(착용자 스킬 효과 +1)",
-   "ops": [],
+   "ops": [
+    {
+     "kind": "skill_level",
+     "value": 1
+    }
+   ],
+   "impl": true,
    "react": [],
    "dyn": [],
    "text": "착용한 드래곤의 스킬 효과 +1"

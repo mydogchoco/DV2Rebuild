@@ -41,11 +41,15 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 CSV_PATH = REPO / "docs/input/sheets/card_codes.csv"
 OUT_PATH = REPO / "data/card_codes.json"
+ITEMS_PATH = REPO / "data/items.json"
+GEMS_PATH = REPO / "data/gems.json"
+DRAGONS_PATH = REPO / "data/dragons.json"
 
 # `--csv` / `--out` 으로 갈아 끼운다. 회귀 테스트용 픽스처
 # (`scripts/tools/fixtures/card_codes_test.csv` → `card_codes_test.json`)를 굽는 데 쓴다 —
@@ -86,9 +90,39 @@ def _rel(p: Path) -> str:
         return str(p)
 
 
+# 한글 코드에 섞여 들어오는 문장부호. 여기 있는 것만 버린다(글자는 무엇이든 남긴다).
+# ⚠️ `scripts/systems/card_code.gd` 의 `PUNCT_EXTRA` 와 **한 글자도 다르면 안 된다.**
+PUNCT_EXTRA = "·—–―…“”‘’、。，．！？：；（）［］｛｝「」『』〈〉《》〜～"
+# 눈에 안 보이는 공백류 — 소스에 그대로 넣으면 편집기·파서가 삼킬 수 있어 **코드포인트로** 적는다.
+SPACE_CP = {0x00A0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,
+            0x2007, 0x2008, 0x2009, 0x200A, 0x200B, 0x2028, 0x2029, 0x202F, 0x205F,
+            0x3000, 0xFEFF}
+
+
 def norm_code(code: str) -> str:
-    """입력 정규화 — 영숫자만 남기고 대문자로. 하이픈·공백 표기 차이를 흡수한다."""
-    return re.sub(r"[^0-9A-Za-z]", "", code).upper()
+    """입력 정규화 — 글자·숫자만 남기고 ASCII 는 대문자로.
+
+    하이픈·공백·문장부호 표기 차이를 흡수한다. **한글 코드를 지원한다**(사용자가 한국어
+    문장을 코드로 쓴다 — 2026-07-31). 종전 구현은 `[^0-9A-Za-z]` 를 전부 지워서 한글 코드가
+    빈 문자열이 되고 그 행이 **조용히 사라졌다.**
+
+    - ASCII 영숫자: 그대로(소문자→대문자)
+    - 그 밖의 ASCII(공백·하이픈·마침표·콜론…): 버린다
+    - 비-ASCII: `PUNCT_EXTRA` 와 공백류만 버리고 **나머지는 그대로 남긴다**
+      (대소문자 변환을 걸지 않는다 — Python `.upper()` 와 GDScript `to_upper()` 가
+       특수 문자에서 갈라질 수 있어 ASCII 로만 제한한다)
+
+    ⚠️ 한글은 NFC 로 통일한다. Windows/IME 입력은 NFC 라 게임 쪽 입력과 일치한다.
+    """
+    out = []
+    for ch in unicodedata.normalize("NFC", code):
+        if "0" <= ch <= "9" or "A" <= ch <= "Z":
+            out.append(ch)
+        elif "a" <= ch <= "z":
+            out.append(ch.upper())
+        elif ord(ch) >= 0x80 and ch not in PUNCT_EXTRA and ord(ch) not in SPACE_CP:
+            out.append(ch)
+    return "".join(out)
 
 
 def iter_sha256(salt: bytes, code: str, iterations: int = ITER) -> bytes:
@@ -122,6 +156,101 @@ def flag_key(name: str) -> str:
     return hashlib.sha256(SALT_FLAG + name.strip().encode("utf-8")).hexdigest()[:32]
 
 
+# ── 보상키 해석 — 자연어 이름 → 실제 키 ────────────────────────────────────────
+#
+# 사용자는 시트에 `data/items.json` 키가 아니라 **게임에 보이는 이름**을 적는다
+# (2026-07-31 확정). 여기서 이름을 키로 옮긴다. 못 찾으면 **빌드를 실패시킨다** —
+# 조용히 건너뛰면 코드는 살아 있는데 보상만 빠진 표가 나온다(HARD RULE 6: 지어내지 않는다).
+#
+#   1) `data/items.json` 키와 정확히 같으면 그대로
+#   2) `gem:` 으로 시작하면 그대로(고급 표기)
+#   3) `items.json` 의 `name` 과 일치(공백·괄호 무시)
+#   4) 젬 이름 + 티어 표기 → `Gem.item_key()` 가상 인벤 키 `gem:<젬이름>:<0-base 티어>`
+#      "방어의 소울젬 10등급" → `gem:방어의 소울젬:9`
+#      "샌즈의 젬 80/15/15"  → 티어 수치로 역조회(유일하게 맞는 티어가 있어야 한다)
+
+_ITEMS: dict | None = None
+_GEMS: dict | None = None
+_DRAGON_IDS: set | None = None
+
+
+def _nrm_name(s: str) -> str:
+    """이름 비교용 정규화 — 공백·괄호·하이픈을 무시한다('권능 5레벨' == '권능(5레벨)')."""
+    return re.sub(r"[\s()（）\[\]\-_·]", "", unicodedata.normalize("NFC", s)).lower()
+
+
+def _load_masters() -> None:
+    global _ITEMS, _GEMS, _DRAGON_IDS
+    if _ITEMS is not None:
+        return
+    _ITEMS = json.loads(ITEMS_PATH.read_text(encoding="utf-8"))
+    _GEMS = json.loads(GEMS_PATH.read_text(encoding="utf-8")).get("gems", {})
+    try:
+        dragons = json.loads(DRAGONS_PATH.read_text(encoding="utf-8"))
+        _DRAGON_IDS = {int(d["id"]) for d in dragons if isinstance(d, dict) and "id" in d}
+    except Exception:
+        _DRAGON_IDS = set()
+
+
+def _item_by_name(text: str) -> str | None:
+    want = _nrm_name(text)
+    hits = [k for k, v in _ITEMS.items()
+            if isinstance(v, dict) and _nrm_name(str(v.get("name", ""))) == want]
+    if len(hits) == 1:
+        return hits[0]
+    if len(hits) > 1:
+        raise ValueError(f"이름 '{text}' 이 아이템 {hits} 여러 개와 맞는다 — 키로 적어 주세요")
+    return None
+
+
+def _gem_by_name(text: str) -> str | None:
+    """'<젬 이름> <티어표기>' → 가상 인벤 키. 젬 이름으로 시작하지 않으면 None."""
+    t = re.sub(r"\s+", "", unicodedata.normalize("NFC", text))
+    for name in sorted(_GEMS, key=len, reverse=True):
+        if not t.startswith(re.sub(r"\s+", "", name)):
+            continue
+        spec = t[len(re.sub(r"\s+", "", name)):].strip()
+        tiers = _GEMS[name].get("tiers", [])
+        if not spec:
+            raise ValueError(f"'{text}' — 젬은 티어를 함께 적어야 합니다"
+                             f"(예: '{name} 10등급', 1~{len(tiers)})")
+        # (a) "10등급" / "10단계" / "10티어" / "10" → 1-base 티어
+        m = re.fullmatch(r"(\d+)\s*(등급|단계|티어|레벨|tier)?", spec)
+        if m:
+            idx = int(m.group(1)) - 1
+            if not (0 <= idx < len(tiers)):
+                raise ValueError(f"'{text}' — 티어는 1~{len(tiers)} 범위여야 합니다")
+            return "gem:%s:%d" % (name, idx)
+        # (b) "80/15/15" → 능력치 수치로 티어 역조회
+        nums = sorted(int(x) for x in re.findall(r"\d+", spec))
+        if not nums:
+            raise ValueError(f"'{text}' — 젬 티어 표기를 알아볼 수 없습니다: '{spec}'")
+        hits = [i for i, tr in enumerate(tiers) if sorted(int(v) for v in tr.values()) == nums]
+        if len(hits) == 1:
+            return "gem:%s:%d" % (name, hits[0])
+        if not hits:
+            raise ValueError(f"'{text}' — 그 수치와 맞는 {name} 티어가 없습니다"
+                             f"(수치는 data/gems.json 기준)")
+        raise ValueError(f"'{text}' — 그 수치가 {name} 티어 {[h + 1 for h in hits]} 와 겹칩니다"
+                         f" — '<N>등급' 으로 적어 주세요")
+    return None
+
+
+def resolve_item_key(text: str) -> str:
+    """자연어 보상키 → 인벤토리 키. 못 찾으면 ValueError."""
+    _load_masters()
+    key = text.strip()
+    if key in _ITEMS or key.startswith("gem:") or key.startswith("egg:"):
+        return key
+    got = _item_by_name(key)
+    if got:
+        return got
+    got = _gem_by_name(key)
+    if got:
+        return got
+    raise ValueError(f"'{text}' — data/items.json 에도 data/gems.json 에도 없는 이름입니다")
+
+
 # ── CSV ──────────────────────────────────────────────────────────────────────
 TEMPLATE_ROWS = 24
 
@@ -129,12 +258,13 @@ TEMPLATE_NOTE = [
     "# 이 파일은 gitignore 대상입니다 — 평문 코드가 공개 레포에 올라가지 않게 합니다.",
     "# 한 코드에 보상이 여러 개면 같은 코드로 행을 늘리세요(box_loot.csv 와 같은 방식).",
     "# 보상종류: 아이템 / 골드 / 다이아 / 알 / 드래곤 / 플래그",
-    "#   아이템 → 보상키 = data/items.json 키   (예: potion_hp)",
+    "#   아이템 → 보상키 = 게임에 보이는 이름(예: 데르사의 축복) 또는 data/items.json 키",
+    "#           젬은 '<젬 이름> <티어>' (예: 방어의 소울젬 10등급 / 샌즈의 젬 80/15/15)",
     "#   골드·다이아 → 보상키는 비우고 개수만",
     "#   알 → 보상키 = 드래곤 id (가방에 egg:<id> 로 들어갑니다)",
     "#   드래곤 → 보상키 = 드래곤 id (레벨1 개체로 지급)",
     "#   플래그 → 보상키 = 플래그 이름 (빌드에는 해시만 실립니다)",
-    "# 사용제한: 1회(기본) / 무제한",
+    "# 사용제한: 1(기본) / N=N번까지 / 무제한",
     "# 모르는 칸은 비워 두세요. 코드 칸이 비면 그 행은 무시됩니다.",
 ]
 
@@ -176,36 +306,51 @@ def read_rows() -> list[dict]:
     return out
 
 
-def parse_reward(row: dict, lineno: int) -> dict | None:
+def parse_reward(row: dict) -> tuple[dict | None, str]:
+    """CSV 한 행 → 보상 1건. 돌려주는 둘째 값은 **해석 로그**(사용자 검수용, 없으면 "")."""
     raw_kind = row.get("보상종류", "").strip()
     if not raw_kind:
-        return None
+        return None, ""
     kind = KIND_MAP.get(raw_kind)
     if kind is None:
-        print(f"  ⚠️ {lineno}행: 모르는 보상종류 '{raw_kind}' — 건너뜁니다.", file=sys.stderr)
-        return None
+        raise ValueError(f"모르는 보상종류 '{raw_kind}'")
     key = row.get("보상키", "").strip()
     try:
         n = int(row.get("개수", "").strip() or 1)
     except ValueError:
         n = 1
     if kind in ("gold", "dia"):
-        return {"t": kind, "n": n}
+        return {"t": kind, "n": n}, ""
     if kind in ("egg", "dragon"):
         if not key.isdigit():
-            print(f"  ⚠️ {lineno}행: {raw_kind} 는 보상키가 드래곤 id(숫자)여야 합니다 — 건너뜁니다.",
-                  file=sys.stderr)
-            return None
-        return {"t": kind, "k": int(key), "n": n}
+            raise ValueError(f"{raw_kind} 는 보상키가 드래곤 id(숫자)여야 합니다: '{key}'")
+        _load_masters()
+        if _DRAGON_IDS and int(key) not in _DRAGON_IDS:
+            raise ValueError(f"드래곤 id {key} 가 data/dragons.json 에 없습니다")
+        return {"t": kind, "k": int(key), "n": n}, ""
     if kind == "flag":
         if not key:
-            print(f"  ⚠️ {lineno}행: 플래그 이름이 비었습니다 — 건너뜁니다.", file=sys.stderr)
-            return None
-        return {"t": "flag", "k": flag_key(key)}
+            raise ValueError("플래그 이름이 비었습니다")
+        return {"t": "flag", "k": flag_key(key)}, ""
     if not key:
-        print(f"  ⚠️ {lineno}행: 아이템 키가 비었습니다 — 건너뜁니다.", file=sys.stderr)
-        return None
-    return {"t": "item", "k": key, "n": n}
+        raise ValueError("아이템 이름/키가 비었습니다")
+    resolved = resolve_item_key(key)
+    return {"t": "item", "k": resolved, "n": n}, ("" if resolved == key else f"{key} → {resolved}")
+
+
+# 사용제한 열 — "무제한"/"0" = 제한 없음, "N"/"N회" = N번까지, 빈 칸 = 1회.
+def parse_uses(text: str) -> int:
+    t = re.sub(r"\s+", "", text or "")
+    if not t:
+        return 1
+    if t in ("무제한", "무한", "unlimited", "0", "0회"):
+        return 0
+    m = re.fullmatch(r"(\d+)\s*(회|번|times)?", t)
+    if m:
+        return int(m.group(1))
+    if t in ("1회", "일회", "once"):
+        return 1
+    raise ValueError(f"사용제한을 알아볼 수 없습니다: '{text}' (예: 1 / 10 / 무제한)")
 
 
 def build(verify: bool) -> int:
@@ -213,21 +358,46 @@ def build(verify: bool) -> int:
     # 코드별로 묶는다(같은 코드 여러 행 = 보상 여러 개).
     grouped: dict[str, dict] = {}
     order: list[str] = []
+    errors: list[str] = []
+    resolved_log: list[str] = []
     for i, row in enumerate(rows, start=2):
-        code = norm_code(row.get("코드", ""))
+        raw_code = row.get("코드", "")
+        code = norm_code(raw_code)
         if not code:
+            if raw_code.strip():
+                errors.append(f"{i}행: 코드 '{raw_code.strip()}' 이 정규화하면 빈 문자열이 됩니다"
+                              " (글자·숫자가 하나도 없습니다)")
             continue
-        rew = parse_reward(row, i)
+        try:
+            rew, note = parse_reward(row)
+            uses = parse_uses(row.get("사용제한", ""))
+        except ValueError as e:
+            errors.append(f"{i}행: {e}")
+            continue
         if rew is None:
             continue
-        g = grouped.setdefault(code, {"rewards": [], "msg": "", "once": True})
+        if note:
+            resolved_log.append(f"  {i}행: {note}")
+        g = grouped.setdefault(code, {"rewards": [], "msg": "", "once": True, "uses": 1})
         if code not in order:
             order.append(code)
         g["rewards"].append(rew)
         if row.get("문구", "").strip():
             g["msg"] = row["문구"].strip()
-        if row.get("사용제한", "").strip() == "무제한":
-            g["once"] = False
+        # 같은 코드의 여러 행에 사용제한이 적혀 있으면 **가장 느슨한 값**을 쓴다
+        # (0=무제한이 가장 느슨하다). 행마다 다르면 아래에서 알려 준다.
+        g["uses"] = 0 if 0 in (g["uses"], uses) else max(g["uses"], uses)
+        g["once"] = g["uses"] == 1
+
+    if errors:
+        print("빌드 중단 — 아래를 고친 뒤 다시 실행하세요:", file=sys.stderr)
+        for e in errors:
+            print("  ❌ " + e, file=sys.stderr)
+        return 2
+    if resolved_log:
+        print("이름 → 키 변환:")
+        for line in resolved_log:
+            print(line)
 
     entries = []
     for code in order:
@@ -256,6 +426,10 @@ def build(verify: bool) -> int:
         "entries": entries,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"빌드: {_rel(OUT_PATH)}  코드 {len(entries)}개")
+    for code in order:
+        g = grouped[code]
+        lim = "무제한" if g["uses"] == 0 else f"{g['uses']}회"
+        print(f"  · 보상 {len(g['rewards'])}건 / {lim}")
 
     if verify:
         ok = 0

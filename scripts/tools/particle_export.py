@@ -28,6 +28,14 @@ SOURCES = [
     ("scene/common/pt_take_skill", "pt_take_skill"),
     # 연구소 B1 결정 생산 — 원작 CrystalLayer::initGenerateBtn 이 작동 중 슬롯에 뿌린다.
     ("scene/laboratory/generate_effect", "generate_effect"),
+    # 젬/스킬 슬롯 재추첨 — 원작 ResetLayer::randomGemEffect 가 굴러가는 칸마다 tag 0x7b+i 로 붙인다.
+    ("scene/common/reset_slot", "reset_slot"),
+    # 혼돈의 틈새 — 원작 AdventureScene::init(:20929)이 다크닉스 모드일 때만 화면 하단에
+    # z=999999/tag=0x9c 로 붙이는 화염. 문자열 <AdventureField_8> "작열하는 화염 속에서".
+    ("scene/adventure/pt_monster_fire_back", "pt_monster_fire_back"),
+    # 흡혈 임팩트 — 원작 AdventureScene::setVampImpact @00ca52e4 가 피격 지점에 scale 0.8 로
+    # 붙인다(그 함수의 나머지 절반인 `common/backlight1.png` 은 추출 아틀라스에 없다 — §10 표).
+    ("scene/adventure/pt_skill_14_vamp", "pt_skill_14_vamp"),
 ]
 # 초월맥스 가산은 연출측(battle.gd)에서 처리; 여기선 순수 파티클 파라미터만.
 
