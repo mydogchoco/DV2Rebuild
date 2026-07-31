@@ -8,15 +8,15 @@
  "speakers": {
   "1": {
    "npc": "nuri",
-   "basis": "'반가워, 난 누리야!' — 자기소개"
+   "basis": "사용자 확정(prologue_speakers.csv)"
   },
   "2": {
    "npc": "jimon",
-   "basis": "'내 이름은 즈믄! 네 이름을 알려주겠어?' — 자기소개"
+   "basis": "사용자 확정(prologue_speakers.csv)"
   },
   "4": {
    "npc": "jimon",
-   "basis": "'내 이름은 즈믄! 저 녀석의 이름은 누리야!' — 자기소개 + 상대 지칭"
+   "basis": "사용자 확정(prologue_speakers.csv)"
   }
  },
  "_re_basis": "원작 ScenarioLayer::setNextSelecteMode @016caaac 의 SN_0_* 분기를 그대로 뽑은 표. SN 번호 = 시나리오 0 대사 인덱스(0~34=PrologueTalk, 37~=Tutorial_(N-36)). 추출 = scripts/tools/extract_tutorial_flow.py. 화살표 인자 의미와 오프셋 근거는 그 파일 주석.",
@@ -254,6 +254,7 @@
    "talk": "Tutorial_46"
   },
   "SN_0_17_4_reset": {
+   "cut": "〃",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
@@ -292,11 +293,18 @@
    "frames": [
     "scene/cave/bag.png"
    ],
+   "gate": "hatched_dragon",
+   "gate_basis": "원작 setBtnClick 부화 손동작 대신 '부화 완료된 드래곤 보유'로 판정(사용자 확정)",
+   "gate_wait_talk": [
+    "PrologueTalk15",
+    "PrologueTalk16"
+   ],
    "target": "bag",
    "target_basis": "원작 프레임 scene/cave/bag.png",
    "talk_index": 17,
    "talk": "PrologueTalk17",
-   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?",
+   "gate_wait_text": "드래곤 알은 자연 부화 또는 즉시 부화시킬 수 있어.\n자연 부화는 조금 느리지만 다른 추가 비용이 필요 없고 즉시 부화의 경우 소량의 다이아가 필요해.\n일단 이번에는 우리가 다이아 값을 내줄게. 바로 알을 부화 시켜보자고! 멋진 드래곤 테이머가 되기 위해서는 반드시 파트너 드래곤이 필요한 법이니까! 으히힛!"
   },
   "SN_0_17_2": {
    "arrows": [
@@ -310,11 +318,13 @@
    "frames": [
     "common/element_bg.png"
    ],
+   "cut": "SN_0_17_1 의 게이트가 대신한다(setBtnClick 손동작)",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
   },
   "SN_0_17_3": {
+   "cut": "〃",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
@@ -326,6 +336,7 @@
      "flip_x": true
     }
    ],
+   "cut": "〃",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
@@ -338,11 +349,13 @@
      "rot": 0
     }
    ],
+   "cut": "〃",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
   },
   "SN_0_17_6": {
+   "cut": "〃 (PrologueEggBorn 부화 확인창 — 우리는 동굴 알 탭이 같은 확인을 한다)",
    "action": "hatch_confirm",
    "talk_index": 17,
    "talk": "PrologueTalk17",
@@ -356,11 +369,13 @@
      "rot": 0
     }
    ],
+   "cut": "〃",
    "talk_index": 17,
    "talk": "PrologueTalk17",
    "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
   },
   "SN_0_17_8": {
+   "cut": "〃",
    "action": "dialog",
    "talk_index": 17,
    "talk": "PrologueTalk17",

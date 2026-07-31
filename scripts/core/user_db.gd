@@ -165,6 +165,19 @@ func add_egg(id: int, grade: float, seconds: int, enhance := 0, inherit: Diction
 	_commit()
 	return inst
 
+## 동굴 슬롯에 **부화 완료된 드래곤**(= 알이 아닌 개체)이 하나라도 있는가.
+##
+## 🟦 튜토리얼 재개 판정(사용자 확정 2026-08-01). 원작은 부화 단계를 `CaveScene::setBtnClick`
+## 으로 **대신 눌러 주며** 진행했지만(가방 열기 → 알 선택 → 부화), 우리 초기 지급 아이템이
+## 원작과 달라(빛나는 의문의 알 10개) 그 손동작을 그대로 따라 할 수가 없다.
+## ⇒ "따라 하기" 훅 대신 **결과**로 판정한다 — 어떤 경로로 부화시켰든 드래곤이 생기면 진행.
+## 보관소(storage)는 세지 않는다 — 동굴 슬롯에 올라와 있어야 튜토리얼이 가리킬 대상이 된다.
+func has_hatched_dragon() -> bool:
+	for d in _data["dragons"]:
+		if not is_egg(d):
+			return true
+	return false
+
 func is_egg(d: Dictionary) -> bool:
 	return bool(d.get("egg", false))
 

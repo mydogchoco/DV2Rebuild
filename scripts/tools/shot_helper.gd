@@ -227,6 +227,16 @@ func _ready() -> void:
 				elif a7.begins_with("--scene="): tu_scene = a7.substr(8)
 			UserDB.set_pmeta("tutorial_done", false)
 			UserDB.set_pmeta("tutorial_step", tu_step)
+			# --eggonly=1 : 부화 완료 드래곤을 없애 **게이트가 실제로 막는지** 본다(알만 남긴다).
+			if "--eggonly=1" in OS.get_cmdline_user_args():
+				var keep: Array = []
+				for d in UserDB.dragons():
+					if UserDB.is_egg(d): keep.append(d)
+				UserDB.raw()["dragons"] = keep
+				if keep.is_empty():
+					UserDB.add_egg(1, 5.0, 3600)
+				UserDB.raw()["active_uid"] = int(UserDB.dragons()[0]["uid"])
+				print("SHOT tutorial: eggonly — 부화완료 보유=", UserDB.has_hatched_dragon())
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			if tu_scene != "worldmap":
 				for i in 10: await get_tree().process_frame

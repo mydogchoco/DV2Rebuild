@@ -96,6 +96,35 @@ TALK_TARGET = {
     "SN_0_69": ("slot_gem", "Tutorial_33 '젬과 전투 아이템을 모두 장착했어요!'"),
 }
 
+## 🟦 우리 쪽 개조(사용자 확정 2026-08-01) — 원작 `CaveScene::setBtnClick` 을 대신하는 **게이트**.
+##
+## 원작의 부화 구간(`SN_0_17_1`~`17_8`)은 가방을 대신 열고 알을 대신 고르고 부화까지
+## **대신 눌러 주는** 손동작 시퀀스다. 그런데 우리 초기 지급 아이템이 원작과 다르다
+## (원작은 튜토리얼용 알 1개, 우리는 '빛나는 의문의 알' 10개 — data/new_game.json `_tutorial_note`)
+## → 같은 손동작을 그대로 따라 할 수가 없다.
+## ⇒ 손동작을 흉내 내는 대신 **결과로 판정**한다: 동굴 슬롯에 부화 완료된 드래곤이 생기면 진행.
+##   `gate` = 그 스텝에서 기다릴 조건(런타임 `TutorialGuide._gate_ok`).
+##   `cut`  = 그 게이트가 대신하는 원작 스텝(실행하지 않고 건너뛴다 — 조용한 누락이 아니라 명시).
+## `wait_talk` = **기다리는 동안** 보여 줄 대사. 원작 순서가 그렇다 —
+##   PrologueTalk15/16 "알은 자연 부화 또는 즉시 부화… 동굴로 들어가면 간단하게 부화시킬 수 있어"
+##   (안내) → 실제 부화 → PrologueTalk17 "좋아! 드래곤이 부화했어! 이름을 지어주는 건 어때?"
+## 스텝 자신의 `text`(=talk 17)는 게이트가 **열린 뒤** 나온다.
+GATE = {
+    "SN_0_17_1": ("hatched_dragon",
+                  "원작 setBtnClick 부화 손동작 대신 '부화 완료된 드래곤 보유'로 판정(사용자 확정)",
+                  ["PrologueTalk15", "PrologueTalk16"]),
+}
+CUT = {
+    "SN_0_17_2": "SN_0_17_1 의 게이트가 대신한다(setBtnClick 손동작)",
+    "SN_0_17_3": "〃",
+    "SN_0_17_4": "〃",
+    "SN_0_17_4_reset": "〃",
+    "SN_0_17_5": "〃",
+    "SN_0_17_6": "〃 (PrologueEggBorn 부화 확인창 — 우리는 동굴 알 탭이 같은 확인을 한다)",
+    "SN_0_17_7": "〃",
+    "SN_0_17_8": "〃",
+}
+
 ## 화자(NPC 초상). ⚠️ **시나리오 0 의 화자 배정은 우리 디컴프에 없다** — 1~78화는 회차 클래스가
 ## `setTalk` 앞에 화자를 멤버에 써 두지만(그래서 scenario_flow.json 에 npc_name 이 있다),
 ## 프롤로그 대사 목록을 만드는 코드는 덤프 범위 밖이다(`grep PrologueTalk decomp/*.c` → 0건).
@@ -203,6 +232,11 @@ def main() -> int:
         # 실측: `SN_0_48` 은 프레임으로는 book 이 잡히는데 대사는 Tutorial_12(스킨/단상)이고,
         # 바로 다음 `SN_0_51` 의 대사가 Tutorial_15 '드래곤 도감입니다!' 다 ⇒ book 은 흘러든 것.
         idx = int(key.split("_")[2])
+        if key in GATE:
+            st["gate"], st["gate_basis"], wait_keys = GATE[key]
+            st["gate_wait_talk"] = wait_keys
+        if key in CUT:
+            st["cut"] = CUT[key]
         if key in TALK_TARGET:
             st["target"], st["target_basis"] = TALK_TARGET[key]
         else:
@@ -240,6 +274,9 @@ def main() -> int:
         t = strings.get(st.get("talk", ""))
         if t:
             st["text"] = t
+        if st.get("gate_wait_talk"):
+            st["gate_wait_text"] = chr(10).join(
+                strings.get(k, "") for k in st["gate_wait_talk"] if strings.get(k))
     # 화자 표 — 스텝이 아니라 **대사 인덱스**에 붙는다(프롤로그 대사는 prologue.gd 가 보여 준다).
     speakers = {str(i): {"npc": n, "basis": b} for i, (n, b) in TALK_SPEAKER.items()}
     speakers.update(read_speaker_sheet())      # 사용자가 채운 시트가 있으면 덮어쓴다

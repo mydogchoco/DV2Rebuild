@@ -114,13 +114,21 @@ func _build_box() -> void:
 ## 가려진다 — 그런데 튜토리얼이 "저 메뉴를 눌러라"라고 말하는 중이다. 그래서 바가 있는 화면에서만
 ## 그만큼 띄운다(바가 없는 화면은 원작대로 맨 아래).
 func _place_box() -> void:
-	if not is_instance_valid(_box):
+	if not is_instance_valid(_box) or not is_instance_valid(_label):
 		return
 	var vis: Vector2 = get_viewport().get_visible_rect().size
-	var y := vis.y - BOX_H
+	# 줄 수에 맞춰 키운다 — 부화 안내처럼 4줄짜리 대사가 상자 밖으로 새어 나가지 않게.
+	var lines := maxi(1, _label.get_line_count() if _label.get_line_count() > 0 else 1)
+	var h := maxf(BOX_H, float(lines) * (_label.get_line_height() + 2) + 32.0)
+	_box.size.y = h
+	for c in _box.get_children():
+		if c is NinePatchRect or c is Button:
+			(c as Control).size.y = h
+	_label.size.y = h - 32.0
+	var y := vis.y - h
 	var bar := _find_guide_target(get_tree().root, "bottom_bar")
 	if bar != null:
-		y = minf(y, bar.get_global_rect().position.y - BOX_H)
+		y = minf(y, bar.get_global_rect().position.y - h)
 	_box.position = Vector2(0.0, maxf(0.0, y))
 
 
@@ -165,15 +173,22 @@ func _cur() -> Dictionary:
 
 func _run() -> void:
 	_clear_arrows()
+	_stop_gate()
 	if _i >= _order.size():
 		_finish()
 		return
 	var key := String(_order[_i])
 	var st: Dictionary = _steps.get(key, {})
+	# `cut` = 게이트가 대신하는 원작 스텝 — 실행하지 않고 넘어간다(데이터에 이유가 적혀 있다).
+	if String(st.get("cut", "")) != "":
+		_i += 1
+		_run()
+		return
 	UserDB.set_pmeta(STEP_KEY, key)
 	var text := String(st.get("text", ""))
 	_label.text = text
 	_box.visible = text != ""
+	await get_tree().process_frame     # 줄 수는 레이아웃이 한 번 돌아야 나온다
 	_place_box()          # 씬마다 하단바 유무가 달라 매 스텝 다시 잡는다
 	# 안내 화살표 — 대상을 찾을 수 있을 때만(못 찾으면 대사만 보여 주고 넘어간다).
 	var target := _target_for(st)
@@ -188,6 +203,20 @@ func _run() -> void:
 			_wait_target = target
 			if not (target as BaseButton).pressed.is_connected(_advance):
 				(target as BaseButton).pressed.connect(_advance, CONNECT_ONE_SHOT)
+	# 게이트가 있으면 **조건이 성립할 때까지** 여기 머문다(탭으로도, 대상 클릭으로도 안 넘어간다).
+	# 기다리는 동안은 `gate_wait_text`(안내 대사)를, 열린 뒤에 스텝 자신의 `text` 를 보여 준다 —
+	# 원작 순서가 그렇다: 15/16 부화 안내 → 실제 부화 → 17 "드래곤이 부화했어!".
+	var gate := String(st.get("gate", ""))
+	if gate != "" and not _gate_ok(gate):
+		var wt := String(st.get("gate_wait_text", ""))
+		if wt != "":
+			_label.text = wt
+			_box.visible = true
+			await get_tree().process_frame   # 대사가 바뀌었으니 상자 높이를 다시 잡는다
+			_place_box()
+		_wait_target = _box            # 상자 탭으로도 안 넘어간다(실제로 부화시켜야 한다)
+		_start_gate(gate)
+		return
 	_dispatch(String(st.get("action", "")))
 
 
@@ -215,6 +244,44 @@ func _find_guide_target(n: Node, id: String) -> Control:
 	return null
 
 
+# ── 게이트 (🟦 우리 개조 — 원작 `setBtnClick` 손동작을 대신한다) ────────────────
+# 원작은 부화 구간에서 가방을 대신 열고 알을 대신 골라 준다. 우리 초기 지급 아이템이 원작과
+# 달라(빛나는 의문의 알 10개) 그 손동작을 그대로 따라 할 수 없어, **결과**로 판정한다:
+# 플레이어가 어떤 경로로 부화시켰든 동굴 슬롯에 드래곤이 생기면 튜토리얼이 이어진다.
+# 근거·범위 = `data/tutorial_flow.json` 의 `gate`/`gate_basis`/`cut`.
+var _gate_timer: Timer = null
+
+func _gate_ok(gate: String) -> bool:
+	match gate:
+		"hatched_dragon":
+			return UserDB.has_hatched_dragon()
+		_:
+			push_warning("[tutorial] 모르는 게이트 '%s' — 통과 처리한다" % gate)
+			return true
+
+func _start_gate(gate: String) -> void:
+	# 부화는 실시간 타이머라 이벤트가 없다 — 1초마다 확인한다(원작도 countDownFatigue 가 초당 갱신).
+	_gate_timer = Timer.new()
+	_gate_timer.wait_time = 1.0
+	_gate_timer.autostart = true
+	_gate_timer.timeout.connect(func():
+		if _gate_ok(gate):
+			_pass_gate())
+	add_child(_gate_timer)
+
+func _stop_gate() -> void:
+	if is_instance_valid(_gate_timer):
+		_gate_timer.queue_free()
+	_gate_timer = null
+
+## 조건이 성립했다 — 같은 스텝을 **다시 실행**해 이번엔 게이트를 건너뛰고
+## 스텝 자신의 대사(예: "좋아! 드래곤이 부화했어!")를 보여 준다.
+func _pass_gate() -> void:
+	_stop_gate()
+	_wait_target = null
+	_run()
+
+
 ## 원작 씬 훅. 아직 이식 안 한 것은 **경고를 남기고** 다음 스텝으로 간다(조용한 누락 금지).
 func _dispatch(action: String) -> void:
 	match action:
@@ -239,18 +306,20 @@ func _dispatch(action: String) -> void:
 
 ## 원작 `SN_0_26` = `AdventureScene::scene(1, 4)` — 시나리오 모드(FieldType 1)로 전투 4 진입.
 ##
-## ⚠️ **상대는 복원 불가**다. `data/story_battles.json` 의 `monster_by_battle` 는 원작
-## `AdventureScene` 의 `switch(battleNo)` 를 그대로 뽑은 것인데 **15번부터** 있고, 1~14 는
-## default 분기라 런타임(서버) 값이다(그 파일 `_monster_basis`). 같은 파일의
-## `monster_by_battle_event` 는 **이벤트 번호** 표라 battleNo 4 에 갖다 붙이면 근거 없는 교차매핑이다.
-## ⇒ 상대는 `data/tutorial_flow.json` 의 `battle` 블록(사용자가 채우는 자리)에서 읽고,
-##    비어 있으면 **전투를 건너뛴다**(지어내지 않는다 — HARD RULE 6).
+## 🟦 **2026-08-01 사용자 확정: 이 전투는 일단 건너뛴다.**
+## 상대를 복원할 수 없기 때문이다 — `data/story_battles.json` 의 `monster_by_battle` 는 원작
+## `AdventureScene::switch(battleNo)` 전량인데 **15번부터**고 1~14 는 default 분기 =
+## 런타임(서버) 값이다(그 파일 `_monster_basis`). 같은 파일 `monster_by_battle_event` 는
+## **이벤트 번호** 표라 battleNo 4 에 갖다 붙이면 근거 없는 교차매핑이다(HARD RULE 6).
+##
+## 배선 자체는 살아 있다 — `data/tutorial_flow.json` 의 `battle.monster_id` 에 값을 넣으면
+## 그 순간부터 이 스텝에서 실제로 전투가 붙고 끝나면 다음 스텝으로 이어진다(검증 완료).
 func _start_tutorial_battle() -> void:
 	var spec: Dictionary = Data.tutorial_flow.get("battle", {})
 	var mid := int(spec.get("monster_id", 0))
 	if mid <= 0:
-		push_warning("[tutorial] 튜토리얼 전투 상대 미정 — data/tutorial_flow.json 의 `battle.monster_id` "
-			+ "를 채우면 이 스텝에서 전투가 붙는다(원작 battleNo 4 는 서버 런타임 값이라 복원 불가)")
+		print("[tutorial] 튜토리얼 전투 ⚫보류(사용자 확정) — 상대가 정해지면 "
+			+ "data/tutorial_flow.json `battle.monster_id` 에 넣으면 그대로 붙는다")
 		return
 	var enemy := Data.story_enemy_of(mid, int(spec.get("level", 1)))
 	if enemy.is_empty():
