@@ -198,12 +198,10 @@ static func _draw_row(row: Control, sid: String, unlocked: bool, mode: String,
 		row.add_child(l)
 		return
 
-	# ③ 이름 "%s +%d" — 색은 원작 `Equip::getRarityColor`.
+	# ③ 이름 "%s +%d" — 색은 원작 `Equip::getRarityColor` 표 그대로(실루엣 표와 다르다).
 	var up := int(slot_dict.get("enhance", 0))
 	var rar := int(slot_dict.get("grade", 0))
-	var rc := Icons.rarity_color(rar)
-	if rc.a <= 0.0:
-		rc = Color(0.78, 0.24, 0.12)                # 일반은 원작이 색을 안 입힌다 → 기본 붉은 글씨
+	var rc := Icons.rarity_text_color(rar)
 	var nm := _mk_label("%s +%d" % [String(item.get("name", "")), up] if up > 0
 		else String(item.get("name", "")), 20, rc)
 	nm.position = Vector2(ICON_BOX + 10.0, 8.0)

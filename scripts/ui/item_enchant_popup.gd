@@ -72,6 +72,8 @@ var _pool: PackedStringArray = []
 var _mats: Array[int] = [-1, -1, -1]
 ## 지금 하이라이트된 목록 칸(-1=없음). 원작 `this+0x260`.
 var _sel := -1
+## 직전 강화로 **새로 붙은 옵션** 인덱스(-1=없음). 원작 `scene/cave/txt_new` 뱃지 자리.
+var _new_opt := -1
 
 
 static func open(parent: Node, uid: int, slot_id: String, on_done := Callable()) -> ItemEnchantPopup:
@@ -288,15 +290,25 @@ func _build_side() -> void:
 		col.add_child(_label(_item_name(), 19, Color(0.72, 0.20, 0.10)))
 		col.add_child(_label("강화 %d / %d" % [int(sd.get("enhance", 0)), _limit()], 16,
 			Color(0.30, 0.17, 0.04)))
+		var oi := 0
 		for o in (sd.get("options", []) as Array):
-			col.add_child(_opt_label(o as Dictionary))
+			var ol := _opt_label(o as Dictionary)
+			col.add_child(ol)
+			# 직전 강화로 붙은 옵션에는 원작 `scene/cave/txt_new` 뱃지를 단다
+			# (원작 `responseResult` 가 <CaveItemEquipSucces2> 와 함께 띄운다).
+			if oi == _new_opt:
+				var nb := AtlasUI.spr("cave_ui", "scene_cave_txt_new", Design.ASSET_SCALE * 0.7)
+				if nb:
+					nb.position = Vector2(bw - 60.0, 10.0)
+					ol.add_child(nb)
+			oi += 1
 	else:
 		var m := Equipment.item_key_meta(desc_key)
 		var it: Dictionary = Equipment.catalog(Data.equipment).get(
 			Equipment.parse_item_key(desc_key), {})
+		# 이름 글자 색 = 원작 `Equip::getRarityColor` 표(실루엣 표와 다르다).
 		col.add_child(_label(_key_name(desc_key), 19,
-			Icons.rarity_color(int(m.get("rarity", 0)))
-				if int(m.get("rarity", 0)) > 0 else Color(0.72, 0.20, 0.10)))
+			Icons.rarity_text_color(int(m.get("rarity", 0)))))
 		col.add_child(_label("무게 %d  ·  확률 가산 +%d%%" % [
 			Equipment.enchant_weight_of_key(desc_key, Data.equipment),
 			_bonus_of(desc_key)], 16, Color(0.30, 0.17, 0.04)))
@@ -476,6 +488,8 @@ func _on_enchant() -> void:
 			UserDB.set_dragon_field(_uid, "equip", next)
 			after = (_slot_data().get("options", []) as Array).size()
 	Bgm.sfx("effect_equip_success" if ok else "effect_equip_failed")
+	# NEW 뱃지는 **다시 그리기 전에** 정해야 설명 패널에 붙는다.
+	_new_opt = (after - 1) if (ok and after > before) else -1
 	if _on_done.is_valid():
 		_on_done.call()
 	_reload_pool()

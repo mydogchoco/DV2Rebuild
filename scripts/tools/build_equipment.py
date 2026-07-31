@@ -445,10 +445,26 @@ PIECES = {
     "_source": "위키 §3(7주년, 4세대 레이드). 세트 2/3 효과.",
     "_re_basis": "세트 옵션 테이블 = 원작 info_item_setacc, 컬럼 13개(RaidpieceItem.c:2128) — 위키 '13가지'와 일치.",
     "slots": 3,
-    "option_stats": ["att", "def", "hp", "att_plus", "def_plus", "hp_plus", "blk",
-                     "att_cap", "def_cap", "hp_cap", "evd", "cri_pow", "cri"],
-    "_option_stats_note": "위키 §3.1의 13종을 우리 키로. 원작 컬럼(h,i,j,a,b,c,d,e,f,k,l,m,n)과 개수 일치하나 "
-                          "컬럼↔스탯 대응은 유실 — 순서는 ASSUMPTION.",
+    # 🟢 2026-08-01 — 컬럼↔스탯 대응을 **디컴프에서 복원**했다(종전 ASSUMPTION 폐기).
+    # `RaidpieceItem` 도 `Equip::setOption` 과 **같은 구조**다: 옵션 문자열의 글자가
+    # `select h,i,j,a,b,c,d,e,f,k,l,m,n from info_item_setacc where no=%d` 의 **같은 이름 컬럼**을
+    # 고르고, 내부 type 번호를 `this+0x198` 에 적는다. type 번호는 Equip 과 **공유**된다
+    # (0=hp · 1=att · 2=def · 3=blk — Equip::setOption 에서 확정한 값과 동일).
+    # 케이스별 실측(글자 / type / 값 타입):
+    #   h=9(int) i=0(%) j=10(%)   a=11(int) b=1(%) c=12(%)
+    #   d=13(int) e=2(%) f=14(%)  k=15(%) l=16(%) m=3(%) n=17(%)
+    # ⇒ SQL 컬럼 순서가 **h,i,j / a,b,c / d,e,f 세 묶음**이고 각 묶음이 (flat, %, 상한%)이다.
+    #   위키 §3.1 의 "공격력 / 공격력+ / 공격력 상한 …" 3종 세트와 정확히 대응한다.
+    #   m 은 type 3 = blk(방어율)로 확정. **k·l·n(type 15/16/17) 만** 회피율·치명배율·치명확률
+    #   중 어느 것인지 순서가 남는다(위키 나열 순서를 따랐다) — 여기만 ASSUMPTION.
+    "option_stats": ["hp", "hp_pct", "hp_cap", "att", "att_pct", "att_cap",
+                     "def", "def_pct", "def_cap", "evd", "cri_pow", "blk", "cri"],
+    "_option_stats_columns": "h,i,j,a,b,c,d,e,f,k,l,m,n",
+    "_option_stats_note": (
+        "원작 확정 — RaidpieceItem 의 옵션 글자 switch(0x41~0x4e)가 같은 이름의 SQL 컬럼을 "
+        "고르고 Equip 과 공유하는 type 번호를 쓴다. 배열은 **SQL 컬럼 순서 그대로**다. "
+        "k/l/n(type 15/16/17) 세 칸의 회피율·치명배율·치명확률 순서만 위키 나열 순서를 따른 ASSUMPTION."
+    ),
     "grades": ["일반", "매직", "레어", "유니크"],
     "list": [
         {"name": "모험가의 편린", "source": "원소문어", "set2": "체력 10% 증가",

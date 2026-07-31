@@ -624,13 +624,22 @@ func _unbind_equip(uid: int, slot_id: String) -> void:
 	var key := String(Data.equipment.get("option", {}).get("unbind_item", "item_disconnect"))
 	if UserDB.item_count(key) <= 0:
 		_toast("구드라의 지혜가 없습니다"); return
-	var next: Dictionary = Equipment.unbind(UserDB.get_dragon(uid).get("equip", {}), slot_id)
-	if next.is_empty():
+	var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
+	var sd := _equip_slot_data(cur, slot_id)
+	if sd.is_empty() or int(sd.get("belong", 0)) <= 0:
 		_toast("귀속되지 않은 아이템입니다"); return      # 원작 문구 CaveItemEquipMsg12
 	if not UserDB.use_item(key, 1):
 		return
-	UserDB.set_dragon_field(uid, "equip", next)
-	_toast("귀속을 해제했습니다")
+	# 🟢 원작은 귀속을 풀면서 **장착도 벗긴다** — `BagPopup.c:22262~22284`:
+	#   getDragonTag() >= 1 이면 `Dragon::unSetEquip(pos)` → `setDragonTag(0)` → `setBelong(0)`
+	#   → `equip+0x130 = -1`(슬롯 위치 초기화). 애초에 다른 드래곤에게 옮기려고 푸는 것이라
+	#   그대로 끼워 두지 않는다. 종전 구현은 낀 채로 belong 만 0 으로 만들었다.
+	var freed := sd.duplicate(true)
+	freed["belong"] = 0
+	UserDB.add_item(Equipment.slot_to_item_key(freed), 1)
+	UserDB.set_dragon_field(uid, "equip", Equipment.unequip(cur, slot_id))
+	_refresh_stats()
+	_toast("귀속을 해제했습니다 — 장비는 가방으로 돌아갑니다")
 
 ## 장비 강화 — 원작 `ItemEnchantPopup`(톱니 기계 화면)을 연다.
 ## 🔀 2026-07-31: 종전엔 버튼 한 번에 즉시 강화됐다. 원작 화면은 톱니 기계 + 보조 재료 3칸 +

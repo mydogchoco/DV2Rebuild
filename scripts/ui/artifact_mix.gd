@@ -264,8 +264,8 @@ func _build_side() -> void:
 	else:
 		var item := _catalog_of(_base_key)
 		var rar := int(Equipment.item_key_meta(_base_key).get("rarity", 0))
-		info.add_child(_desc_label(String(item.get("name", "")), Icons.rarity_color(rar) \
-			if Icons.rarity_color(rar).a > 0.0 else Color8(0xB0, 0x28, 0x18)))
+		# 이름 글자 색 = 원작 `Equip::getRarityColor` 표(실루엣 표와 다르다).
+		info.add_child(_desc_label(String(item.get("name", "")), Icons.rarity_text_color(rar)))
 		info.add_child(_desc_label(String(item.get("artifact_effect", "")),
 			Color8(0x81, 0x43, 0x1D)))
 		var sk: Array = item.get("artifact_skills", [])

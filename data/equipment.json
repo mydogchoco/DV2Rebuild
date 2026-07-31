@@ -946,6 +946,15 @@
       "FF3924",
       "00FFEA"
     ],
+    "rarity_text_colors": [
+      "D2D2D2",
+      "FFFFFF",
+      "7AF04C",
+      "FFF600",
+      "FF3924",
+      "00FFEA"
+    ],
+    "_rarity_text_colors_re_basis": "원작 확정(값까지) — `Equip::getRarityColor(int)` @015081d8 이 rarity-1 을 인덱스로 룩업 테이블 3개(DAT_0220d9f8/da28/da58)를 읽어 r|g|b 를 합친다. libgame.so 의 .rodata 를 직접 디코드해 6칸을 뽑았다(베이스 보정 +0x100000, 심볼 _ZN7cocos2d5Equip14getRarityColorEi=0x14081d8 ↔ 디컴프 0x15081d8 로 확정). 레어~초월 4칸이 실루엣 표(getGradeImageSmallSprite 의 setColor 리터럴)와 정확히 일치하는 것이 바이트 순서 검산이다.",
     "_rarity_colors_re_basis": "원작 확정 — `Equip::getGradeImageSmallSprite` 가 rarity(1~6)로 setColor 한다. rarity 1(일반)은 스프라이트 자체를 만들지 않는다. 초월은 추가로 스파인 `scene/worldmap/trancendence_bg_spine` 을 얹는데 그 스파인은 추출 에셋에 없다.",
     "enhance_step_pct": 10,
     "_enhance_step_authored": "⚠️ 자작: 강화 1회 = 해당 옵션 값 +10%(최소 +1). 튜닝 노브."
@@ -974,21 +983,22 @@
     "_re_basis": "세트 옵션 테이블 = 원작 info_item_setacc, 컬럼 13개(RaidpieceItem.c:2128) — 위키 '13가지'와 일치.",
     "slots": 3,
     "option_stats": [
-      "att",
-      "def",
       "hp",
-      "att_plus",
-      "def_plus",
-      "hp_plus",
-      "blk",
-      "att_cap",
-      "def_cap",
+      "hp_pct",
       "hp_cap",
+      "att",
+      "att_pct",
+      "att_cap",
+      "def",
+      "def_pct",
+      "def_cap",
       "evd",
       "cri_pow",
+      "blk",
       "cri"
     ],
-    "_option_stats_note": "위키 §3.1의 13종을 우리 키로. 원작 컬럼(h,i,j,a,b,c,d,e,f,k,l,m,n)과 개수 일치하나 컬럼↔스탯 대응은 유실 — 순서는 ASSUMPTION.",
+    "_option_stats_columns": "h,i,j,a,b,c,d,e,f,k,l,m,n",
+    "_option_stats_note": "원작 확정 — RaidpieceItem 의 옵션 글자 switch(0x41~0x4e)가 같은 이름의 SQL 컬럼을 고르고 Equip 과 공유하는 type 번호를 쓴다. 배열은 **SQL 컬럼 순서 그대로**다. k/l/n(type 15/16/17) 세 칸의 회피율·치명배율·치명확률 순서만 위키 나열 순서를 따른 ASSUMPTION.",
     "grades": [
       "일반",
       "매직",

@@ -588,6 +588,23 @@ static func equipped(equip_field: Dictionary, slot_id: String, table: Dictionary
 const ITEM_PREFIX := "equip:"
 
 ## 옵션 스탯 ↔ 원작 직렬화 글자(`Equip::getSummaryOption` 의 "H%0.1f" "A%0.1f" … 그대로).
+## 🟢 **원작 확정(2026-08-01)** — 이 글자표는 우리가 지은 게 아니라 원작 옵션 인코딩과 같다.
+## `Equip::setOption(string)` 은 옵션 문자열을 `<글자><번호>` 토큰으로 끊어서
+##   ① 번호로 `select hp, atk, def, blk, gold, exp, pure, depure, accuracy from info_item_acc
+##      where no=%d` 를 돌려 9개 값을 읽고
+##   ② `switch(글자)` 로 **그중 어느 컬럼을 쓸지** 고른다.
+## 디컴프에서 전 케이스를 뽑은 결과(글자 → 컬럼 / 내부 type / 누적 필드):
+##   A→atk(1,0x14c) · B→blk(3,0x154) · C→accuracy(8,0x168) · D→def(2,0x150) · E→exp(4,0x15c)
+##   G→gold(5,0x158) · H→hp(0,0x148) · P→pure(6,0x160) · U→depure(7,0x164)
+## 아래 표와 **글자 하나까지 같다.** 즉 우리 인벤 키의 옵션 인코딩이 곧 원작 인코딩이다.
+##
+## 표시 단위도 같은 switch 에서 확정된다 — A/B/C/D/E/G/H 는 뒤에 `"%"` 를 붙이고
+## **P(관통)·U(관통감소)만 flat** 이다. 그중 실제로 기본 스탯에 **곱해지는** 것은
+## hp/att/def 뿐이고(`Dragon::getAttAdd` 가 `Equip::getAtk()/100.0`), blk·accuracy·gold·exp 는
+## 스탯 자체가 %라 퍼센트포인트 가산이다 → `option.pct_stats` = [hp, att, def] 가 맞다.
+##
+## ⚠️ 옵션 **수치**는 `info_item_acc` 행(로컬 SQLite)이라 그 DB 가 없는 우리는 못 읽는다.
+##    그래서 `option.value_ranges`(자작 범위 롤)로 대신한다 — 구조가 원작과 다른 유일한 지점.
 const OPTION_CODE := {
 	"hp": "H", "att": "A", "def": "D", "blk": "B", "exp": "E",
 	"gold": "G", "pure": "P", "depure": "U", "accuracy": "C",

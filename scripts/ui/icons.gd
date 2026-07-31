@@ -169,12 +169,22 @@ static func equip_bg_texture(item: Dictionary) -> Texture2D:
 		return texture("equipment_bg", String(item.get("name", "")))
 	return null
 
-## 희귀도(등급 인덱스 0=일반…5=초월) → 실루엣 색. 일반이거나 표에 없으면 투명(=안 그림).
-## 값은 원작 setColor 그대로 — data/equipment.json option.rarity_colors.
+## 희귀도(등급 인덱스 0=일반…5=초월) → **실루엣** 색. 일반이거나 표에 없으면 투명(=안 그림).
+## 값은 원작 `Equip::getGradeImageSmallSprite` 의 setColor 그대로 — option.rarity_colors.
 static func rarity_color(grade: int) -> Color:
 	var tbl: Array = Data.equipment.get("option", {}).get("rarity_colors", [])
 	if grade < 0 or grade >= tbl.size() or tbl[grade] == null:
 		return Color(0, 0, 0, 0)
+	return Color(String(tbl[grade]))
+
+## 희귀도 → **이름 글자** 색. ⚠️ 실루엣 색과 **다른 표**다(원작 함수가 둘이다) —
+## `Equip::getRarityColor(int)` 의 룩업 테이블을 libgame.so .rodata 에서 뽑은 값이다
+## (build_equipment.py `rarity_text_colors` 주석). 일반은 회색 D2D2D2, 매직은 흰색 FFFFFF 로
+## 실루엣 표(없음 / E6E6E6)와 갈린다. 범위 밖이면 원작 default 대로 흰색.
+static func rarity_text_color(grade: int) -> Color:
+	var tbl: Array = Data.equipment.get("option", {}).get("rarity_text_colors", [])
+	if grade < 0 or grade >= tbl.size() or typeof(tbl[grade]) != TYPE_STRING:
+		return Color.WHITE
 	return Color(String(tbl[grade]))
 
 ## 귀속 뱃지 프레임. 원작 `BagTableViewCell` — 내 것 `owned`, 남의 것 `owned2`, 뒷판 `owned_bg`.

@@ -2507,13 +2507,19 @@ func _expand_notice(pop: OrigPopup) -> void:
 	panel.position = Vector2(-360.0, 120.0)
 	panel.size = Vector2(340.0, 240.0)
 	pop.content.add_child(panel)
-	var t := Label.new(); t.text = "⚠ 주의"
+	# 느낌표 아이콘은 원작 프레임이다 — `MultyEquipPop` 이 `common/alert4` 를 쓴다
+	# (종전엔 "⚠" 글자로 대신했다. 참조 docs/ref/orig_image/lab/드래곤강화4.png).
+	var al := AtlasUI.spr("common_ui", "common_alert4", Design.ASSET_SCALE * 0.85)
+	if al:
+		al.position = Vector2(126.0, 14.0)
+		panel.add_child(al)
+	var t := Label.new(); t.text = "주의"
 	t.add_theme_font_size_override("font_size", 22)
 	t.add_theme_color_override("font_color", Color(1, 1, 1))
 	t.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.95))
 	t.add_theme_constant_override("outline_size", 5)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.position = Vector2(0, 0); t.size = Vector2(340.0, 28.0)
+	t.position = Vector2(24.0, 0); t.size = Vector2(340.0, 28.0)
 	panel.add_child(t)
 	var b := Label.new()
 	b.text = "어떤 슬롯을 여는지 상관없이 슬롯을 확장할\n때마다 요구하는 재료 드래곤 등급이 상승합니다."
