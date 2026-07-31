@@ -37,6 +37,16 @@ func _ready() -> void:
 
 	for i in 20: await get_tree().process_frame
 	match shot:
+		"advtreasure":
+			# 보물 이벤트 워드아트 검수 — 원작 setEventTreasure(플래시+회전 워드아트+파티클).
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 1})
+			for i in 30: await get_tree().process_frame
+			var tv := _node_with_method(get_tree().root, "_open_treasure")
+			if tv:
+				var rr := RandomNumberGenerator.new(); rr.seed = 7
+				tv.call("_open_treasure", rr)
 		"advready":
 			# 탐험 조우 선택지 화면 검수 — 레퍼런스 docs/ref/adventure/전투4.png · 전투5.png 대조용.
 			# 보스 게이지(우상단) + 하단 파티 카드 + 좌'도망간다'/우'싸운다' 가 한 화면에 나온다.
@@ -312,7 +322,8 @@ func _ready() -> void:
 				for a in OS.get_cmdline_user_args():
 					if a.begins_with("--tab="): ef_tab = a.substr(6)
 				if ef_tab == "enchant":
-					var ef_pop := ItemEnchantPopup.open(ef_n, ef_uid, ef_slot)
+					var ef_pop := ItemEnchantPopup.open(ef_n,
+						ItemEnchantPopup.target_worn(ef_uid, ef_slot))
 					for i in 10: await get_tree().process_frame
 					# 재료 두 칸을 채우고 세 번째를 하이라이트한 상태로 잡는다(확률 가산 확인).
 					var ef_n2: int = (ef_pop.get("_pool") as PackedStringArray).size()
@@ -322,7 +333,18 @@ func _ready() -> void:
 						await get_tree().process_frame
 
 				else:
-					var ef_p = EquipOptionLayer.open(ef_n, ef_uid, ef_slot, "ginu_coin_red", 4)
+					# ⚠️ 2026-08-01 부터 동전은 **등급을 바꾸지 않는다**(`Equipment.reroll` 이
+					#   슬롯 등급과 다르면 거절). 하드코딩 4(에픽) 대신 낀 장비의 실제 등급과
+					#   그 등급의 동전을 쓴다 — 안 그러면 `선택` 을 눌러도 아무 일도 없다.
+					var ef_sd: Dictionary = {}
+					for ef_s in (UserDB.get_dragon(ef_uid).get("equip", {}).get("slots", []) as Array):
+						if String((ef_s as Dictionary).get("slot", "")) == ef_slot:
+							ef_sd = ef_s
+					var ef_g := int(ef_sd.get("grade", 0))
+					var ef_coin := String((Data.equipment.get("option", {})
+						.get("reroll_items", {}) as Dictionary).get(str(ef_g), "ginu_coin_green"))
+					print("SHOT eqopt 등급=", ef_g, " 동전=", ef_coin)
+					var ef_p = EquipOptionLayer.open(ef_n, ef_uid, ef_slot, ef_coin, ef_g)
 					for i in 160: await get_tree().process_frame     # 마법진 연출이 끝나길 기다린다
 					ef_p.set("_pick", 1)
 					ef_p.call("_rebuild_result")
@@ -346,7 +368,7 @@ func _ready() -> void:
 					for a2 in OS.get_cmdline_user_args():
 						if a2 == "--select":
 							await get_tree().process_frame
-							es_n.call("_open_equip_select", "all")
+							es_n.call("_open_item_popup", "all")
 		"labslots":
 			# 연구소 B1 '드래곤 강화' → 장비 슬롯 확장(동굴과 같은 MultyEquipPop 위젯).
 			UserDB.begin_batch()
@@ -1010,6 +1032,35 @@ func _ready() -> void:
 		"mamomenu":
 			# 후기판 메인 카드 메뉴(연구소메인.png) — 탭 인자 없이 진입(지역맵 경로와 동일).
 			Scenes.goto("mamorudiclab", {})
+		"mamosmelt":
+			# 아티펙트 제련(원작 `ArtifactBox` → `OptionSelectLayer` 모드 2) 검수.
+			# 재료(아니마·보네르)와 레어 이상 아티팩트를 지급하고 목록을 연다.
+			# ⚠️ begin_batch 로만 만지고 save() 하지 않는다(사용자 세이브 오염 금지).
+			UserDB.begin_batch()
+			UserDB.add_item("anima", 9)
+			UserDB.add_item("bonner", 9)
+			UserDB.add_item(Equipment.item_key("artifact:루멘:5",
+				{"rarity": 3, "options": [{"stat": "att", "value": 7},
+					{"stat": "hp", "value": 4}, {"stat": "gold", "value": 3}]}), 1)
+			UserDB.add_item(Equipment.item_key("artifact:테라:2",
+				{"rarity": 4, "options": [{"stat": "pure", "value": 9},
+					{"stat": "def", "value": 5}, {"stat": "blk", "value": 2},
+					{"stat": "exp", "value": 6}]}), 1)
+			Scenes.goto("mamorudiclab", {})
+			for i in 40: await get_tree().process_frame
+			var ms := _find_method_node(get_tree().root, "_open_artifact_smelt")
+			if ms == null:
+				print("SHOT: _open_artifact_smelt 노드 없음")
+			else:
+				ms.call("_open_artifact_smelt")
+				for i in 20: await get_tree().process_frame
+				var n_rows := 0
+				for b in _all_buttons(get_tree().root):
+					if b is Button and String((b as Button).text).begins_with("  "):
+						n_rows += 1
+				print("SHOT mamosmelt 목록행=", n_rows,
+					" (아니마=", UserDB.item_count("anima"),
+					" 보네르=", UserDB.item_count("bonner"), ")")
 		"mamolab":
 			# 마모루딕 연구소 탭 0(드래곤 각성) — 제단 스파인 + 각성 도감 + 제목/탭/재화/NPC.
 			Scenes.goto("mamorudiclab", {"tab": 0})
@@ -1828,11 +1879,25 @@ func _ready() -> void:
 				UserDB.add_item(k, 2)
 			match shot:
 				"inven_gem", "inven_gear":
+					# ⚠️ 가방은 동굴 소유다 — goto 없이 월드맵에서 찾으면 노드가 없다.
+					Scenes.goto("cave")
+					for i in 30: await get_tree().process_frame
 					var iw := _find_method_node(get_tree().root, "_open_inventory")
-					if iw != null:
+					if iw == null:
+						print("SHOT: _open_inventory 노드 없음")
+					else:
 						iw.set("_inv_tab", "gem" if shot == "inven_gem" else "gear")
 						iw.call("_open_inventory")
-					else: print("SHOT: _open_inventory 노드 없음")
+						for i in 20: await get_tree().process_frame
+						# 장비 탭은 원작대로 [강화][옵션 변경] 2버튼이고 '장착'은 없다.
+						if shot == "inven_gear":
+							var gk := "equip:basic:묘안석:2"
+							iw.call("_inventory_select", gk)
+							for i in 15: await get_tree().process_frame
+							print("SHOT inven_gear 강화=",
+								_find_button_text(get_tree().root, "강화") != null,
+								" 옵션변경=", _find_button_text(get_tree().root, "옵션 변경") != null,
+								" 장착=", _find_button_text(get_tree().root, "장착") != null)
 				"gemsel":
 					# 동굴 하단 **빈 젬 칸**을 실제로 클릭 → 가방 '젬' 탭이 열려야 한다
 					# (2026-07-30 사용자 확정: 자작 젬선택 팝업 폐기). 칸을 비워 두고 히트를 찾는다.
@@ -1858,9 +1923,19 @@ func _ready() -> void:
 								" 가방열림=", _find_label_button(get_tree().root, "장착") != null,
 								" 자작팝업=", gcv.has_method("_open_gem_select"))
 				"eqsel":
-					var es := _find_method_node(get_tree().root, "_open_equip_select")
-					if es != null: es.call("_open_equip_select", "all")
-					else: print("SHOT: _open_equip_select 노드 없음")
+					# 동굴 장비 칸 → 원작 `ItemPopup` 이식본(2026-08-01, 자작 목록창 폐기).
+					# ⚠️ 종전엔 goto 가 없어 월드맵에서 노드를 찾다 실패했다.
+					Scenes.goto("cave")
+					for i in 30: await get_tree().process_frame
+					var es := _find_method_node(get_tree().root, "_open_item_popup")
+					if es == null:
+						print("SHOT: _open_item_popup 노드 없음")
+					else:
+						es.call("_open_item_popup", "all")
+						for i in 20: await get_tree().process_frame
+						print("SHOT eqsel 장착버튼=",
+							_find_label_button(get_tree().root, "장착") != null,
+							" 강화버튼=", _find_label_button(get_tree().root, "강화") != null)
 		"bless":
 			# 축복 아이템을 **가방에서** 쓰는 흐름 검증: 기타 탭 → 아모르의 축복 선택 →
 			# 버튼 라벨이 "사용" 인지 → 눌러서 대상 드래곤 목록이 뜨는지 → 적용 후 레벨이 올랐는지.

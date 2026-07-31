@@ -5,6 +5,17 @@ extends Control
 ## 참조 프레임 = `docs/ref/equip/장비강화1.png`(사용자 제공).
 ## 디컴프 = `docs/ref/orig_code/decomp/ItemEnchantPopup.c`(`initWidget` 리터럴, skip 0건).
 ##
+## ## 진입점 2개 (2026-08-01 — 원작 배선 확인)
+##
+## 원작 후기판은 이 창의 후속인 `NewItemEnchantPopup::create(Equip*)` 를 **두 곳**에서 연다:
+##   · `BagPopup::onClickSelect` case 1 (가방 '장비' 탭 왼쪽 버튼) — BagPopup.c:14008
+##   · `ItemPopup::onClickListener` tag 1 (칸별 장비 선택창 왼쪽 버튼) — ItemPopup.c:3652
+## 둘 다 `getRarity() < 2` 면 `<CaveItemEquipMsg7>` 로 막는다(= 일반 등급은 강화 불가).
+## 확률·비용 공식은 구판(`ItemEnchantPopup`)과 **동일**하다 — `NewItemEnchantPopup::calculate_Acc`
+## @00ecf974 가 `typeLevel + rarity*2 + upGrade` 로 같은 W 를 만든다. 그래서 화면은 보유
+## 프레임이 있는 이 구판 톱니 기계를 유지하고, **대상만 두 출처를 받도록** 넓혔다(`_target`).
+## (후기판 화면을 이식하려면 `makeBaseUI_Acc` 10,232B 가 `[skip>6000]` 이라 재디컴프가 필요하다)
+##
 ## 원작 톱니 기계(전부 이 이식으로 갭 해소):
 ##   `scene/cave/gear` + `gear_shadow`(+2.5,−2.5) + `gear_inside` + `enchant_line`
 ##   + `gear_shadow_large`(100, −127.5) + `gear_shadow_small`(182.5, −75)
@@ -60,8 +71,14 @@ const LIST_BOX := Vector2(340.0, 200.0)
 ## 칸 배경 = 원작 `RoundedLayer::create(w, h, 0x66000000, 1, 1)` (에셋이 아니라 그려지는 도형).
 const CELL_BG := Color(0, 0, 0, 0x66 / 255.0)
 
+## 강화 **대상**. 원작 `NewItemEnchantPopup::create(Equip*)` 는 장착 여부를 가리지 않는다 —
+## 가방(`BagPopup::onClickSelect` case 1)과 칸별 선택창(`ItemPopup::onClickListener` tag 1)이
+## 같은 창을 부른다. 그래서 우리도 두 출처를 하나의 서술자로 받는다.
+##   `{"kind": "worn", "uid": int, "slot": String}` — 드래곤 칸에 낀 장비
+##   `{"kind": "bag",  "uid": int, "key": String}`  — 가방의 개체(인벤 키)
+## `uid` 는 귀속 뱃지를 "내 것/남의 것"으로 그리기 위한 관람자다(원작 `updateItemBtn` 5번째 인자).
+var _target: Dictionary = {}
 var _uid := 0
-var _slot := ""
 var _on_done: Callable = Callable()
 var _win_root: Control
 var _rng := RandomNumberGenerator.new()
@@ -76,10 +93,42 @@ var _sel := -1
 var _new_opt := -1
 
 
-static func open(parent: Node, uid: int, slot_id: String, on_done := Callable()) -> ItemEnchantPopup:
+## 낀 장비를 가리키는 대상 서술자.
+static func target_worn(uid: int, slot_id: String) -> Dictionary:
+	return {"kind": "worn", "uid": uid, "slot": slot_id}
+
+
+## 가방 개체를 가리키는 대상 서술자. 인벤 키가 비었거나 장비가 아니면 {}.
+static func target_bag(inv_key: String, uid := 0) -> Dictionary:
+	if inv_key == "" or Equipment.parse_item_key(inv_key) == "":
+		return {}
+	return {"kind": "bag", "uid": uid, "key": inv_key}
+
+
+## 대상 → **슬롯 dict 뷰**(`{key, grade, enhance, options, belong}`).
+## logic(`Equipment.enchant_*`)이 전부 이 모양을 받으므로 두 출처를 여기서 하나로 만든다.
+static func slot_view(target: Dictionary) -> Dictionary:
+	if String(target.get("kind", "")) == "worn":
+		var uid := int(target.get("uid", 0))
+		var sid := String(target.get("slot", ""))
+		for s in (UserDB.get_dragon(uid).get("equip", {}).get("slots", []) as Array):
+			if String((s as Dictionary).get("slot", "")) == sid:
+				return s
+		return {}
+	var key := String(target.get("key", ""))
+	var ck := Equipment.parse_item_key(key)
+	if ck == "":
+		return {}
+	var m := Equipment.item_key_meta(key)
+	return {"slot": "", "key": ck, "grade": int(m.get("rarity", 0)),
+		"enhance": int(m.get("enhance", 0)), "options": m.get("options", []),
+		"belong": int(m.get("belong", 0))}
+
+
+static func open(parent: Node, target: Dictionary, on_done := Callable()) -> ItemEnchantPopup:
 	var p := ItemEnchantPopup.new()
-	p._uid = uid
-	p._slot = slot_id
+	p._target = target
+	p._uid = int(target.get("uid", 0))
 	p._on_done = on_done
 	parent.add_child(p)
 	p._build()
@@ -110,13 +159,19 @@ func _reload_pool() -> void:
 	var inv: Dictionary = UserDB.inventory()
 	var keys: Array = inv.keys()
 	keys.sort()
+	# 원작 `initData` 의 `getTag != 대상` — 가방 대상이면 **그 개체 1개**를 후보에서 뺀다.
+	# (같은 키의 다른 개수는 남는다. 우리 인벤은 개체가 키로 뭉쳐 있어 개수로 센다)
+	var skip_key := String(_target.get("key", "")) if String(_target.get("kind", "")) == "bag" else ""
 	for k in keys:
 		var key := String(k)
 		if Equipment.parse_item_key(key) == "":
 			continue
 		if not Equipment.catalog(Data.equipment).has(Equipment.parse_item_key(key)):
 			continue
-		for _n in int(inv[key]):
+		var n_avail := int(inv[key])
+		if key == skip_key:
+			n_avail -= 1
+		for _n in maxi(0, n_avail):
 			if Equipment.item_key_belong(key) > 0:
 				bound.append(key)
 			else:
@@ -481,12 +536,8 @@ func _on_enchant() -> void:
 	var before := (sd.get("options", []) as Array).size()
 	var after := before
 	var ok := _rng.randi() % 100 < _success_pct()
-	if ok:
-		var next: Dictionary = Equipment.enhance(
-			UserDB.get_dragon(_uid).get("equip", {}), _slot, _rng, Data.equipment)
-		if not next.is_empty():
-			UserDB.set_dragon_field(_uid, "equip", next)
-			after = (_slot_data().get("options", []) as Array).size()
+	if ok and _apply_success():
+		after = (_slot_data().get("options", []) as Array).size()
 	Bgm.sfx("effect_equip_success" if ok else "effect_equip_failed")
 	# NEW 뱃지는 **다시 그리기 전에** 정해야 설명 패널에 붙는다.
 	_new_opt = (after - 1) if (ok and after > before) else -1
@@ -507,6 +558,36 @@ func _on_enchant() -> void:
 %s -> %s" % [was, _item_name()])
 
 
+## 강화 성공 1회를 대상에 반영한다. 규칙은 한 곳(`Equipment.enhance`)에만 있다 —
+## 가방 개체는 **한 칸짜리 임시 equip 필드**로 감싸서 같은 함수를 태우고, 결과를 다시
+## 인벤 키로 되돌린다(원작도 `Equip` 객체 하나를 그대로 갱신한다).
+func _apply_success() -> bool:
+	if String(_target.get("kind", "")) == "worn":
+		var uid := int(_target.get("uid", 0))
+		var sid := String(_target.get("slot", ""))
+		var next: Dictionary = Equipment.enhance(
+			UserDB.get_dragon(uid).get("equip", {}), sid, _rng, Data.equipment)
+		if next.is_empty():
+			return false
+		UserDB.set_dragon_field(uid, "equip", next)
+		return true
+
+	var old_key := String(_target.get("key", ""))
+	var view := slot_view(_target)
+	if view.is_empty() or UserDB.item_count(old_key) <= 0:
+		return false
+	view["slot"] = "_bag"
+	var res: Dictionary = Equipment.enhance({"slots": [view]}, "_bag", _rng, Data.equipment)
+	if res.is_empty():
+		return false
+	var new_key := Equipment.slot_to_item_key((res["slots"] as Array)[0] as Dictionary)
+	UserDB.add_item(old_key, -1)
+	UserDB.add_item(new_key, 1)
+	# 개체가 바뀌었으니 대상 포인터도 새 키를 가리켜야 한다(연속 강화).
+	_target["key"] = new_key
+	return true
+
+
 ## 채워진 재료 칸의 인벤 키들.
 func _filled() -> PackedStringArray:
 	var out: PackedStringArray = []
@@ -517,10 +598,13 @@ func _filled() -> PackedStringArray:
 
 
 func _slot_data() -> Dictionary:
-	for s in (UserDB.get_dragon(_uid).get("equip", {}).get("slots", []) as Array):
-		if String((s as Dictionary).get("slot", "")) == _slot:
-			return s
-	return {}
+	return slot_view(_target)
+
+
+## 강화가 끝난 시점의 인벤 키(가방 대상일 때만 의미가 있다).
+## 강화에 성공하면 개체가 바뀌어 **키가 달라지므로**, 호출부는 선택을 이 키로 옮겨야 한다.
+func current_key() -> String:
+	return String(_target.get("key", ""))
 
 
 func _weight() -> int:

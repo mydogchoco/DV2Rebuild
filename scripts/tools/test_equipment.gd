@@ -215,11 +215,24 @@ func _init() -> void:
 	fails += _true("매직도 귀속 안 됨", not E.binds_at(1, table))
 	fails += _true("레어부터 귀속", E.binds_at(2, table))
 	var rng3 := RandomNumberGenerator.new(); rng3.seed = 7
-	var eqb := E.equip({}, "all", "event:눈사람 인형", table)
-	eqb = E.reroll(eqb, "all", 1, rng3, table, 42)          # 매직 → 안 묶임
-	fails += _eq("매직 재설정은 미귀속", E.slot_belong(eqb, "all"), 0)
-	eqb = E.reroll(eqb, "all", 3, rng3, table, 42)          # 유니크 → 묶임
+	# 🔴 2026-08-01: 원작 기누의 동전은 **등급을 바꾸지 않는다**
+	#   (`ItemEquipSelectPopup::init` 이 요구 희귀도를 박고 `initData` 가 같은 등급만 목록에
+	#    올린다). `reroll` 은 이제 인자 grade 가 슬롯 등급과 다르면 거절한다.
+	#   ⇒ 이 테스트도 "등급을 올리는" 옛 계약이 아니라 **등급 고정**을 검증한다.
+	var eqb := E.equip({}, "all", "event:눈사람 인형", table, {"rarity": 3, "belong": 0})
+	fails += _eq("장착 시 희귀도 승계", int(_slot(eqb, "all").get("grade", -1)), 3)
+	fails += _true("등급이 다른 동전은 거절", E.reroll(eqb, "all", 2, rng3, table, 42).is_empty())
+	fails += _true("등급이 다른 동전은 거절2", E.reroll(eqb, "all", 4, rng3, table, 42).is_empty())
+	eqb = E.reroll(eqb, "all", 3, rng3, table, 42)          # 같은 등급(유니크) → 통과 + 귀속
 	fails += _eq("유니크 재설정은 귀속", E.slot_belong(eqb, "all"), 42)
+	fails += _eq("재설정해도 등급 그대로", int(_slot(eqb, "all").get("grade", -1)), 3)
+	fails += _eq("재설정 옵션 수 = 등급", (_slot(eqb, "all").get("options", []) as Array).size(),
+		E.option_count(3, table))
+	# 일반(0)은 옵션이 0개라 굴릴 것이 없다 — 표에도 동전이 없다.
+	var eq0 := E.equip({}, "all", "event:눈사람 인형", table)
+	fails += _eq("일반 등급 동전 없음",
+		String((table["option"].get("reroll_items", {}) as Dictionary).get("0", "")), "")
+	fails += _true("일반은 등급 불일치로 거절", E.reroll(eq0, "all", 2, rng3, table, 42).is_empty())
 	# 귀속해제(구드라의 지혜)
 	var eqc := E.unbind(eqb, "all")
 	fails += _eq("귀속해제 후 0", E.slot_belong(eqc, "all"), 0)
@@ -235,6 +248,56 @@ func _init() -> void:
 	fails += _eq("희귀도 색 6칸", rc.size(), 6)
 	fails += _true("일반은 실루엣 없음", rc[0] == null)
 	fails += _eq("초월 색", String(rc[5]), "00FFEA")
+
+	# 13b) 매직(1)은 **구현 제외**(사용자 확정 2026-08-01, 원작 후기판에서 사라진 등급).
+	#      어느 수급표에도 없어야 한다 — 있으면 게임 안에 매직 장비가 생긴다.
+	for src in (table["option"].get("rarity_rolls", {}) as Dictionary):
+		var tbl: Dictionary = table["option"]["rarity_rolls"][src]
+		fails += _true("%s 표에 매직 없음" % src, not tbl.has("1"))
+	fails += _true("매직 동전도 없음",
+		not (table["option"].get("reroll_items", {}) as Dictionary).has("1"))
+
+	# 13c) 강화 — **가방 개체 경로**(ItemEnchantPopup._apply_success 가 쓰는 임시 한 칸 필드).
+	#      규칙이 한 곳(`enhance`)에만 있는지, 인벤 키 왕복에서 개체가 보존되는지 본다.
+	var bag_key := E.item_key("basic:묘안석:2",
+		{"rarity": 3, "enhance": 0, "options": [{"stat": "pure", "value": 10}]})
+	var view: Dictionary = {"slot": "_bag", "key": "basic:묘안석:2", "grade": 3, "enhance": 0,
+		"options": [{"stat": "pure", "value": 10}], "belong": 0}
+	var rng4 := RandomNumberGenerator.new(); rng4.seed = 5
+	var res: Dictionary = E.enhance({"slots": [view]}, "_bag", rng4, table)
+	fails += _true("가방 개체도 강화된다", not res.is_empty())
+	var after_slot: Dictionary = (res["slots"] as Array)[0]
+	fails += _eq("강화 횟수 +1", int(after_slot.get("enhance", 0)), 1)
+	# 증가폭 = enhance_step_pct(20%) — 위키 앵커(관통 100 ÷ 4칸)에서 나온 값.
+	var step := int(table["option"].get("enhance_step_pct", 0))
+	fails += _eq("증가폭 20%", step, 20)
+	fails += _eq("관통 10 → 12", int((after_slot["options"] as Array)[0]["value"]), 12)
+	var new_key := E.slot_to_item_key(after_slot)
+	fails += _true("강화하면 인벤 키가 바뀐다", new_key != bag_key)
+	fails += _eq("키 왕복 — 카탈로그", E.parse_item_key(new_key), "basic:묘안석:2")
+	fails += _eq("키 왕복 — 강화수", int(E.item_key_meta(new_key).get("enhance", 0)), 1)
+	fails += _eq("키 왕복 — 희귀도", int(E.item_key_meta(new_key).get("rarity", 0)), 3)
+	# 옵션 0개(일반)는 강화 대상이 아니다 — 원작 `getRarity() < 2` 게이트와 같은 결과.
+	fails += _true("옵션 없으면 강화 불가", E.enhance({"slots": [
+		{"slot": "_bag", "key": "basic:묘안석:2", "grade": 0, "enhance": 0, "options": []}]},
+		"_bag", rng4, table).is_empty())
+
+	# 13d) 마모루딕 아티펙트 제련 — 관통 편향(위키 §2.4 "동전보다 관통이 잘 나온다").
+	var sm: Dictionary = E.artifact_smelt_cfg(table)
+	fails += _true("제련 재료표 있음", not (sm.get("items", {}) as Dictionary).is_empty())
+	var w: Dictionary = E.artifact_smelt_weights(table)
+	fails += _true("관통 가중치가 제일 크다",
+		float(w.get("pure", 0.0)) > float(w.get("att", 1.0)))
+	var rng5 := RandomNumberGenerator.new(); rng5.seed = 21
+	var pure_biased := 0
+	var pure_even := 0
+	for _i in 4000:
+		if String(E.roll_option(rng5, table, w).get("stat", "")) == "pure":
+			pure_biased += 1
+		if String(E.roll_option(rng5, table).get("stat", "")) == "pure":
+			pure_even += 1
+	fails += _true("편향이 균등보다 관통을 많이 띄운다 (%d vs %d)" % [pure_biased, pure_even],
+		pure_biased > pure_even * 2)
 
 	# 11) 장비 없으면 종전과 완전히 동일(회귀 방지).
 	rng.seed = 999
@@ -406,6 +469,14 @@ func _init() -> void:
 		print("[test_equipment] ALL PASS")
 	else:
 		printerr("[test_equipment] %d FAIL" % fails)
+
+## 저장 슬롯 dict(등급·옵션·강화·귀속). `E.equipped` 는 **카탈로그 항목**을 주므로 다르다.
+func _slot(equip_field: Dictionary, slot_id: String) -> Dictionary:
+	for s in (equip_field.get("slots", []) as Array):
+		if String((s as Dictionary).get("slot", "")) == slot_id:
+			return s
+	return {}
+
 
 func _eq(label: String, got, want) -> int:
 	if got == want:

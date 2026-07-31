@@ -434,41 +434,80 @@ static func enhance_limit(grade: int, table: Dictionary) -> int:
 	return option_count(grade, table) * per
 
 ## 옵션 1개 굴리기 → {stat, value}. rng 를 받아 재현 가능하게 한다(§8: logic은 순수).
-static func roll_option(rng: RandomNumberGenerator, table: Dictionary) -> Dictionary:
+## `weights` = {스탯: 가중치}. 비어 있으면 9종 균등(기본). 표에 없는 스탯은 가중치 1.
+## 마모루딕 제련이 관통을 더 잘 띄우는 데 쓴다 — 위키 §2.4 "기누의 동전에 비해 관통 옵션이
+## 나올 확률이 높다. 그래서 보통 아티팩트로 관통 100을 맞춘다".
+static func roll_option(rng: RandomNumberGenerator, table: Dictionary,
+		weights: Dictionary = {}) -> Dictionary:
 	var opt: Dictionary = table.get("option", {})
 	var stats: Array = opt.get("stats", [])
 	var ranges: Dictionary = opt.get("value_ranges", {})
 	if stats.is_empty():
 		return {}
-	var stat := String(stats[rng.randi() % stats.size()])
+	var stat := ""
+	if weights.is_empty():
+		stat = String(stats[rng.randi() % stats.size()])
+	else:
+		var total := 0.0
+		for s in stats:
+			total += maxf(0.0, float(weights.get(String(s), 1.0)))
+		if total <= 0.0:
+			return {}
+		var r0 := rng.randf() * total
+		var acc := 0.0
+		for s in stats:
+			acc += maxf(0.0, float(weights.get(String(s), 1.0)))
+			stat = String(s)
+			if r0 < acc:
+				break
 	var r: Array = ranges.get(stat, [1, 1])
 	var lo := int(r[0])
 	var hi := int(r[1]) if r.size() > 1 else lo
 	return {"stat": stat, "value": rng.randi_range(lo, maxi(lo, hi))}
 
 ## 등급에 맞는 옵션 세트를 통째로 굴린다(장비 획득/재설정 시).
-static func roll_options(grade: int, rng: RandomNumberGenerator, table: Dictionary) -> Array:
+static func roll_options(grade: int, rng: RandomNumberGenerator, table: Dictionary,
+		weights: Dictionary = {}) -> Array:
 	var out: Array = []
 	for _i in option_count(grade, table):
-		var o := roll_option(rng, table)
+		var o := roll_option(rng, table, weights)
 		if not o.is_empty():
 			out.append(o)
 	return out
 
+
+## 마모루딕 '아티펙트 제련' 설정(`option.artifact_smelt`). 없으면 {}.
+static func artifact_smelt_cfg(table: Dictionary) -> Dictionary:
+	return (table.get("option", {}) as Dictionary).get("artifact_smelt", {})
+
+
+## 제련이 쓰는 옵션 가중치. 표가 없으면 균등({}).
+static func artifact_smelt_weights(table: Dictionary) -> Dictionary:
+	return artifact_smelt_cfg(table).get("option_weights", {})
+
 ## slot_id 칸 장비의 옵션을 새로 굴린 equip 필드(원작 '기누의 동전'류 옵션 재설정).
-## owner_uid > 0 이고 새 등급이 레어(bind_grade) 이상이면 **그 자리에서 귀속**된다
+##
+## 🔴 2026-08-01 정정 — **등급은 건드리지 않는다.**
+##   원작 동전은 `getRarity(equip) == 동전이 요구하는 희귀도`인 장비에만 쓸 수 있고
+##   (`ItemEquipSelectPopup::init` + `initData` @00ea7338), 바꾸는 것은 옵션뿐이다.
+##   종전엔 인자 `grade` 를 슬롯에 박아 **등급 상승 경로**가 생겼다(원작에 없다).
+##   이제 `grade` 는 "몇 개를 굴릴지"만 정하며, 호출부가 장비의 현재 등급을 넘긴다.
+##   호출부가 등급을 잘못 넘기면 조용히 틀리므로 **불일치는 여기서 거절**한다.
+## owner_uid > 0 이고 등급이 레어(bind_grade) 이상이면 그 자리에서 귀속된다
 ## (원작 "레어 등급 이상은 장착 시 귀속" — 위키 item.pdf).
 static func reroll(equip_field: Dictionary, slot_id: String, grade: int,
 		rng: RandomNumberGenerator, table: Dictionary, owner_uid: int = 0) -> Dictionary:
 	var out := equip_field.duplicate(true)
 	for s in (out.get("slots", []) as Array):
-		if String((s as Dictionary).get("slot", "")) == slot_id:
-			(s as Dictionary)["options"] = roll_options(grade, rng, table)
-			(s as Dictionary)["grade"] = grade
-			(s as Dictionary)["enhance"] = 0
-			if owner_uid > 0 and binds_at(grade, table):
-				(s as Dictionary)["belong"] = owner_uid
-			return out
+		if String((s as Dictionary).get("slot", "")) != slot_id:
+			continue
+		if int((s as Dictionary).get("grade", 0)) != grade:
+			return {}                      # 동전 등급 ≠ 장비 등급 — 원작은 목록에 띄우지도 않는다
+		(s as Dictionary)["options"] = roll_options(grade, rng, table)
+		(s as Dictionary)["enhance"] = 0
+		if owner_uid > 0 and binds_at(grade, table):
+			(s as Dictionary)["belong"] = owner_uid
+		return out
 	return {}
 
 ## 강화 **성공** 1회: 옵션 하나를 골라 값을 올리고 강화 횟수를 +1 한다. 막혀 있으면 {}.

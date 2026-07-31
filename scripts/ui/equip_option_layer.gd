@@ -57,9 +57,20 @@ const STAT_KR := {"hp": "생명력", "att": "공격력", "def": "방어력", "bl
 
 var _uid := 0
 var _slot := ""
+## 가방 개체를 대상으로 열렸을 때의 인벤 키(""=드래곤 칸 대상).
+## 원작 `ItemEquipSelectPopup` 은 **`AccountManager::getEquip()` 전량**에서 대상을 고르므로
+## 낀 것/가방에 있는 것을 가리지 않는다(`initData` @00ea7338). 우리도 두 출처를 받는다.
+var _bag_key := ""
 var _coin_key := ""
 var _grade := 0
 var _on_done: Callable = Callable()
+## 원작 `OptionSelectLayer` 의 모드(`this+0x238`) —
+##   1 = 동굴/가방(기누의 동전, `game_cave/regen_equip_option.hb`)
+##   2 = 마모루딕 아티펙트 제련(아니마·보네르, `game_lab2/regen_equip_option.hb`)
+## 모드 2 는 관통 옵션이 잘 뜬다(위키 §2.4) → `option.artifact_smelt.option_weights`.
+var _mode := 1
+## 재시도 1회에 드는 것. 모드 1 = {동전키: 1}, 모드 2 = artifact_smelt.items.
+var _retry_cost: Dictionary = {}
 
 ## 기존 옵션(제련 전) / 제련 옵션(새로 굴린 것) — 둘 다 [{stat, value}].
 var _before: Array = []
@@ -79,9 +90,94 @@ static func open(parent: Node, uid: int, slot_id: String, coin_key: String, grad
 	l._coin_key = coin_key
 	l._grade = grade
 	l._on_done = on_done
+	l._retry_cost = {coin_key: 1}
 	parent.add_child(l)
 	l._start()
 	return l
+
+
+## 가방 개체(인벤 키)를 대상으로 여는 판 — 원작 가방 '장비' 탭 오른쪽 버튼 경로.
+## `grade` 는 **그 장비의 현재 등급**이어야 한다(동전은 등급을 바꾸지 않는다).
+static func open_bag(parent: Node, inv_key: String, coin_key: String, grade: int,
+		on_done := Callable()) -> EquipOptionLayer:
+	var l := EquipOptionLayer.new()
+	l._bag_key = inv_key
+	l._coin_key = coin_key
+	l._grade = grade
+	l._on_done = on_done
+	l._retry_cost = {coin_key: 1}
+	parent.add_child(l)
+	l._start()
+	return l
+
+
+## 마모루딕 **아티펙트 제련** — 원작 `OptionSelectLayer` 모드 2
+## (`requestOptionRetry` @011ec164 → `game_lab2/regen_equip_option.hb`).
+## 대상은 가방의 아티팩트 개체이고 소모품은 동전이 아니라 **아니마·보네르**다.
+## 관통 옵션이 잘 뜬다(위키 §2.4) — 가중치는 `option.artifact_smelt.option_weights`.
+## **1회분 재료는 호출부가 이미 소모한 상태로 넘어온다**(동전 경로와 같은 규약).
+static func open_artifact(parent: Node, inv_key: String, grade: int,
+		on_done := Callable()) -> EquipOptionLayer:
+	var l := EquipOptionLayer.new()
+	l._bag_key = inv_key
+	l._grade = grade
+	l._mode = 2
+	l._on_done = on_done
+	l._retry_cost = (Equipment.artifact_smelt_cfg(Data.equipment).get("items", {}) as Dictionary)
+	parent.add_child(l)
+	l._start()
+	return l
+
+
+## 이 판이 옵션을 굴릴 때 쓰는 가중치(모드 2 만 편향).
+func _roll_weights() -> Dictionary:
+	return Equipment.artifact_smelt_weights(Data.equipment) if _mode == 2 else {}
+
+
+## 재시도 비용을 낼 수 있는가 / 실제로 낸다.
+func _can_pay_retry() -> bool:
+	for k in _retry_cost:
+		if UserDB.item_count(String(k)) < int(_retry_cost[k]):
+			return false
+	return not _retry_cost.is_empty()
+
+
+func _pay_retry() -> bool:
+	if not _can_pay_retry():
+		return false
+	for k in _retry_cost:
+		if not UserDB.use_item(String(k), int(_retry_cost[k])):
+			return false
+	return true
+
+
+## 재시도 비용 표기("아니마 X 3 · 보네르 X 3").
+func _retry_cost_text() -> String:
+	var parts: PackedStringArray = []
+	for k in _retry_cost:
+		parts.append("%s X %d" % [Data.item_name(String(k)), int(_retry_cost[k])])
+	return " · ".join(parts)
+
+
+## 대상의 슬롯 dict 뷰(칸 대상이면 그 슬롯, 가방 대상이면 인벤 키를 푼 것).
+func _target_view() -> Dictionary:
+	if _bag_key != "":
+		var ck := Equipment.parse_item_key(_bag_key)
+		if ck == "":
+			return {}
+		var m := Equipment.item_key_meta(_bag_key)
+		return {"slot": "", "key": ck, "grade": int(m.get("rarity", 0)),
+			"enhance": int(m.get("enhance", 0)), "options": m.get("options", []),
+			"belong": int(m.get("belong", 0))}
+	for s in (UserDB.get_dragon(_uid).get("equip", {}).get("slots", []) as Array):
+		if String((s as Dictionary).get("slot", "")) == _slot:
+			return s
+	return {}
+
+
+## 옵션 변경이 끝난 뒤의 인벤 키(가방 대상일 때만 의미가 있다). 호출부가 선택을 옮길 때 쓴다.
+func current_key() -> String:
+	return _bag_key
 
 
 func _start() -> void:
@@ -90,12 +186,8 @@ func _start() -> void:
 	z_index = 70
 	_rng.randomize()
 
-	var eqf: Dictionary = UserDB.get_dragon(_uid).get("equip", {})
-	for s in (eqf.get("slots", []) as Array):
-		if String((s as Dictionary).get("slot", "")) == _slot:
-			_before = ((s as Dictionary).get("options", []) as Array).duplicate(true)
-			break
-	_after = Equipment.roll_options(_grade, _rng, Data.equipment)
+	_before = (_target_view().get("options", []) as Array).duplicate(true)
+	_after = Equipment.roll_options(_grade, _rng, Data.equipment, _roll_weights())
 
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0)
@@ -256,19 +348,31 @@ func _on_select() -> void:
 
 ## 재시도 — 원작 문구대로 **기존 옵션은 유지되고 제련 옵션만 다시 굴린다**. 동전 1개 추가 소모.
 func _on_retry() -> void:
-	if UserDB.item_count(_coin_key) <= 0:
-		_notice("기누의 동전이 없습니다")
+	if not _can_pay_retry():
+		_notice("%s이(가) 부족합니다" % _retry_cost_text())
 		return
-	_confirm(S_MSG_RETRY, func():
-		if not UserDB.use_item(_coin_key, 1):
+	_confirm("%s
+
+%s" % [S_MSG_RETRY, _retry_cost_text()], func():
+		if not _pay_retry():
 			return
-		_after = Equipment.roll_options(_grade, _rng, Data.equipment)
+		_after = Equipment.roll_options(_grade, _rng, Data.equipment, _roll_weights())
 		_pick = -1
 		_rebuild_result())
 
 
 func _apply(use_new: bool) -> void:
-	if use_new:
+	if use_new and _bag_key != "":
+		# 가방 개체 — 인벤 키가 곧 개체라 **키를 갈아 끼운다**(강화와 같은 규약).
+		var view := _target_view()
+		if not view.is_empty() and UserDB.item_count(_bag_key) > 0:
+			view["options"] = _after.duplicate(true)
+			# 원작: 레어 이상은 **장착할 때** 귀속된다 — 가방에 있는 동안은 귀속되지 않는다.
+			var new_key := Equipment.slot_to_item_key(view)
+			UserDB.add_item(_bag_key, -1)
+			UserDB.add_item(new_key, 1)
+			_bag_key = new_key
+	elif use_new:
 		var next: Dictionary = Equipment.reroll(
 			UserDB.get_dragon(_uid).get("equip", {}), _slot, _grade, _rng, Data.equipment, _uid)
 		# `reroll` 이 굴린 값이 아니라 **화면에 보여 준 값**을 그대로 박는다.
@@ -287,12 +391,7 @@ func _apply(use_new: bool) -> void:
 # ---------- 공용 ----------
 
 func _item_sprite(mult: float) -> Sprite2D:
-	var eqf: Dictionary = UserDB.get_dragon(_uid).get("equip", {})
-	var key := ""
-	for s in (eqf.get("slots", []) as Array):
-		if String((s as Dictionary).get("slot", "")) == _slot:
-			key = String((s as Dictionary).get("key", ""))
-			break
+	var key := String(_target_view().get("key", ""))
 	if key == "":
 		return null
 	var item: Dictionary = Equipment.catalog(Data.equipment).get(key, {})

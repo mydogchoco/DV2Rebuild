@@ -322,7 +322,11 @@ const MENU_CARDS := [
 	{"title": "아티펙트 합성", "icon": "icon_artifact_mix", "kind": -2, "popup": "artifact_mix"},
 	{"title": "각성의마석 제작", "icon": "icon_evolution_make", "kind": KIND_STONE},
 	{"title": "마공학 대장간", "icon": "", "kind": -2},
-	{"title": "아티펙트 제련", "icon": "", "kind": -2},
+	# 🟢 2026-08-01 구현 — 원작 `ArtifactBox`(대상 목록) → `OptionSelectLayer` **모드 2**
+	#   (`requestOptionRetry` @011ec164 → `game_lab2/regen_equip_option.hb`).
+	#   위키 §2.4: "아티팩트는 마모루딕에게 가져가 아니마와 보네르로 옵션을 돌릴 수 있는데,
+	#   이는 기누의 동전에 비해 관통 옵션이 나올 확률이 높다."
+	{"title": "아티펙트 제련", "icon": "", "kind": -2, "popup": "artifact_smelt"},
 ]
 
 ## 레퍼런스 `연구소메인.png`(1384×785 → pt /1.134) 실측 배치 — 윗줄 3장 + 아랫줄 2장.
@@ -363,6 +367,8 @@ func _build_menu(_vis: Vector2) -> void:
 		b.pressed.connect(func():
 			if String(ent.get("popup", "")) == "artifact_mix":
 				_open_artifact_mix()
+			elif String(ent.get("popup", "")) == "artifact_smelt":
+				_open_artifact_smelt()
 			elif impl:
 				_kind = int(ent["kind"])
 				_rebuild()
@@ -375,6 +381,106 @@ func _build_menu(_vis: Vector2) -> void:
 func _open_artifact_mix() -> void:
 	var p := ArtifactMixPopup.open(self)
 	p.closed.connect(func(): _say("좋은 아티펙트가 나왔길 바라네."))
+
+
+## 아티펙트 제련(원작 `ArtifactBox` → `OptionSelectLayer` 모드 2) — 대상 고르기.
+##
+## 원작 목록 조건 = `ArtifactBox::initData` @0143ec2c:
+##   `AccountManager::getEquip()` 중 `6000 <= Item::getNo() < 7001`(아티팩트 번호대).
+##   우리는 번호 대신 인벤 키가 `artifact:` 인 것으로 가른다(`Equipment.artifact_of`).
+## ⚠️ 낀 아티팩트는 우리 인벤에 없다 — 벗겨서 가져와야 한다(원작은 한 배열이라 둘 다 보인다).
+##   그 차이는 `docs/ref/porting/ArtifactSmelt.md` 에 적어 뒀다.
+func _open_artifact_smelt() -> void:
+	var cfg := Equipment.artifact_smelt_cfg(Data.equipment)
+	var cost: Dictionary = cfg.get("items", {})
+	var rows: Array = []
+	for k in UserDB.inventory().keys():
+		var key := String(k)
+		if Equipment.artifact_of(key).is_empty():
+			continue
+		if UserDB.item_count(key) <= 0:
+			continue
+		# 옵션이 0개면 돌릴 것이 없다(일반 등급) — 원작도 등급을 읽어 거른다.
+		if int(Equipment.item_key_meta(key).get("rarity", 0)) < 2:
+			continue
+		rows.append(key)
+	rows.sort()
+
+	var pop := OrigPopup.open(self, "아티펙트 제련", Vector2(720.0, 520.0))
+	var cost_txt: PackedStringArray = []
+	for k in cost:
+		cost_txt.append("%s %d" % [Data.item_name(String(k)), int(cost[k])])
+	var head := Label.new()
+	head.text = "옵션을 다시 굴릴 아티펙트를 고르게.  (1회 %s)" % " · ".join(cost_txt)
+	head.add_theme_font_size_override("font_size", 16)
+	head.add_theme_color_override("font_color", Color(0.30, 0.18, 0.06))
+	head.position = Vector2(40.0, 84.0); head.size = Vector2(640.0, 24.0)
+	pop.content.add_child(head)
+
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(40.0, 116.0)
+	sc.size = Vector2(640.0, 330.0)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pop.content.add_child(sc)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	col.custom_minimum_size.x = 620.0
+	sc.add_child(col)
+
+	if rows.is_empty():
+		var none := Label.new()
+		none.text = "제련할 아티펙트가 없다네. (레어 등급 이상, 장착은 먼저 벗기게)"
+		none.add_theme_font_size_override("font_size", 17)
+		none.add_theme_color_override("font_color", Color(0.45, 0.34, 0.22))
+		col.add_child(none)
+		return
+
+	for key: String in rows:
+		var meta: Dictionary = Equipment.item_key_meta(key)
+		var it: Dictionary = Equipment.catalog(Data.equipment).get(
+			Equipment.parse_item_key(key), {})
+		var parts: PackedStringArray = []
+		for o in (meta.get("options", []) as Array):
+			var od := o as Dictionary
+			parts.append("%s+%d" % [String(EquipOptionLayer.STAT_KR.get(
+				String(od.get("stat", "")), String(od.get("stat", "")))),
+				int(od.get("value", 0))])
+		var b := Button.new()
+		b.text = "  %s   %s   ×%d" % [String(it.get("name", key)),
+			" ".join(parts) if not parts.is_empty() else "(옵션 없음)",
+			UserDB.item_count(key)]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(0, 40)
+		b.pressed.connect(func(): _artifact_smelt_confirm(key, pop))
+		col.add_child(b)
+
+
+func _artifact_smelt_confirm(inv_key: String, list_pop: OrigPopup) -> void:
+	var cfg := Equipment.artifact_smelt_cfg(Data.equipment)
+	var cost: Dictionary = cfg.get("items", {})
+	var lack: PackedStringArray = []
+	for k in cost:
+		if UserDB.item_count(String(k)) < int(cost[k]):
+			lack.append("%s %d/%d" % [Data.item_name(String(k)),
+				UserDB.item_count(String(k)), int(cost[k])])
+	if not lack.is_empty():
+		_notice("아티펙트 제련", "재료가 모자라네.\n%s" % " · ".join(lack))
+		return
+	var grade := int(Equipment.item_key_meta(inv_key).get("rarity", 0))
+	var txt: PackedStringArray = []
+	for k in cost:
+		txt.append("%s X %d" % [Data.item_name(String(k)), int(cost[k])])
+	# 원작 확인 문구 <EquipeSelectMsg1>.
+	_confirm("아티펙트 제련",
+		"해당 장비의 부가 옵션을 변경하시겠습니까?\n\n%s" % " · ".join(txt),
+		func():
+			for k in cost:
+				if not UserDB.use_item(String(k), int(cost[k])):
+					return
+			if is_instance_valid(list_pop):
+				list_pop.queue_free()
+			var lay := EquipOptionLayer.open_artifact(self, inv_key, grade)
+			lay.finished.connect(func(): _say("관통이 잘 붙었으면 좋겠군.")))
 
 
 # ============================================================ kind 0 — 드래곤 각성

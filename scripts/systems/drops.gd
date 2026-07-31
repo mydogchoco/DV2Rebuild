@@ -479,7 +479,7 @@ static func roll_exploration(table: Dictionary, level: int, source: String,
 		return ""
 	# 카데스: 아티팩트를 먼저 굴린다(이곳의 주 목적 — 위키 §2).
 	if kades:
-		var a := roll_artifact(table, source, rng, field, artifact_mult)
+		var a := roll_artifact(table, source, rng, field, artifact_mult, equip_table)
 		if a != "":
 			return a
 	if rng.randf() >= float(src.get("chance", 0.0)):
@@ -556,8 +556,11 @@ static func _band_roll(cfg: Dictionary, level: int, quality: int,
 ##   (`kades.artifact_by_dungeon`, 자작). 배정이 없는 필드는 6종 균등.
 ## artifact_mult = 확률 배수. 각성스킬 17 '구드라의 가호'(전설 난이도 지역에서 아티팩트 획득
 ##   확률 50% 증가) → 1.5. 확률은 1.0 을 넘지 않게 자른다.
+## `equip_table` = data/equipment.json — 희귀도·옵션을 굴리는 데 쓴다(2026-08-01 추가).
+##   빈 dict 를 넘기면 메타 없이(= 일반, 옵션 0개) 나온다 — 옛 호출부 호환용이다.
 static func roll_artifact(table: Dictionary, source: String,
-		rng: RandomNumberGenerator, field := 0, artifact_mult := 1.0) -> String:
+		rng: RandomNumberGenerator, field := 0, artifact_mult := 1.0,
+		equip_table: Dictionary = {}) -> String:
 	var kd: Dictionary = table.get("kades", {})
 	var ch: Dictionary = kd.get("artifact_chance", {})
 	if rng.randf() >= clampf(float(ch.get(source, 0.0)) * artifact_mult, 0.0, 1.0):
@@ -566,7 +569,17 @@ static func roll_artifact(table: Dictionary, source: String,
 	if types.is_empty():
 		return ""
 	var grade := _weighted_index(kd.get("artifact_grade", {}).get("weights", [1]), rng)
-	return Equipment.item_key("artifact:%s:%d" % [String(types[rng.randi() % types.size()]), grade])
+	# 🟢 2026-08-01: 아티팩트도 **희귀도·부가옵션을 달고 나온다**.
+	#   종전엔 메타 없이 굴려 항상 일반(옵션 0개)이었고, 그래서 강화도 옵션 재설정도
+	#   대상이 되지 못했다 — 위키 §2.4 가 "보통 아티팩트로 관통 100을 맞춘다"고 못 박는
+	#   축이 통째로 죽어 있었다. 원작에서도 아티팩트는 같은 `Equip` 이라 `rarity`/`option`
+	#   필드를 그대로 갖는다(`AccountManager` 파싱 키 6종에 종류 구분이 없다).
+	#   표는 일반 장비와 같은 `drop`(equipment.json option.rarity_rolls).
+	var kind := String(types[rng.randi() % types.size()])
+	if equip_table.is_empty():
+		return Equipment.item_key("artifact:%s:%d" % [kind, grade])
+	return Equipment.item_key("artifact:%s:%d" % [kind, grade],
+		Equipment.roll_instance("drop", rng, equip_table))
 
 ## 그 던전에서 나오는 아티팩트 종류 목록. 배정표에 없으면 전체 6종.
 static func artifact_types_for(table: Dictionary, field: int) -> Array:

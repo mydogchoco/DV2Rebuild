@@ -80,7 +80,10 @@ func _init() -> void:
 	var leaked := 0
 	for _i in 3000:
 		var key2 := D.roll_exploration(drops, 40, D.SOURCE_BOSS, equip, rng3, false, field)
-		if key2.begins_with("equip:artifact"):
+		# ⚠️ `begins_with("equip:artifact")` 로 보면 안 된다 — 2026-08-01 부터 아티팩트도
+		#   희귀도·옵션 메타를 달고 나와 키가 `equip:r3,o…@artifact:…` 꼴이다(누수가 나도
+		#   접두사가 안 맞아 못 잡는다). 메타를 아는 `artifact_of` 로 판정한다.
+		if not E.artifact_of(key2).is_empty():
 			leaked += 1
 	fails += _eq("카데스 밖 아티팩트 0건", leaked, 0)
 

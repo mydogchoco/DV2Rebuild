@@ -520,8 +520,20 @@ func _open_equipment() -> void:
 			# 원작 <MultyEquip_Lock>. 확장은 연구소 '드래곤 강화'에서 한다.
 			_toast("%s  (연구소 '드래곤 강화')" % MultyEquipPop.S_LOCK)
 			return
-		_open_equip_select(sid))
+		_open_item_popup(sid))
 	pop.closed.connect(_refresh_stats)
+
+
+## 칸 클릭 → 원작 `MultyEquipPop::onClickItemBox` → `ItemPopup::create(dragon, slotIdx)`.
+## 🔀 2026-08-01: 이 자리에 있던 자작 목록창 `_open_equip_select` 를 폐기하고 원작
+##   `ItemPopup` 이식본(`scripts/ui/item_popup.gd`)으로 갈았다. 젬의 `GemsPopup` 과
+##   같은 2단 구성이고, 하단 버튼도 원작대로 **강화 / 장착·해제 두 개**다.
+##   상세 = `docs/ref/porting/ItemPopup.md`.
+func _open_item_popup(slot_id: String) -> void:
+	var a := _active()
+	if a.is_empty(): return
+	var p := ItemPopup.open(self, int(a["uid"]), slot_id, func(): _refresh_stats())
+	p.closed.connect(func(): _refresh_stats(); _open_equipment())
 
 
 ## `slot_id` 칸의 주 능력 중 **다른 칸과 겹치는** 것들의 한글 이름.
@@ -546,24 +558,6 @@ func _dup_main_stats(uid: int, slot_id: String) -> PackedStringArray:
 	return out
 
 
-## 장비 선택창 하단 버튼 하나의 동작(원작 `ItemEquipSelectPopup` 의 제련/강화/해제/귀속해제).
-## ⚠️ 람다 안에 `match` 를 쓰면 4.7 파서가 거부한다 — 그래서 본체를 함수로 뺐다.
-func _equip_slot_action(what: String, uid: int, slot_id: String, overlay: Node) -> void:
-	if what == "옵션":
-		overlay.queue_free(); _reroll_options(uid, slot_id); _open_equipment()
-	elif what == "강화":
-		overlay.queue_free(); _enhance_option(uid, slot_id)
-	elif what == "해제":
-		# 해제 → 인벤으로. 귀속·희귀도·옵션·강화는 **개체에 남는다**(§slot_to_item_key).
-		var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
-		var off := _equip_slot_data(cur, slot_id)
-		if not off.is_empty():
-			UserDB.add_item(Equipment.slot_to_item_key(off), 1)
-		UserDB.set_dragon_field(uid, "equip", Equipment.unequip(cur, slot_id))
-		_refresh_stats(); overlay.queue_free(); _open_equipment()
-	elif what == "귀속해제":
-		overlay.queue_free(); _unbind_equip(uid, slot_id); _open_equipment()
-
 
 ## 귀속 표기에 쓸 드래곤 이름(닉네임 우선, 없으면 종 이름). 없는 uid 면 "다른 드래곤".
 func _dragon_label(uid: int) -> String:
@@ -581,28 +575,37 @@ func _equip_slot_data(eqf: Dictionary, slot_id: String) -> Dictionary:
 	return {}
 
 ## 옵션 재설정 — 원작 `ItemEquipSelectPopup::requestRegenEquip`(문구 `EquipeSelectMsg1`
-## "해당 장비의 부가 옵션을 변경하시겠습니까?"). 소모품은 **기누의 동전**이고, 위키 item.pdf 대로
-## **동전 등급이 곧 결과 등급**이다(레동/유동/에동). 표 = data/equipment.json option.reroll_items.
-##   · 보유한 동전 중 가장 높은 등급을 쓴다(원작은 사용자가 고르지만 칸이 하나뿐이라 단순화).
+## "해당 장비의 부가 옵션을 변경하시겠습니까?"). 소모품은 **기누의 동전**이다.
+##
+## 🔴 2026-08-01 정정 — 동전은 **등급을 바꾸지 않는다.**
+##   원작 `ItemEquipSelectPopup::create(itemNo)` → `init(itemNo)` 이 아이템 번호로 요구
+##   희귀도를 박고(485→레어 · 486→유니크 · 487→에픽 · 596/597→초월 · 903/905→…),
+##   `initData` @00ea7338 이 `getRarity(equip) == 그 값` 인 장비만 목록에 올린다.
+##   ⇒ **동전 등급 == 장비 등급**일 때만 쓸 수 있고, 결과 등급은 그대로다.
+##   종전 구현은 "보유한 가장 높은 등급의 동전"을 자동으로 골라 등급을 덮어썼다 —
+##   일반 장비에 에동을 써서 에픽으로 만들 수 있었다(원작에 없는 등급 상승 경로).
+##   희귀도는 이제 **획득 시점에만** 정해진다(`Equipment.roll_instance`).
 ##   · 초월 동전은 추출 아이템 목록에 없어 초월 재설정은 불가(없는 아이템은 만들지 않는다).
-##   · 결과가 레어(bind_grade) 이상이면 그 자리에서 귀속된다.
-## ⚠️ 2026-07-29 이전에는 골드 20,000 을 받고 등급을 랜덤으로 굴렸다 — 원작과 달라서 교체했다.
+##   · 레어(bind_grade) 이상이면 장착 상태이므로 이미 귀속돼 있다.
 func _reroll_options(uid: int, slot_id: String) -> void:
-	var items: Dictionary = Data.equipment.get("option", {}).get("reroll_items", {})
-	var grade := -1
-	var used := ""
-	for g in items:
-		if UserDB.item_count(String(items[g])) > 0 and int(g) > grade:
-			grade = int(g)
-			used = String(items[g])
-	if grade < 0:
-		_toast("기누의 동전이 없습니다"); return
-	if _equip_slot_data(UserDB.get_dragon(uid).get("equip", {}), slot_id).is_empty():
+	var sd := _equip_slot_data(UserDB.get_dragon(uid).get("equip", {}), slot_id)
+	if sd.is_empty():
 		_toast("장비가 없는 칸입니다"); return
+	var grade := int(sd.get("grade", 0))
+	var items: Dictionary = Data.equipment.get("option", {}).get("reroll_items", {})
+	var used := String(items.get(str(grade), ""))
+	var gname := ""
+	var grades: Array = Data.equipment.get("option", {}).get("grades", [])
+	if grade >= 0 and grade < grades.size():
+		gname = String((grades[grade] as Dictionary).get("name", ""))
+	if used == "":
+		# 원작 <EnchantError2> "옵션을 변경할 수 있는 장신구가 아닙니다."
+		_toast("%s 등급은 옵션을 변경할 수 있는 장신구가 아닙니다" % gname); return
+	if UserDB.item_count(used) <= 0:
+		_toast("%s이(가) 없습니다" % Data.item_name(used)); return
 	# 🔀 2026-07-31: 종전엔 동전을 쓰면 **즉시** 옵션이 바뀌었다. 원작은 확인창 →
 	#   마법진 연출 → `제련` 두 카드(기존/제련 옵션) 중 고르기다
 	#   (참조 `docs/ref/equip/동전사용1~10.png` · `옵션클릭시` · `재시도클릭시`).
-	var gname := String((Data.equipment.get("option", {}).get("grades", [])[grade] as Dictionary).get("name", ""))
 	# 원작 확인창 `<EquipeSelectMsg1>` + 소모 동전 표기.
 	_open_popup_type("장비 선택",
 		"해당 장비의 부가 옵션을 변경하시겠습니까?
@@ -649,183 +652,13 @@ func _unbind_equip(uid: int, slot_id: String) -> void:
 ##   성공 확률 + 비용이고, 참조 `docs/ref/equip/장비강화1.png` 가 그 모양을 보여 준다.
 ##   창 = `scripts/ui/item_enchant_popup.gd`.
 func _enhance_option(uid: int, slot_id: String) -> void:
-	ItemEnchantPopup.open(self, uid, slot_id, func(): _refresh_stats())
+	ItemEnchantPopup.open(self, ItemEnchantPopup.target_worn(uid, slot_id),
+		func(): _refresh_stats())
 
-## 장비 선택 — 원작 EQUIP 탭/MultyEquipPop 대응: **보유 장비**(인벤 `equip:` 키) 중
-## 그 칸에 낄 수 있는 것만 나열. 장착하면 인벤에서 1개 빠지고, 해제하면 돌아온다.
-## (2026-07-27 이전엔 카탈로그 111종을 공짜로 골라 끼웠다 — 보유 개념이 없었다.)
-func _open_equip_select(slot_id: String) -> void:
-	var a := _active()
-	if a.is_empty(): return
-	var uid := int(a["uid"])
-	const BW := 720.0
-	const BH := 560.0
-	var vis := _vis()
-	var overlay := CanvasLayer.new(); overlay.layer = 31; add_child(overlay)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: overlay.queue_free(); _open_equipment())
-	overlay.add_child(dim)
-	var win := NinePatchRect.new()
-	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
-	win.patch_margin_left = 130; win.patch_margin_top = 190; win.patch_margin_right = 55; win.patch_margin_bottom = 81
-	win.size = Vector2(BW, BH); win.position = Vector2(round((vis.x - BW) * 0.5), round((vis.y - BH) * 0.5)); overlay.add_child(win)
-	var tbar := NinePatchRect.new(); tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
-	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20; tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
-	tbar.size = Vector2(BW * 0.9, 56); tbar.position = Vector2((BW - BW * 0.9) * 0.5, 14); win.add_child(tbar)
-	var slot_kr := {"all": "전체", "battle": "전투형", "support": "보조형", "artifact": "아티팩트"}
-	var t := Label.new(); t.text = "%s 칸 장비 선택" % slot_kr.get(slot_id, slot_id)
-	t.add_theme_font_size_override("font_size", 23); t.add_theme_color_override("font_color", Color.WHITE)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	t.size = tbar.size; tbar.add_child(t)
-	var cbtn := TextureButton.new(); cbtn.texture_normal = load("res://assets/converted/common_ui/common_close_btn.tres")
-	cbtn.position = Vector2(BW - 72, 8); win.add_child(cbtn)
-	cbtn.pressed.connect(func(): overlay.queue_free(); _open_equipment())
-	var scroll := ScrollContainer.new()
-	# 아래 56pt 는 지금 낀 장비를 다루는 버튼 줄(원작 ItemEquipSelectPopup 하단)이 쓴다.
-	scroll.position = Vector2(40, 86); scroll.size = Vector2(BW - 80, BH - 130 - 56); win.add_child(scroll)
-	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 3)
-	col.custom_minimum_size.x = BW - 100; scroll.add_child(col)
-	var cat: Dictionary = Equipment.catalog(Data.equipment)
-	var group_kr := {"basic": "일반 장비", "event": "이벤트 장비", "artifact": "아티팩트",
-		"special:skull": "해골요새 장비", "special:balrog": "발록 장비", "special:fiod": "피오드 장비",
-		"exclusive": "전용 장비"}
-	# 전용 장비는 **대응 종에게만** 들어간다(사용자 확정 2026-07-31) — 다른 드래곤의 목록에는
-	# 아예 띄우지 않는다. 판정은 로직 계층(Equipment.species_allows)이 하고 여기선 거르기만.
-	var species_id := int(UserDB.get_dragon(uid).get("id", 0))
-	# 보유 장비만 후보다. ⚠️ 이제 **개체 단위**로 나열한다 — 같은 깃털이라도 희귀도·옵션·귀속이
-	# 다르면 인벤 키가 다르고 성능도 다르기 때문이다(§Equipment 인벤 키 규약).
-	var rows_all: Array = []        # [{ik, n, cat_item, meta}]
-	for ik in UserDB.inventory().keys():
-		var ck := Equipment.parse_item_key(String(ik))
-		var n := int(UserDB.inventory()[ik])
-		if ck == "" or n <= 0 or not cat.has(ck):
-			continue
-		var it0: Dictionary = cat[ck]
-		if not Equipment.can_equip(it0, slot_id):
-			continue
-		if not Equipment.species_allows(it0, species_id):
-			continue
-		rows_all.append({"ik": String(ik), "n": n, "it": it0,
-			"meta": Equipment.item_key_meta(String(ik))})
-	# 좋은 것부터: 희귀도 내림차순 → 이름
-	rows_all.sort_custom(func(a, b):
-		var ra := int((a["meta"] as Dictionary).get("rarity", 0))
-		var rb := int((b["meta"] as Dictionary).get("rarity", 0))
-		if ra != rb:
-			return ra > rb
-		return String((a["it"] as Dictionary)["name"]) < String((b["it"] as Dictionary)["name"]))
-	var grades: Array = Data.equipment.get("option", {}).get("grades", [])
-	var listed := 0
-	for grp: String in ["basic", "special:balrog", "special:fiod", "special:skull", "event",
-			"exclusive", "artifact"]:
-		var rows: Array = []
-		for r in rows_all:
-			if String(((r as Dictionary)["it"] as Dictionary).get("group", "")) == grp:
-				rows.append(r)
-		if rows.is_empty(): continue
-		listed += rows.size()
-		var hdr := Label.new(); hdr.text = String(group_kr.get(grp, grp))
-		hdr.add_theme_font_size_override("font_size", 17)
-		hdr.add_theme_color_override("font_color", Color(0.35, 0.28, 0.12)); col.add_child(hdr)
-		for r: Dictionary in rows:
-			var it: Dictionary = r["it"]
-			var meta: Dictionary = r["meta"]
-			var bel := int(meta.get("belong", 0))
-			var rar := int(meta.get("rarity", 0))
-			var mparts: PackedStringArray = []
-			if rar > 0 and rar < grades.size():
-				mparts.append(String((grades[rar] as Dictionary).get("name", "")))
-			for st: String in (it.get("stat_main", {}) as Dictionary):
-				mparts.append("%s+%d" % [_equip_stat_kr(st), int(it["stat_main"][st])])
-			for o in (meta.get("options", []) as Array):
-				mparts.append("%s+%d" % [_equip_stat_kr(String((o as Dictionary).get("stat", ""))),
-					int((o as Dictionary).get("value", 0))])
-			if String(it.get("artifact_effect", "")) != "":
-				mparts.append(String(it["artifact_effect"]))
-			# 전용·특수 장비의 조건부 효과 — 원문과 **전투 반영 여부**를 함께 보여 준다.
-			# (표 = data/equip_effects.json. 반영되는 것은 문구가 비어 있다)
-			if String(it.get("bonus", "")) != "":
-				mparts.append(String(it["bonus"]))
-				var st_txt := EquipEffect.status_text(String(it["key"]), Data.equip_effects)
-				if st_txt != "":
-					mparts.append(st_txt)
-			var usable := Equipment.belong_allows(bel, uid)
-			var tail := "×%d" % int(r["n"])
-			if not usable:
-				# 원작 CaveItemEquipMsg5 "다른 드래곤에게 귀속된 아이템입니다"
-				tail += "  (%s 귀속)" % _dragon_label(bel)
-			var b := Button.new()
-			b.text = "        %s   %s   %s" % [String(it["name"]), " ".join(mparts), tail]
-			b.custom_minimum_size = Vector2(0, 38); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.disabled = not usable
-			var licon := Icons.equip_rect(it, 32.0, rar, bel, uid)
-			if licon: licon.position = Vector2(3, 3); b.add_child(licon)
-			var k := String(it["key"])
-			var inst_key := String(r["ik"])
-			b.pressed.connect(func():
-				# 같은 장비라도 개체(귀속·희귀도·옵션)가 다르면 **다른 인벤 키**다.
-				# 이 줄은 그 개체 하나를 가리킨다.
-				var use_key := inst_key
-				if UserDB.item_count(use_key) <= 0:
-					_toast("보유하지 않은 장비입니다"); return
-				# 그 칸에 이미 끼어 있던 장비는 인벤으로 되돌린다(교체 = 스왑). 개체 정보는 따라간다.
-				var cur: Dictionary = UserDB.get_dragon(uid).get("equip", {})
-				var prev := _equip_slot_data(cur, slot_id)
-				var next: Dictionary = Equipment.equip(
-					cur, slot_id, k, Data.equipment, Equipment.item_key_meta(use_key), species_id)
-				if next.is_empty():
-					_toast("이 칸에는 낄 수 없는 장비입니다")
-					return
-				UserDB.use_item(use_key, 1)
-				if not prev.is_empty():
-					UserDB.add_item(Equipment.slot_to_item_key(prev), 1)
-				UserDB.set_dragon_field(uid, "equip", next)
-				# 원작 <MultyEquip_Slot_Warring_2> — 같은 주 능력이 겹치면 **최상위 하나만**
-				# 적용된다(Equipment.aggregate 가 max 로 접는다). 겹칠 때만 알린다.
-				var dup := _dup_main_stats(uid, slot_id)
-				if not dup.is_empty():
-					_toast("같은 메인 옵션(%s)의 아이템을 장착하시면 최상위 메인 옵션이 적용됩니다."
-						% ", ".join(dup))
-				_refresh_stats(); overlay.queue_free(); _open_equipment())
-			col.add_child(b)
-	if listed == 0:
-		var none := Label.new()
-		none.text = "이 칸에 낄 수 있는 보유 장비가 없습니다."
-		none.add_theme_font_size_override("font_size", 18)
-		none.add_theme_color_override("font_color", Color(0.45, 0.38, 0.28))
-		col.add_child(none)
-
-	# ── 지금 낀 장비를 다루는 줄 — 원작 `ItemEquipSelectPopup` 하단(제련/강화/해제/귀속해제).
-	# 종전엔 이 버튼들이 4칸 목록(MultyEquipPop)에 붙어 있었는데, 원작은 **칸을 고른 뒤**
-	# 나오는 이 창이 갖고 있다.
-	var cur_sd := _equip_slot_data(UserDB.get_dragon(uid).get("equip", {}), slot_id)
-	if not cur_sd.is_empty():
-		var bx := 44.0
-		for spec in [["옵션", true], ["강화", true], ["해제", true],
-				["귀속해제", int(cur_sd.get("belong", 0)) > 0]]:
-			if not bool((spec as Array)[1]):
-				continue
-			var nm2 := String((spec as Array)[0])
-			var bt := Button.new()
-			bt.text = nm2
-			bt.size = Vector2(96.0, 40.0)
-			bt.position = Vector2(bx, BH - 92.0)
-			if nm2 == "강화":
-				bt.disabled = Equipment.enchant_blocked(cur_sd, Data.equipment) != ""
-			bt.pressed.connect(func(): _equip_slot_action(nm2, uid, slot_id, overlay))
-			win.add_child(bt)
-			bx += 104.0
-		# 지금 낀 것 요약 — 원작도 이 창에 대상 장비를 함께 보여 준다.
-		var cur_it: Dictionary = Equipment.catalog(Data.equipment).get(
-			String(cur_sd.get("key", "")), {})
-		var sm := Label.new()
-		sm.text = "장착 중: %s%s  [강화 %d/%d]" % [String(cur_it.get("name", "?")),
-			(" +%d" % int(cur_sd.get("enhance", 0))) if int(cur_sd.get("enhance", 0)) > 0 else "",
-			int(cur_sd.get("enhance", 0)), _equip_enhance_limit(cur_sd)]
-		sm.add_theme_font_size_override("font_size", 14)
-		sm.add_theme_color_override("font_color", Color(0.45, 0.38, 0.30))
-		sm.position = Vector2(44.0, BH - 54.0); sm.size = Vector2(BW - 88.0, 22.0)
-		win.add_child(sm)
+## 🔴 제거(2026-08-01): `_open_equip_select`(자작 장비 선택창) + 그 하단 버튼 줄.
+##   원작은 칸별 전용 팝업 `ItemPopup`(`MultyEquipPop::onClickItemBox` → `ItemPopup::create`)
+##   을 갖고 있고, 버튼도 **강화/장착·해제 두 개**뿐이다. 이식본 = `scripts/ui/item_popup.gd`,
+##   진입 = `_open_item_popup`. 옵션 재설정·귀속해제는 그 창과 가방으로 옮겼다.
 
 ## 장신구(data/accessories.json): 깃털/발톱/부적 → cri/evd/blk. 등급=드래곤 등급 근사.
 ## ⚠️ 구형 — Equipment(data/equipment.json)로 대체됐다. 기존 세이브 호환용으로만 남긴다.
@@ -5182,7 +5015,13 @@ func _inv_detail_actions(item: Dictionary) -> void:
 	#   위 3분기(알/스크롤/음식)에 안 걸리면 전부 `_inventory_select`(하이라이트)로 떨어져
 	#   버튼을 눌러도 아무 일도 없었다. → `_consumable_action` 라우터로 배선한다.
 	var use_kind := _consumable_action(_inv_selected, item)
-	var is_gear := String(item.get("category", "")) in ["gem", "equipment"]
+	# 🔀 2026-08-01: 종전 `is_gear`(젬+장비 한 묶음)를 갈랐다. 원작 가방은 탭마다 버튼이 다르다 —
+	#   젬 탭(category 2)의 확인은 **장착**이지만(`BagPopup::onClickConfirm` case 2),
+	#   장비 탭(category 1)에는 장착 버튼이 아예 없고 **강화 / 옵션 변경 두 개**다
+	#   (`BagPopup::onClickSelect` tag1 → `NewItemEnchantPopup` @BagPopup.c:14008 ·
+	#    tag0 → `onClickSelect_Confirm` case 1 → `ItemCommentPopup::setResetItem` @14967).
+	var is_gear := String(item.get("category", "")) == "gem"
+	var is_equip := String(item.get("category", "")) == "equipment"
 	# 원작: 부화는 **인벤토리 '알' 탭에서 알을 골라 부화**시킨다(둥지 상단 버튼이 아니다).
 	# ⚠️ 원작 부화 메커니즘은 현 breeding 씬(랜덤 부화/조합)과 다르다 — 재구현은 별도 과제.
 	var is_egg := String(item.get("category", "")) == "egg"
@@ -5192,6 +5031,11 @@ func _inv_detail_actions(item: Dictionary) -> void:
 	# 제련(원작 `BagPopup::onClickConfirm` case 6 → `ItemSmeltPopup`) — 하위 티어 정령석·스톤하트.
 	# 원작도 **확인 버튼 자체가 제련 창을 연다**(별도 버튼이 아니다).
 	var is_smelt := ItemSmelt.can_smelt(_inv_selected, Data.combine_item)
+	# 장비 탭 — 원작 그대로 버튼 2개(강화 / 옵션 변경). 장착은 동굴 장비 칸 → `ItemPopup` 이 한다.
+	if is_equip:
+		_build_bag_equip_buttons(_inv_selected)
+		return
+
 	# 원작 가방(docs/ref/orig_image/cave/inven/Cave_inventory.jpg)의 선택 버튼은 **붉은 라운드 버튼**이다
 	# → 자작 회색 Button 대신 원본 `9patch/btn` 프레임을 깐다.
 	var selbg := NinePatchRect.new()
@@ -5234,16 +5078,8 @@ func _inv_detail_actions(item: Dictionary) -> void:
 		# 젬 = 원작 `BagPopup::onClickConfirm` case 2 — **여기서 바로 장착한다**(맞는 칸을 클라가
 		#   찾고 토스트/모달로 결과를 알린다). 종전엔 가방을 닫고 `_open_gem_select()` 를 열어
 		#   같은 젬을 한 번 더 고르게 했다 — 원작에 없는 단계였다(2026-07-30 수정).
-		#   ⚠️ 장비는 다르다: 원작 가방 장비 탭(case 1)의 확인은 장착이 아니라 `unlock_equip` 요청이고
-		#   실제 장착은 `MultyEquipPop` 이 한다 → 우리도 장비 관리 화면으로 보낸다(현행 유지).
-		var gk := String(item.get("category", ""))
 		var ik0 := _inv_selected
-		select.pressed.connect(func():
-			if gk == "gem":
-				_equip_gem_from_bag(ik0)
-			else:
-				_close_overlay()
-				_open_equipment())
+		select.pressed.connect(func(): _equip_gem_from_bag(ik0))
 	elif is_scroll:
 		var sk := _inv_selected
 		select.pressed.connect(func(): _use_skill_scroll(sk))
@@ -5287,6 +5123,112 @@ func _inv_detail_actions(item: Dictionary) -> void:
 		var bkind := batch_kind
 		bb.pressed.connect(func(): _use_batch(bk, bkind, BATCH_USE_N))
 		_inv_detail_box.add_child(bb)
+
+## 가방 '장비' 탭의 버튼 2개 — **원작 `BagPopup` 그대로**(2026-08-01).
+##
+## | 원작 | 대상 | 우리 |
+## |---|---|---|
+## | tag 1 (왼쪽) `onClickSelect` case 1 | 선택 장비 | 강화 → `ItemEnchantPopup`(가방 개체 대상) |
+## | tag 0 (오른쪽) `onClickSelect_Confirm` case 1 | 선택 장비 | 옵션 변경 → `EquipOptionLayer` |
+##
+## 원작 왼쪽은 `getRarity() < 2` 면 `<CaveItemEquipMsg7>` 로 막고(= 일반 등급 강화 불가),
+## 오른쪽은 `ItemCommentPopup` + `setResetItem(equip)` + `Item::create(0x1bd)`(장신구 옵션 초기화)
+## 확인창을 띄운다. 우리는 확인 문구를 원작 `<EquipeSelectMsg1>` 으로 맞춘다.
+##
+## ⚠️ **장착 버튼은 원작에 없다** — 장착은 동굴 하단 장비 칸 → `MultyEquipPop` → `ItemPopup` 이다.
+func _build_bag_equip_buttons(inv_key: String) -> void:
+	var meta := Equipment.item_key_meta(inv_key)
+	var rar := int(meta.get("rarity", 0))
+	var specs := [
+		["강화", Vector2(40, 520), func(): _bag_enhance(inv_key)],
+		["옵션 변경", Vector2(300, 520), func(): _bag_reroll(inv_key)],
+	]
+	for sp in specs:
+		var nm := String((sp as Array)[0])
+		var at: Vector2 = (sp as Array)[1]
+		var bg := NinePatchRect.new()
+		bg.texture = load("res://assets/converted/ninepatch_ui/9patch_btn.tres")
+		bg.patch_margin_left = 16; bg.patch_margin_right = 16
+		bg.patch_margin_top = 16; bg.patch_margin_bottom = 16
+		bg.position = at; bg.size = Vector2(220, 58)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# 일반 등급은 강화도 옵션 변경도 대상이 아니다 — 눌리지만 흐리게 보여 준다.
+		if rar < 2:
+			bg.modulate = Color(0.62, 0.62, 0.62)
+		_inv_detail_box.add_child(bg)
+		var b := Button.new()
+		b.flat = true
+		b.text = nm
+		b.position = at
+		b.size = Vector2(220, 58)
+		b.add_theme_font_size_override("font_size", 26)
+		b.add_theme_color_override("font_color", Color.WHITE)
+		b.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0, 0.9))
+		b.add_theme_constant_override("outline_size", 5)
+		b.pressed.connect((sp as Array)[2])
+		_inv_detail_box.add_child(b)
+
+
+## 가방 → 강화(원작 `BagPopup::onClickSelect` case 1 → `NewItemEnchantPopup::create(equip)`).
+func _bag_enhance(inv_key: String) -> void:
+	var target := ItemEnchantPopup.target_bag(inv_key, int(_active().get("uid", 0)))
+	if target.is_empty():
+		_toast("장비가 아닙니다"); return
+	var sd := ItemEnchantPopup.slot_view(target)
+	if int(sd.get("grade", 0)) < 2:
+		# 원작 <CaveItemEquipMsg7>
+		_open_popup_type("강화", ItemPopup.S_GRADE_MIN, func(): pass, "확인", "")
+		return
+	var why := Equipment.enchant_blocked(sd, Data.equipment)
+	if why == "option_max" or why == "grade_max":
+		_open_popup_type("강화", ItemPopup.S_NO_MORE if why == "option_max"
+			else ItemPopup.S_GRADE_MIN, func(): pass, "확인", "")
+		return
+	# ⚠️ 강화에 성공하면 **인벤 키가 바뀐다**(키가 곧 개체다) → 선택을 새 키로 옮긴다.
+	#   람다는 생성 시점 값을 캡처하므로 `pop` 을 **먼저 대입한 뒤** 연결한다
+	#   (memory: GDScript 람다 자기참조 함정).
+	var pop := ItemEnchantPopup.open(self, target)
+	pop.closed.connect(func(): _bag_equip_changed(pop.current_key()))
+
+
+## 가방에서 장비 개체가 바뀐 뒤(강화·옵션 변경) 선택 키를 옮기고 다시 그린다.
+func _bag_equip_changed(new_key: String) -> void:
+	if new_key != "" and UserDB.item_count(new_key) > 0:
+		_inv_selected = new_key
+	_inventory_refresh_grid()
+	_inventory_refresh_detail()
+	_refresh_stats()
+
+
+## 가방 → 옵션 변경(원작 오른쪽 버튼). 소모품은 **기누의 동전**이고 동전 등급 == 장비 등급이어야
+## 한다(원작 `ItemEquipSelectPopup::init(itemNo)` 이 요구 희귀도를 박고 `initData` 가
+## `getRarity(equip) == 그 값`인 장비만 목록에 올린다 — 동전은 등급을 **바꾸지 않는다**).
+func _bag_reroll(inv_key: String) -> void:
+	var meta := Equipment.item_key_meta(inv_key)
+	var grade := int(meta.get("rarity", 0))
+	var items: Dictionary = Data.equipment.get("option", {}).get("reroll_items", {})
+	var coin := String(items.get(str(grade), ""))
+	if coin == "":
+		_open_popup_type("옵션 변경", "이 등급의 장신구에 쓸 수 있는 동전이 없습니다.",
+			func(): pass, "확인", "")
+		return
+	if UserDB.item_count(coin) <= 0:
+		_open_popup_type("옵션 변경", "%s이(가) 없습니다." % Data.item_name(coin),
+			func(): pass, "확인", "")
+		return
+	# 원작 확인창 <EquipeSelectMsg1> + 소모 동전 표기.
+	_open_popup_type("장비 선택",
+		"해당 장비의 부가 옵션을 변경하시겠습니까?\n\n%s  X %d"
+			% [Data.item_name(coin), UserDB.item_count(coin)],
+		func():
+			if not UserDB.use_item(coin, 1):
+				return
+			var lay := EquipOptionLayer.open_bag(self, inv_key, coin, grade,
+				func(changed: bool):
+					_toast("옵션을 변경했습니다" if changed else "기존 옵션을 유지했습니다"))
+			lay.finished.connect(func(): _bag_equip_changed(lay.current_key())),
+		"확인", "취소")
+
 
 # ========================= 가방 소모품 사용 =========================
 ## 이 아이템이 가방에서 어떤 사용 흐름을 갖는가. ""=사용 흐름 없음(선택만).
