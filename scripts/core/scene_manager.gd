@@ -10,6 +10,8 @@ signal state_changed(from_state: String, to_state: String)
 
 # 상태(게임 모드) → 씬 경로. 화면을 추가하면 여기 등록.
 const REGISTRY := {
+	# 부팅 첫 화면 — 원작 IntroScene(타이틀 스파인 + bg_intro + "화면을 터치해주세요").
+	"intro": "res://scenes/intro.tscn",
 	"cave": "res://scenes/cave.tscn",
 	"town": "res://scenes/town.tscn",
 	"worldmap": "res://scenes/worldmap.tscn",
@@ -34,6 +36,9 @@ const REGISTRY := {
 # 허용 전환표(상태기계). from에 키가 없으면 모든 전환 허용(규칙 미정의).
 # 화면이 늘면 여기에 모드별 진입 가능 경로를 채운다.
 const TRANSITIONS := {
+	# 타이틀에서 나가는 길만 있다(원작도 `ccTouchBegan` → LoadingLayer → 게임 한 방향).
+	# 새 세이브면 프롤로그를 거치고(사용자 확정 2026-07-31), 아니면 바로 메인 화면.
+	"intro": ["worldmap", "prologue", "cave"],
 	# 위계: **worldmap = 메인 허브**(원작 WorldMapScene) → town → cave.
 	#   던전: worldmap → adventure(탐험) → battle(조우) → adventure → worldmap.
 	# 원작 `WorldMapScene::onClickMenu` 는 메인 메뉴에서 상점/점술집/연구소로 **직접** 간다
