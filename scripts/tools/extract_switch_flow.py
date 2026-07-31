@@ -116,35 +116,56 @@ def main():
                     kind, start, step_ld = "step", idx, s2.getAddress().getOffset()
             if kind is None:
                 return None
+            # ── `br` 에서 **역방향**으로 지배 명령을 읽는다 ──────────────────────
+            # ⚠️ 종전에는 기준 `ldr` 뒤에서 **정방향 첫 항목**을 취했다. 그런데 `Scenario1` 처럼
+            #    한 번 읽은 sn 을 여러 구간(0~9 · 107~110 · …)으로 나눠 분기하면, 뒤쪽 표에
+            #    **앞 구간의 `cmp`** 가 달라붙어 엔트리 수가 틀린다(4엔트리 표를 10으로 읽었다).
+            #    표를 지배하는 cmp/sub/adrp/adr 은 언제나 그 `br` 직전 것이므로 역방향이 맞다.
+            rev = list(reversed(win[start:]))
             tbl = base = count = dflt = None
-            page = shift = 0
-            for s2 in win[start:]:
+            width = 2                    # 엔트리 폭(바이트)
+            add_reg = add_imm = None
+            cmp_reg = cmp_at = None
+            shift = 0
+            for k, s2 in enumerate(rev):
                 t = text(s2)
-                if dflt is None:
-                    m = re.fullmatch(r"b\.hi (0x[0-9a-f]+)", t)
+                # 엔트리 폭 — `ldrb`(1) / `ldrh`(2) / `ldrsw`(4). 레지스터 인덱스 형태만 해당.
+                # 🔴 Scenario1 의 첫 표는 `ldrb` 인데 전부 2바이트로 읽고 있었다 → 타깃이 전부 쓰레기.
+                if width == 2:
+                    m = re.fullmatch(r"ldr(b|h|sw) w\d+,\[x\d+,[xw]\d+.*", t)
                     if m:
-                        dflt = int(m.group(1), 0)
-                m = re.fullmatch(r"adrp (x\d+),(0x[0-9a-f]+)", t)
-                if m:
-                    page = int(m.group(2), 0)
-                if tbl is None:
-                    m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
-                    if m and page:      # `\1` 역참조라 그룹은 (레지스터, 즉값) 둘뿐이다
-                        tbl = page + int(m.group(2), 0)
+                        width = {"b": 1, "h": 2, "sw": 4}[m.group(1)]
+                if dflt is None:
+                    m = re.fullmatch(r"b\.(hi|ls) (0x[0-9a-f]+)", t)
+                    if m and m.group(1) == "hi":
+                        dflt = int(m.group(2), 0)
                 if base is None:
                     m = re.fullmatch(r"adr (x\d+),(0x[0-9a-f]+)", t)
                     if m:
                         base = int(m.group(2), 0)
+                if add_reg is None:
+                    m = re.fullmatch(r"add (x\d+),\1,#(0x[0-9a-f]+|\d+)", t)
+                    if m:               # `\1` 역참조라 그룹은 (레지스터, 즉값) 둘뿐이다
+                        add_reg, add_imm = m.group(1), int(m.group(2), 0)
+                if tbl is None and add_reg is not None:
+                    m = re.fullmatch(rf"adrp {add_reg},(0x[0-9a-f]+)", t)
+                    if m:
+                        tbl = int(m.group(1), 0) + add_imm
                 if count is None:
                     m = re.fullmatch(r"cmp (w\d+),#(0x[0-9a-f]+|\d+)", t)
                     if m:
                         count = int(m.group(2), 0) + 1
-                m = re.fullmatch(r"sub (w\d+),(w\d+),#(0x[0-9a-f]+|\d+)", t)
-                if m:
-                    shift = int(m.group(3), 0)
+                        cmp_reg, cmp_at = m.group(1), k
+            # 시프트(`sub wN,wM,#imm`)는 그 `cmp` **바로 앞** 몇 명령 안에 있는 것만 인정한다.
+            if cmp_at is not None:
+                for s2 in rev[cmp_at + 1:cmp_at + 5]:
+                    m = re.fullmatch(rf"sub {cmp_reg},w\d+,#(0x[0-9a-f]+|\d+)", text(s2))
+                    if m:
+                        shift = int(m.group(1), 0)
+                        break
             if tbl and base and count:
                 return {"kind": kind, "tbl": tbl, "base": base, "count": count, "dflt": dflt,
-                        "shift": shift, "step_ld": step_ld,
+                        "shift": shift, "step_ld": step_ld, "width": width,
                         "at": br_ins.getAddress().getOffset()}
             return None
 
@@ -168,7 +189,16 @@ def main():
             return sv if 2 <= len(sv) <= 20 and re.fullmatch(r"[A-Za-z_0-9]+", sv) else None
 
         def entry_target(t: dict, idx: int) -> int:
-            return t["base"] + (mem.getShort(af.getAddress(t["tbl"] + idx * 2)) & 0xFFFF) * 4
+            """테이블 엔트리 → 타깃 주소. **엔트리 폭은 표마다 다르다**(`ldrb`/`ldrh`/`ldrsw`)."""
+            w = t.get("width", 2)
+            a = af.getAddress(t["tbl"] + idx * w)
+            if w == 1:
+                v = mem.getByte(a) & 0xFF
+            elif w == 4:
+                v = mem.getInt(a)
+            else:
+                v = mem.getShort(a) & 0xFFFF
+            return t["base"] + v * 4
 
         def discover(entry: int, body_end: int, cap: int):
             """실제 코드 범위와 점프 테이블 전부를 찾는다(꼬리가 짧게 잡히는 문제 회피).
