@@ -37,7 +37,11 @@ SOURCES = [
     # 붙인다(그 함수의 나머지 절반인 `common/backlight1.png` 은 추출 아틀라스에 없다 — §10 표).
     ("scene/adventure/pt_skill_14_vamp", "pt_skill_14_vamp"),
     # 전투 스킬 파티클 — 원작 AdventureScene::makeSkillParticle @00c9e4a4 가 부르는 3종.
-    #   pt_shild = 방어막(스킬 카테고리 defense) · effect_fire2 = 화염계 · pt_monster_dead_2_2 = 격파
+    #   pt_shild             → battle.gd::_shield_impact (원작 setCheckShildImpact 와 같은 순간)
+    #   pt_monster_dead_2_2  → battle.gd::_kill (격파)
+    #   effect_fire2         → ⚠️ **아직 배선 안 함**. makeSkillParticle 의 호출자를 디컴프 400클래스에서
+    #     못 찾아(함수 포인터로 불리는 듯) 발동 조건을 특정하지 못했다. 조건을 지어내지 않고
+    #     변환본만 둔다 — 조건이 밝혀지면 그때 연결한다(docs/reimplementation_gaps.md §B).
     ("scene/adventure/pt_shild", "pt_shild"),
     ("scene/adventure/effect_fire2", "effect_fire2"),
     ("scene/adventure/pt_monster_dead_2_2", "pt_monster_dead_2_2"),

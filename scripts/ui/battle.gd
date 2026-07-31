@@ -1473,6 +1473,7 @@ func _play_event(ev: Dictionary) -> void:
 					_attr_particles(dfn, String(atk.get("element", "")), is_crit, int(atk.get("voice_critical", 0)))
 				if bool(ev.get("block", false)):
 					_fx_text(dfn, "battle_block_kr", "BLOCK", Color(0.6, 0.8, 1.0)); Bgm.sfx("effect_block")
+				_shield_impact(dfn, int(ev.get("def_skill_id", 0)))   # 원작 setCheckShildImpact
 				if bool(ev.get("dead", false)): _kill(dfn)
 				if int(ev.get("lifesteal", 0)) > 0:
 					_vamp_impact(dfn, atk)          # 원작 setVampImpact
@@ -1580,25 +1581,6 @@ func _skill_fx(ev: Dictionary, caster: Dictionary, target: Dictionary) -> void:
 	#   변환: scripts/tools/build_skill_fx.py → build_skill_fx_scenes.gd → scenes/fx/skill_{id}_spine.tscn
 	#   있으면 그걸 쓰고, 없으면 아래 카테고리별 도형 이펙트로 폴백한다.
 	if sid > 0 and _play_skill_spine(sid, (target if not target.is_empty() else caster)):
-		return
-	# 전용 스파인이 없는 스킬의 **원작 폴백** — 카테고리별로 원작이 쓰는 자산이 따로 있다.
-	#   방어/방어막 = `skill/skill_adbloking_spine`(원작 `setCheckShildImpact` @00c8cdb4,
-	#     `setAnimation("animation", loop=false)` → `Delay(0.7)` → Hide) + 파티클 `pt_shild`
-	#     (원작 `makeSkillParticle` @00c9e4a4 가 부르는 3종 중 하나).
-	#   화염계 = `effect_fire2` · 격파 = `pt_monster_dead_2_2`(같은 함수).
-	# 아래 `_SKILL_FX` 도형 폴백보다 **먼저** 쓴다 — 도형은 원작에 없는 자작이다.
-	var on_v: Dictionary = caster if cat == "buff" or cat == "defense" else target
-	if on_v.is_empty():
-		on_v = caster
-	if cat == "defense" and not on_v.is_empty():
-		var shielded := _play_fx_spine_scene(
-			"res://scenes/worldmap_fx/skill_adbloking_spine.tscn", on_v)
-		if on_v.has("center"):
-			CocosParticle.spawn(self, "pt_shild", on_v["center"], 99, 0.4)
-		if shielded:
-			return
-	if sel == "fire" and not on_v.is_empty() and on_v.has("center"):
-		CocosParticle.spawn(self, "effect_fire2", on_v["center"], 99, 0.5)
 		return
 	var spec: Dictionary = _SKILL_FX.get(cat, _SKILL_FX["attack"])
 	var v: Dictionary = caster if String(spec["on"]) == "caster" else target
@@ -2554,6 +2536,27 @@ func _small_exp_layer(uid: int, gained: int, slot: int) -> void:
 	t.tween_interval(1.2)
 	t.tween_property(root, "modulate:a", 0.0, 0.3)
 	t.tween_callback(lay.queue_free)
+
+## 방어막 임팩트 — 원작 `AdventureScene::setCheckShildImpact` @00c8cdb4.
+##
+## 🔴 2026-07-31 정정: 처음엔 "전용 스파인이 없는 **방어 카테고리 스킬 시전**"에 붙였는데
+##   **원작 조건이 아니었고, 심지어 죽은 코드였다**(방어 스킬 5종 11·12·13·20·28 이 전부 전용
+##   스파인을 갖고 있어 그 앞의 `_play_skill_spine` 에서 return 돼 도달 자체를 못 했다).
+##   원작 조건은 `startAttack` @00c89038 이 **피격 처리 중** 슬롯마다 `setCheckShildImpact(slot)` 을
+##   부르고, 그 안에서 `iVar5 != 0xb && !InterFace::isBuffDebuffExist(대상, 0xb)` 이면 건너뛴다 —
+##   즉 **스킬 `0xb`=11(철갑 방패) 판정**이다. 그래서 "그 피격에서 방어 스킬이 발동했는가"에 붙인다.
+##
+## 원작 연출: `skill/skill_adbloking_spine` `setAnimation("animation", loop=false)` → `Delay(0.7)` → Hide.
+## 파티클 `pt_shild` 는 `makeSkillParticle` @00c9e4a4 소유인데 **그 함수의 호출자를 400클래스에서
+## 못 찾았다**(함수 포인터로 불리는 듯) → 조건 불명. 이름이 실드로 명확해 같은 순간에 함께 낸다
+## (# ASSUMPTION — 조건이 밝혀지면 여기만 고친다).
+const _SHIELD_SKILL := 11              # 원작 리터럴 0xb = 철갑 방패
+func _shield_impact(v: Dictionary, fired_skill_id: int) -> void:
+	if v.is_empty() or fired_skill_id != _SHIELD_SKILL:
+		return
+	_play_fx_spine_scene("res://scenes/worldmap_fx/skill_adbloking_spine.tscn", v)
+	if v.has("center"):
+		CocosParticle.spawn(self, "pt_shild", v["center"], 99, 0.4)
 
 ## 흡혈 임팩트 — 원작 `AdventureScene::setVampImpact` @00ca52e4 (`(피격 위치, 시전자 위치)`).
 ## 원작이 하는 일 두 가지:

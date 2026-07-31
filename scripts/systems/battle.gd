@@ -499,6 +499,7 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		out["survived"] = true
 	if String(dres["fired"]) != "":
 		out["def_skill"] = dres["fired"]
+		out["def_skill_id"] = int(dres.get("fired_id", 0))
 	var refl := int(dres.get("reflect", 0))
 	if refl > 0 and attacker["alive"]:
 		var rap := _apply_dmg(attacker, refl)
@@ -1157,7 +1158,9 @@ static func _defense_skill_onhit(defender: Dictionary, rng: RandomNumberGenerato
 	var sdef2: Dictionary = skills_db.get(str(s2["id"]), {})
 	if rng.randf() * 100.0 < _proc_pct(sdef2, int(s2["level"])):
 		_use(defender, int(s2["id"]))
-		return _defense_reduce(defender, s2, dmg, skills_db)
+		var dr := _defense_reduce(defender, s2, dmg, skills_db)
+		dr["fired_id"] = int(s2["id"])   # render 가 원작 실드 스파인 조건(스킬 11)을 판정하는 근거
+		return dr
 	return {"dmg": dmg, "fired": "", "reflect": 0}
 
 ## 방어 스킬 피해 변환(발동 확정 후). {dmg, fired, reflect}.
