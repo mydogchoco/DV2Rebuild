@@ -356,10 +356,70 @@ OPTION = {
         "`scene/worldmap/trancendence_bg_spine` 을 얹는데 그 스파인은 추출 에셋에 없다."
     ),
     # 강화 1회당 기존 옵션이 오르는 양(자작). 위키 §2.6은 횟수만 알려 준다.
-    "enhance_gold": 8000,
-        "_enhance_gold_authored": "⚠️ 자작 — 원작 강화 비용표는 서버 유실. 종전 cave.gd ENHANCE_COST 를 데이터로 옮긴 것.",
-        "enhance_step_pct": 10,
+    "enhance_step_pct": 10,
     "_enhance_step_authored": "⚠️ 자작: 강화 1회 = 해당 옵션 값 +10%(최소 +1). 튜닝 노브.",
+}
+
+# ── 아이템 강화 (원작 ItemEnchantPopup) ────────────────────────────────────
+#
+# 🟢 **비용도 확률도 클라가 계산한다** — 서버가 하는 건 성공/실패 주사위뿐이다.
+# 2026-08-01 재채굴로 공식 두 개를 통째로 복원했다(디컴프 실측, 추측 0):
+#
+#   무게 W(장비) = Item::getTypeLevel + Equip::getRarity × 2 + Equip::getUpGrade
+#
+#   · `initWidget` @00e8e1xx
+#         기준 확률 = (int)(W(대상) × -1.5 + 50)          ← 0 미만이면 0
+#         골드      = W(대상) × 500
+#   · `calculate` @00e98edc
+#         가산     = (ΣW(재료 3칸)) × 100 / (W(대상) × 5)
+#         표시 확률 = 기준 + 가산, 99 초과면 100
+#
+# 참조 프레임 `docs/ref/equip/장비강화1.png` 로 **교차 검증**했다 —
+# 화면의 "성공 확률 23%" + "코인 x 9000" 이 W=18 하나로 동시에 맞는다
+# (9000/500 = 18, 50 − 1.5×18 = 23). 재료 3칸이 비어 있어 가산 0인 상태와도 일치.
+#
+# `getTypeLevel` = 그 장비의 **사다리 단계 번호(1부터)**.
+#   근거: `ArtifactMix::setGold` 가 비용표를 `표[getTypeLevel(대상) − 1]` 로 인덱싱한다
+#   → 아티팩트 6등급(파손된…전설의)에 1~6 이 대응. 기본 장비도 같은 축이다.
+#   교차검증: 위 W=18 을 기본 장비로 풀면 `전설의 묘안석`(사다리 6단계=tl 6) + 초월(rarity 5 → 10)
+#   + `+2` 로 정확히 18이고, 참조 화면 뒤에 겹친 팝업의 "+2 / 귀속 아이템" 과도 맞는다.
+#
+# ⚠️ 사다리가 없는 계열(event/special/exclusive)의 type_level 은 원작 info_item 값이라 유실.
+#    아래 `type_level_group` 이 **자작 튜닝 노브**다(HARD RULE 6 — 출처 표기).
+ENCHANT = {
+    "_re_basis": (
+        "원작 확정 — ItemEnchantPopup::initWidget(기준 확률·골드) + ::calculate(재료 가산). "
+        "둘 다 클라 계산이고 서버는 성공/실패만 판정했다. "
+        "참조 프레임 docs/ref/equip/장비강화1.png 로 교차검증(23% / 9000골드 ⇔ W=18)."
+    ),
+    "base_percent": 50,
+    "percent_per_weight": -1.5,
+    "gold_per_weight": 500,
+    "material_slots": 3,
+    "material_denom": 5,
+    "_formula": (
+        "W = type_level + rarity×2 + upgrade · "
+        "기준% = int(W×(-1.5)+50) (≥0) · 골드 = W×500 · "
+        "가산% = ΣW(재료)×100 / (W(대상)×material_denom) · 합계 99 초과 → 100"
+    ),
+    "require_material": True,
+    "_require_material_re_basis": (
+        "원작 `onClickEnchant` 는 세 슬롯이 전부 -1 이면 아무것도 하지 않는다 — "
+        "재료 없이 골드만으로는 강화가 시작되지 않는다."
+    ),
+    "type_level_group": {"event": 5, "special": 7, "exclusive": 7},
+    "_type_level_group_authored": (
+        "⚠️ 자작 — 사다리가 없는 계열의 원작 info_item.type_level 은 유실. "
+        "기본 장비 사다리 최대(깃털/발톱 7단계)를 상한 앵커로 잡고 이벤트 5 / 특수·전용 7 로 뒀다. "
+        "튜닝 노브 = build_equipment.py ENCHANT.type_level_group."
+    ),
+    "extra_option_pct": 15,
+    "_extra_option_source": (
+        "위키 §2.6 '추가 옵션 붙을 시 옵션이 하나 더 붙기도 한다' + item.pdf '보통 장비를 강화하면 "
+        "일정 확률로 옵션이 하나 더 붙게 되지만'. 원작 `onClickEnchant` 가 한도를 "
+        "rarity×5 와 **optionAmount×5** 두 가지로 따로 검사하는 것도 이 기능의 흔적이다. "
+        "⚠️ 확률 15% 는 자작 — 위키에 수치가 없다."
+    ),
 }
 
 # ── 편린 (위키 §3) ──────────────────────────────────────────────────────────
@@ -452,6 +512,32 @@ def parse_event_equipment(lines: list[str]) -> list[dict]:
 NAME_X = 160            # 이름 열 오른쪽 경계(pt)
 DRAGON_X = 240          # 드래곤 열 오른쪽 경계 — 그 오른쪽은 전부 효과문
 
+# ── 커스텀 드래곤의 전용 장비 — 위키 밖(사용자 추가) ─────────────────────────
+#
+# 커스텀 세대(666 샛별 · 777 한울)는 원작에 없는 드래곤이라 위키 표에도 없다.
+# ⇒ 이 두 벌은 **사용자가 정한 것**이고 효과 문구도 사용자 확정(2026-08-01)이다.
+#
+# 그림은 드래곤과 **같은 규칙**으로 원작 에셋을 빌린다(`dragons.json` `_art_basis`):
+#   666 샛별 ← 루시퍼 · 777 한울 ← 라 솔라
+# 아이콘 별칭은 `build_item_icons.py` EXCLUSIVE_ALIAS 가 같은 이름 키로 붙인다 —
+# 그래서 아래 `name` 과 그쪽 키가 어긋나면 `implemented` 가 꺼지며 조용히 사라지지 않는다.
+#
+# 이름은 빌린 원작 장비의 이름을 그 드래곤 이름으로 바꾼 것이다(그림이 같으니 물건도 같다).
+# 바꾸려면 여기 한 곳 + EXCLUSIVE_ALIAS 키 + build_equip_effects.py EXCLUSIVE 키를 함께 고친다.
+EXCLUSIVE_EXTRA = [
+    {"name": "샛별의 날개장식", "dragon": "샛별", "_icon_from": "루시퍼의 날개장식",
+     "effect": "스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소, "
+               "철갑방패와 중첩 가능, 아군이 주는 데미지 30% 증가"},
+    {"name": "한울의 불꽃", "dragon": "한울", "_icon_from": "라 솔라의 불꽃",
+     "effect": "자신의 스킬 발동 횟수 +2, 크리티컬 발동 시 상대의 현재 방어력 절반 무시"},
+]
+EXCLUSIVE_EXTRA_NOTE = (
+    "커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 2벌은 위키에 없다 — 원작에 없는 "
+    "드래곤이라 **사용자가 정한 것**이다(효과 문구·아이콘 출처 모두 사용자 확정 2026-08-01). "
+    "아이콘은 드래곤 그림과 같은 규칙으로 원작 에셋을 빌린다(샛별←루시퍼 · 한울←라 솔라). "
+    "노브 = build_equipment.py EXCLUSIVE_EXTRA."
+)
+
 
 def parse_exclusive(dragons: dict) -> list[dict]:
     """전용 장비 95종 → [{name, dragon, dragon_id, effect, implemented}].
@@ -478,6 +564,26 @@ def parse_exclusive(dragons: dict) -> list[dict]:
             "stat_main": {},
             "implemented": True,
             "_dragon_ids": ids if len(ids) != 1 else None,
+        })
+    return out
+
+
+def extra_exclusive(dragons: dict) -> list[dict]:
+    """EXCLUSIVE_EXTRA → 위키 행과 같은 모양의 항목. 대상 드래곤을 못 찾으면 멈춘다."""
+    out: list[dict] = []
+    for e in EXCLUSIVE_EXTRA:
+        ids = dragons.get(_norm(e["dragon"]), [])
+        if len(ids) != 1:
+            raise SystemExit("[build_equipment] '%s' 의 대상 드래곤 '%s' 를 dragons.json 에서 "
+                             "특정하지 못했다(%d건)" % (e["name"], e["dragon"], len(ids)))
+        out.append({
+            "name": e["name"], "dragon": e["dragon"], "dragon_id": ids[0],
+            "effect": e["effect"],
+            "stat_main": {},                  # 전용 장비는 주 능력치가 없다(위 §)
+            "implemented": True,
+            "_dragon_ids": None,
+            "_authored": EXCLUSIVE_EXTRA_NOTE,
+            "_icon_from": e["_icon_from"],
         })
     return out
 
@@ -591,8 +697,12 @@ def mark_implemented(events: list[dict], special: dict, pieces: dict,
 def build() -> dict:
     eq0 = read_pdf("equipment_0")
     events = parse_event_equipment(eq0)
-    exclusive = parse_exclusive(dragon_name_index())
-    print(f"  이벤트 장비 {len(events)}종 / 전용 장비 {len(exclusive)}종 파싱")
+    dragons = dragon_name_index()
+    exclusive = parse_exclusive(dragons)
+    extra = extra_exclusive(dragons)
+    print(f"  이벤트 장비 {len(events)}종 / 전용 장비 {len(exclusive)}종 파싱"
+          f" (+ 커스텀 {len(extra)}종)")
+    exclusive += extra
     special = json.loads(json.dumps(SPECIAL, ensure_ascii=False))   # 상수 원본을 건드리지 않는다
     pieces = json.loads(json.dumps(PIECES, ensure_ascii=False))
     on, off = mark_implemented(events, special, pieces, exclusive)
@@ -646,14 +756,16 @@ def build() -> dict:
                       "hidden": ARTIFACT_HIDDEN, "_hidden_source": ARTIFACT_HIDDEN_NOTE,
                       "mix": ARTIFACT_MIX, "_mix_authored": ARTIFACT_MIX_NOTE},
         "option": OPTION,
+        "enchant": ENCHANT,
         "pieces": pieces,
         "exclusive": {
             "_note": "전용 장비는 드래곤별 고유 효과라 개별 전투 로직이 필요하다. 현재는 데이터 보관만 "
                      "(implemented=false) — 전투 미반영. 위키 표가 줄단위로 쪼개져 name_raw 는 이름+사용자가 섞여 있다.",
             "_impl_basis": EXCLUSIVE_NOTE,
             "_icons": "아이콘 95장은 위키에서 복원해 icon_map `exclusive` 에 **행 번호 키**로 실려 있다"
-                      "(`extract_equip_icons.py`). 이 배열의 인덱스와 같은 순서다 — 깨끗한 이름은 "
+                      "(`extract_equip_icons.py`). 이 배열의 **앞 95개**가 그 순서다 — 깨끗한 이름은 "
                       "icon_map 쪽 `name` 필드에 있다.",
+            "_extra": EXCLUSIVE_EXTRA_NOTE,
             "list": exclusive,
         },
     }

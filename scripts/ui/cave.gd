@@ -485,6 +485,13 @@ func _open_gem_tab() -> void:
 	_inv_selected = ""
 	_open_inventory()
 
+## 그 칸의 강화 한도 = **붙어 있는 옵션 수** × 5(위키 §2.6). 등급 기준이 아니라 옵션 기준인
+## 이유는 강화 도중 추가 옵션이 붙어 옵션 수가 늘 수 있어서다(Equipment.enhance 주석).
+func _equip_enhance_limit(sd: Dictionary) -> int:
+	var per := int(Data.equipment.get("option", {}).get("enhance_per_option", 5))
+	return (sd.get("options", []) as Array).size() * per
+
+
 ## 장비 스탯키 → 한글 라벨(원작 위키 §2.1 효과표 표기).
 func _equip_stat_kr(key: String) -> String:
 	return {
@@ -572,7 +579,7 @@ func _open_equipment() -> void:
 				btxt = "  귀속됨" if bel == uid else "  %s의 귀속 아이템" % _dragon_label(bel)
 			ol.text = "  %s  %s  [강화 %d/%d]%s" % [gname,
 					("옵션 없음" if oparts.is_empty() else " ".join(oparts)),
-					int(sd.get("enhance", 0)), Equipment.enhance_limit(eg, Data.equipment), btxt]
+					int(sd.get("enhance", 0)), _equip_enhance_limit(sd), btxt]
 			ol.add_theme_font_size_override("font_size", 13)
 			ol.add_theme_color_override("font_color", Color(0.36, 0.28, 0.14))
 			ol.position = Vector2(62, 34); box.add_child(ol)
@@ -580,7 +587,7 @@ func _open_equipment() -> void:
 			rr.pressed.connect(func(): _reroll_options(uid, sid); overlay.queue_free(); _open_equipment())
 			box.add_child(rr)
 			var en := Button.new(); en.text = "강화"; en.size = Vector2(66, 38); en.position = Vector2(534, 9)
-			en.disabled = int(sd.get("enhance", 0)) >= Equipment.enhance_limit(eg, Data.equipment)
+			en.disabled = Equipment.enchant_blocked(sd, Data.equipment) != ""
 			en.pressed.connect(func(): overlay.queue_free(); _enhance_option(uid, sid))
 			box.add_child(en)
 			var rm := Button.new(); rm.text = "해제"; rm.size = Vector2(66, 38); rm.position = Vector2(604, 9)

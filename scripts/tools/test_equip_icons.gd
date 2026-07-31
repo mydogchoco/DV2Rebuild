@@ -5,7 +5,8 @@ extends SceneTree
 ## 2026-07-31 위키 복원분 검증. 확인 항목
 ##   ① 구현 대상 장비가 **하나도 빠짐없이** 아이콘을 갖는가
 ##      (일반 38 · 아티팩트 36 · 이벤트 25 · 특수 12 · 편린 6)
-##   ② 전용 장비 95종 아이콘이 행 번호 키로 전부 들어와 있는가(수치 부재로 카탈로그엔 미등재)
+##   ② 전용 장비 97종(위키 95 + 커스텀 2)이 아이콘을 갖는가 — 커스텀 2종은 원작 그림을
+##      빌려 쓴다(build_item_icons.py EXCLUSIVE_ALIAS: 샛별←루시퍼 · 한울←라 솔라)
 ##   ③ 모든 프레임이 실제로 로드되고 형제 규격 95×95 인가
 
 const E := preload("res://scripts/systems/equipment.gd")
@@ -39,9 +40,9 @@ func _init() -> void:
 		else:
 			fails += _load_ok(e, k)
 	print("카탈로그 %d종 · 아이콘 누락 %d" % [cat.size(), miss])
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 95)
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 97)
 
-	# ② 편린 6 · 전용 95
+	# ② 편린 6 · 전용 97(위키 95 + 커스텀 2)
 	for p in (eq["pieces"]["list"] as Array):
 		var pe: Dictionary = (im.get("piece", {}) as Dictionary).get(String(p["name"]), {})
 		if pe.is_empty():

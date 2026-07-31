@@ -1402,6 +1402,42 @@
    "dyn": [],
    "text": "아군 물속성 드래곤의 피해량 10% 증가"
   },
+  "샛별의 날개장식": {
+   "ops": [
+    {
+     "kind": "dmg_taken_flat",
+     "from": {
+      "stat": "skill_level_sum",
+      "ratio": 4.0
+     }
+    },
+    {
+     "kind": "dmg_deal",
+     "pct": 30,
+     "to": "ally"
+    }
+   ],
+   "impl": true,
+   "react": [],
+   "dyn": [],
+   "text": "스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소, 철갑방패와 중첩 가능, 아군이 주는 데미지 30% 증가"
+  },
+  "한울의 불꽃": {
+   "ops": [
+    {
+     "kind": "skill_uses",
+     "value": 2
+    },
+    {
+     "kind": "crit_pen",
+     "pct": 50
+    }
+   ],
+   "impl": true,
+   "react": [],
+   "dyn": [],
+   "text": "자신의 스킬 발동 횟수 +2, 크리티컬 발동 시 상대의 현재 방어력 절반 무시"
+  },
   "멜로우 드래곤의 부메랑": {
    "cond": {
     "kind": "party_element_count",

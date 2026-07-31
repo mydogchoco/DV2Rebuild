@@ -272,6 +272,18 @@ func _ready() -> void:
 				ef_eq["slots"] = ef_slots
 				UserDB.set_dragon_field(ef_uid, "equip", ef_eq)
 			var ef_slot := String((ef_slots[0] as Dictionary).get("slot", "all"))
+			# 강화 재료 후보(= 보유 장비) — 원작 목록이 비면 격자를 볼 수 없다.
+			var ef_mrng := RandomNumberGenerator.new(); ef_mrng.seed = 4242
+			for ef_spec in [["basic:발톱:2", 1, 3], ["basic:비늘:4", 3, 9], ["basic:묘안석:3", 2, 8],
+					["basic:흑요석:1", 2, 1], ["basic:백금석:5", 4, 1], ["basic:부적:0", 0, 0],
+					["basic:깃털:3", 3, 5], ["basic:발톱:5", 2, 2]]:
+				var ef_key := String((ef_spec as Array)[0])
+				if not Equipment.catalog(Data.equipment).has(ef_key):
+					continue
+				var ef_r := int((ef_spec as Array)[1])
+				UserDB.add_item(Equipment.item_key(ef_key, {
+					"rarity": ef_r, "enhance": int((ef_spec as Array)[2]),
+					"options": Equipment.roll_options(ef_r, ef_mrng, Data.equipment)}), 1)
 			Scenes.goto("cave", {})
 			for i in 30: await get_tree().process_frame
 			var ef_n := _find_method_node(get_tree().root, "_enhance_option")
@@ -282,7 +294,15 @@ func _ready() -> void:
 				for a in OS.get_cmdline_user_args():
 					if a.begins_with("--tab="): ef_tab = a.substr(6)
 				if ef_tab == "enchant":
-					ItemEnchantPopup.open(ef_n, ef_uid, ef_slot)
+					var ef_pop := ItemEnchantPopup.open(ef_n, ef_uid, ef_slot)
+					for i in 10: await get_tree().process_frame
+					# 재료 두 칸을 채우고 세 번째를 하이라이트한 상태로 잡는다(확률 가산 확인).
+					var ef_n2: int = (ef_pop.get("_pool") as PackedStringArray).size()
+					for ef_k in 3:
+						ef_pop.call("_on_cell_click", maxi(0, ef_n2 - 3 + ef_k))
+						if ef_k < 2: ef_pop.call("_on_pick")
+						await get_tree().process_frame
+
 				else:
 					var ef_p = EquipOptionLayer.open(ef_n, ef_uid, ef_slot, "ginu_coin_red", 4)
 					for i in 160: await get_tree().process_frame     # 마법진 연출이 끝나길 기다린다

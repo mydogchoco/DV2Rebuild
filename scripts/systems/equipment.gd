@@ -448,8 +448,13 @@ static func reroll(equip_field: Dictionary, slot_id: String, grade: int,
 			return out
 	return {}
 
-## 강화 1회: 옵션 하나를 골라 값을 올린다. 한도(enhance_limit) 초과면 {}.
+## 강화 **성공** 1회: 옵션 하나를 골라 값을 올리고 강화 횟수를 +1 한다. 막혀 있으면 {}.
 ## 증가폭 = enhance_step_pct % (최소 +1) — 자작값.
+##
+## 위키 §2.6 / item.pdf: "강화하면 **일정 확률로 옵션이 하나 더 붙는다**"(추가 옵션).
+## 원작 `onClickEnchant` 가 한도를 `rarity×5` 와 `optionAmount×5` 로 **따로** 검사하는 것이
+## 그 흔적이다 — 추가 옵션이 붙으면 optionAmount 가 늘어 두 한도가 갈린다.
+## 확률표(`enchant.extra_option_pct`)는 유실이라 자작.
 static func enhance(equip_field: Dictionary, slot_id: String, rng: RandomNumberGenerator,
 		table: Dictionary) -> Dictionary:
 	var out := equip_field.duplicate(true)
@@ -460,16 +465,19 @@ static func enhance(equip_field: Dictionary, slot_id: String, rng: RandomNumberG
 		var opts: Array = sd.get("options", [])
 		if opts.is_empty():
 			return {}
-		var grade := int(sd.get("grade", 0))
-		var done := int(sd.get("enhance", 0))
-		if done >= enhance_limit(grade, table):
+		if enchant_blocked(sd, table) != "":
 			return {}
 		var step := float(table.get("option", {}).get("enhance_step_pct", 10))
 		var i := rng.randi() % opts.size()
 		var od := opts[i] as Dictionary
 		var inc := maxi(1, int(round(float(od.get("value", 0)) * step / 100.0)))
 		od["value"] = int(od.get("value", 0)) + inc
-		sd["enhance"] = done + 1
+		sd["enhance"] = int(sd.get("enhance", 0)) + 1
+		var extra := int(enchant_cfg(table).get("extra_option_pct", 0))
+		if extra > 0 and opts.size() < 6 and rng.randi() % 100 < extra:
+			var no := roll_option(rng, table)
+			if not no.is_empty():
+				opts.append(no)
 		return out
 	return {}
 
@@ -754,3 +762,93 @@ static func artifact_mix_success_pct(table: Dictionary, base_key: String) -> int
 	var arr: Array = artifact_mix_cfg(table).get("success_pct", [])
 	var g := int(a["grade"])
 	return int(arr[g]) if g >= 0 and g < arr.size() else 100
+
+# --- 아이템 강화(원작 ItemEnchantPopup) --------------------------------------
+#
+# 🟢 비용도 확률도 **클라가 계산**한다 — 서버가 한 건 성공/실패 주사위뿐이다.
+# 공식은 디컴프 실측(추측 0), 표는 `data/equipment.json` `enchant`:
+#
+#     W(장비) = type_level + rarity×2 + upgrade          (Item::getTypeLevel 등)
+#     기준%   = int(W(대상) × -1.5 + 50), 0 미만이면 0    (initWidget @00e8e1xx)
+#     골드    = W(대상) × 500
+#     가산%   = ΣW(재료) × 100 / (W(대상) × 5)            (calculate @00e98edc)
+#     표시%   = 기준 + 가산, 99 초과면 100
+#
+# 참조 프레임 `docs/ref/equip/장비강화1.png` 의 "23% / 코인 x 9000" 이 W=18 하나로
+# 동시에 맞는다(9000/500=18, 50−1.5×18=23) — 교차검증 통과.
+
+static func enchant_cfg(table: Dictionary) -> Dictionary:
+	return table.get("enchant", {}) as Dictionary
+
+## 그 카탈로그 항목의 type_level(= 사다리 단계 번호, 1부터).
+## 사다리가 있는 계열(basic·artifact)은 `grade + 1`, 없는 계열은 표(자작).
+static func enchant_type_level(item: Dictionary, table: Dictionary) -> int:
+	var grp := String(item.get("group", ""))
+	if item.has("grade"):
+		return int(item["grade"]) + 1
+	var by_grp: Dictionary = enchant_cfg(table).get("type_level_group", {})
+	for k in by_grp:
+		if grp == String(k) or grp.begins_with(String(k) + ":"):
+			return int(by_grp[k])
+	return 1
+
+## 강화 무게 W. `rarity` = 희귀도 인덱스(0=일반), `upgrade` = 현재 강화 횟수.
+static func enchant_weight(item: Dictionary, rarity: int, upgrade: int,
+		table: Dictionary) -> int:
+	if item.is_empty():
+		return 0
+	return enchant_type_level(item, table) + rarity * 2 + upgrade
+
+## 인벤토리 키(`equip:…`) 1개의 W. 카탈로그에 없는 키면 0.
+static func enchant_weight_of_key(key: String, table: Dictionary) -> int:
+	var item: Dictionary = catalog(table).get(parse_item_key(key), {})
+	if item.is_empty():
+		return 0
+	var m := item_key_meta(key)
+	return enchant_weight(item, int(m.get("rarity", 0)), int(m.get("enhance", 0)), table)
+
+## 장착 슬롯 dict 1개의 W.
+static func enchant_weight_of_slot(slot: Dictionary, table: Dictionary) -> int:
+	var item: Dictionary = catalog(table).get(String(slot.get("key", "")), {})
+	if item.is_empty():
+		return 0
+	return enchant_weight(item, int(slot.get("grade", 0)), int(slot.get("enhance", 0)), table)
+
+static func enchant_gold(weight: int, table: Dictionary) -> int:
+	return weight * int(enchant_cfg(table).get("gold_per_weight", 500))
+
+## 재료 없는 기준 확률(%).
+static func enchant_base_pct(weight: int, table: Dictionary) -> int:
+	var c := enchant_cfg(table)
+	var v := int(float(weight) * float(c.get("percent_per_weight", -1.5))
+		+ float(c.get("base_percent", 50)))
+	return maxi(0, v)
+
+## 재료를 넣은 뒤의 표시 확률(%). `mat_weights` = 채운 재료들의 W(빈 칸은 넣지 않는다).
+static func enchant_pct(weight: int, mat_weights: Array, table: Dictionary) -> int:
+	var base := enchant_base_pct(weight, table)
+	var denom := weight * int(enchant_cfg(table).get("material_denom", 5))
+	var bonus := 0
+	if denom != 0:
+		var sum := 0
+		for w in mat_weights:
+			sum += int(w)
+		bonus = int(sum * 100 / denom)          # 원작도 정수 나눗셈(내림)이다
+	var v := base + bonus
+	return 100 if v > 99 else v
+
+## 그 칸을 더 강화할 수 있는가. 막혀 있으면 **사유 코드**, 가능하면 "".
+## 원작 `onClickEnchant` 의 두 게이트 그대로 — 희귀도 한도와 옵션 수 한도를 따로 본다.
+## 코드 → 문구는 render 가 붙인다(§8.3: logic 은 표시를 모른다). 원작 대응 문자열:
+##   `no_equip` = <CaveItemEquipMsg11> · `grade_max` = <CaveItemEquipMsg7> ·
+##   `option_max` = <CaveItemEquipMsg8>
+static func enchant_blocked(slot: Dictionary, table: Dictionary) -> String:
+	if slot.is_empty():
+		return "no_equip"
+	var per := int(table.get("option", {}).get("enhance_per_option", 5))
+	var up := int(slot.get("enhance", 0))
+	if up >= int(slot.get("grade", 0)) * per:
+		return "grade_max"
+	if up >= (slot.get("options", []) as Array).size() * per:
+		return "option_max"
+	return ""

@@ -18,8 +18,17 @@ func _init() -> void:
 	#    (`extract_equip_icons.py` → icon_map event/special). 판정은 여전히 icon_map 조회 자동.
 	# 🟦 2026-07-31 사용자 확정: 전용 장비 95종은 **주 능력치가 없는 것이 원작 사양**이다.
 	#    대응 드래곤에게만 장착되고 조건부 효과만 갖는다 ⇒ 그대로 카탈로그에 넣는다.
-	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 95)
+	#    2026-08-01: 전용 95 → **97**. 커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비가
+	#    위키 밖에서 추가됐다(build_equipment.py EXCLUSIVE_EXTRA, 그림은 원작 에셋 차용).
+	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 97)
 	fails += _true("전용 장비가 카탈로그에 있다", cat.has("exclusive:고대신룡의 금관"))
+	# 커스텀 2종도 같은 규약(주 능력치 없음 + 대상 드래곤 제한)이어야 한다.
+	for row in [["exclusive:샛별의 날개장식", 666], ["exclusive:한울의 불꽃", 777]]:
+		var ck := String(row[0])
+		fails += _true("커스텀 전용 장비가 카탈로그에 있다: %s" % ck, cat.has(ck))
+		if cat.has(ck):
+			fails += _true("%s — 대상 드래곤만 장착" % ck,
+				E.species_allows(cat[ck], int(row[1])) and not E.species_allows(cat[ck], 1))
 	var exc: Dictionary = cat["exclusive:고대신룡의 금관"]
 	fails += _eq("전용 장비는 주 능력치가 없다", (exc["stat_main"] as Dictionary).size(), 0)
 	fails += _eq("전용 장비 대상 드래곤", int(exc["dragon_id"]), 1)

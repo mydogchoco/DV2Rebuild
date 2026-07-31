@@ -95,6 +95,16 @@ EVENT_ICON = {
     "곰 인형": "children_teddy",
 }
 
+# 커스텀 드래곤(위키 밖)의 전용 장비 아이콘 별칭 — 새 이름 → 그림을 빌려 올 위키 장비.
+# 드래곤 본체가 원작 그림을 빌리는 것과 같은 짝이다(`dragons.json` `_art_basis`):
+#   666 샛별 = 루시퍼 그림 · 777 한울 = 라 솔라 그림 (사용자 확정 2026-08-01).
+# 키는 `build_equipment.py` EXCLUSIVE_EXTRA 의 `name` 과 반드시 같아야 한다 — 어긋나면
+# 그쪽 `implemented` 판정(icon_map 조회)이 꺼져 장비가 카탈로그에서 사라진다.
+EXCLUSIVE_ALIAS = {
+    "샛별의 날개장식": "루시퍼의 날개장식",
+    "한울의 불꽃": "라 솔라의 불꽃",
+}
+
 
 def convert() -> list[str]:
     done = []
@@ -248,6 +258,14 @@ def build_map(subs: list[str]) -> dict:
     for r in rows.get("exclusive", []):
         key = re.sub(r"\[\d+\]", "", str(r["wiki_name"])).strip()
         out["exclusive"][key] = {"dir": "equip_wiki", "frame": r["frame"], "from_wiki": True}
+    # 커스텀 드래곤의 전용 장비는 위키에 없다 — **드래곤 그림과 같은 규칙**으로 원작 에셋을
+    # 빌린다(`dragons.json` `_art_basis`: 666 샛별←루시퍼 · 777 한울←라 솔라).
+    # 원본이 사라지면 조용히 아이콘 없는 장비가 되므로 여기서 멈춘다.
+    for dst, src in EXCLUSIVE_ALIAS.items():
+        if src not in out["exclusive"]:
+            raise SystemExit("[build_item_icons] 별칭 원본 '%s' 가 위키 아이콘에 없다 "
+                             "(→ '%s')" % (src, dst))
+        out["exclusive"][dst] = dict(out["exclusive"][src], alias_of=src)
 
     # 상점 장비 가챠 버튼 아이콘 — 사용자 확정 2026-07-29(몽타주 '정체 미상' 2건의 정답):
     #   gooddeco = 다이아 가챠 / olddeco = 골드 가챠. `item/accessory` 아틀라스에 실재한다.

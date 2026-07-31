@@ -947,10 +947,27 @@
       "00FFEA"
     ],
     "_rarity_colors_re_basis": "원작 확정 — `Equip::getGradeImageSmallSprite` 가 rarity(1~6)로 setColor 한다. rarity 1(일반)은 스프라이트 자체를 만들지 않는다. 초월은 추가로 스파인 `scene/worldmap/trancendence_bg_spine` 을 얹는데 그 스파인은 추출 에셋에 없다.",
-    "enhance_gold": 8000,
-    "_enhance_gold_authored": "⚠️ 자작 — 원작 강화 비용표는 서버 유실. 종전 cave.gd ENHANCE_COST 를 데이터로 옮긴 것.",
     "enhance_step_pct": 10,
     "_enhance_step_authored": "⚠️ 자작: 강화 1회 = 해당 옵션 값 +10%(최소 +1). 튜닝 노브."
+  },
+  "enchant": {
+    "_re_basis": "원작 확정 — ItemEnchantPopup::initWidget(기준 확률·골드) + ::calculate(재료 가산). 둘 다 클라 계산이고 서버는 성공/실패만 판정했다. 참조 프레임 docs/ref/equip/장비강화1.png 로 교차검증(23% / 9000골드 ⇔ W=18).",
+    "base_percent": 50,
+    "percent_per_weight": -1.5,
+    "gold_per_weight": 500,
+    "material_slots": 3,
+    "material_denom": 5,
+    "_formula": "W = type_level + rarity×2 + upgrade · 기준% = int(W×(-1.5)+50) (≥0) · 골드 = W×500 · 가산% = ΣW(재료)×100 / (W(대상)×material_denom) · 합계 99 초과 → 100",
+    "require_material": true,
+    "_require_material_re_basis": "원작 `onClickEnchant` 는 세 슬롯이 전부 -1 이면 아무것도 하지 않는다 — 재료 없이 골드만으로는 강화가 시작되지 않는다.",
+    "type_level_group": {
+      "event": 5,
+      "special": 7,
+      "exclusive": 7
+    },
+    "_type_level_group_authored": "⚠️ 자작 — 사다리가 없는 계열의 원작 info_item.type_level 은 유실. 기본 장비 사다리 최대(깃털/발톱 7단계)를 상한 앵커로 잡고 이벤트 5 / 특수·전용 7 로 뒀다. 튜닝 노브 = build_equipment.py ENCHANT.type_level_group.",
+    "extra_option_pct": 15,
+    "_extra_option_source": "위키 §2.6 '추가 옵션 붙을 시 옵션이 하나 더 붙기도 한다' + item.pdf '보통 장비를 강화하면 일정 확률로 옵션이 하나 더 붙게 되지만'. 원작 `onClickEnchant` 가 한도를 rarity×5 와 **optionAmount×5** 두 가지로 따로 검사하는 것도 이 기능의 흔적이다. ⚠️ 확률 15% 는 자작 — 위키에 수치가 없다."
   },
   "pieces": {
     "_source": "위키 §3(7주년, 4세대 레이드). 세트 2/3 효과.",
@@ -1022,7 +1039,8 @@
   "exclusive": {
     "_note": "전용 장비는 드래곤별 고유 효과라 개별 전투 로직이 필요하다. 현재는 데이터 보관만 (implemented=false) — 전투 미반영. 위키 표가 줄단위로 쪼개져 name_raw 는 이름+사용자가 섞여 있다.",
     "_impl_basis": "전용 장비는 **아이콘이 아니라 수치가 없어서** 미구현이다(2026-07-31 갱신). 위키 표에 주 능력치 열이 없고 드래곤별 조건부 효과 문구(effect)뿐이라 장착해도 붙일 스탯이 없다. 아이콘은 위키에서 복원해 icon_map `exclusive` 에 95장 실려 있다(행 번호 키) — 효과 규칙이 정해지면 데이터만 채우면 된다.",
-    "_icons": "아이콘 95장은 위키에서 복원해 icon_map `exclusive` 에 **행 번호 키**로 실려 있다(`extract_equip_icons.py`). 이 배열의 인덱스와 같은 순서다 — 깨끗한 이름은 icon_map 쪽 `name` 필드에 있다.",
+    "_icons": "아이콘 95장은 위키에서 복원해 icon_map `exclusive` 에 **행 번호 키**로 실려 있다(`extract_equip_icons.py`). 이 배열의 **앞 95개**가 그 순서다 — 깨끗한 이름은 icon_map 쪽 `name` 필드에 있다.",
+    "_extra": "커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 2벌은 위키에 없다 — 원작에 없는 드래곤이라 **사용자가 정한 것**이다(효과 문구·아이콘 출처 모두 사용자 확정 2026-08-01). 아이콘은 드래곤 그림과 같은 규칙으로 원작 에셋을 빌린다(샛별←루시퍼 · 한울←라 솔라). 노브 = build_equipment.py EXCLUSIVE_EXTRA.",
     "list": [
       {
         "name": "고대신룡의 금관",
@@ -1878,6 +1896,28 @@
         "stat_main": {},
         "implemented": true,
         "_dragon_ids": null
+      },
+      {
+        "name": "샛별의 날개장식",
+        "dragon": "샛별",
+        "dragon_id": 666,
+        "effect": "스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소, 철갑방패와 중첩 가능, 아군이 주는 데미지 30% 증가",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null,
+        "_authored": "커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 2벌은 위키에 없다 — 원작에 없는 드래곤이라 **사용자가 정한 것**이다(효과 문구·아이콘 출처 모두 사용자 확정 2026-08-01). 아이콘은 드래곤 그림과 같은 규칙으로 원작 에셋을 빌린다(샛별←루시퍼 · 한울←라 솔라). 노브 = build_equipment.py EXCLUSIVE_EXTRA.",
+        "_icon_from": "루시퍼의 날개장식"
+      },
+      {
+        "name": "한울의 불꽃",
+        "dragon": "한울",
+        "dragon_id": 777,
+        "effect": "자신의 스킬 발동 횟수 +2, 크리티컬 발동 시 상대의 현재 방어력 절반 무시",
+        "stat_main": {},
+        "implemented": true,
+        "_dragon_ids": null,
+        "_authored": "커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 2벌은 위키에 없다 — 원작에 없는 드래곤이라 **사용자가 정한 것**이다(효과 문구·아이콘 출처 모두 사용자 확정 2026-08-01). 아이콘은 드래곤 그림과 같은 규칙으로 원작 에셋을 빌린다(샛별←루시퍼 · 한울←라 솔라). 노브 = build_equipment.py EXCLUSIVE_EXTRA.",
+        "_icon_from": "라 솔라의 불꽃"
       }
     ]
   }

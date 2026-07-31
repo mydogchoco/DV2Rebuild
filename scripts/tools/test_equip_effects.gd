@@ -132,6 +132,8 @@ func _init() -> void:
 	_test_awaken_mod(tbl, cfg)
 	# 13) 마지막 묶음 — 사망 트리거 · 관통 분배 · 스킬 지정 · PvE 조항만 살린 것.
 	_test_d_batch(tbl, cfg)
+	# 14) 커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 — 위키 밖, 사용자 정의.
+	_test_custom(tbl, cfg)
 
 	print("=== %s ===" % ("PASS" if _fails == 0 else "FAIL %d건" % _fails))
 	quit(0 if _fails == 0 else 1)
@@ -599,6 +601,54 @@ func _test_c_hooks(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
 	EE.apply_battle([hy, aqua2, fire2], [], tbl, {})
 	_eq("물속성 아군 피해량 +10%", B._dmg_deal_mult(aqua2), 1.1)
 	_eq("다른 속성은 그대로", B._dmg_deal_mult(fire2), 1.0)
+
+
+## 커스텀 드래곤(위키 밖)의 전용 장비 2벌 — 조항 4개가 전부 기존 어휘로 옮겨졌는지.
+func _test_custom(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+
+	# ── 샛별의 날개장식(666) ────────────────────────────────────────────────
+	# 1) 장착 스킬 레벨 합 × 4 만큼 받는 대미지 **정액** 감소(불나래와 같은 축).
+	var sb := _mk("SB", "chaos", {"hp": 9999, "skill_level_sum": 9},
+		["exclusive:샛별의 날개장식"])
+	var mate := _mk("MT", "fire", {"hp": 9999, "att": 100}, [])
+	EE.apply_battle([sb, mate], [], tbl, {})
+	_eq("샛별 — 레벨합 9 → 36 감소", int(B._apply_dmg(sb, 500)["dmg"]), 464)
+	# 2) [철갑 방패](11)와 중첩 — 출처가 다르면 정액 감소가 합산된다.
+	(sb["effects"] as Array).append({"kind": "dmg_taken_flat", "value": 35.0,
+		"turns": -1, "src": "skill:11"})
+	_eq("샛별 — 철갑 방패와 중첩(36+35)", int(B._apply_dmg(sb, 500)["dmg"]), 429)
+	# 3) 아군이 주는 데미지 30% 증가 — 착용자 본인도 아군에 든다.
+	_eq("샛별 — 아군 피해량 +30%", B._dmg_deal_mult(mate), 1.3)
+	_eq("샛별 — 자신도 +30%", B._dmg_deal_mult(sb), 1.3)
+	var solo := _mk("SO", "fire", {"hp": 9999, "att": 100}, [])
+	EE.apply_battle([solo], [], tbl, {})
+	_eq("장비가 없으면 그대로", B._dmg_deal_mult(solo), 1.0)
+
+	# ── 한울의 불꽃(777) ───────────────────────────────────────────────────
+	# 1) 스킬 발동 횟수 +2 (라 솔라의 불꽃과 같은 조항 — 같은 값이 나와야 한다).
+	var sid := 11
+	var base := _mk("HB", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]}, [])
+	var han := _mk("HN", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]},
+		["exclusive:한울의 불꽃"])
+	var sol := _mk("LS", "fire", {"att": 100, "skills": [{"id": sid, "level": 1}]},
+		["exclusive:라 솔라의 불꽃"])
+	EE.apply_battle([base], [], tbl, {})
+	EE.apply_battle([han], [], tbl, {})
+	EE.apply_battle([sol], [], tbl, {})
+	var n_base := int((base["skill_uses"] as Dictionary).get(sid, 0))
+	_eq("한울 — 스킬 발동 횟수 +2", int((han["skill_uses"] as Dictionary).get(sid, 0)), n_base + 2)
+	_eq("한울 — 라 솔라의 불꽃과 같은 값",
+		int((han["skill_uses"] as Dictionary).get(sid, 0)),
+		int((sol["skill_uses"] as Dictionary).get(sid, 0)))
+	# 2) 크리티컬 발동 시 상대의 현재 방어력 절반 무시 — **크리일 때만** 걸린다.
+	var c0 := _crit_dmg(tbl, cfg, [])
+	var c1 := _crit_dmg(tbl, cfg, ["exclusive:한울의 불꽃"])
+	_true("한울 — 크리 피해 증가 (%d → %d)" % [c0, c1], c1 > c0)
+	_eq("한울 — 엔투라스와 같은 값", c1, _crit_dmg(tbl, cfg, ["exclusive:엔투라스의 불꽃 주먹"]))
+	_eq("한울 — 논크리 평타는 그대로",
+		_duel(tbl, cfg, rng, ["exclusive:한울의 불꽃"], "wind"),
+		_duel(tbl, cfg, rng, [], "wind"))
 
 
 ## 크리 확정 상태에서의 피해 1회(고정 시드).

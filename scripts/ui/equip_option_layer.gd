@@ -46,9 +46,14 @@ const CARD_R := Vector2(400.0, 92.0)
 const BTN := Vector2(150.0, 48.0)
 
 ## 옵션 스탯 표기(원작 `info_item_acc` 컬럼 → 한글). `build_equip_sheet.py` 와 같은 어휘.
+## 옵션 스탯 이름 — **원작 문자열 그대로**. `DV2/string/stringsData_KR.xml` 이 스탯 코드와
+## 같은 이름의 키를 갖고 있다: `<hp>생명력` `<att>공격력` `<def>방어력` `<blkrate>방어율`
+## `<evd>회피율` `<cri>치명타` `<gold>골드` `<exp>경험치` `<pure>관통` `<depure>관통 감소`
+## `<accuracy>명중`. (2026-08-01 정정 — 종전 `pure=정화` / `depure=저주` 는 자작 오역이었다.
+## 원작 `<CaveItemEquipComent5>` 도 "방어 관통 대미지"다.)
 const STAT_KR := {"hp": "생명력", "att": "공격력", "def": "방어력", "blk": "방어율",
 	"evd": "회피율", "cri": "치명타", "gold": "골드", "exp": "경험치",
-	"pure": "정화", "depure": "저주", "accuracy": "명중률"}
+	"pure": "관통", "depure": "관통 감소", "accuracy": "명중"}
 
 var _uid := 0
 var _slot := ""
