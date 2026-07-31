@@ -645,7 +645,7 @@ def main():
                                             npc_talk_addrs, user_talk_addrs, text,
                                             talker_addrs=talker_addrs, rostr=rostr,
                                             talk_addrs=talk_addrs, want_sn=None,
-                                            lam=lambda_at))
+                                            lam=lambda_at, ep=sn))
                         if f"--dump-ep={sn}" in sys.argv:
                             print(f"     [step] {a4:#x} -> {f0[n0:] or '(없음)'}")
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
@@ -653,6 +653,20 @@ def main():
                 flow, t = best, (best_t or cands[0])
                 if t.get("dflt") and default_is_user_talk(at, after, body, t["dflt"], user_talk_addrs):
                     flow.append({"op": "setUserTalk"})
+                # 🔴 같은 대사 키를 두 번 내지 않는다. BFS 가 서로 다른 스텝에서 **같은 람다
+                #    본문**에 닿으면 같은 줄이 두 번 실린다 — 그게 초과의 정체였다
+                #    (실측 2화: 대사op 25 · 고유 키 23 · 원작 23 → 중복 2 가 곧 초과 2).
+                #    키는 `ScenarioTalk<회차>_<줄>` 로 줄마다 유일하므로 판단이 확실하다.
+                seen_keys: set = set()
+                dedup: list[dict] = []
+                for o5 in flow:
+                    k5 = o5.get("key")
+                    if o5.get("op") == "setTalk" and isinstance(k5, str) and k5:
+                        if k5 in seen_keys:
+                            continue
+                        seen_keys.add(k5)
+                    dedup.append(o5)
+                flow = dedup
                 out[str(sn)] = flow
                 talk = sum(1 for o in flow if o["op"] in TALK_OPS)
                 nstep = len(t["steps"]) if t.get("kind") == "chain" else t["count"]
@@ -740,7 +754,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               talker_addrs: set | None = None, rostr=None,
               talk_addrs: set | None = None,
               want_sn: int | None = None,
-              lam=None) -> list[dict]:
+              lam=None, ep: int = 0) -> list[dict]:
     """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
 
     ## 조건 분기 (2026-07-31)
@@ -770,7 +784,9 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
     queue: list[tuple[int, tuple, bool, bool]] = [
         (tgt, ({}, {}, {}, {}, {}, None, {}, None), True, False)]
     seen_starts: set[int] = set()
-    budget = MAX_STEP_INSNS * 4          # 갈래를 다 합친 총 예산
+    # 갈래를 다 합친 총 예산. 16배까지 올려 봤지만 결과가 같아 4배로 되돌렸다
+    # (남은 부족분은 예산이 아니라 **닿지 못하는 람다** 때문이다).
+    budget = MAX_STEP_INSNS * 4
 
     while queue and budget > 0:
         start, st, primary, free = queue.pop(0)
@@ -895,6 +911,14 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     ops.append({"op": "setUserTalk"})
                     return ops
                 if (talk_addrs and a in talk_addrs) or _nm0 in TALK_FNS:
+                    # 🔴 **대사 키가 회차 번호를 담고 있다** — `ScenarioTalk<회차>_<줄>`.
+                    #    형제 람다(같은 vtable 뭉치의 다른 스텝 본문)를 잘못 집으면 남의 회차
+                    #    대사가 실려 초과가 난다(실측 34회차·중앙값 +2). 회차가 다르면 채택하지
+                    #    않고 **다른 경로를 계속 찾는다**.
+                    _k = talk_key or last_str
+                    if ep and isinstance(_k, str) and _k.startswith("ScenarioTalk")                             and not _k.startswith("ScenarioTalk%d_" % ep):
+                        cur = nav_after(cur)
+                        continue
                     # 대사 키는 멤버(this+0x1f0)에 써 둔 것이 정답이다 —
                     # `last_str` 을 쓰면 직전에 스친 아무 문자열이나 집힌다.
                     ops.append({"op": "setTalk", "key": talk_key or last_str,
