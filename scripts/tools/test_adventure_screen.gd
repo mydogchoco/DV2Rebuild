@@ -56,7 +56,12 @@ func _ready() -> void:
 	var uids: Array = adv.get("_run_party")
 	if uids.is_empty():
 		uids = [UserDB.active_uid()]
-	var adv_party := PartyStats.summary(uids, false, "")
+	# 탐험 카드가 실제로 그리는 값 = summary + apply_passives(전투와 같은 함수).
+	var adv_party := PartyStats.summary(uids, adv.call("_is_kades"), adv.call("_field_element_key"))
+	PartyStats.apply_passives(adv_party, adv.call("_next_enemy_ref"), {
+		"field_element": adv.call("_field_element_key"), "enemy_boss": adv.call("_next_is_boss"),
+		"team_buffs": PartyStats.team_buff_names(uids),
+		"explore_gold_pct": int((adv.call("_awaken_explore") as Dictionary).get("gold_pct", 0))})
 	Scenes.goto("battle", {"stage": "1", "region": "yutakan", "enc": 1,
 		"party_uids": uids.duplicate()})
 	await get_tree().process_frame
@@ -64,22 +69,55 @@ func _ready() -> void:
 	var bp: Array = bat.get("_party") if bat else []
 	var drift := 0
 	var compared := 0
+	# 각성 스킬까지 공유하므로 **각성 개체도 포함해** 전부 비교한다.
 	for i in mini(adv_party.size(), bp.size()):
 		var a: Dictionary = adv_party[i]
 		var b: Dictionary = bp[i]
-		# 각성 스킬은 전투에서만 얹히므로 미각성 개체만 비교한다.
-		if bool(b.get("awakened", false)):
-			continue
 		compared += 1
 		for k in ["hp", "att", "def"]:
 			var av := int((a["stats"] as Dictionary).get(k, 0))
 			var bv := int((b["stats"] as Dictionary).get(k, 0))
 			if av != bv:
 				drift += 1
-				print("    DRIFT uid=%d %s 탐험=%d 전투=%d" % [int(a["uid"]), k, av, bv])
+				print("    DRIFT uid=%d stats.%s 탐험=%d 전투=%d" % [int(a["uid"]), k, av, bv])
+		# 🔴 카드에 실제로 그려지는 값은 `hp_max`/`hp` 다 — 각성 스킬이 바꾸는 곳도 여기라
+		#    `stats` 만 보면 각성 HP 보너스 갭을 놓친다.
+		for k in ["hp_max", "hp"]:
+			var av2 := int(a.get(k, 0))
+			var bv2 := int(b.get(k, 0))
+			if av2 != bv2:
+				drift += 1
+				print("    DRIFT uid=%d %s 탐험=%d 전투=%d" % [int(a["uid"]), k, av2, bv2])
 	var ok3 := drift == 0 and compared > 0
 	print("%-26s 비교 %d마리 · 불일치 %d  %s" % ["카드 능력치 드리프트", compared, drift, _v(ok3)])
 	fails += 0 if ok3 else 1
+
+	# 3-b) 🔴 **각성 스킬 갭**이 실제로 막혔는지 — 세이브가 미각성 1마리뿐이라 위 3)만으로는
+	#      각성 경로를 한 번도 안 탄다. 각성 스킬 12(자신 최대 체력 +50%, 무조건)를 강제로
+	#      붙여서 탐험 카드가 전투 카드와 **같은 hp_max** 를 내는지 본다.
+	#      종전에는 이 값이 탐험 650 / 전투 975 로 벌어졌다.
+	var auid := int(uids[0])
+	var base_max := int((PartyStats.summary([auid], false, "")[0] as Dictionary)["hp_max"])
+	UserDB.set_dragon_field(auid, "awakened", true)
+	UserDB.set_dragon_field(auid, "awaken_skill", 12)
+	var aw_party := PartyStats.summary([auid], false, "")
+	PartyStats.apply_passives(aw_party, {"element": "", "hp": 1},
+		{"field_element": "", "enemy_boss": false, "team_buffs": [], "explore_gold_pct": 0})
+	var aw_adv := int((aw_party[0] as Dictionary)["hp_max"])
+	# ⚠️ `Scenes` 는 battle → battle 직행을 막는다 — 월드맵을 한 번 거쳐야 전투가 다시 만들어진다.
+	Scenes.goto("worldmap", {"region": "yutakan"})
+	await get_tree().process_frame
+	Scenes.goto("battle", {"stage": "1", "region": "yutakan", "enc": 1, "party_uids": [auid]})
+	await get_tree().process_frame
+	var bat2 := Scenes.current_scene()
+	var bp2: Array = bat2.get("_party") if bat2 else []
+	var aw_bat := int((bp2[0] as Dictionary).get("hp_max", 0)) if not bp2.is_empty() else -1
+	var ok3b := aw_adv == aw_bat and aw_adv > base_max
+	print("%-26s 기본 %d → 각성 탐험 %d / 전투 %d  %s"
+		% ["각성 스킬 반영", base_max, aw_adv, aw_bat, _v(ok3b)])
+	fails += 0 if ok3b else 1
+	UserDB.set_dragon_field(auid, "awakened", false)
+	UserDB.set_dragon_field(auid, "awaken_skill", 0)
 
 	# 4) 선택지 버튼 좌우
 	Scenes.goto("adventure", {"stage": "1", "region": "yutakan", "enc": 1, "hero": true})
@@ -105,6 +143,39 @@ func _ready() -> void:
 	else:
 		print("%-26s 버튼 %d개  FAIL" % ["선택지 버튼 좌우", (layer.get_child_count() if layer else 0)])
 	fails += 0 if ok4 else 1
+
+	# 5) 회복 물약 버튼(원작 InterFace::setUiButton) — 보유분이 있으면 켜지고, 누르면
+	#    그 드래곤의 hp_state 가 오르고 수량이 1 준다.
+	var uid := int(uids[0])
+	var lv := int(UserDB.get_dragon(uid).get("level", 1))
+	var pkey := ""
+	for t in (Data.item_effects.get("heal_potion", {}).get("tiers", []) as Array):
+		var k := String((t as Dictionary).get("key", ""))
+		if ItemEffect.heal_usable(Data.item_effects, k, lv):
+			pkey = k
+			break
+	var ok5 := false
+	if pkey == "":
+		print("%-26s 레벨 %d 에 맞는 물약 등급 없음  FAIL" % ["회복 물약 버튼", lv])
+	else:
+		UserDB.add_item(pkey, 5)
+		# 다친 상태로 만들어 회복 여지를 준다.
+		var full := int((PartyStats.summary([uid], false, "")[0] as Dictionary)["hp_max"])
+		adv2.set("_params", {"stage": "1", "region": "yutakan", "enc": 1, "hero": true,
+			"hp_state": {str(uid): int(full * 0.4)}})
+		adv2.call("_show_party_cards")
+		await get_tree().process_frame
+		var before := UserDB.item_count(pkey)
+		adv2.call("_use_heal_potion", uid, pkey)
+		await get_tree().process_frame
+		var after := UserDB.item_count(pkey)
+		var hp_after := int((adv2.get("_params") as Dictionary).get("hp_state", {}).get(str(uid), 0))
+		ok5 = after == before - 1 and hp_after > int(full * 0.4)
+		print("%-26s 물약 %d→%d · HP %d→%d(최대 %d)  %s"
+			% ["회복 물약 버튼", before, after, int(full * 0.4), hp_after, full, _v(ok5)])
+		# 검사용으로 넣은 물약은 되돌린다 — 안 그러면 돌릴 때마다 세이브에 4개씩 쌓인다.
+		UserDB.add_item(pkey, -(after - (before - 5)))
+	fails += 0 if ok5 else 1
 
 	_finish(fails)
 

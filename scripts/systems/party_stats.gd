@@ -34,6 +34,25 @@ static func race_keys(party: Array) -> Array:
 	return out
 
 
+## 활성 팀버프 **이름** 목록 — `apply_passives` 의 조건 판정용
+## (전용 장비 세로님의 전쟁보닛이 "팀버프 [흑풍]을 활성화한 경우" 로 이 값을 본다).
+static func team_buff_names(uids: Array) -> Array:
+	var party3: Array = []
+	for uid in uids:
+		var d := UserDB.get_dragon(int(uid))
+		if not d.is_empty():
+			party3.append(d)
+		if party3.size() >= 3:
+			break
+	var table: Dictionary = Data.team_buffs
+	if table.is_empty() or (table.get("buffs", []) as Array).is_empty():
+		return []
+	var out: Array = []
+	for b in TeamBuff.active_buffs(race_keys(party3), table):
+		out.append(String((b as Dictionary).get("name", "")))
+	return out
+
+
 ## 드래곤 1마리의 실 능력치.
 ##
 ## `d`      = UserDB 드래곤 레코드 · `ddef` = data/dragons.json 정의
@@ -85,12 +104,9 @@ static func uses_drink(d: Dictionary) -> bool:
 
 ## 탐험 하단 파티 카드가 필요로 하는 **표시용** 요약을 파티 단위로 만든다.
 ##
-## ⚠️ 전투 카드와의 알려진 차이 — 여기에는 `battle.gd::_apply_awaken_skills`(각성 스킬 상시
-##   특성)가 **빠져 있다**. 그 단계는 `Battle.make_combatant` + 적 정보까지 필요해서 전투
-##   컨텍스트 밖에서는 못 돌린다. 따라서 **체력을 올리는 각성 스킬(57 생명의 기운 등)을 가진
-##   각성 드래곤은 탐험 카드의 최대 HP 가 전투 카드보다 낮게 나온다.**
-##   TODO: `_apply_awaken_skills` 를 적 없이 돌 수 있게 분리하면 이 갭이 사라진다.
-##   (그 외 젬·장비·팀버프·드링크·카데스는 위 `resolve` 를 전투와 **공유**하므로 어긋나지 않는다.)
+## ✅ 2026-07-31 — 종전의 "각성 스킬이 빠진다" 갭은 해소됐다. `apply_passives()` 를 호출하면
+##   각성 스킬·장비 조건부 효과까지 전투와 **같은 함수**로 얹힌다(호출은 선택 — 카드가 조우
+##   전이라 적을 모르면 생략할 수 있다).
 static func summary(uids: Array, kades: bool, field_element: String,
 		hp_state: Dictionary = {}) -> Array:
 	var ordered: Array = []
@@ -106,6 +122,11 @@ static func summary(uids: Array, kades: bool, field_element: String,
 		var stats := resolve(d, ddef, delta, kades, field_element)
 		var hpmax := int(stats.get("hp", 1))
 		var hp0 := int(hp_state.get(str(int(d["uid"])), hpmax)) if not hp_state.is_empty() else hpmax
+		# 각성 스킬·장비 조건부 효과(`apply_passives`)가 읽는 필드들도 같이 채운다 —
+		# 전투(`battle.gd::_apply_awaken_skills`)가 쓰는 것과 같은 이름·같은 출처.
+		var lvsum := 0
+		for sd in (UserDB.dragon_battle_skills(int(d["uid"])).get("skills", []) as Array):
+			lvsum += int((sd as Dictionary).get("level", 1))
 		out.append({
 			"id": int(d["id"]), "uid": int(d["uid"]), "level": int(d.get("level", 1)),
 			"name": Icons.name_of(d),
@@ -113,5 +134,70 @@ static func summary(uids: Array, kades: bool, field_element: String,
 			"stats": stats,
 			"hp": clampi(hp0, 0, hpmax), "hp_max": hpmax,
 			"awakened": bool(d.get("awakened", false)),
+			"awaken_skill": int(d.get("awaken_skill", 0)) if bool(d.get("awakened", false)) else 0,
+			"grade": Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
+				d.get("gain_log", []), Data.level_curve.get("grade", {})),
+			"atk_type": String(ddef.get("type", "")),
+			"skill_level_sum": lvsum,
 		})
 	return out
+
+
+## 각성 스킬(상시 특성) + 장비 조건부 효과를 파티에 얹는다 — **전투와 탐험 카드 공용**.
+##
+## 원작에는 이런 분리가 없다(탐험·전투가 한 씬). 우리가 씬을 나눴기 때문에, 이 단계를
+## `battle.gd` 안에만 두면 탐험 카드가 **체력을 올리는 각성 스킬**(57 생명의 기운 등)을
+## 반영하지 못해 전투 카드와 최대 HP 가 달라진다. 그래서 여기(logic)로 뺐다.
+##
+## `party` 를 **제자리에서 수정**한다 — `hp_max`/`hp`(비율 유지) · `awaken_effects` · `awaken_gauge`.
+## 반환 = `{"awaken_fired": [...], "equip_fired": [...]}`(연출용 발동 목록).
+##
+## `enemy` = `{element, hp}` — 원작도 이 단계에서 적은 **더미 전투원**으로만 쓴다
+## (`att`/`def` 는 1 고정). 탐험 카드는 **다음 조우 몬스터**를 넣어 전투와 같은 결과를 낸다.
+## `ctx` = `{field_element, enemy_boss, team_buffs(이름 배열), explore_gold_pct}`.
+static func apply_passives(party: Array, enemy: Dictionary, ctx: Dictionary) -> Dictionary:
+	var empty := {"awaken_fired": [], "equip_fired": []}
+	if party.is_empty() or Data.skill_awaken.is_empty():
+		return empty
+	var pa: Array = []
+	for i in party.size():
+		var pd: Dictionary = party[i]
+		var st: Dictionary = (pd["stats"] as Dictionary).duplicate()
+		st["awaken_no"] = int(pd.get("awaken_skill", 0))
+		st["grade"] = float(pd.get("grade", 0.0))
+		st["dragon_id"] = int(pd.get("id", 0))
+		st["atk_type"] = String(pd.get("atk_type", ""))
+		# 전용 장비 다크프로스티의 무늬 — 탐험 골드 증가량만큼 자신의 공격력% 증가.
+		st["explore_gold_pct"] = int(ctx.get("explore_gold_pct", 0))
+		# 전용 장비 불나래의 불꽃구슬 — 장착 스킬 레벨 합.
+		# 전투 파티는 `skills`(전체 스킬 레코드)를 들고 오고, 탐험 카드(`summary`)는 이미
+		# 합산해 둔 `skill_level_sum` 만 들고 온다 — 둘 다 받는다.
+		var lvsum := int(pd.get("skill_level_sum", 0))
+		if pd.has("skills"):
+			lvsum = 0
+			for sd in (pd.get("skills", []) as Array):
+				lvsum += int((sd as Dictionary).get("level", 1))
+		st["skill_level_sum"] = lvsum
+		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
+		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
+		pa.append(c)
+	var eb := Battle.make_combatant("E0", "enemy", String(enemy.get("element", "")),
+		{"hp": int(enemy.get("hp", 1)), "att": 1, "def": 1})
+	# ⚠️ 순서가 중요하다 — 장비의 **각성스킬 수정자**를 먼저 찍어야 각성스킬이 그 값으로 심는다.
+	EquipEffect.awaken_mods(pa, Data.equip_effects)
+	var awoke := AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, ctx)
+	var equipped := EquipEffect.apply_battle(pa, [eb], Data.equip_effects, ctx)
+	# 결과를 파티로 되돌린다 — 체력은 값으로, 나머지는 효과 목록으로.
+	for i in party.size():
+		var c2: Dictionary = pa[i]
+		var pd2: Dictionary = party[i]
+		var old_max := int(pd2["hp_max"])
+		var new_max := int(c2["hp_max"])
+		if new_max != old_max:
+			# 조우 간 이월 체력이 있으면 비율을 지킨다(1조우째면 어차피 만피).
+			var ratio := float(pd2["hp"]) / maxf(1.0, float(old_max))
+			pd2["hp_max"] = new_max
+			pd2["hp"] = clampi(int(round(float(new_max) * ratio)), 1, new_max)
+		pd2["awaken_effects"] = (c2["effects"] as Array).duplicate(true)
+		pd2["awaken_gauge"] = float(c2.get("awaken_gauge", 0.0))
+	return {"awaken_fired": awoke, "equip_fired": equipped}

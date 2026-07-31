@@ -1390,6 +1390,21 @@ func _ready() -> void:
 				hud.call("_act", stage)
 				for i in 40: await get_tree().process_frame
 				print("SHOT nav -> state=", Scenes.current_state())
+		"intro":
+			# 게임 시작 화면(원작 IntroScene 이식) 검수 — 부팅 첫 화면이라 별도 이동이 없다.
+			#   --stage=start : "화면을 터치해주세요"를 눌러 게임 진입까지 본다.
+			for i in 60: await get_tree().process_frame
+			var it := _find_method_node(get_tree().root, "_build_start_prompt")
+			print("SHOT intro: state=", Scenes.current_state(),
+				" 씬=", it != null, " bgm=", Bgm._cur)
+			if stage == "start":
+				var ev := InputEventMouseButton.new()
+				ev.button_index = MOUSE_BUTTON_LEFT
+				ev.pressed = true
+				ev.position = get_viewport().get_visible_rect().size * 0.5
+				Input.parse_input_event(ev)
+				for i in 60: await get_tree().process_frame
+				print("SHOT intro start -> state=", Scenes.current_state())
 		"nick":
 			# 닉네임 팝업(NickNameLayer) 검수. 세이브에 닉네임이 있으면 '변경' 모드로 강제한다.
 			for i in 20: await get_tree().process_frame

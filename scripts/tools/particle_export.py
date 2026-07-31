@@ -45,6 +45,12 @@ SOURCES = [
     ("scene/adventure/pt_shild", "pt_shild"),
     ("scene/adventure/effect_fire2", "effect_fire2"),
     ("scene/adventure/pt_monster_dead_2_2", "pt_monster_dead_2_2"),
+    # 회복 물약 사용 — 원작 InterFace::setRecoverItemHeal @00d3eb88 이 카드 중앙에 붙이고
+    # music/effect_skill_29.mp3 를 같이 낸다. 레퍼런스 docs/ref/adventure/전투4.png 의 카드 위 버튼.
+    ("scene/adventure/skill_29", "skill_29"),
+    # 축복 둥지(황금 월계관) 먼지 — 원작 CaveScene::setDragonInfo 알 분기가
+    # `getNestLevel()==1` 일 때만 둥지 중심에 붙인다(CaveScene.c:23392).
+    ("scene/cave/dust", "cave_dust"),
 ]
 # 초월맥스 가산은 연출측(battle.gd)에서 처리; 여기선 순수 파티클 파라미터만.
 

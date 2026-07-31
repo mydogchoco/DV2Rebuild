@@ -439,61 +439,31 @@ func _awaken_explore() -> Dictionary:
 		EquipEffect.awaken_mods([e], Data.equip_effects)
 		lst.append(e)
 	return AwakenSkill.explore_bonus(lst, Data.skill_awaken)
+
+
 func _apply_awaken_skills() -> void:
 	_awaken_fired = []
 	_equip_fired = []
-	if _party.is_empty() or Data.skill_awaken.is_empty():
-		return
-	var pa: Array = []
-	for i in _party.size():
-		var pd: Dictionary = _party[i]
-		var st: Dictionary = (pd["stats"] as Dictionary).duplicate()
-		st["awaken_no"] = int(pd.get("awaken_skill", 0))
-		st["grade"] = float(pd.get("grade", 0.0))
-		st["dragon_id"] = int(pd.get("id", 0))
-		st["atk_type"] = String(pd.get("atk_type", ""))
-		# 전용 장비 다크프로스티의 무늬 — "탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가".
-		# 그 증가량은 우리도 갖고 있다(각성스킬의 탐험 보너스) → 전투원에 실어 준다.
-		st["explore_gold_pct"] = int(_awaken_explore().get("gold_pct", 0))
-		# 장착 스킬 레벨 합 — 임시 전투원은 skills 를 안 받으므로 여기서 직접 넘긴다
-		# (전용 장비 불나래의 불꽃구슬이 이 값을 읽는다).
-		var lvsum := 0
-		for sd in (pd.get("skills", []) as Array):
-			lvsum += int((sd as Dictionary).get("level", 1))
-		st["skill_level_sum"] = lvsum
-		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
-		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
-		pa.append(c)
-	var eb := Battle.make_combatant("E0", "enemy", String(_enemy.get("element", "")),
-		{"hp": int(_enemy.get("hp_max", 1)), "att": 1, "def": 1})
-	# 활성 팀버프 이름 — `_setup_party` 가 이미 산출해 둔 것을 조건 판정용으로 넘긴다
-	# (전용 장비 세로님의 전쟁보닛이 "팀버프 [흑풍]을 활성화한 경우" 로 이 값을 본다).
-	var _tbnames: Array = []
-	for b in _active_team_buffs:
-		_tbnames.append(String((b as Dictionary).get("name", "")))
-	var _ectx := {"field_element": _field_element(), "enemy_boss": _is_boss(),
-		"team_buffs": _tbnames}
-	# ⚠️ 순서가 중요하다 — 장비의 **각성스킬 수정자**를 먼저 찍어야 각성스킬이 그 값으로 심는다.
-	EquipEffect.awaken_mods(pa, Data.equip_effects)
-	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, _ectx)
-	# 장비 조건부 효과 — 각성스킬과 같은 어휘·같은 시점(전투 시작 1회). 표는 data/equip_effects.json.
-	_equip_fired = EquipEffect.apply_battle(pa, [eb], Data.equip_effects, _ectx)
-	# 결과를 파티로 되돌린다 — 체력은 값으로, 나머지는 효과 목록으로.
+	# 본체는 `PartyStats.apply_passives`(logic) — **탐험 하단 파티 카드와 공유**한다.
+	# 여기에만 두면 탐험 카드가 체력을 올리는 각성 스킬(57 생명의 기운 등)을 반영하지 못해
+	# 전투 카드와 최대 HP 가 달라진다(원작은 탐험·전투가 한 씬이라 그런 갈림이 없었다).
+	#
 	# ⚠️ `awaken_effects` 는 이름과 달리 **각성스킬 + 장비 조건부 효과**를 함께 담는다.
 	#    둘 다 '전투 시작 시 1회 심는 상시 특성'이고 같은 효과 목록으로 흐르기 때문이다.
 	#    (`_run_and_replay` 는 이 배열을 그대로 전투원에 옮기고 다시 심지 않는다 — 이중 적용 방지)
-	for i in _party.size():
-		var c2: Dictionary = pa[i]
-		var pd2: Dictionary = _party[i]
-		var old_max := int(pd2["hp_max"])
-		var new_max := int(c2["hp_max"])
-		if new_max != old_max:
-			# 조우 간 이월 체력이 있으면 비율을 지킨다(1조우째면 어차피 만피).
-			var ratio := float(pd2["hp"]) / maxf(1.0, float(old_max))
-			pd2["hp_max"] = new_max
-			pd2["hp"] = clampi(int(round(float(new_max) * ratio)), 1, new_max)
-		pd2["awaken_effects"] = (c2["effects"] as Array).duplicate(true)
-		pd2["awaken_gauge"] = float(c2.get("awaken_gauge", 0.0))
+	#
+	# 활성 팀버프 이름은 `_setup_party` 가 이미 산출해 둔 것을 조건 판정용으로 넘긴다
+	# (전용 장비 세로님의 전쟁보닛이 "팀버프 [흑풍]을 활성화한 경우" 로 이 값을 본다).
+	var tbnames: Array = []
+	for b in _active_team_buffs:
+		tbnames.append(String((b as Dictionary).get("name", "")))
+	var fired := PartyStats.apply_passives(_party,
+		{"element": String(_enemy.get("element", "")), "hp": int(_enemy.get("hp_max", 1))},
+		{"field_element": _field_element(), "enemy_boss": _is_boss(), "team_buffs": tbnames,
+			"explore_gold_pct": int(_awaken_explore().get("gold_pct", 0))})
+	_awaken_fired = fired["awaken_fired"]
+	_equip_fired = fired["equip_fired"]
+
 
 ## 속성 조합 팀버프 집계 — 로직=원작 TeamBuff::isActivate 복원(scripts/systems/team_buff.gd).
 ## 데이터=data/team_buffs.json: 이름·효과 30종을 위키 §2.3.3.1 에서 복원했고,

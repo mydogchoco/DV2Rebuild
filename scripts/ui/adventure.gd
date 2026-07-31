@@ -698,36 +698,36 @@ func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: Canva
 		if is_instance_valid(layer): layer.queue_free()
 		_step_done())
 
-## 원작 setEventTreasure(0x15): 보물상자. 클릭해서 열면 골드+아이템.
+## 원작 `AdventureScene::setEventTreasure(bool)` @00c72c84 (상태 0x15).
+##
+## 🔴 **2026-07-31 정정 — 종전 구현은 연출이 통째로 자작이었다**(사용자 지적).
+##   걷어낸 것: 금상자 스프라이트(`common/box_gold`) · 흔들림 루프 · **클릭해서 열기** 상호작용 ·
+##   전체화면 검은 dim(0.72) · 지어낸 문구 "보물상자 발견! — 클릭해서 열기".
+##   원작에는 **상자 그림도 클릭도 없다.** 재디컴프한 리터럴대로:
+##     · `CCLabelBMFont::create(<문자열>, GameManager::getFontName_title(), -1.0)` = **제목 폰트 워드아트**
+##       @ (w*0.5, h*0.7). 문자열은 `<AdventureRewardTreasure>` = **"보물지도 발견!"**
+##       (반대 갈래는 `<AdventureUseTreasure>` "보물찾기 시작!")
+##     · 애니: ScaleTo(0.4, **1.7**) + RotateTo(0.2, **380°**) → RotateTo(0.1333, −30) →
+##       (0.1333, 15) → (0.1333, −5) → ScaleTo(0.1, **1.2**), 그 뒤 MoveBy(0.2, **(0,140)**)
+##     · 화면 플래시 `CCLayerColor` FadeTo(**0.5, 200**)
+##     · 효과음 `music/effect_box_peong.mp3`(이건 종전 구현도 맞게 쓰고 있었다)
+##     · 파티클 `particle/scene/adventure/pt_monster_income_1.plist`
+##   같은 안무를 `setEventHealArea`(회복샘)도 쓴다 → 공용 헬퍼 `_wordart_burst`.
+##
+## ⚠️ **남은 설계 차이(사용자 결정 필요)**: 원작의 이 이벤트는 "보물**지도**를 줍는다"이고,
+##   그 지도를 나중에 **사용해야** 보물찾기가 시작된다(2단계). 우리는 즉시 골드+아이템을 준다.
+##   2단계로 바꾸려면 보물지도 아이템과 사용 흐름이 필요하다 —
+##   현재 `data/items.json` 의 `map_*` 는 지역 입장 지도라 별개다. 지금은 즉시 지급을 유지한다.
+##   드롭 판정(`Drops.roll_exploration` SOURCE_CHEST)은 서버 유실분이라 원래부터 자작이다.
+##
 ## 등장 확률은 `data/adventure_events.json`(다른 이벤트와 배타 추첨).
 func _open_treasure(r: RandomNumberGenerator) -> void:
 	_event_open = true   # 보행 정지
 	var vis := _vis()
-	var layer := CanvasLayer.new(); layer.layer = 20; add_child(layer)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.72); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(dim)
-	var title := Label.new(); title.text = "보물상자 발견!  —  클릭해서 열기"
-	title.add_theme_font_size_override("font_size", 24); title.add_theme_color_override("font_color", Color(1, 0.9, 0.45))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.size = Vector2(vis.x, 34); title.position = Vector2(0, vis.y * 0.22)
-	layer.add_child(title)
-	var chest := Sprite2D.new()
-	var cp := "res://assets/converted/common_ui/common_box_gold.tres"
-	if ResourceLoader.exists(cp): chest.texture = load(cp)
-	chest.scale = Vector2(2.4, 2.4); chest.position = Vector2(vis.x * 0.5, vis.y * 0.52)
-	layer.add_child(chest)
-	# 상자 흔들림(대기)
-	var wob := chest.create_tween().set_loops()
-	wob.tween_property(chest, "rotation", 0.08, 0.35).set_trans(Tween.TRANS_SINE)
-	wob.tween_property(chest, "rotation", -0.08, 0.35).set_trans(Tween.TRANS_SINE)
-	var btn := Button.new(); btn.flat = true; btn.size = Vector2(260, 220)
-	btn.position = chest.position - Vector2(130, 110)
-	layer.add_child(btn)
-	var opened := {"v": false}
-	btn.pressed.connect(func():
-		if opened["v"]: return
-		opened["v"] = true
-		wob.kill()
-		Bgm.sfx("effect_box_peong")
+	# 원작 연출 — 플래시 + 효과음 + 워드아트 + 파티클. 클릭 없이 자동으로 흐른다.
+	_wordart_burst("보물지도 발견!")            # <AdventureRewardTreasure>
+	Bgm.sfx("effect_box_peong")                 # 원작 music/effect_box_peong.mp3
+	if true:
 		var gold := _grant_gold(100 + r.randi() % 220)
 		# 젬·장비 드롭(사용자 확정 2026-07-27): **보물상자는 일반몹보다 좋은 것**이 나온다
 		# (일반몹 < 보물상자 < 보스). 판정=Drops(logic) · 표=data/drops.json.
@@ -754,15 +754,80 @@ func _open_treasure(r: RandomNumberGenerator) -> void:
 				if not ess.is_empty():
 					got = String(ess["key"])
 					UserDB.add_item(got, int(ess["count"]))
-		title.text = "보물!  +골드 %d" % gold
-		var t := chest.create_tween()
-		t.tween_property(chest, "scale", Vector2(2.9, 2.9), 0.14).set_trans(Tween.TRANS_BACK)
-		t.parallel().tween_property(chest, "rotation", 0.0, 0.14)
-		t.tween_interval(0.7)
-		t.tween_callback(func():
-			layer.queue_free()
-			if got != "": _show_loot(got)
-			_step_done()))
+		# 골드 획득 문구는 원작 `<AdventureResultGold>` 형식으로 하단 텍스트박스에.
+		_narrate("%d 골드를 얻었습니다." % gold)
+		# 워드아트 안무가 끝난 **뒤에** 보상 팝업을 띄운다 — 겹치면 둘 다 못 읽는다.
+		#   0.4(확대) + 0.1333×3(흔들림) + 0.1(정착) + 0.7(대기) + 0.2(상승) ≈ **1.9s**
+		var got2 := got
+		get_tree().create_timer(_WORDART_SECS / maxf(_speed, 1.0)).timeout.connect(func():
+			if got2 != "":
+				_show_loot(got2)
+			_step_done())
+
+## 원작 이벤트 워드아트 — `setEventTreasure` · `setEventHealArea` 가 **같은 안무**를 쓴다.
+##
+## `CCLabelBMFont::create(text, GameManager::getFontName_title(), -1.0)` @ (w*0.5, h*0.7) 에
+## 아래 순서로 액션을 건다(디컴프 리터럴 그대로):
+##   ScaleTo(0.4, **1.7**) ∥ RotateTo(0.2, **380°**)
+##   → RotateTo(0.1333, **−30**) → RotateTo(0.1333, **15**) → RotateTo(0.1333, **−5**)
+##   → ScaleTo(0.1, **1.2**) → (0.7 대기) → MoveBy(0.2, **(0, 140)**)
+## 곁들이는 것: 전체화면 `CCLayerColor` FadeTo(0.5, **200**) 플래시 +
+##   파티클 `particle/scene/adventure/pt_monster_income_1.plist`.
+##
+## 폰트는 원작 그대로 `font_title`(assets/converted/font_ui/font_title.fnt) — 비트맵이라
+## `fixed_size_scale_mode` 를 켜야 `font_size` 가 먹는다(§10 표).
+## 워드아트 안무 총 길이(초) — 호출측이 다음 연출을 이 뒤로 미룰 때 쓴다.
+## 0.4 + 0.13333×3 + 0.1 + 0.7 + 0.2 = 1.8999…
+const _WORDART_SECS := 1.9
+
+func _wordart_burst(text: String) -> void:
+	var vis := _vis()
+	# 화면 플래시 — 원작 CCLayerColor + FadeTo(0.5, 200).
+	var flash := ColorRect.new()
+	flash.color = Color(1, 1, 1, 0)
+	flash.size = vis
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 190
+	add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_property(flash, "color:a", 200.0 / 255.0, 0.5)
+	ft.tween_property(flash, "color:a", 0.0, 0.5)
+	ft.tween_callback(flash.queue_free)
+	# 워드아트.
+	var lb := Label.new()
+	lb.text = text
+	var fp := "res://assets/converted/font_ui/font_title.fnt"
+	if ResourceLoader.exists(fp):
+		var fnt: FontFile = load(fp)
+		lb.add_theme_font_override("font", fnt)
+		lb.add_theme_font_size_override("font_size",
+			int(fnt.fixed_size) if fnt.fixed_size > 0 else 39)
+	else:
+		lb.add_theme_font_size_override("font_size", 34)
+		lb.add_theme_color_override("font_color", Color(1, 0.9, 0.45))
+	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lb.size = Vector2(vis.x, 60)
+	# 원작 @(w*0.5, h*0.7) — Cocos y-up 이므로 Godot y = vis.y*(1−0.7).
+	lb.position = Vector2(0, vis.y * 0.3 - 30.0)
+	lb.pivot_offset = Vector2(vis.x * 0.5, 30.0)
+	lb.z_index = 195
+	lb.scale = Vector2.ZERO
+	add_child(lb)
+	var t := lb.create_tween()
+	t.tween_property(lb, "scale", Vector2(1.7, 1.7), 0.4)
+	t.parallel().tween_property(lb, "rotation_degrees", 380.0, 0.2)
+	t.tween_property(lb, "rotation_degrees", -30.0, 0.13333334)
+	t.tween_property(lb, "rotation_degrees", 15.0, 0.13333334)
+	t.tween_property(lb, "rotation_degrees", -5.0, 0.13333334)
+	t.tween_property(lb, "scale", Vector2(1.2, 1.2), 0.1)
+	t.parallel().tween_property(lb, "rotation_degrees", 0.0, 0.1)
+	t.tween_interval(0.7)
+	t.tween_property(lb, "position", lb.position - Vector2(0, 140.0), 0.2)
+	t.parallel().tween_property(lb, "modulate:a", 0.0, 0.2)
+	t.tween_callback(lb.queue_free)
+	CocosParticle.spawn(self, "pt_monster_income_1", Vector2(vis.x * 0.5, vis.y * 0.3), 194, 0.8)
+
 
 ## 회복샘 — 원작 `setEventHealArea(bool)` (0x13 = 성스러운 / 0x14 = 평범한).
 ##
@@ -1502,7 +1567,67 @@ func _show_party_cards() -> void:
 		return
 	var hp_state: Dictionary = {} if _healed else _params.get("hp_state", {})
 	var party := PartyStats.summary(uids, _is_kades(), _field_element_key(), hp_state)
+	# 각성 스킬·장비 조건부 효과까지 얹어야 전투 카드와 최대 HP 가 같아진다
+	# (`PartyStats.apply_passives` = battle.gd::_apply_awaken_skills 와 **같은 함수**).
+	# 적은 **다음 조우 몬스터**를 넣는다 — 원작도 이 단계에서 적을 더미로만 쓰지만
+	# 조건부 효과 일부가 적 속성·보스 여부를 보므로 실제 대상과 맞춰야 값이 일치한다.
+	PartyStats.apply_passives(party, _next_enemy_ref(), {
+		"field_element": _field_element_key(), "enemy_boss": _next_is_boss(),
+		"team_buffs": PartyStats.team_buff_names(uids),
+		"explore_gold_pct": int(_awaken_explore().get("gold_pct", 0))})
 	_party_cards = PartyCardView.build_row(self, self, party, _vis(), _pma)
+	# 카드 위 회복 물약 버튼(원작 InterFace::setUiButton) — 레퍼런스 전투4/5.png.
+	for i in mini(_party_cards.size(), party.size()):
+		_attach_cure_button(_party_cards[i], party[i])
+
+
+## 카드 1장에 회복 버튼을 단다. 물약 등급은 그 드래곤의 **레벨대**로 고른다
+## (`ItemEffect.heal_usable` — data/item_effects.json `heal_potion.tiers`, 위키 §2.2).
+func _attach_cure_button(card: Control, pd: Dictionary) -> void:
+	if card == null:
+		return
+	var lv := int(pd.get("level", 1))
+	var key := ""
+	for t in (Data.item_effects.get("heal_potion", {}).get("tiers", []) as Array):
+		var k := String((t as Dictionary).get("key", ""))
+		if ItemEffect.heal_usable(Data.item_effects, k, lv):
+			key = k
+			break
+	if key == "":
+		return
+	var dead := int(pd.get("hp", 1)) <= 0
+	PartyCardView.build_cure_button(card, key, UserDB.item_count(key), dead, _pma,
+		_use_heal_potion.bind(int(pd.get("uid", 0)), key))
+
+
+## 회복 물약 사용 — 원작 `InterFace::setRecoverItemHeal`(파티클 skill_29 + effect_skill_29.mp3).
+## ⚠️ 회복 결과는 **이번 탐험의 hp_state** 에 얹는다(전투가 그걸 읽어 시작 HP 를 잡는다).
+##   원작의 다이아 결제 갈래는 §2-1 로 ⚫CUT — 보유 물약이 없으면 아무 일도 하지 않는다.
+func _use_heal_potion(uid: int, key: String) -> void:
+	if not UserDB.use_item(key, 1):
+		return
+	var hp_state: Dictionary = (_params.get("hp_state", {}) as Dictionary).duplicate()
+	var uids: Array = _run_party if not _run_party.is_empty() else _leader_party()
+	var party := PartyStats.summary(uids, _is_kades(), _field_element_key(), hp_state)
+	for pd: Dictionary in party:
+		if int(pd.get("uid", 0)) != uid:
+			continue
+		var hp := int(pd.get("hp", 0))
+		var hp_max := int(pd.get("hp_max", 1))
+		hp_state[str(uid)] = clampi(hp + ItemEffect.heal_amount(Data.item_effects, hp, hp_max),
+			0, hp_max)
+		break
+	_params["hp_state"] = hp_state
+	# 원작 setRecoverItemHeal: 카드 중앙에 particle/scene/adventure/skill_29.plist + 효과음.
+	for i in mini(_party_cards.size(), uids.size()):
+		if int(uids[i]) != uid:
+			continue
+		var c: Control = _party_cards[i]
+		if is_instance_valid(c):
+			CocosParticle.spawn(self, "skill_29", c.position + c.size * 0.5, 132, 0.9)
+		break
+	Bgm.sfx("effect_skill_29")            # 원작 music/effect_skill_29.mp3
+	_show_party_cards()                    # 게이지·수량 갱신
 
 
 func _hide_party_cards() -> void:
@@ -1510,6 +1635,24 @@ func _hide_party_cards() -> void:
 		if is_instance_valid(c):
 			c.queue_free()
 	_party_cards.clear()
+
+
+## 다음 조우 몬스터의 더미 참조 — `PartyStats.apply_passives` 가 조건 판정에만 쓴다
+## (원작도 이 단계에서 적을 att/def=1 더미로만 만든다). 없으면 빈 값 → 조건부 효과 미발동.
+func _next_enemy_ref() -> Dictionary:
+	var enemies: Array = _stage.get("enemies", [])
+	var ei := _rboss_enc if _rboss_enc >= 0 else int(_params.get("enc", 0))
+	if ei < 0 or ei >= enemies.size():
+		return {"element": "", "hp": 1}
+	var e: Dictionary = enemies[ei]
+	return {"element": Drops.normalize_element(e.get("element", "")),
+		"hp": maxi(1, int(e.get("hp", 1)))}
+
+
+## 다음 조우가 보스인가 — 목표 라벨·보스 게이지와 같은 판정.
+func _next_is_boss() -> bool:
+	var total := int((_stage.get("enemies", []) as Array).size())
+	return (total > 0 and int(_params.get("enc", 0)) + 1 >= total) or _rboss_enc >= 0
 
 
 ## 카데스 감산 판정에 쓰는 던전 속성 — battle.gd::_field_element 와 같은 규칙.
@@ -1638,16 +1781,31 @@ func _build_roadmap(total: int, cur: int) -> void:
 		return   # 해당 조우 수의 원작 지도 프레임 없음 → 자작 대체 금지(그리지 않음)
 
 	var vis := _vis()
-	var art := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_spot%d" % total, _man("roadmap_ui"), 1.0)
+	var rman := _man("roadmap_ui")
+	var art := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_spot%d" % total, rman, 1.0)
 	if art == null:
 		return
 	var tw_: float = float(entry.get("w", 332))
 	var th_: float = float(entry.get("h", 215))
 	var scl := 0.46                                   # 탐험 HUD에 얹는 축소 배율
 	var road := Node2D.new(); road.position = Vector2(vis.x * 0.5, 124.0); add_child(road)
+	# 🟠 2026-07-31 보강 — **양피지 배경이 빠져 있었다.** 원작 `AdventureMapLayer::setMap`
+	# (@00cf43ac)은 경로(`roadmap_spot<N>.png`) **아래에** 지도 판을 먼저 깐다:
+	#   난이도 보통 → `scene/adventure/road_map/roadmap_normal.png`(450×315)
+	#   난이도 어려움(영웅) → `roadmap_hard.png`
+	# 종전엔 경로 오버레이만 그려서 점선이 허공에 떠 있었다(레퍼런스 `승리9/10.png` 는
+	# 나침반이 박힌 양피지 판이 분명히 보인다).
+	var board_key := "scene_adventure_road_map_roadmap_%s" % ("hard" if bool(_params.get("hero", false)) else "normal")
+	# ⚠️ `z_index = -1` 을 주면 안 된다 — 던전 배경보다 뒤로 밀려 아예 안 보인다.
+	#   경로보다 먼저 add_child 하는 것만으로 아래에 깔린다(그리기 순서 = 자식 순서).
+	var board := _spr("roadmap_ui", board_key, rman, scl)
+	if board:
+		road.add_child(board)
 	art.scale = Vector2(scl, scl)
 	art.modulate = Color(1, 1, 1, 0.85)
 	road.add_child(art)
+	_road_node = road
+	_road_scale = scl
 
 	# 스팟 로컬좌표(텍스처 좌상단 기준) → road 로컬(스프라이트 중앙 기준)
 	var spots: Array = entry.get("spots", [])
@@ -1669,6 +1827,43 @@ func _build_roadmap(total: int, cur: int) -> void:
 				pulse.tween_property(mk, "scale", Vector2(scl * 1.1, scl * 1.1), 0.6)
 	road.modulate.a = 0.0
 	road.create_tween().tween_property(road, "modulate:a", 1.0, 0.4)
+	# 지도를 눌러 접었다 폈다 — 원작 `setMapTouch` + `setMapSizeControl`.
+	var hit := Button.new()
+	hit.flat = true
+	hit.size = Vector2(tw_, th_) * scl
+	hit.position = -hit.size * 0.5
+	hit.pressed.connect(_toggle_roadmap)
+	road.add_child(hit)
+
+
+## 원작 `AdventureMapLayer::setMapSizeControl(bool)` @00cf53e8 — 지도 접기/펴기.
+## 리터럴 그대로:
+##   접기(small) = ScaleTo(0.5, **0.3**) + MoveTo(0.5, **(100, 170)**)
+##   펴기(big)   = ScaleTo(0.5, **1.0**) + MoveTo(0.5, **(0, 30)**)
+##                 + 되돌아올 때 ScaleTo(0.1667, s+0.03) → ScaleTo(0.1667, s) 바운스
+## 우리 지도는 HUD 위에 0.46 로 얹혀 있으므로 원작 배율을 **그 위에 곱한다**.
+## 좌표는 Cocos(y-up) 리터럴이라 y 를 뒤집어 화면 위쪽으로 간다.
+var _road_node: Node2D
+var _road_scale := 0.46
+var _road_small := false
+
+func _toggle_roadmap() -> void:
+	if not is_instance_valid(_road_node):
+		return
+	_road_small = not _road_small
+	# road 의 자식들은 이미 `_road_scale`(0.46)로 그려져 있으므로 여기선 **상대 배율**만 준다.
+	var vis := _vis()
+	var t := _road_node.create_tween()
+	if _road_small:
+		t.tween_property(_road_node, "scale", Vector2(0.3, 0.3), 0.5)
+		t.parallel().tween_property(_road_node, "position",
+			Vector2(vis.x - 100.0, 170.0), 0.5)
+	else:
+		t.tween_property(_road_node, "scale", Vector2.ONE, 0.5)
+		t.parallel().tween_property(_road_node, "position", Vector2(vis.x * 0.5, 124.0), 0.5)
+		# 원작 바운스 — 펼 때만 붙는다.
+		t.tween_property(_road_node, "scale", Vector2(1.03, 1.03), 0.16666667)
+		t.tween_property(_road_node, "scale", Vector2.ONE, 0.16666667)
 
 ## 원작 AdventureMapLayer::setMapItem 등장 연출(디컴파일 축자 복원).
 func _anim_map_item(n: Node2D, i: int) -> void:
@@ -1745,6 +1940,8 @@ func _monster_meet() -> void:
 		mn = String((enemies[ei] as Dictionary).get("name", "몬스터"))
 	_narrate("길을 잃고 헤매던 중 %s의 으슥한 곳에서\n%s%s 만났다."
 		% [String(_stage.get("name", "던전")), mn, _josa(mn, "을", "를")])
+	# 0) 조우 도착 연출(원작 `incomeMonster(bool)` @00c336c4) — 화면 전체 플래시 + 상단 파티클 + BGM 전환.
+	_income_monster(is_boss)
 	# 1) 보스 컷인 경고(원작 setAlertMonster). 일반 조우에는 없다.
 	var delay := 0.0
 	if is_boss:
@@ -1753,6 +1950,43 @@ func _monster_meet() -> void:
 	# 2)+3) 그림자 → 점프 착지
 	get_tree().create_timer(delay).timeout.connect(
 		_show_monster.bind(mid, is_boss, vis))
+
+## 원작 `AdventureScene::incomeMonster(bool)` @00c336c4 — **몬스터가 페이드인하는 게 아니라
+## 화면 전체가 번쩍인다.** 레퍼런스 `docs/ref/adventure/전투1~3.png` 에서 몬스터가 점점 진해지는
+## 것처럼 보이던 건 이 **흰 오버레이가 걷히는** 것이었다(배경까지 같이 희끄무레하다).
+##
+## 원작 리터럴 그대로:
+##   · BGM — 보스면 `music/bg_battle_boss.mp3`, 아니면 `music/bg_colosseum_battle_2.mp3`
+##   · 파티클 `particle/scene/adventure/pt_monster_income_1.plist` 을 배경 레이어(tag 1) z=999999,
+##     `VisibleRect::top()`(화면 상단 중앙)에
+##   · 전체 화면 `CCLayerColor` z=999999 —
+##       일반(false): ccColor4B(234,234,234,**100**) → FadeTo(0.2,200) → FadeOut(0.7)
+##       보스(true) : ccColor4B(204, 61, 61,  **0**) → Delay(0.3) → FadeTo(0.2,255) → FadeOut(0.7)
+##
+## `alert` 인자는 원작 `setEventMonster` 의 `bVar3` =
+## `isBoss && !(dungeonMode || raidMode || scenarioBattleMode || darknixMode)` — **일반 필드 보스**.
+func _income_monster(alert: bool) -> void:
+	var vis := _vis()
+	# 화면 전체 플래시.
+	var flash := ColorRect.new()
+	flash.color = Color8(204, 61, 61, 0) if alert else Color8(234, 234, 234, 100)
+	flash.size = vis
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 200
+	add_child(flash)
+	var t := flash.create_tween()
+	if alert:
+		t.tween_interval(0.3)
+		t.tween_property(flash, "color:a", 1.0, 0.2)
+	else:
+		t.tween_property(flash, "color:a", 200.0 / 255.0, 0.2)
+	t.tween_property(flash, "color:a", 0.0, 0.7)
+	t.tween_callback(flash.queue_free)        # 원작 finishImpact = 오버레이 제거
+	# 상단 파티클 — 원작 VisibleRect::top().
+	CocosParticle.spawn(self, "pt_monster_income_1", Vector2(vis.x * 0.5, 0.0), 199, 0.6)
+	# BGM 전환.
+	Bgm.play("bg_battle_boss" if alert else "bg_colosseum_battle_2")
+
 
 ## 원작 showMonsterShadow + showMonster. 착지 후 setAllViewShake → 전투 전환.
 func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
