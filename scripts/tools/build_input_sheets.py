@@ -376,11 +376,17 @@ def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
     #    1~78화 퀘스트 정의는 로컬 SQLite `info_quest_v2` 인데 그 .db 가 덤프에 없다
     #    (`story_subquest.json` `_lost`) ⇒ **사용자 지식이 유일한 출처**다.
     # 아래 배정 = 사용자 확정 2026-07-31. 몬스터만 알고 장소·레벨은 아직 모른다.
+    sm = {m["name"]: m for m in load("story_monsters.json")["monsters"]}
     STORY_ONLY = [(27, "기계 만드라고낙"), (28, "정령 스파이크젤"),
                   (32, "다크프로스티"), (33, "다크프로스티")]
     for sn, mname in STORY_ONLY:
-        rows.append([sn, titles.get(str(sn), ""), "", "", "", 1, "", mname, "", "",
-                     "사용자 확정: 이 회차의 스토리 전용 몹. 장소·레벨 미상"])
+        m = sm.get(mname, {})
+        bno = (m.get("battle_no") or {}).get(str(sn))
+        lv = (adv.get(str(bno)) or {}).get("level", "") if bno else ""
+        note = (f"원작 전투번호 {bno} 로 확정 — 장소만 미상" if bno
+                else "사용자 확정: 이 회차의 스토리 전용 몹. 장소·레벨 미상")
+        rows.append([sn, titles.get(str(sn), ""), "", "", bno or "", 1, "", mname, lv,
+                     "O" if bno else "", note])
 
     return ("scenario_battle.csv",
             ["회차", "제목", "필드번호", "장소", "원작전투번호", "슬롯",
