@@ -20,16 +20,18 @@ extends SceneTree
 ## 채택 회차 수의 **바닥값**. 종전엔 회차가 통째로 사라져도 테스트가 못 잡았다 —
 ## `flows` 에 없는 회차는 아래 검사 루프를 아예 안 돌기 때문이다(2026-07-31 실측:
 ## 추출을 고치자 3·31·36·50 이 조용히 빠졌는데 PASS 였다).
-const MIN_EPISODES := 58
+const MIN_EPISODES := 74
 
 ## 1~78화(점프 테이블 추출)는 대사 수가 정확히 맞은 것만 올린다 — 회귀 앵커.
 ## ⚠️ 여기 오른 회차는 **flows 에 반드시 있어야 한다**(없으면 FAIL).
 const EXACT := {
-	1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true,
-	10: true, 11: true, 13: true, 14: true, 15: true, 16: true, 17: true,
-	18: true, 20: true, 21: true, 23: true, 26: true, 31: true, 37: true,
-	40: true, 44: true, 45: true, 47: true, 49: true, 51: true, 53: true,
-	56: true, 58: true, 60: true, 61: true, 63: true, 64: true,
+	1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
+	9: true, 10: true, 11: true, 13: true, 14: true, 15: true, 16: true, 17: true,
+	18: true, 20: true, 21: true, 23: true, 26: true, 27: true, 28: true, 31: true,
+	36: true, 37: true, 39: true, 40: true, 41: true, 42: true, 44: true, 45: true,
+	47: true, 48: true, 49: true, 51: true, 52: true, 53: true, 54: true, 55: true,
+	56: true, 57: true, 58: true, 59: true, 60: true, 61: true, 63: true, 64: true,
+	65: true, 66: true,
 	79: true, 80: true, 81: true,
 	82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
 	89: true, 90: true, 91: true, 94: true, 96: true, 97: true, 99: true, 100: true}
@@ -123,8 +125,12 @@ func _init() -> void:
 			if not DirAccess.dir_exists_absolute(dir):
 				missing_art[folder] = true
 	if not missing_art.is_empty():
-		# `who`(=`<NPC_who>???`)는 원작에도 아틀라스가 없다 — 이름만 나오는 정상 케이스.
-		missing_art.erase("who")
+		# 원작에도 아틀라스가 없는 화자들 — 이름만 나오는 정상 케이스.
+		#   who            = `<NPC_who>???`(정체불명 화자)
+		#   monsterevent*  = `<NPC_monsterevent1>실험체 만드라고낙` 등 스토리 몬스터 화자.
+		#                    `DV2/480/npc/` 126개에 없다(몬스터라 초상 파츠가 아니라 스파인이다).
+		for k_no_art in ["who", "monsterevent1", "monsterevent2", "monsterevent3"]:
+			missing_art.erase(k_no_art)
 		if not missing_art.is_empty():
 			print("WARN 초상 미변환 NPC: ", missing_art.keys())
 

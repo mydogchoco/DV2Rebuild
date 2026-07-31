@@ -956,6 +956,28 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                 fl = cur.getFlows()
                 if not fl:
                     break
+                # 🔴 **꼬리 호출**(tail call)도 대사다. 람다 본문이 이렇게 끝난다:
+                #      add x0,this,#0x1f0 ; assign(<대사 키>) ; mov w1,#1 ; mov x0,x19
+                #      b <ScenarioLayer::setTalk>          ← `bl` 이 아니라 `b`
+                #    `bl` 만 보면 이걸 놓치고 setTalk 본문으로 걸어 들어가 아무것도 못 찾는다
+                #    (실측: ScenarioTalk8_9 를 assign 하는 FUN_01571848 이 정확히 이 형태).
+                _cal2 = fm.getFunctionAt(fl[0])
+                _nm2 = _cal2.getName() if _cal2 is not None else ""
+                if "setNpcTalk" in _nm2:
+                    ops.append({"op": "setNpcTalk", **store})
+                    return ops
+                if "setUserTalk" in _nm2:
+                    ops.append({"op": "setUserTalk"})
+                    return ops
+                if _nm2 in TALK_FNS:
+                    _k2 = talk_key or last_str
+                    if not (ep and isinstance(_k2, str) and _k2.startswith("ScenarioTalk")
+                            and not _k2.startswith("ScenarioTalk%d_" % ep)):
+                        ops.append({"op": "setTalk", "key": _k2,
+                                    "npc_name": (talk_name[4:] if talk_name
+                                                 and talk_name.startswith("NPC_") else talk_name),
+                                    "body": regs.get("w3"), "state": regs.get("w4")})
+                        return ops
                 cur = nav_at(fl[0].getOffset())
                 continue
             if mn == "ret":
