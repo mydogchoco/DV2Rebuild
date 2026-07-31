@@ -521,6 +521,28 @@ func _open_equipment() -> void:
 	pop.closed.connect(_refresh_stats)
 
 
+## `slot_id` 칸의 주 능력 중 **다른 칸과 겹치는** 것들의 한글 이름.
+## 겹치면 원작은 최상위 하나만 먹는다(<MultyEquip_Slot_Warring_2>, Equipment.aggregate).
+func _dup_main_stats(uid: int, slot_id: String) -> PackedStringArray:
+	var cat := Equipment.catalog(Data.equipment)
+	var eqf: Dictionary = UserDB.get_dragon(uid).get("equip", {})
+	var mine: Dictionary = {}
+	var others: Dictionary = {}
+	for sl in (eqf.get("slots", []) as Array):
+		var sd := sl as Dictionary
+		var it: Dictionary = cat.get(String(sd.get("key", "")), {})
+		for st in (it.get("stat_main", {}) as Dictionary):
+			if String(sd.get("slot", "")) == slot_id:
+				mine[st] = true
+			else:
+				others[st] = true
+	var out: PackedStringArray = []
+	for st in mine:
+		if others.has(st):
+			out.append(_equip_stat_kr(String(st)))
+	return out
+
+
 ## 장비 선택창 하단 버튼 하나의 동작(원작 `ItemEquipSelectPopup` 의 제련/강화/해제/귀속해제).
 ## ⚠️ 람다 안에 `match` 를 쓰면 4.7 파서가 거부한다 — 그래서 본체를 함수로 뺐다.
 func _equip_slot_action(what: String, uid: int, slot_id: String, overlay: Node) -> void:
@@ -746,6 +768,12 @@ func _open_equip_select(slot_id: String) -> void:
 				if not prev.is_empty():
 					UserDB.add_item(Equipment.slot_to_item_key(prev), 1)
 				UserDB.set_dragon_field(uid, "equip", next)
+				# 원작 <MultyEquip_Slot_Warring_2> — 같은 주 능력이 겹치면 **최상위 하나만**
+				# 적용된다(Equipment.aggregate 가 max 로 접는다). 겹칠 때만 알린다.
+				var dup := _dup_main_stats(uid, slot_id)
+				if not dup.is_empty():
+					_toast("같은 메인 옵션(%s)의 아이템을 장착하시면 최상위 메인 옵션이 적용됩니다."
+						% ", ".join(dup))
 				_refresh_stats(); overlay.queue_free(); _open_equipment())
 			col.add_child(b)
 	if listed == 0:

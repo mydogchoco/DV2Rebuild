@@ -77,6 +77,20 @@ func _init() -> void:
 	fails += _eq("관통 합", int(agg.get("pure", 0)), 30)
 	fails += _eq("회피 합", int(agg.get("evd", 0)), 13)
 
+	# 2-b) 🔴 **주 능력은 합산이 아니라 최고값 하나만** (원작 <MultyEquip_Slot_Warring_2>
+	#      + `Dragon::getAvoidRateAdd` 의 4칸 max 루프 — Equipment.aggregate 주석 참조).
+	#      관통 40(해골요새) + 관통 30(전설의 묘안석) = **70이 아니라 40**.
+	var eqm := E.equip({}, "all", "special:skull:엘더 블랙퀸의 스태프", table)
+	fails += _true("해골요새 장비 장착", not eqm.is_empty())
+	eqm = E.equip(eqm, "battle", "basic:묘안석:5", table)
+	fails += _true("묘안석 추가 장착", not eqm.is_empty())
+	fails += _eq("같은 주 능력은 최고값만", int(E.aggregate(eqm, table).get("pure", 0)), 40)
+	#      부가 옵션은 **다른 항**이라 그 위에 더해진다(40 + 5 = 45).
+	for sm in (eqm["slots"] as Array):
+		if String((sm as Dictionary)["slot"]) == "battle":
+			(sm as Dictionary)["options"] = [{"stat": "pure", "value": 5}]
+	fails += _eq("주 능력 max + 옵션 합", int(E.aggregate(eqm, table).get("pure", 0)), 45)
+
 	# 3) 잘못된 칸 거부.
 	fails += _true("묘안석을 보조칸에 못 낌", E.equip({}, "support", "basic:묘안석:5", table).is_empty())
 

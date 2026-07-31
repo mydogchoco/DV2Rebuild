@@ -178,13 +178,33 @@ static func slot_ids(unlocked) -> Array:
 
 # --- 집계 -------------------------------------------------------------------
 
-## 장착 장비 + 옵션 + 편린 세트효과를 합산 → {stat: value}. 전부 flat/percent-point 합.
+## 장착 장비 + 옵션 + 편린 세트효과 → {stat: value}.
+##
+## ## 🔴 주 능력은 합산이 아니라 **최고값 하나만** 먹는다 (2026-08-01 정정)
+##
+## 원작 문자열 `<MultyEquip_Slot_Warring_2>`:
+##   "같은 메인 옵션의 아이템을 장착하시면 **최상위 메인 옵션이 적용**됩니다."
+## 클라 코드로도 확인했다 — `Dragon::getAvoidRateAdd`(Dragon.c:2054) 가 4칸을 도는 루프에서
+##
+##     iVar9 = Item::getTypeParam(item);            // 그 장비의 주 능력 수치
+##     if (iVar9 <= iVar16) { iVar9 = iVar16; }     // ← 누적 최댓값. 덧셈이 아니다
+##     ... } while (iVar8 != 4);
+##
+## `getCriticalRateAdd`·`getStunRateAdd` 도 같은 관용구다. 반면 **부가 옵션**은
+## `Equip::getAtk/getBlk/...` 를 칸마다 `fVar = fVar + …` 로 **더한다**(getBlkRateAdd:2372 등).
+## 젬 3칸(`this+0x158/0x160/0x168`)과 편린 세트도 덧셈이다.
+##
+## ⇒ 최종식 = **max(주 능력) + Σ(부가 옵션) + Σ(젬) + Σ(편린 세트)**
+##   (주 능력과 부가 옵션은 원작에서도 **다른 항**이라 같은 스탯이어도 서로 더해진다 —
+##    해골요새 관통 40 + 옵션 관통 +5 = 45.)
+##
 ## hp_pct/att_pct/def_pct 는 **배수** 항이다 — 편린 세트효과(체력 10% 등)와
 ## 부가옵션의 hp/att/def(원작에서 %)가 여기로 모인다.
 static func aggregate(equip_field: Dictionary, table: Dictionary) -> Dictionary:
 	var cat := catalog(table)
 	var pct: Array = table.get("option", {}).get("pct_stats", [])
 	var out: Dictionary = {}
+	var main_max: Dictionary = {}          # 주 능력은 칸별 최댓값(위 주석)
 	for s in (equip_field.get("slots", []) as Array):
 		if typeof(s) != TYPE_DICTIONARY:
 			continue
@@ -192,7 +212,8 @@ static func aggregate(equip_field: Dictionary, table: Dictionary) -> Dictionary:
 		# 주 능력(stat_main)은 원작에서도 그 스탯의 고유 단위 그대로다(회피율 %, 관통 flat …).
 		# 배수 전환은 **부가옵션에만** 적용한다.
 		for stat in (item.get("stat_main", {}) as Dictionary):
-			out[stat] = float(out.get(stat, 0.0)) + float(item["stat_main"][stat])
+			var v := float(item["stat_main"][stat])
+			main_max[stat] = maxf(float(main_max.get(stat, 0.0)), v)
 		for o in (s.get("options", []) as Array):
 			var st := String((o as Dictionary).get("stat", ""))
 			if st == "":
@@ -200,6 +221,8 @@ static func aggregate(equip_field: Dictionary, table: Dictionary) -> Dictionary:
 			# 원작 Dragon.c: hp/att/def 옵션만 기본값에 곱한다(§EquipBelongOption.md §2-2).
 			var key := (st + "_pct") if st in pct else st
 			out[key] = float(out.get(key, 0.0)) + float((o as Dictionary).get("value", 0))
+	for stat in main_max:
+		out[stat] = float(out.get(stat, 0.0)) + float(main_max[stat])
 	_add_piece_sets(equip_field, table, out)
 	# 아티팩트 히든 옵션 중 **스탯**인 것(벤투스 회피율 +5%)은 여기서 합류한다.
 	# 나머지(발동확률·발동횟수)는 스탯이 아니라 전투 규칙이라 artifact_mods 로 간다.
