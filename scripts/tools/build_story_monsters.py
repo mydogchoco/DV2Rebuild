@@ -50,12 +50,16 @@ OUT = ROOT / "data" / "story_monsters.json"
 #   `pure` = 방어 무시 고정 대미지(battle.gd `_pure_damage`). 원작 위키 표현 "고정 데미지".
 MONSTERS = [
     {
-        "id": 73, "name": "기계 만드라고낙", "episodes": [27], "stage": 10,
+        # 원작 `AdventureScene::initEventBattle` case 11 → 몬스터 #73. 사용자 확정 27화 ⇒ 11=27화.
+        "id": 73, "id_confirmed": True, "battle_no": {"27": 11},
+        "name": "기계 만드라고낙", "episodes": [27], "stage": 10,
         "hp_max": 2170, "att": 185, "def": 185,
         "_stats_status": "사용자 확정 2026-07-31",
     },
     {
-        "id": 74, "name": "정령 스파이크젤", "episodes": [28], "stage": 11,
+        # `initEventBattle` case 12 → #74. 사용자 확정 28화 ⇒ 12=28화.
+        "id": 74, "id_confirmed": True, "battle_no": {"28": 12},
+        "name": "정령 스파이크젤", "episodes": [28], "stage": 11,
         "hp_max": 2170, "att": 185, "def": 185,
         "_stats_status": "사용자 확정 2026-07-31 (기계 만드라고낙과 같은 값)",
     },
@@ -68,7 +72,10 @@ MONSTERS = [
         "episodes": [32, 33, 92], "stage": 14,
         # 원작 전투번호 ↔ 회차. 15 = 33화(사용자 확정 Lv50 #75 + <AdventureEvent33> 문자열),
         # 29 = 92화(getEventBattleData, 사용자 위키 재확인).
-        "battle_no": {"33": 15, "92": 29},
+        # 다크프로스티는 전투가 **셋**이다: `initEventBattle` case 14 · switch case 15(Lv50) ·
+        # 이벤트 29(92화). 32화·33화 중 어느 쪽이 14 이고 어느 쪽이 15 인지는 미확정이라
+        # 32 는 비워 둔다(주소 기반 추정은 11·12 에서 빗나갔으므로 근거로 쓰지 않는다).
+        "battle_no": {"33": 15, "92": 29}, "battle_no_unassigned": [14],
         "hp_max": 1200, "att": 160, "def": 80, "pure": 1000,
         "_stats_status": "사용자 확정 2026-07-31 (32·33화 기준). 92화(원작 이벤트 전투 29)는 별도 스탯 lv50 hp1100/공200/방125 — story_subquest.json event_battle.",
         "_pure_basis": "사용자 확정: '공격 시 고정 데미지 1000'. 우리 전투의 `pure`"

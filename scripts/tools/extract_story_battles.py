@@ -12,12 +12,14 @@
     레이드 23 · DungeonScene 6 · WorldMapScene 8 · EventLayer 4/5 … 스토리 1.
     ⇒ 실제 던전은 이 인자가 아니라 이벤트 데이터/서브퀘스트 쪽이 정한다.
 
-## 회차 귀속 방법
+## 회차 귀속 — ⚠️ 주소 기반은 **추정**이다
 
-스텝 블록은 스텝 테이블 타깃과 타깃 사이에 연속으로 놓인다. 그래서
-**"호출 주소 이하인 가장 큰 스텝 타깃"** 이 그 호출을 감싸는 블록이고,
-그 타깃이 속한 회차가 답이다. (공유 꼬리를 걸어가며 줍는 방식은 안 된다 —
-회차마다 같은 값이 나온다. 실제로 그렇게 틀렸다.)
+"호출 주소 이하인 가장 큰 스텝 타깃이 감싸는 블록" 규칙으로 뽑지만 **틀린다.**
+검증: 사용자 확정(기계 만드라고낙 27화 · 정령 스파이크젤 28화)과 원작 표
+(`initEventBattle` case 11→#73 · 12→#74)를 합치면 11=27화·12=28화인데,
+주소 규칙은 11→24화 · 12→27화를 내놓았다. 공유 꼬리로 새는 듯하다.
+⇒ `scene_calls[].episode_guess` 로만 싣고 **근거로 쓰지 않는다.**
+확실한 축은 **몬스터↔전투번호**(리터럴 switch)이고, 회차는 사용자 지식으로 잇는다.
 
 ## 교차검증
 
@@ -48,24 +50,46 @@ REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / "data" / "story_battles.json"
 DECOMP = REPO / "docs" / "ref" / "orig_code" / "decomp"
 
-## `AdventureScene` 의 `switch(battleNo)` — 전투번호 → (몬스터 번호, 레벨).
-## 앵커 = `"AdventureEvent" << sn` 직후. 파서는 extract_story_subquest.parse_adventure_battles.
-def monster_switch() -> dict[int, dict]:
-    src = (DECOMP / "AdventureScene.c").read_text(encoding="utf-8", errors="replace")
-    seg = src[src.index('"AdventureEvent",0xe'):][:40000]
+def _case_table(seg: str, level: bool) -> dict[int, dict]:
+    """`case N: … setMonster(this, 몬스터[, 레벨])` 를 순서대로 읽는다.
+
+    ⚠️ **첫 등장 우선.** 같은 case 번호가 뒤쪽 분기에서 다시 나오는 블록이 있어
+       나중 값으로 덮으면 틀린다(실제로 14·19·20·23 이 전부 #127 로 뭉개졌다).
+    """
     out: dict[int, dict] = {}
     cur: list[int] = []
+    pat = (r"setMonster\(this,(0x[0-9a-f]+|\d+),(0x[0-9a-f]+|\d+)," if level
+           else r"setMonster\(this,(0x[0-9a-f]+|\d+),")
     for line in seg.splitlines():
         m = re.match(r"\s*case (0x[0-9a-f]+|\d+):", line)
         if m:
             cur.append(int(m.group(1), 0))
             continue
-        m = re.search(r"setMonster\(this,(0x[0-9a-f]+|\d+),(0x[0-9a-f]+|\d+),", line)
+        m = re.search(pat, line)
         if m and cur:
             for b in cur:
-                out[b] = {"monster_no": int(m.group(1), 0), "level": int(m.group(2), 0)}
+                if b in out:
+                    continue                      # 첫 등장만
+                rec = {"monster_no": int(m.group(1), 0)}
+                if level:
+                    rec["level"] = int(m.group(2), 0)
+                out[b] = rec
             cur = []
     return out
+
+
+## `AdventureScene` 의 두 표. **경로가 갈린다** —
+##   `battleNo < 25` 이고 비트마스크 0x1f87ff0 에 걸리면(= 4·5~14·19~24) → `initEventBattle`
+##   아니면 → `isEventBattle`(26·27·29·100 은 getEventBattleData) → 그 밖은 아래 switch
+def monster_switch() -> dict[int, dict]:
+    src = (DECOMP / "AdventureScene.c").read_text(encoding="utf-8", errors="replace")
+    return _case_table(src[src.index('"AdventureEvent",0xe'):][:40000], level=True)
+
+
+def monster_event() -> dict[int, dict]:
+    """`initEventBattle` 의 표. 레벨은 리터럴이 아니라 몬스터 DB 값(iVar3)이라 없다."""
+    src = (DECOMP / "AdventureScene.c").read_text(encoding="utf-8", errors="replace")
+    return _case_table(src[src.index("==== initEventBattle @ 00c32940"):][:40000], level=False)
 
 
 def scene_calls():
@@ -126,7 +150,7 @@ def scene_calls():
 
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
-    sw = monster_switch()
+    sw, ev = monster_switch(), monster_event()
     calls = scene_calls()
     doc = OrderedDict()
     doc["_re_basis"] = (
@@ -140,15 +164,17 @@ def main() -> int:
         "ScenarioSubQuestData::getEventBattleData 가 덮어쓴다(data/story_subquest.json event_battle)."
     )
     doc["_episode_basis"] = (
-        "회차 귀속 = '호출 주소 이하인 가장 큰 스텝 테이블 타깃' 이 감싸는 블록의 회차. "
-        "교차검증: battleNo 15→32화(<AdventureEvent33> 이 '다크프로스티'를 부른다) · "
-        "16→46화(<AdventureEvent46> '태초의 비밀') · 28→91화(<AdventureEvent91> 각성)."
+        "⚠️ 주소 기반 회차 귀속은 **추정**이다 — 사용자 확정(#73=27화·#74=28화)과 어긋난다. "
+        "확실한 축은 몬스터↔전투번호(리터럴 switch)이고 회차는 사용자 지식으로 잇는다. "
+        "다만 문자열 <AdventureEvent%d>(%d=회차 sn)는 33·46·62·91 넷이 실재하고, "
+        "<AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다."
     )
     doc["_tool"] = "scripts/tools/extract_story_battles.py"
     doc["monster_by_battle"] = {str(k): v for k, v in sorted(sw.items())}
+    doc["monster_by_battle_event"] = {str(k): v for k, v in sorted(ev.items())}
     doc["scene_calls"] = calls
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT.relative_to(REPO)}  직접호출 {len(calls)}건 · 몬스터표 {len(sw)}번호")
+    print(f"-> {OUT.relative_to(REPO)}  직접호출 {len(calls)}건 · switch {len(sw)} · initEventBattle {len(ev)}")
     return 0
 
 

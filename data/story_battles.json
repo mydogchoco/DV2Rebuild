@@ -1,7 +1,7 @@
 {
  "_re_basis": "1~78화의 스토리 전투는 ScenarioSupport::scenarioBattle 이 아니라 AdventureScene::scene(FieldType, BattleType, string) 직접 호출이다(xref 전수 16건). FieldType=1 은 던전 id 가 아니라 모드 enum(레이드 23 · 던전 6 · 월드맵 8 · 스토리 1).",
  "_monster_basis": "battle_no → 몬스터·레벨 = AdventureScene 의 switch(battleNo). 표에 없는 번호(5~14)는 default 분기라 런타임 값이고, 그중 26·27·29 는 ScenarioSubQuestData::getEventBattleData 가 덮어쓴다(data/story_subquest.json event_battle).",
- "_episode_basis": "회차 귀속 = '호출 주소 이하인 가장 큰 스텝 테이블 타깃' 이 감싸는 블록의 회차. 교차검증: battleNo 15→32화(<AdventureEvent33> 이 '다크프로스티'를 부른다) · 16→46화(<AdventureEvent46> '태초의 비밀') · 28→91화(<AdventureEvent91> 각성).",
+ "_episode_basis": "⚠️ 주소 기반 회차 귀속은 **추정**이다 — 사용자 확정(#73=27화·#74=28화)과 어긋난다. 확실한 축은 몬스터↔전투번호(리터럴 switch)이고 회차는 사용자 지식으로 잇는다. 다만 문자열 <AdventureEvent%d>(%d=회차 sn)는 33·46·62·91 넷이 실재하고, <AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다.",
  "_tool": "scripts/tools/extract_story_battles.py",
  "monster_by_battle": {
   "15": {
@@ -59,6 +59,59 @@
   "28": {
    "monster_no": 181,
    "level": 100
+  }
+ },
+ "monster_by_battle_event": {
+  "4": {
+   "monster_no": 92
+  },
+  "5": {
+   "monster_no": 26
+  },
+  "6": {
+   "monster_no": 29
+  },
+  "7": {
+   "monster_no": 30
+  },
+  "8": {
+   "monster_no": 38
+  },
+  "9": {
+   "monster_no": 40
+  },
+  "10": {
+   "monster_no": 39
+  },
+  "11": {
+   "monster_no": 73
+  },
+  "12": {
+   "monster_no": 74
+  },
+  "13": {
+   "monster_no": 54
+  },
+  "14": {
+   "monster_no": 75
+  },
+  "19": {
+   "monster_no": 127
+  },
+  "20": {
+   "monster_no": 127
+  },
+  "21": {
+   "monster_no": 97
+  },
+  "22": {
+   "monster_no": 76
+  },
+  "23": {
+   "monster_no": 138
+  },
+  "24": {
+   "monster_no": 163
   }
  },
  "scene_calls": [

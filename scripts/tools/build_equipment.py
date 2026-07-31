@@ -350,6 +350,24 @@ OPTION = {
     # 희귀도 실루엣 색 — 원작 `Equip::getGradeImageSmallSprite` 의 setColor 값 그대로.
     # 인덱스 = 등급 인덱스(0=일반 … 5=초월). 일반은 원작이 실루엣을 아예 안 그린다 → null.
     "rarity_colors": [None, "E6E6E6", "7AF04C", "FFF600", "FF3924", "00FFEA"],
+    # 🟢 **글자 색은 실루엣 색과 다른 표다** (2026-08-01 .rodata 실측).
+    # 원작에는 함수가 둘이다:
+    #   · `Equip::getGradeImageSmallSprite`(@015081d8 앞) = **실루엣** setColor — 위 표.
+    #     rarity 1(일반)은 switch default 로 빠져 **스프라이트를 아예 안 만든다** → null.
+    #   · `Equip::getRarityColor(int)`(@015081d8) = **이름 글자** 색. 룩업 테이블 3개를
+    #     `DAT_0220d9f8`(r) / `DAT_0220da28`(g<<8) / `DAT_0220da58`(b<<16) 에서 읽는다.
+    # libgame.so 를 직접 읽어 뽑았다(Ghidra 이미지 베이스 +0x100000 보정, 심볼 대조로 확정):
+    #   r = [d2 ff 7a ff ff 00] · g = [d2 ff f0 f6 39 ff] · b = [d2 ff 4c 00 24 ea]
+    # ⇒ 두 표는 레어~초월 4칸이 **정확히 일치**하고(교차검증), 일반/매직만 다르다.
+    "rarity_text_colors": ["D2D2D2", "FFFFFF", "7AF04C", "FFF600", "FF3924", "00FFEA"],
+    "_rarity_text_colors_re_basis": (
+        "원작 확정(값까지) — `Equip::getRarityColor(int)` @015081d8 이 rarity-1 을 인덱스로 "
+        "룩업 테이블 3개(DAT_0220d9f8/da28/da58)를 읽어 r|g|b 를 합친다. libgame.so 의 "
+        ".rodata 를 직접 디코드해 6칸을 뽑았다(베이스 보정 +0x100000, 심볼 "
+        "_ZN7cocos2d5Equip14getRarityColorEi=0x14081d8 ↔ 디컴프 0x15081d8 로 확정). "
+        "레어~초월 4칸이 실루엣 표(getGradeImageSmallSprite 의 setColor 리터럴)와 "
+        "정확히 일치하는 것이 바이트 순서 검산이다."
+    ),
     "_rarity_colors_re_basis": (
         "원작 확정 — `Equip::getGradeImageSmallSprite` 가 rarity(1~6)로 setColor 한다. "
         "rarity 1(일반)은 스프라이트 자체를 만들지 않는다. 초월은 추가로 스파인 "
