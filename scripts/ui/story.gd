@@ -285,7 +285,7 @@ func _play_flow() -> void:
 			"setTalker":
 				# 1~78화 경로 — 원작 `ScenarioLayer::setTalker` 는 NPC 를 **이름 문자열**로 받는다
 				# (번호를 받는 `setNpcTalk` 과 다르다).
-				var f2 := String(o.get("npc_name", ""))
+				var f2 := _str(o, "npc_name")
 				_name_label.text = Data.npc_name(f2) if f2 != "" else ""
 				if f2 != "":
 					_show_npc(f2)
@@ -295,11 +295,11 @@ func _play_flow() -> void:
 				# 1~78화 경로. 원작은 대사 함수를 부르기 전에 **멤버 두 개에 문자열을 써 둔다**:
 				#   this+0x1d8 = 화자(`NPC_nuri`) · this+0x1f0 = 대사 키(`ScenarioTalk1_1`)
 				# ⇒ 줄 번호가 확정이라 순서 추정이 필요 없고, **화자도 유실이 아니었다.**
-				var f3 := String(o.get("npc_name", ""))
+				var f3 := _str(o, "npc_name")
 				if f3 != "":
 					_name_label.text = Data.npc_name(f3)
 					_show_npc(f3, maxi(int(o.get("body", 1)), 1), int(o.get("state", 1)))
-				_line_by_key(String(o.get("key", "")))
+				_line_by_key(_str(o, "key"))
 				return
 			"setUserTalk":
 				# 주인공(=플레이어) 대사·지문. 원작도 이때 NPC 초상을 띄우지 않는다.
@@ -676,6 +676,12 @@ func _title_label(text: String, size: int) -> Label:
 	l.add_theme_color_override("font_color", Color.WHITE)
 	l.size = l.get_minimum_size()
 	return l
+
+## 흐름 스텝의 문자열 필드. ⚠️ 미해석 인자는 JSON **null** 로 들어오는데 `String(null)` 은
+## 4.7 런타임 에러다(`Invalid call 'String' constructor`) — 실제로 28화 재생에서 터졌다.
+func _str(o: Dictionary, key: String) -> String:
+	var v = o.get(key, null)
+	return String(v) if typeof(v) == TYPE_STRING else ""
 
 ## 키(`ScenarioTalk<회차>_<줄>`)로 그 줄을 바로 집는다. 키 형식이 아니면 순서대로 폴백.
 ## 원작 문자열 키가 순서를 인코딩하고 있어서(§build_scenario.py) 줄 번호가 곧 `k` 다.

@@ -526,6 +526,36 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
     return out
 
 
+def inject_story_battles(flows: dict[str, list[dict]]) -> int:
+    """1~78화의 스토리 전투를 흐름에 **주입**한다.
+
+    🟦 사용자 확정 2026-07-31: 스토리 전투는 **별도 던전 방문 없이 스토리 중에** 벌어지고
+       끝나면 그 시점으로 돌아온다 — 82~101화(`scenarioBattle`)와 같은 구조다.
+
+    ⚠️ 그런데 1~78화는 **어느 스텝인지 코드에서 못 뽑는다.** 원작이 `scenarioBattle` 을
+       안 거치고 `AdventureScene::scene` 을 직접 부르는데, 그 호출을 회차에 귀속시키는
+       방법을 세 가지 시도해 전부 실패했다(주소 근접 · 스텝 순회 · 개선된 순회 재시도 —
+       셋 다 회차가 안 갈린다. 상세 = docs/ref/porting/ScenarioWiring.md §14).
+
+    ⇒ **회차↔전투번호는 사용자 확정값**(data/story_monsters.json `battle_no`)을 쓰고,
+      **위치는 회차 마지막**에 둔다(ASSUMPTION). 대사가 다 끝난 뒤 전투가 벌어지고
+      끝나면 다음 회차로 넘어간다. 원작 위치가 확인되면 여기만 고치면 된다.
+    """
+    sm = json.loads((REPO / "data" / "story_monsters.json").read_text(encoding="utf-8"))
+    n = 0
+    for m in sm.get("monsters", []):
+        for ep, bno in (m.get("battle_no") or {}).items():
+            ops = flows.get(str(ep))
+            if ops is None:
+                continue
+            if any(o.get("op") == "scenarioBattle" for o in ops):
+                continue                     # 원작에서 이미 뽑힌 회차(82~101)는 건드리지 않는다
+            ops.append({"op": "scenarioBattle", "battle": int(bno),
+                        "_placement": "회차 끝(ASSUMPTION — 원작 스텝 미확인)"})
+            n += 1
+    return n
+
+
 def sanitize_names(ops: list[dict], scen: dict) -> list[dict]:
     """화자 칸에 **문자열 리소스 키**가 새는 것을 막는다.
 
@@ -631,6 +661,7 @@ def main():
                 talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk"))
                 who = {npcs.get(o.get("npc"), o.get("npc")) for o in ops if o["op"] == "setNpcTalk"}
                 print(f"  ep{sn}: 스텝 {len(ops):>3} · 대사 {talk:>3} · 화자 {sorted(map(str, who))}")
+    n_inj = inject_story_battles(flows)
     doc = {
         "_re_basis": (
             "원작 클라 하드코딩 복원. ScenarioManager::makeScenarioLayer(sn) 이 회차를 "
@@ -647,7 +678,7 @@ def main():
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)} · 컷신몹 {len(mnpc)}")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)} · 컷신몹 {len(mnpc)} · 전투주입 {n_inj}")
 
 
 if __name__ == "__main__":

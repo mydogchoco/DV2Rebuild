@@ -952,10 +952,12 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                 callee = fm.getFunctionAt(fl[0]) if fl else None
                 if callee is not None and primary:
                     nm = callee.getName()
-                    # ⚠️ `AdventureScene::scene`(1~78화 전투)은 여기서 잡지 않는다.
-                    #    호출이 **공유 꼬리**에 있어 회차마다 같은 값이 나온다
-                    #    (실측 2026-07-31: Scenario3 의 20~29화가 전부 battleNo 13).
-                    #    전투 귀속은 data/story_battles.json + 사용자 지식으로 잇는다.
+                    # ⚠️ `AdventureScene::scene`(1~78화 전투)은 여기서 잡지 않는다 —
+                    #    **두 번 시도해 두 번 실패**했다(2026-07-31). 개선된 순회로 다시 해 봐도
+                    #    모든 회차가 step 0 에서 같은 값(battleNo 13)을 집는다. 호출 블록 자체는
+                    #    스텝 안에 있지만(BGM 정지 → scene → pushScene) 회차별 첫 스텝이 공통
+                    #    경로로 흘러들어 구분이 안 된다.
+                    #    ⇒ 전투 위치는 parse_scenario_flow 가 사용자 확정 배정으로 주입한다.
                     if "changeBackGround" in nm:
                         # ⚠️ 2번째 인자는 `BackGruundName*` = 스택 슬롯 포인터다(정수 아님)
                         ops.append({"op": "changeBackGround",
