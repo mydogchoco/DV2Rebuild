@@ -40,6 +40,7 @@ OUT = REPO / "data" / "scenario_flow.json"
 ## 원작 `ScenarioSupport::getNPCname` 의 NPC_NAME 열거형(회차 클래스가 넘기는 값) →
 ## `DV2/480/npc/<이름>` 아틀라스 폴더명 = 문자열 키 `<NPC_이름>` 의 접미사.
 NPC_SRC = DECOMP / "ScenarioSupport.c"
+LAYER_SRC = DECOMP / "ScenarioLayer.c"
 
 ## 스텝으로 인정할 호출. 값은 인자 이름표(this 제외, 원작 시그니처 순서).
 ##   근거 = 각 클래스 디컴프의 `/* cocos2d::…::fn(…) */` 원형 주석.
@@ -125,26 +126,135 @@ def npc_table() -> dict[int, str]:
 
 
 def bg_table() -> dict[int, list[str]]:
-    """`changeBackGround` 의 BackGruundName → 경로들(배경 + 전경 아이템)."""
+    """`changeBackGround` 의 BackGruundName → 경로들(배경 + 전경 아이템).
+
+    45개 case 전수(0~44). 값이 **빈 리스트면 "배경을 숨긴다"** — 원작 case 0·9 는
+    문자열 없이 배경 노드에 `setVisible(false)`(vtable +0x118) 만 부른다.
+
+    🔴 2026-08-01 정정 — 종전 구현은 문자열을 만난 뒤 `cur = cur[-1:]` 로 직전 라벨을
+       남겨 뒀다. 그래서 **다음 case 의 배경이 이전 번호에도 붙어** 번호마다 후보가 2개씩
+       생겼다(`"1": [townsquare, bighouse]`). 실제 원작 표는 1:1 이다.
+         · 0·9 = 숨김 · 1 townsquare · 2 bighouse · 3 townfarm · 4~6 그 야간판
+         · 7 bg/1003 · 8 bg/1004 · 12 magicshop · 13~40 탐험 배경(+전경 bg_item)
+         · 41 bg/19 · 42 skill_lab · 43 bg/18 · 44 bg/22
+       연속 라벨(`case 0: case 9:`)은 폴스루라 같은 값을 공유한다.
+    """
     src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
     ms = list(re.finditer(r"/\* ==== changeBackGround @ [0-9a-f]+ \(size=(\d+)\)", src))
     if not ms:
         return {}
     m = max(ms, key=lambda x: int(x.group(1)))
     seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    # case 라벨로 쪼갠 뒤 **본문이 빈 라벨만** 폴스루로 묶는다.
+    # (줄 단위로 "값을 받았으면 닫기" 로 하면 배경 다음 줄의 **전경 아이템**을 잃는다 —
+    #  `case 22` 의 `bg/15/item/bg_top_item.png` 가 실제로 그렇게 빠졌다.)
     out: dict[int, list[str]] = {}
-    cur: list[int] = []
-    for line in seg.splitlines():
-        cm = re.search(r"^\s*case (0x[0-9a-f]+|\d+):", line)
-        if cm:
-            cur.append(int(cm.group(1), 0))
-            continue
-        for p in re.findall(r'"((?:scenario|scene|addimg)/[^"]+\.(?:jpg|png))"', line):
-            for c in cur:
-                out.setdefault(c, [])
+    parts = re.split(r"\n  (case (?:0x[0-9a-f]+|\d+):|default:)", seg)
+    pend: list[int] = []
+    for k in range(1, len(parts), 2):
+        lab = parts[k].strip().rstrip(":")
+        if lab != "default":
+            pend.append(int(lab.replace("case ", ""), 0))
+        body = parts[k + 1]
+        if len(" ".join(body.split())) < 3:
+            continue                       # 폴스루 라벨 — 다음 본문과 값을 공유한다
+        paths = re.findall(r'"((?:scenario|scene|addimg)/[^"]+\.(?:jpg|png))"', body)
+        for c in pend:
+            out.setdefault(c, [])
+            for p in paths:
                 if p not in out[c]:
                     out[c].append(p)
-            cur = cur[-1:] if cur else []
+        pend = []
+    return out
+
+
+def initial_bg_table() -> dict[int, str]:
+    """회차(sn) → **화면에 처음 깔리는 배경 경로**.
+
+    🔴 2026-08-01 (사용자 신고 "1화 배경이 검정") — 우리는 배경을 `changeBackGround` 스텝에서만
+       받았는데, 그 호출은 **79~101화에만** 있다. 1~78화의 배경은 스텝이 아니라
+       `ScenarioLayer::initWidget` 의 **sn switch** 가 레이어를 지을 때 한 번 정한다
+       (@016c2e5c, `switch(*(int*)(mScenarioManager + 0x168))`). 그래서 1~78화가 전부 검은
+       화면이었다. 스텝만 훑어서는 절대 나오지 않는 값이다.
+
+    원작이 고르는 형태는 셋이다:
+      ① `uVar21` 에 탐험 필드 번호를 넣고 `caseD_2d` 로 → `scene/adventure/bg/<N>/bg.jpg`
+         (그 번호를 `mScenarioManager + 0x188` 에도 써 둔다)
+      ② 생성자가 멤버에 박아 둔 마을 배경 문자열을 그대로 스트림에 흘림
+         (`this + 0x288` townsquare · `0x2a0` townfarm · `0x2b8` shop · `0x2d0` magicshop ·
+          `0x2e8` bighouse · `0x300` townsquare_night · `0x318` townfarm_night · `0x330` bighouse_night)
+      ③ 리터럴 경로(프롤로그 · 20화 삽화 · 연구소)
+    `break` 로 빠지면 **배경을 만들지 않는다** — 스트림이 비어 `sVar8 != 0` 가드에 걸린다.
+    즉 검은 화면도 원작 동작인 회차가 있다(11·15·23·48·49·51·52·54·56·57 등).
+
+    ⚠️ 대부분의 case 가 `mScenarioManager + 0x16c`(= `sn_s`, 회차 안의 파트 번호)가 **1일 때만**
+       배경을 건다. 우리는 회차를 항상 처음부터 재생하므로 `sn_s == 1` 갈래를 고른다.
+       파트 분기(`iVar2 < 3`)가 있는 64·66화도 같은 이유로 앞쪽(야간) 갈래다.
+    """
+    src = LAYER_SRC.read_text(encoding="utf-8", errors="replace")
+    # ① 생성자가 멤버에 박아 두는 배경 경로
+    members: dict[int, str] = {}
+    for m in re.finditer(r"\(this \+ (0x[0-9a-f]+)\),\s*\"([^\"]+\.(?:jpg|png))\"", src):
+        members[int(m.group(1), 0)] = m.group(2)
+    try:
+        i = src.index("switch(*(undefined4 *)(lVar7 + 0x168)) {")
+        j = src.index("LAB_016c34e0:", i)
+    except ValueError:
+        return {}
+    seg = src[i:j]
+
+    # 공유 라벨 본문 — 라벨 위치부터 "다음 case 라벨" 직전까지(if/else 를 통째로 담는다).
+    NEXT_CASE = re.compile(r"\n  (?:case |default:)")
+    labels: dict[str, str] = {}
+    for m in re.finditer(r"^([A-Za-z_]\w*):", seg, re.M):
+        nx = NEXT_CASE.search(seg, m.end())
+        labels[m.group(1)] = seg[m.start(): nx.start() if nx else len(seg)]
+
+    # 토큰을 **등장 순서대로** 훑어 첫 번째 결론을 채택한다(= sn_s==1 / 앞쪽 갈래).
+    TOK = re.compile(
+        r"uVar21 = (0x[0-9a-f]+|\d+)"          # 1 필드 번호 후보
+        r"|(caseD_2d)"                          # 2 필드로 확정
+        r"|\(byte\)this\[(0x[0-9a-f]+)\]"       # 3 멤버 문자열(마을 배경)
+        r"|\"([^\"]+\.(?:jpg|png))\""           # 4 리터럴 경로
+        r"|goto (\w+)"                          # 5 라벨 추적
+        r"|(break;)")                           # 6 배경 없음
+
+    def classify(block: str, pend: int | None = None, depth: int = 0) -> str | None:
+        if depth > 6:
+            return None
+        for t in TOK.finditer(block):
+            if t.group(1):
+                pend = int(t.group(1), 0)
+            elif t.group(2):
+                # uVar21 초기값은 switch 앞의 `uVar21 = 5`
+                return "scene/adventure/bg/%d/bg.jpg" % (5 if pend is None else pend)
+            elif t.group(3):
+                return members.get(int(t.group(3), 0))
+            elif t.group(4):
+                return t.group(4)
+            elif t.group(5):
+                nm = t.group(5)
+                if nm in labels:
+                    return classify(labels[nm], pend, depth + 1)
+                return None          # LAB_016c34e0 = 스트림에 쌓인 것으로 끝
+            elif t.group(6):
+                return None
+        return None
+
+    out: dict[int, str] = {}
+    parts = re.split(r"\n  (case (?:0x[0-9a-f]+|\d+):|default:)", seg)
+    pend_labels: list[str] = []
+    for k in range(1, len(parts), 2):
+        lab = parts[k].strip().rstrip(":")
+        pend_labels.append(lab)
+        if len(" ".join(parts[k + 1].split())) < 3:
+            continue                                   # 폴스루 라벨 — 다음과 묶인다
+        got = classify(parts[k + 1])
+        if got:
+            for c in pend_labels:
+                if c != "default":
+                    out[int(c.replace("case ", ""), 0)] = got
+        pend_labels = []
     return out
 
 
@@ -715,6 +825,7 @@ def main():
     if not classes:
         classes = sorted(p.stem for p in LAMBDA.glob("*.c"))
     npcs, bgs, bgms = npc_table(), bg_table(), bgm_table()
+    ibgs = initial_bg_table()
     items = item_table()
     mnpc = monster_npc_table()
     scen = json.loads((REPO / "data" / "scenario.json").read_text(encoding="utf-8"))
@@ -759,6 +870,9 @@ def main():
         ),
         "npc_names": {str(k): v for k, v in sorted(npcs.items())},
         "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
+        # 회차가 열릴 때 깔리는 배경(원작 ScenarioLayer::initWidget) — 1~78화는 배경 스텝이
+        # 아예 없어서 이 표가 유일한 근거다. 빠진 회차는 원작도 배경을 만들지 않는다.
+        "initial_bg": {str(k): v for k, v in sorted(ibgs.items())},
         "bgm": {str(k): v for k, v in sorted(bgms.items())},
         "sc_items": {str(k): v for k, v in sorted(items.items())},
         "monster_npc": {str(k): v for k, v in sorted(mnpc.items())},
@@ -766,7 +880,8 @@ def main():
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)} · 컷신몹 {len(mnpc)} · 전투주입 {n_inj}")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · 초기배경 {len(ibgs)}"
+          f" · BGM {len(bgms)} · 소품 {len(items)} · 컷신몹 {len(mnpc)} · 전투주입 {n_inj}")
 
 
 if __name__ == "__main__":

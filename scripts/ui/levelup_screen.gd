@@ -278,7 +278,7 @@ func _build() -> void:
 	lup.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	lup.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	lup.size = Vector2(vis.x * 0.30, vis.y * 0.20)
-	lup.position = Vector2(vis.x * 0.03, vis.y * 0.03)
+	lup.position = _lvup_art_home(vis, lup.size)
 	lup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lup.z_index = _LVUP_UI_Z        # 드래곤 스파인(슬롯별 z_index)이 UI 를 덮지 않게
 	win.add_child(lup)
@@ -380,6 +380,16 @@ func _lvup_word_banner(text: String, secs := 1.6, col := Color(0.72, 0.94, 1.0),
 ## 후광 = `common/backlight3` + 6초 1회전(원작 DragonEnchantResultLayer.c:640 `CCRotateBy::create(6.0, 360.0)`
 ##   — 다른 화면이지만 같은 프레임을 쓰는 원작 회전 파라미터라 그대로 따른다).
 ## (딤/받침대 숨김은 `_open_levelup` 담당 — 이 함수는 진화 때 다시 불린다.)
+## 좌측 드래곤·받침대의 가로 중심(화면 폭 비율). 워드아트도 이 선에 맞춘다.
+const DRAGON_CX := 0.22
+
+## LEVEL UP 워드아트의 정위치(TextureRect 좌상단). 가로 중심을 **드래곤·받침대와 같은
+## 수직선**에 맞춘다(🟦 사용자 확정 2026-07-31 — 종전 0.03W 는 그보다 왼쪽에 떠 있었다).
+## 원작 좌표는 `ExpLayer` 가 스파인(`effect_levelupdown_spine`, 미보유)에 걸던 것이라 유실 —
+## 우리 자작 PNG 의 자리는 화면 구성으로 정한다(CLAUDE.md §10 워드아트 행).
+func _lvup_art_home(vis: Vector2, art_size: Vector2) -> Vector2:
+	return Vector2(vis.x * DRAGON_CX - art_size.x * 0.5, vis.y * 0.03)
+
 func _lvup_build_dragon(parent: Node, a: Dictionary, vis: Vector2) -> AnimationPlayer:
 	# 내부는 동굴과 같은 1080 공간을 그대로 쓴다(받침대/드래곤 좌표를 재계산하지 않게).
 	var holder := Node2D.new()
@@ -387,7 +397,7 @@ func _lvup_build_dragon(parent: Node, a: Dictionary, vis: Vector2) -> AnimationP
 	holder.scale = Vector2(S1080, S1080)
 	# 동굴 받침대(_stage)는 `vis.y/2 - 8` 인데, 여기선 **love 모션이 크게 일어서서** 머리가
 	# 화면 위로 잘린다 → 그만큼 아래로 내린다(받침대는 하단 텍스트박스 위에 그대로 들어간다).
-	holder.position = Vector2(vis.x * 0.22, vis.y / 2.0 + 34.0)
+	holder.position = Vector2(vis.x * DRAGON_CX, vis.y / 2.0 + 34.0)
 	parent.add_child(holder)
 	var bl := _atlas_sprite("common_ui", "common_backlight3", _man_common(), 1.35)
 	if bl and bl.texture:
@@ -778,7 +788,7 @@ func _lvup_wordart_flight(sp: float) -> void:
 	var tws: Array = []
 	_lvup_ctx["art_tweens"] = tws
 	art.pivot_offset = art.size * 0.5
-	var home: Vector2 = Vector2(vis.x * 0.03, vis.y * 0.03)   # _open_levelup 의 정위치
+	var home: Vector2 = _lvup_art_home(vis, art.size)         # _open_levelup 의 정위치
 	var K := 1.0 / 0.27
 	art.position = Vector2(vis.x * 0.5 - art.size.x * 0.5, vis.y + 60.0)   # 원작 y=-160(화면 밖 아래)
 	art.scale = Vector2.ONE * (0.5 * K)

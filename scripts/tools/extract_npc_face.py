@@ -76,6 +76,96 @@ RE_Y_HIDE = re.compile(r"^\s*(local_[0-9a-f]+) = local_[0-9a-f]+ \* [\d.]+ \+ \*
 RE_ASSIGN = re.compile(r"CCPoint::operator=\(\(CCPoint \*\)\(lVar\d+ \+ (0x1[0-9a-f]{2})\),\(CCPoint \*\)&(local_[0-9a-f]+)\)")
 
 
+def baked_face_bodies(coords: dict) -> list[str]:
+    """눈·입을 **얹으면 안 되는** 몸통 프레임 목록(`"<npc>:<body번호>"`).
+
+    🔴 2026-08-01 (사용자 신고 "표정이 얼굴에 겹쳐 보인다"): 원작 1화 첫 줄은 실제로
+       `setTalker(..., body=2, state=2)` 라 **nuri 의 body_2** 를 쓴다. 그런데 그 프레임은
+       팔을 든 전용 포즈이고 **눈이 이미 그려져 있다**. 거기에 눈 파츠를 또 얹으니 뜬 눈과
+       감은 눈이 겹쳤다.
+
+    원작은 이 구분을 `InfoNpc`(로컬 SQLite `info_npc`)에서 읽었는데 그 DB 는 유실이다.
+    그래서 **자산에서 직접 판정**한다. 두 단계 다 필요하다:
+
+      ① 머리 영역(상단 35%)을 body_1 과 최적 정렬 — 15개 중 13개가 **잔차 0.0**,
+         즉 대체 몸통은 대개 머리를 그대로 두고 팔·소품만 바꾼 것이라 body_1 좌표가 그대로 맞는다.
+      ② 정렬된 위치의 **눈 상자 어두움**(선화 픽셀 비율)을 body_1 과 비교.
+         얼굴이 그려져 있으면 눈동자·속눈썹 때문에 확 뛴다.
+
+    실측(전체 15개 대체 몸통): nuri body_2 만 0.030 → 0.134 로 걸린다.
+    yulia body_5 는 머리가 조금 움직였지만(잔차 24.8) 얼굴은 비어 있어(0.079 → 0.043)
+    통과한다 — ①만으로 잘랐으면 얼굴 없는 유리아가 됐을 자리다.
+    """
+    try:
+        from PIL import Image, ImageChops
+    except ImportError:
+        print("[npc_face] Pillow 없음 — 몸통 얼굴 판정 생략")
+        return []
+    conv = REPO / "assets" / "converted"
+    S = 4 / 3
+
+    def body_img(d: Path, key: str):
+        t = d / f"{key}.tres"
+        if not t.exists():
+            return None
+        txt = t.read_text(encoding="utf-8")
+        m = re.search(r"Rect2\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)", txt)
+        pg = re.search(r'/([^"/]+\.png)"', txt)
+        if not m or not pg:
+            return None
+        im = Image.open(d / pg.group(1)).convert("RGBA")
+        x, y, w, h = (float(v) for v in m.groups())
+        return im.crop((int(x), int(y), int(x + w), int(y + h)))
+
+    def darkness(img, box) -> float:
+        px = [p for p in img.crop(box).get_flattened_data() if p[3] > 120]
+        if not px:
+            return 0.0
+        return sum(1 for p in px if (p[0] + p[1] + p[2]) / 3 < 100) / len(px)
+
+    baked: list[str] = []
+    for d in sorted(conv.glob("npc_*")):
+        mf = d / "_manifest.json"
+        if not d.is_dir() or not mf.exists():
+            continue
+        npc = d.name[4:]
+        man = json.loads(mf.read_text(encoding="utf-8"))
+        bodies = sorted((k for k in man if re.fullmatch(rf"npc_{npc}_body_\d+", k)),
+                        key=lambda s: int(s.split("_")[-1]))
+        per = coords.get(npc, {})
+        fp = per.get("1") or per.get("?") or (list(per.values())[0] if per else None)
+        if len(bodies) < 2 or not fp or not fp.get("eye"):
+            continue
+        b1 = body_img(d, bodies[0])
+        if b1 is None:
+            continue
+        ex, ey = fp["eye"][0] / S, fp["eye"][1] / S
+        ew = man.get(f"npc_{npc}_eye_1_1", {}).get("w", 60)
+        box = (int(ex), int(ey), int(ex + ew), int(ey) + 26)
+        base = darkness(b1, box)
+        h1 = b1.crop((0, 0, b1.width, int(b1.height * 0.35))).convert("L")
+        for bk in bodies[1:]:
+            bn = body_img(d, bk)
+            if bn is None:
+                continue
+            hn = bn.crop((0, 0, bn.width, int(bn.height * 0.35))).convert("L")
+            best = (9e9, 0, 0)
+            for dy in range(-16, 17, 2):
+                for dx in range(-16, 17, 2):
+                    a = ImageChops.offset(hn, dx, dy)
+                    w = min(h1.width, a.width)
+                    hh = min(h1.height, a.height)
+                    diff = ImageChops.difference(h1.crop((0, 0, w, hh)), a.crop((0, 0, w, hh)))
+                    s = sum(diff.get_flattened_data()) / (w * hh)
+                    if s < best[0]:
+                        best = (s, dx, dy)
+            _, dx, dy = best
+            got = darkness(bn, (box[0] - dx, box[1] - dy, box[2] - dx, box[3] - dy))
+            if got > base * 1.8 + 0.05:
+                baked.append("%s:%s" % (npc, bk.split("_")[-1]))
+    return baked
+
+
 def f32(hexstr: str) -> float:
     v = int(hexstr, 16) & 0xFFFFFFFF
     return round(struct.unpack("<f", struct.pack("<I", v))[0], 3)
@@ -203,6 +293,13 @@ def main() -> int:
         "_slots": {"eye": "+0x150 setNpcEye", "mouth": "+0x15c setNpcMouse",
                    "arm_r": "+0x168", "arm_l": "+0x174"},
         "npc": {k: dict(sorted(v.items())) for k, v in sorted(out.items())},
+        "_baked_face_note": (
+            "얼굴이 이미 그려진 전용 포즈 몸통 — 눈·입을 얹으면 표정이 겹친다. "
+            "원작 판정은 InfoNpc(로컬 SQLite, 유실)에 있어 자산에서 측정한다: "
+            "body_1 과 머리 정렬 후 눈 상자 선화 비율이 1.8배+0.05 이상이면 '있음'. "
+            "판정기 = baked_face_bodies()."
+        ),
+        "baked_face": baked_face_bodies(out),
     }
 
     if "--check" in sys.argv:

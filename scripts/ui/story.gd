@@ -141,15 +141,25 @@ func _rebuild() -> void:
 	else:
 		_show_line(0)
 
-## 배경 = 이 시나리오의 삽화(sn_<no>_<m>_illust.jpg). 없으면 검은 막.
-## 원작은 `bgNo` 로 `scenario/main_story/bg/*.jpg` 를 골랐지만 그 값도, 배경 세트 대부분도
-## 우리 덤프에 없다(§10) → 삽화가 있으면 삽화, 없으면 단색.
+## 배경. 원작은 두 곳에서 정한다:
+##   ① 회차가 열릴 때 `ScenarioLayer::initWidget` 의 sn switch 가 한 장 깐다 → `initial_bg`
+##   ② 그 뒤 `changeBackGround` 스텝이 갈아 끼운다 — **79~101화에만** 있다
+## 🔴 2026-08-01: ①을 안 읽어서 1~78화가 전부 검은 화면이었다(사용자 신고 "1화 배경 검정").
+##    ②만 배선돼 있었는데 그 구간엔 배경 스텝이 하나도 없다.
 func _build_backdrop(sc: Dictionary) -> void:
 	var back := ColorRect.new()
 	back.color = Color(0.04, 0.03, 0.06)
 	back.set_anchors_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(back)
+	# 회차 초기 배경 — 표에 없는 회차는 원작도 배경을 만들지 않는다(스트림이 비어 있다).
+	var ib := Data.scenario_initial_bg(_no)
+	if ib != "":
+		var res := _bg_res(ib)
+		if res != "":
+			_put_bg(res, _field_of(ib))
+		else:
+			push_warning("[story] 초기 배경 변환본 없음: %s" % ib)
 	# 흐름이 있는 회차는 배경·삽화를 **원작 스텝이** 통제한다(changeBackGround/drawIllust).
 	# 여기서 삽화를 배경으로 깔면 그 위를 덮어 버린다.
 	if not _flow.is_empty():
@@ -303,7 +313,14 @@ func _play_flow() -> void:
 				var f3 := _str(o, "npc_name")
 				if f3 != "":
 					_name_label.text = Data.npc_name(f3)
-					_show_npc(f3, maxi(int(o.get("body", 1)), 1), int(o.get("state", 1)))
+					# `body`/`state` 는 **`setTalker` 로 합류한 스텝에만** 있다(`via` 참조).
+					# 나머지 다섯 함수는 그 인자를 받지 않으므로 원작도 초상을 바꾸지 않는다
+					# — 그 NPC 가 이미 서 있으면 **그대로 둔다**(자세·표정 유지).
+					if o.has("body") or o.has("state"):
+						_show_npc(f3, maxi(int(o.get("body", 1)), 1),
+							maxi(int(o.get("state", 1)), 1))
+					else:
+						_keep_or_show_npc(f3)
 				_line_by_key(_str(o, "key"))
 				return
 			"setUserTalk":
@@ -434,9 +451,19 @@ func _apply_field_bg(field: int) -> void:
 	var p := "res://assets/converted/adventure_bg/bg_%d.jpg" % field
 	if not ResourceLoader.exists(p):
 		return
+	_put_bg(p, field)
+
+## 배경 한 장을 깐다. 탐험 필드 배경은 **2겹**이라(원경 `bg.jpg` + 전경 `bg_item.png`)
+## 원작 `changeBackGround` 도 전경 스프라이트를 따로 만든다 — `DungeonBG.add_overlay` 재사용.
+## fid <= 0 이면 마을·상점처럼 전경이 없는 배경이다.
+func _put_bg(res: String, fid: int) -> void:
 	_ensure_bg_layer()
-	_bg_layer.texture = load(p)
+	for c in _bg_layer.get_children():
+		c.queue_free()                     # 이전 전경 오버레이 제거
+	_bg_layer.texture = load(res)
 	_bg_layer.visible = true
+	if fid > 0:
+		DungeonBG.add_overlay(_bg_layer, {"bg": fid})
 
 ## 걷기 비트 n회 — 원작은 매 비트마다 CCCallFunc(이동) + CCDelayTime(0.5).
 ## 우리는 이동 스프라이트가 없어 **박자만** 남긴다(텍스트박스를 치우고 n*0.5초 뒤 되돌림).
@@ -733,13 +760,15 @@ func _next_line() -> void:
 func _apply_bg(bg_no: int) -> void:
 	var paths: Array = Data.scenario_bg_paths(bg_no)
 	if paths.is_empty():
+		# 원작 case 0·9 = 경로 없이 배경 노드에 setVisible(false) — **숨기라는 뜻**이다.
+		# 종전엔 그냥 return 이라 이전 배경이 그대로 남았다.
+		if is_instance_valid(_bg_layer):
+			_bg_layer.visible = false
 		return
 	var res := _bg_res(String(paths[0]))
 	if res == "":
 		return
-	_ensure_bg_layer()
-	_bg_layer.texture = load(res)
-	_bg_layer.visible = true
+	_put_bg(res, _field_of(String(paths[0])))
 
 ## 장면 배경 레이어(없으면 만든다). `changeBackGround` 와 `walkAction` 이 공유한다.
 func _ensure_bg_layer() -> void:
@@ -755,6 +784,11 @@ func _ensure_bg_layer() -> void:
 
 ## 원작 경로 → 우리 변환본. 시나리오 전용 배경 6장만 `scenario/bg/` 에 있고
 ## 나머지는 **탐험 배경 재사용**이라 `adventure_bg/bg_<필드>.jpg` 로 간다(§10 정정).
+## 원작 경로에서 탐험 필드 번호를 뽑는다(전경 오버레이용). 필드 배경이 아니면 0.
+func _field_of(orig: String) -> int:
+	var r := RegEx.create_from_string(r"scene/adventure/bg/(\d+)/").search(orig)
+	return int(r.get_string(1)) if r else 0
+
 func _bg_res(orig: String) -> String:
 	var cands: Array[String] = []
 	var m := RegEx.create_from_string(r"scene/adventure/bg/(\d+)/")
@@ -765,6 +799,15 @@ func _bg_res(orig: String) -> String:
 		cands.append("%s/bg/%s" % [ART_DIR, orig.get_file()])
 	elif orig.begins_with("scene/magicshop/"):
 		cands.append("res://assets/converted/magicshop_bg/%s" % orig.get_file())
+	elif orig.begins_with("scene/shop/"):
+		cands.append("res://assets/converted/shop_bg/%s" % orig.get_file())
+	elif orig.begins_with("scene/laboratory/"):
+		cands.append("res://assets/converted/laboratory_bg/%s" % orig.get_file())
+	elif orig.begins_with("scenario/prologue/"):
+		cands.append("res://assets/converted/prologue_ui/%s" % orig.get_file())
+	elif orig.begins_with("scenario/main_story/"):
+		# 20화 초기 배경 `sn_20_1_illust.jpg` 처럼 삽화가 배경으로 오는 경우
+		cands.append("%s/%s" % [ART_DIR, orig.get_file()])
 	for c in cands:
 		if ResourceLoader.exists(c):
 			return c
@@ -967,6 +1010,14 @@ func _cast_npc(no: int, part: int, k: int) -> String:
 ## 표정 = `Character_State`. `ScenarioLayer::setTalker(bool, name, int body, int state, …)` 이
 ##   같은 값을 `setNpcEye`/`setNpcMouse`/양팔에 그대로 넘긴다(전부 `param_9`) —
 ##   조합표 같은 건 없고 **표정 번호 = 파츠 번호**다.
+## 자세·표정 인자가 없는 대사 스텝(`setReorderTalker`·`setTalk`·`setTalkFor*`).
+## 원작은 이미 서 있는 화자를 앞으로 세울 뿐 초상을 새로 만들지 않는다 —
+## 같은 NPC 면 그대로 두고, 아직 없으면 기본 자세로 세운다.
+func _keep_or_show_npc(npc: String) -> void:
+	if is_instance_valid(_npc_node) and String(_npc_node.get_meta("npc", "")).begins_with(npc + "|"):
+		return
+	_show_npc(npc, 1, 1)
+
 func _show_npc(npc: String, body := 1, state := 1) -> void:
 	var want := "%s|%d|%d" % [npc, body, state]
 	if is_instance_valid(_npc_node) and _npc_node.get_meta("npc", "") == want:

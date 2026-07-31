@@ -74,6 +74,30 @@ TALK_FNS = {"setTalk", "setTalker", "setReorderTalker", "setMoveTalker",
             "setTalkForNotClick", "setTalkForTalker"}
 OFF_NAME, OFF_KEY = 0x1d8, 0x1f0
 
+## 🔴 여섯 함수 중 **`setTalker` 만** 몸통·표정을 인자로 받는다. 원형(디컴프 주석 전수):
+##     setTalker(bool, string, int body, int state, float×4, int, bool×10)   ← w3=body w4=state
+##     setTalk(bool) · setTalkForNotClick() · setTalkForTalker()             ← 인자 없음
+##     setReorderTalker(int, bool, bool, bool) · setMoveTalker(int, int, InfoEventData*, bool)
+## 종전엔 여섯 개 전부에서 w3/w4 를 body/state 로 실었다. 나머지 다섯에서는 그 레지스터가
+## **호출과 무관한 찌꺼기**라 `body=23483`·`9001` 같은 값이 섞였고, 그럴듯한 작은 수는
+## 더 나빴다 — 1화가 `body=2` 를 받아 **얼굴이 이미 그려진 포즈 몸통**(nuri body_2)에
+## 눈·입을 또 얹어 표정이 겹쳐 보였다(사용자 신고 2026-08-01).
+BODY_STATE_FNS = {"setTalker"}
+
+
+def talk_op(fn: str, key, name, regs: dict) -> dict:
+    """대사 스텝 하나. `body`/`state` 는 그 인자를 **실제로 받는** 함수에서만 싣는다."""
+    op = {"op": "setTalk", "key": key,
+          # 원작이 멤버에 쓰는 값은 문자열 리소스 키(`NPC_nuri`)다 —
+          # 우리 `npc_names` 는 폴더명(`nuri`) 이 키라 접두를 뗀다.
+          "npc_name": (name[4:] if name and name.startswith("NPC_") else name)}
+    if fn:
+        op["via"] = fn                      # 어느 대사 함수로 합류했는지(검증·배선 근거)
+    if fn in BODY_STATE_FNS:
+        op["body"] = regs.get("w3")
+        op["state"] = regs.get("w4")
+    return op
+
 ## 한 case 블록에서 따라갈 최대 명령 수 / 범위 탐색 상한.
 MAX_STEP_INSNS, MAX_SCAN = 400, 300000
 
@@ -902,8 +926,15 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                         if ent in seen_starts:
                             continue
                         # 람다 본문은 회차 주소 범위 밖이므로 `free=True` 로 넣는다.
+                        #
+                        # 🔴 2026-08-01 (사용자 신고 "1화 배경이 검정"): 세 번째 칸을
+                        #    `False` 로 넣고 있었다. 그런데 **1~78화는 스텝 본문이 통째로
+                        #    이 람다 안**이라, 부수 op(`changeBackGround`/`drawIllust`)을
+                        #    주 경로에서만 모으는 규칙에 걸려 전부 버려졌다. 증상은
+                        #    "1~78화 op 어휘가 setTalk·setOutTalker 뿐"(79~101화는 32종).
+                        #    람다 본문은 갈래가 아니라 **그 스텝의 주 경로**다 → True.
                         queue.append((ent, snapshot(regs, slotval, xptr, pages,
-                                                    xstr, last_str, store, snreg), False, True))
+                                                    xstr, last_str, store, snreg), True, True))
             # 레지스터 간 복사(문자열 포인터가 x2 로 옮겨진다)
             m = re.fullmatch(r"mov (x\d+),(x\d+)", t)
             if m and m.group(2) in xstr:
@@ -941,12 +972,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                         continue
                     # 대사 키는 멤버(this+0x1f0)에 써 둔 것이 정답이다 —
                     # `last_str` 을 쓰면 직전에 스친 아무 문자열이나 집힌다.
-                    ops.append({"op": "setTalk", "key": talk_key or last_str,
-                                # 원작이 멤버에 쓰는 값은 문자열 리소스 키(`NPC_nuri`)다 —
-                                # 우리 `npc_names` 는 폴더명(`nuri`) 이 키라 접두를 뗀다.
-                                "npc_name": (talk_name[4:] if talk_name
-                                             and talk_name.startswith("NPC_") else talk_name),
-                                "body": regs.get("w3"), "state": regs.get("w4")})
+                    ops.append(talk_op(_nm0, talk_key or last_str, talk_name, regs))
                     return ops
                 if talker_addrs and a in talker_addrs:
                     # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
@@ -964,15 +990,21 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     #    스텝 안에 있지만(BGM 정지 → scene → pushScene) 회차별 첫 스텝이 공통
                     #    경로로 흘러들어 구분이 안 된다.
                     #    ⇒ 전투 위치는 parse_scenario_flow 가 사용자 확정 배정으로 주입한다.
+                    # 부수 op 은 갈래마다 중복될 수 있다(람다까지 주 경로로 세면서
+                    # 케이스 블록 + 람다 양쪽에서 같은 호출을 볼 여지가 생겼다).
+                    # 스텝 하나가 같은 배경을 두 번 갈지는 않으므로 동일 op 은 한 번만 싣는다.
+                    def _side(o: dict) -> None:
+                        if o not in ops:
+                            ops.append(o)
                     if "changeBackGround" in nm:
                         # ⚠️ 2번째 인자는 `BackGruundName*` = 스택 슬롯 포인터다(정수 아님)
-                        ops.append({"op": "changeBackGround",
-                                    "bg": slotval.get(xptr.get("x1", ""))})
+                        _side({"op": "changeBackGround",
+                               "bg": slotval.get(xptr.get("x1", ""))})
                     elif "drawIllust" in nm:
-                        ops.append({"op": "drawIllust",
-                                    "illust": regs.get("w1"), "kind": regs.get("w2")})
+                        _side({"op": "drawIllust",
+                               "illust": regs.get("w1"), "kind": regs.get("w2")})
                     elif "setOutTalker" in nm:
-                        ops.append({"op": "setOutTalker"})
+                        _side({"op": "setOutTalker"})
             mn = cur.getMnemonicString()
             if mn == "b":
                 fl = cur.getFlows()
@@ -995,10 +1027,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     _k2 = talk_key or last_str
                     if not (ep and isinstance(_k2, str) and _k2.startswith("ScenarioTalk")
                             and not _k2.startswith("ScenarioTalk%d_" % ep)):
-                        ops.append({"op": "setTalk", "key": _k2,
-                                    "npc_name": (talk_name[4:] if talk_name
-                                                 and talk_name.startswith("NPC_") else talk_name),
-                                    "body": regs.get("w3"), "state": regs.get("w4")})
+                        ops.append(talk_op(_nm2, _k2, talk_name, regs))
                         return ops
                 cur = nav_at(fl[0].getOffset())
                 continue

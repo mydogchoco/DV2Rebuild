@@ -2470,9 +2470,19 @@ func _ready() -> void:
 				" mark_field=", StoryProgress.mark_field())
 		"prologue":
 			# 프롤로그 검수(원작 <PrologueTalk0~33> + scenario/prologue 삽화).
+			#   --line=<i> : 그 줄부터(화자 초상 검수용)
 			Scenes.goto("prologue", {"back": "worldmap"})
 			for i in 25: await get_tree().process_frame
-			print("SHOT prologue: 대사 ", Data.prologue_lines().size(), "줄")
+			var pl_line := -1
+			for a8 in OS.get_cmdline_user_args():
+				if a8.begins_with("--line="): pl_line = int(a8.substr(7))
+			if pl_line >= 0:
+				var pn := _find_method_node(get_tree().root, "_show_line")
+				if pn != null:
+					pn.call("_show_line", pl_line)
+					for i in 5: await get_tree().process_frame
+			print("SHOT prologue: 대사 ", Data.prologue_lines().size(), "줄 화자표 ",
+				Data.tutorial_flow.get("speakers", {}).keys())
 		"storyauto":
 			# 시나리오 **자동 발동** 검수(원작 WorldMapScene.c:21999 launchScenarioIfAvailable).
 			# 흐름 데이터가 있는 첫 회차(79) 직전 상태를 메모리에만 만들고 메인 화면으로 간다.

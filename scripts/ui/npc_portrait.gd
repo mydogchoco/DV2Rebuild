@@ -102,6 +102,8 @@ func _build(body_index: int) -> void:
 	_body.position = Vector2(0, -bh * 0.5)
 	add_child(_body)
 
+	if _body_has_face():
+		return                          # 얼굴이 그려진 전용 포즈 — 파츠를 얹지 않는다
 	_art_emo = _resolve_art_emotion()
 	_eye_fr = _frames("eye", _art_emo)
 	_mouth_fr = _frames("mouth", _art_emo)
@@ -109,6 +111,17 @@ func _build(body_index: int) -> void:
 	var pos := _face_pos()
 	_eye = _attach_part("eye", pos.get("eye", null))
 	_mouth = _attach_part("mouth", pos.get("mouth", null))
+
+## 이 몸통 프레임에 **얼굴이 이미 그려져** 있나 — 그렇다면 눈·입을 얹으면 안 된다.
+##
+## 🔴 2026-08-01 (사용자 신고 "여러 표정이 얼굴에 겹쳐서 표시"): 스토리 1화 첫 줄은 원작이
+##   실제로 `setTalker(..., body=2, state=2)` 로 **nuri body_2** 를 부른다. 그 프레임은 팔을
+##   든 전용 포즈라 눈이 그려진 완성본인데, 거기에 눈 파츠를 또 얹어 뜬 눈과 감은 눈이 겹쳤다.
+##   원작은 `InfoNpc`(로컬 SQLite, 유실)로 갈랐다 → `data/npc_face.json` `baked_face` 에
+##   자산에서 측정한 목록이 있다(`extract_npc_face.py::baked_face_bodies`).
+func _body_has_face() -> bool:
+	var lst: Array = Data.npc_face.get("baked_face", [])
+	return lst.has("%s:%s" % [npc_name, _body_key.get_slice("_", _body_key.get_slice_count("_") - 1)])
 
 ## 입 프레임이 눈 프레임과 **같은 그림**이면 입을 그리지 않는다.
 ##
@@ -141,7 +154,7 @@ func _region_of(slot: String, frame: int) -> Rect2:
 ## ⚠️ 전용 몸통이 있는 표정(`body_<n>`, n≠1 — 유리아 5 등)은 이 씬의 몸통 1과 짝이 아니라
 ##    받아도 무시한다(`AtlasUI.npc_emotions` 와 같은 기준).
 func set_emotion(e: int) -> void:
-	if e <= 0 or e == emotion or _body == null:
+	if e <= 0 or e == emotion or _body == null or _body_has_face():
 		return
 	if _man.has("npc_%s_body_%d" % [npc_name, e]) and _body_key != "npc_%s_body_%d" % [npc_name, e]:
 		return                          # 컷씬 전용 포즈 표정 — UI 몸통에 얹지 않는다

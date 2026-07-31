@@ -38,6 +38,9 @@ const HOLD := 0.4       # 막 유지 = param_2 * 0.4
 const BAND_HOLD := 0.5  # 밴드 퇴장 시작 = param_2 * 0.5
 ## 컷인이 화면에서 완전히 걷히는 시각(= 레이어 정리 시각).
 const TOTAL := T + HOLD + T + 0.05
+## 배너 문구의 세로 위치(화면 높이 비율, 위에서부터).
+## 원작 `ExpLayer::set3MaxParticle` 의 `CCPoint(…, H*0.7)` 을 y-flip 한 값 = 밴드 위.
+const BANNER_Y := 0.3
 
 static func _man(dir: String) -> Dictionary:
 	var f := FileAccess.open("res://assets/converted/%s/_manifest.json" % dir, FileAccess.READ)
@@ -69,7 +72,13 @@ static func show(host: Node, caster: Dictionary, speed := 1.0, banner := "", lay
 	var elem := String(caster.get("element", ""))
 	var letter: String = LETTER.get(elem, "f")
 	var bdir := "cut_in_%s" % letter
-	var vis: Vector2 = host.get_viewport_rect().size
+	# ⚠️ `host.get_viewport_rect()` 를 쓰면 안 된다 — 그건 **CanvasItem** 의 메서드다.
+	#   호스트는 Control 일 수도(battle.gd), 순수 Node 일 수도(levelup_screen.gd) 있다.
+	#   2026-07-31 실제 사고: 레벨업 화면을 cave.gd(Control)에서 별도 파일(extends Node)로
+	#   뽑아낸 커밋(6f2cb03) 이후 트리플맥스 컷인이 여기서 조용히 죽었다
+	#   ("Nonexistent function 'get_viewport_rect'" — 연출만 사라지고 게임은 계속 굴러갔다).
+	#   `get_viewport()` 는 Node 의 메서드라 어느 호스트에서도 같은 값을 준다.
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	var sp := 1.0 / maxf(1.0 / 3.0, speed)
 	var lay := CanvasLayer.new(); lay.layer = layer_idx
 	host.add_child(lay)
@@ -158,7 +167,11 @@ static func show(host: Node, caster: Dictionary, speed := 1.0, banner := "", lay
 		bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		bl.size = Vector2(vis.x, 90.0)
-		bl.position = Vector2(0.0, center.y - 45.0)
+		# 세로 위치 = 원작 리터럴. `set3MaxParticle` 이 라벨을 `CCPoint(W*0.5 - x, H*0.7)` 에 놓는데
+		# cocos 는 y-up 이므로 **위에서 30%**(= 밴드 위)다. 종전엔 화면 정중앙이라 컷인 얼굴을
+		# 가로질러 덮고 있었다(사용자 신고 2026-07-31 → 원작 좌표로 정정).
+		# ⚠️ 가로는 원작 x 오프셋(`local_108`)을 Ghidra 가 못 살려서 화면 중앙 정렬로 둔다.
+		bl.position = Vector2(0.0, vis.y * BANNER_Y - bl.size.y * 0.5)
 		bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bl.z_index = 10
 		bl.modulate.a = 0.0
