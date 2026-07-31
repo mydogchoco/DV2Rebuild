@@ -312,8 +312,21 @@ def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
     titles = load("scenario.json").get("titles", {})
     stages = load("stages.json")["stages"]
     ev = load("story_subquest.json").get("event_battle", {})
-    mons = {m.get("asset_id"): m.get("name", "")
-            for m in load("monsters.json")["monsters"]}
+    # 🔴 몬스터 번호 → 이름은 **stages.json 을 먼저** 본다.
+    #    `monsters.json` 의 `asset_id` 는 extract_wiki 의 자동 부여라 틀린 항목이 있다
+    #    (73/74/75 를 G스컬·다크닉스·그리파르로 잡지만 게임은 #30·#36·#138 로 쓴다).
+    #    그걸로 풀면 이벤트 전투 29 가 '그리파르'로 나오는데 **실제로는 다크프로스티**다.
+    mons: dict = {}
+    for m in load("monsters.json")["monsters"]:          # 3순위(폴백)
+        mons.setdefault(m.get("asset_id"), m.get("name", ""))
+    for m in load("story_monsters.json")["monsters"]:    # 2순위 — 스토리 전용 3종
+        mons[m["id"]] = m["name"]
+    for _sid, _st in load("stages.json")["stages"].items():   # 1순위 — 사용자 검수분
+        for _blk in (_st, _st.get("night"), _st.get("kades")):
+            if isinstance(_blk, dict):
+                for _e in (_blk.get("enemies") or []):
+                    if isinstance(_e, dict) and _e.get("name"):
+                        mons[int(_e["id"])] = _e["name"]
 
     def place(field: int) -> str:
         """필드 번호 → 장소 이름. 500+ = 밤 변형 · 600+ = 카데스의 공간(기본필드 + 오프셋)."""
