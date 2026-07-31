@@ -17,9 +17,16 @@ extends SceneTree
 ## 실행: godot --headless --path . --script res://scripts/tools/test_scenario_flow.gd --quit-after 3
 
 ## 회차 → 원작 대사 줄 수와 일치해야 하는가(분기 회차는 false).
+## 채택 회차 수의 **바닥값**. 종전엔 회차가 통째로 사라져도 테스트가 못 잡았다 —
+## `flows` 에 없는 회차는 아래 검사 루프를 아예 안 돌기 때문이다(2026-07-31 실측:
+## 추출을 고치자 3·31·36·50 이 조용히 빠졌는데 PASS 였다).
+const MIN_EPISODES := 45
+
 ## 1~78화(점프 테이블 추출)는 대사 수가 정확히 맞은 것만 올린다 — 회귀 앵커.
-const EXACT := {1: true, 3: true, 4: true, 10: true, 16: true, 17: true, 23: true,
-	26: true, 31: true, 36: true, 37: true, 50: true, 58: true, 60: true,
+## ⚠️ 여기 오른 회차는 **flows 에 반드시 있어야 한다**(없으면 FAIL).
+const EXACT := {1: true, 4: true, 6: true, 7: true, 9: true, 10: true, 13: true,
+	14: true, 16: true, 17: true, 18: true, 20: true, 21: true, 23: true, 26: true,
+	37: true, 58: true, 60: true, 61: true, 64: true, 65: true,
 	79: true, 80: true, 81: true,
 	82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
 	89: true, 90: true, 91: true, 94: true, 96: true, 97: true, 99: true, 100: true}
@@ -71,6 +78,13 @@ func _init() -> void:
 		elif talk > lines:
 			# 흐름이 대사보다 길면 재생 중 빈 줄이 난다 — 분기 회차만 허용
 			print("WARN ep%s: 흐름 %d > 대사 %d (분기 추정)" % [sn, talk, lines])
+
+	# ③-b 회차 수 바닥값 + 앵커 회차 존재 — "조용히 사라지는" 회귀를 잡는다.
+	if flows.size() < MIN_EPISODES:
+		print("FAIL 회차 %d < 바닥값 %d" % [flows.size(), MIN_EPISODES]); fails += 1
+	for k in EXACT.keys():
+		if not flows.has(str(k)):
+			print("FAIL ep%d: 앵커인데 flows 에 없다(추출 회귀)" % k); fails += 1
 
 	# ④ 화자 번호가 전부 전표에 있는가 + 초상 자산 존재
 	var unresolved := 0

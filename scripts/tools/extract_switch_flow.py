@@ -253,6 +253,40 @@ def main():
                         "at": br_ins.getAddress().getOffset()}
             return None
 
+        def lambda_at(data_addr: int) -> list[int]:
+            """`std::function` 객체 주소 → **람다 본문** 함수 진입점(못 찾으면 0).
+
+            🔴 1~78화의 대사 **절반**이 여기 숨어 있었다. 스텝이 이렇게 생긴 경우가 많다:
+
+                setOutTalker(this, …)                    ← 우리가 잡던 부수 op
+                adrp x8,<PTR_FUN> ; add x8,x8,#…         ← std::function 객체
+                str x8,[sp,#…] ; str x19,[sp,#…]         ← 캡처
+                CCCallFunc::create(…)                    ← **대사는 이 람다 안에** 있다
+                b <꼬리>
+
+            선형으로만 걸으면 `setOutTalker` 하나만 줍고 끝난다(실측: 28화 33스텝 중 15개가
+            그랬고, 빠진 대사 15줄과 정확히 대응한다).
+
+            ⚠️ **첫 슬롯만 보면 안 된다.** 슬롯 0 은 여러 스텝이 공유하는 thunk(0xc0cf38)이고
+               실제 본문은 뒤쪽 슬롯에 있다 — `ScenarioTalk28_5` 를 참조하는 함수는
+               `FUN_015a92e4`(슬롯 6)였다. ⇒ 후보를 **전부** 돌려주고 walk_case 가 다 훑는다.
+            """
+            out: list[int] = []
+            for k in range(10):
+                try:
+                    p = mem.getLong(af.getAddress(data_addr + 8 * k)) & 0xFFFFFFFFFFFF
+                except Exception:                      # noqa: BLE001 — 데이터 밖이면 끝
+                    break
+                if p == 0:
+                    continue
+                try:
+                    f2 = fm.getFunctionAt(af.getAddress(p))
+                except Exception:                      # noqa: BLE001
+                    continue
+                if f2 is not None and f2.getName().startswith("FUN_"):
+                    out.append(f2.getEntryPoint().getOffset())
+            return out
+
         def rostr(addr: int):
             """그 주소가 짧은 ASCII C 문자열이면 돌려준다(NPC 폴더 이름 후보).
             1~78화의 `ScenarioLayer::setTalker` 는 NPC 를 **이름 문자열**로 받는다."""
@@ -610,7 +644,8 @@ def main():
                         f0.extend(walk_case(at, after, fm, body, a4, slots,
                                             npc_talk_addrs, user_talk_addrs, text,
                                             talker_addrs=talker_addrs, rostr=rostr,
-                                            talk_addrs=talk_addrs, want_sn=None))
+                                            talk_addrs=talk_addrs, want_sn=None,
+                                            lam=lambda_at))
                         if f"--dump-ep={sn}" in sys.argv:
                             print(f"     [step] {a4:#x} -> {f0[n0:] or '(없음)'}")
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
@@ -704,7 +739,8 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               npc_talk_addrs: set, user_talk_addrs: set, text,
               talker_addrs: set | None = None, rostr=None,
               talk_addrs: set | None = None,
-              want_sn: int | None = None) -> list[dict]:
+              want_sn: int | None = None,
+              lam=None) -> list[dict]:
     """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
 
     ## 조건 분기 (2026-07-31)
@@ -727,13 +763,17 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
 
     ops: list[dict] = []
     # (시작주소, 상태, 주경로여부)
-    queue: list[tuple[int, tuple, bool]] = [
-        (tgt, ({}, {}, {}, {}, {}, None, {}, None), True)]
+    # (시작주소, 상태, 주경로여부, 범위밖허용)
+    # 🔴 마지막 칸이 필요하다 — 람다 본문은 회차 주소 범위(`body`) **밖**에 있다
+    #    (실측: 28화 스텝의 람다가 0xc0cf38, 회차는 0x158xxxx 대). 범위로 막으면
+    #    들어가자마자 끊겨 `setOutTalker` 하나만 줍고 끝난다.
+    queue: list[tuple[int, tuple, bool, bool]] = [
+        (tgt, ({}, {}, {}, {}, {}, None, {}, None), True, False)]
     seen_starts: set[int] = set()
     budget = MAX_STEP_INSNS * 4          # 갈래를 다 합친 총 예산
 
     while queue and budget > 0:
-        start, st, primary = queue.pop(0)
+        start, st, primary, free = queue.pop(0)
         if start in seen_starts:
             continue
         seen_starts.add(start)
@@ -747,7 +787,9 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
         seen: set[int] = set()
         for _ in range(MAX_STEP_INSNS):
             budget -= 1
-            if cur is None or budget <= 0 or not body.contains(cur.getAddress()):
+            if cur is None or budget <= 0:
+                break
+            if not free and not body.contains(cur.getAddress()):
                 break
             a = cur.getAddress().getOffset()
             if a in seen:
@@ -810,11 +852,22 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
             m = re.fullmatch(r"add (x\d+),(x\d+),#(0x[0-9a-f]+|\d+)", t)
             if m and m.group(1) == m.group(2) and m.group(1) in pages:
                 cand = pages[m.group(1)] + int(m.group(3), 0)
-                if rostr:
-                    sv = rostr(cand)
-                    if sv:
-                        last_str = sv
-                        xstr[m.group(1)] = sv
+                sv = rostr(cand) if rostr else None
+                if sv:
+                    last_str = sv
+                    xstr[m.group(1)] = sv
+                elif lam is not None:
+                    # 문자열이 아니면 `std::function` 객체일 수 있다 — 대사가 그 람다 안에 있다.
+                    ents = lam(cand)
+                    if "--debug-lam" in sys.argv and ents:
+                        print(f"       [lam] {a:#x} cand={cand:#x} -> "
+                              + ",".join(hex(x) for x in ents))
+                    for ent in ents:
+                        if ent in seen_starts:
+                            continue
+                        # 람다 본문은 회차 주소 범위 밖이므로 `free=True` 로 넣는다.
+                        queue.append((ent, snapshot(regs, slotval, xptr, pages,
+                                                    xstr, last_str, store, snreg), False, True))
             # 레지스터 간 복사(문자열 포인터가 x2 로 옮겨진다)
             m = re.fullmatch(r"mov (x\d+),(x\d+)", t)
             if m and m.group(2) in xstr:
@@ -828,13 +881,20 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                         else:
                             talk_key = sv
                     pend_slot = None
-                if a in npc_talk_addrs:
+                # 🔴 주소 집합만 보면 **람다 안의 호출을 놓친다** — 그 집합은 회차 주소 범위
+                #    `[lo,hi]` 에서만 모았는데 람다 본문은 범위 밖(0x15a92xx)에 있다.
+                #    실측: 28화의 빠진 15줄이 전부 람다 안이었다(`ScenarioTalk28_5` →
+                #    `FUN_015a92e4`). ⇒ **호출 대상 이름**으로도 판정한다.
+                _fl0 = cur.getFlows()
+                _cal = fm.getFunctionAt(_fl0[0]) if _fl0 else None
+                _nm0 = _cal.getName() if _cal is not None else ""
+                if a in npc_talk_addrs or "setNpcTalk" in _nm0:
                     ops.append({"op": "setNpcTalk", **store})
                     return ops
-                if a in user_talk_addrs:
+                if a in user_talk_addrs or "setUserTalk" in _nm0:
                     ops.append({"op": "setUserTalk"})
                     return ops
-                if talk_addrs and a in talk_addrs:
+                if (talk_addrs and a in talk_addrs) or _nm0 in TALK_FNS:
                     # 대사 키는 멤버(this+0x1f0)에 써 둔 것이 정답이다 —
                     # `last_str` 을 쓰면 직전에 스친 아무 문자열이나 집힌다.
                     ops.append({"op": "setTalk", "key": talk_key or last_str,
@@ -878,7 +938,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     o2 = f2.getOffset()
                     if o2 != a + cur.getLength() and o2 not in seen_starts:
                         queue.append((o2, snapshot(regs, slotval, xptr, pages,
-                                                   xstr, last_str, store, snreg), False))
+                                                   xstr, last_str, store, snreg), False, free))
             cur = nav_after(cur)
     return ops
 
