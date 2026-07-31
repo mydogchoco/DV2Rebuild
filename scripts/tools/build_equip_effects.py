@@ -213,16 +213,31 @@ EXCLUSIVE = {
 
     # ── 미구현: 기반 각성스킬이 아직 impl:false 이거나 일반 스킬을 고치는 것 ─────
     "번개고룡의 팬던트": {"impl": False, "why": "skill:심판의 날개"},
-    "포세이돈의 삼지창": {"impl": False, "why": "skill:대양의 분노"},
-    "블랙홀의 암흑결정체": {"impl": False, "why": "skill:블랙홀의 마력"},
-    "아루루가의 물갈퀴": {"impl": False, "why": "skill:물의보호막"},
-    "커스리퍼의 뼈투구": {"impl": False, "why": "skill:뼈갑옷"},
-    "콜테일의 헛된희망": {"impl": False, "why": "skill:타락한 드래곤"},
+    "포세이돈의 삼지창": {         # [대양의 분노](방어율 -7 · 크리 +7) 효과 2배
+        "awaken_mod": awk("대양의 분노",
+            {"react.0.target_value": "*2", "react.0.self_value": "*2"})},
+    "블랙홀의 암흑결정체": {       # [블랙홀의 마력] 회복량 100% · 공격력 증가량 20% 로
+        "awaken_mod": awk("블랙홀의 마력",
+            {"react.0.ratio": 1.0, "react.0.value": 20, "react.0.max_total": 100})},
+    "아루루가의 물갈퀴": {         # [물의 보호막] 효과 2회 추가 (3회 → 5회)
+        "awaken_mod": awk("물의 보호막", {"react.0.plant.left": "+2"})},
+    "커스리퍼의 뼈투구": {         # [뼈갑옷] 효과 2배 (감소 40→80 · 누적 10%→20%)
+        "awaken_mod": awk("뼈갑옷",
+            {"ops.0.value": "*2", "react.0.value": "*2"}),
+        "partial": "'(감소된 최소 피해량 30)' 은 그대로 둔다 — 원문이 '효과가 2배' 라고만 해서 "
+                   "바닥까지 2배인지 근거가 없다"},
+    "콜테일의 헛된희망": {         # [타락한 드래곤] 증가량(기본 체력 15%)만큼 공/방도 증가
+        "awaken_mod": awk("타락한 드래곤", add_ops=[
+            op("stat", stat="att", mode="pct", value=15),
+            op("stat", stat="def", mode="pct", value=15)])},
     "루페스의 결정화된 분노": {"impl": False, "why": "skill:복수의 거울"},
     "불나래의 불꽃구슬": {"impl": False, "why": "skill:철갑방패 · 각인 에자녹의 권능"},
-    "미니드래곤 고리": {"impl": False, "why": "skill:선제 공격"},
-    "투탕카의 도리깨": {"impl": False, "why": "skill:선제 공격"},
-    "번네스의 화염신발": {"impl": False, "why": "skill:선제공격"},
+    "미니드래곤 고리": {"impl": False,
+        "why": "engine — [선제 공격] 발동 시 '아군 드래곤의 합으로 공격' = 합공격이라는 새 공격 형태"},
+    "투탕카의 도리깨": {"impl": False,
+        "why": "engine — [선제 공격] 발동 시 '공격력이 가장 높은 드래곤이 대신 공격' = 행동 주체 교체"},
+    "번네스의 화염신발": {"impl": False,
+        "why": "engine — '선제공격으로 발동되는 모든 적의 방어율·회피 무시' = 주도권을 가진 라운드에만 상대에게 거는 디버프 통로가 없다"},
     "홀리의 빛나는양뿔": {          # 크리티컬 공격이 상대의 회피를 무시
         # 우리 판정 순서는 회피→막기→크리라 크리가 정해질 땐 회피가 끝나 있다.
         # `crit_ignores_evade` 플래그가 있으면 Battle 이 **크리를 먼저 굴려** 회피를 건너뛴다.

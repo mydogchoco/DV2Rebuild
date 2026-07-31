@@ -78,6 +78,14 @@ static func _has_flag(c: Dictionary, flag: String) -> bool:
 			return true
 	return false
 
+## 그 상태를 건 **스킬 id**. render 가 원작 Bicon(= `skill/%d.png` 아이콘)을 그릴 때 쓴다 —
+## 원작은 버프 아이콘이 곧 스킬 아이콘이라 출처가 있어야 그릴 수 있다. 없으면 0.
+static func _flag_source(c: Dictionary, flag: String) -> int:
+	for e in c.get("effects", []):
+		if e.get("kind") == "status" and e.get("flag") == flag:
+			return int(e.get("source", 0))
+	return 0
+
 static func _remove_flag(c: Dictionary, flag: String) -> void:
 	var keep: Array = []
 	for e in c.get("effects", []):
@@ -182,6 +190,16 @@ static func _dmg_taken_flat(c: Dictionary) -> float:
 		if e.get("kind") == "dmg_taken_flat":
 			v += float(e["value"])
 	return v
+
+## 정액 감소의 **바닥** — "(감소된 최소 피해량 30)"(52 뼈갑옷). 0 = 바닥 없음.
+## 여러 개면 가장 높은 값이 이긴다(더 강한 보호가 이기는 다른 규칙들과 같은 규약).
+static func _dmg_taken_floor(c: Dictionary) -> int:
+	var v := 0
+	for e in (c.get("effects", []) as Array):
+		if String((e as Dictionary).get("kind", "")) == "dmg_taken_flat":
+			v = maxi(v, int((e as Dictionary).get("min_dmg", 0)))
+	return v
+
 
 ## 각성 게이지 충전율 배수 — `gauge_rate` 효과(%)의 합. 기본 1.0.
 static func _gauge_rate(c: Dictionary) -> float:
@@ -350,8 +368,13 @@ static func _enter_phase2_if_needed(c: Dictionary) -> bool:
 	return true
 
 static func _apply_dmg(defender: Dictionary, dmg: int) -> Dictionary:
-	var f := maxi(1, int(round(float(dmg) * _dmg_taken_mult(defender) * _phase_taken_mult(defender)
-		- _dmg_taken_flat(defender))))
+	var scaled := float(dmg) * _dmg_taken_mult(defender) * _phase_taken_mult(defender)
+	var f := maxi(1, int(round(scaled - _dmg_taken_flat(defender))))
+	# 52 뼈갑옷 "(감소된 최소 피해량 30)" — 정액 감소는 이 바닥 아래로 못 깎는다.
+	# 원래 피해가 그보다 작으면 그대로 둔다(감소가 피해를 **늘리면** 안 되므로).
+	var floor_v := _dmg_taken_floor(defender)
+	if floor_v > 0 and f < floor_v:
+		f = mini(floor_v, maxi(1, int(round(scaled))))
 	# 확률적 피해 고정 — 87 즈믄의 친구. 상한보다 먼저 본다(더 강한 효과라서).
 	f = _aw_fix_damage(defender, f)
 	# 피해 상한 — 각성스킬 777 "모든 공격에 의해 입는 피해량이 최대 체력의 25%로 제한".
@@ -425,6 +448,15 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 	raw_dmg += _aw_on_attack_bonus(attacker, defender, rng, raw_dmg)
 	# 아티팩트 DEDMG(벤투스) = "상대 스킬 대미지 감소". 스킬 피해에만, 방어측 기준으로 깎는다.
 	if is_skill:
+		# 🟦 스킬 공격에도 **막기**를 적용한다(사용자 확정 2026-07-31).
+		#    근거: 각성스킬 78 [용암의 노련함] "자신의 스킬이 상대 방어율을 100% 무시" 가
+		#    존재한다는 것 자체가 원작에서 스킬도 막혔다는 뜻이다. 그 스킬이 면제 플래그다.
+		#    ⚠️ 방어 스킬 20 [보호의 장막]이 스킬 피해에 안 걸리는 것과는 다른 축이다.
+		if not _has_flag(attacker, "skill_ignores_block") 				and not _has_flag(defender, "no_block") 				and _roll(rng, _eff(defender, "blk"),
+					int(cfg.get("judge", {}).get("prob_cap", 70))):
+			var bred := float(cfg.get("judge", {}).get("block_reduction", 0.5))
+			raw_dmg = maxi(1, int(round(float(raw_dmg) * (1.0 - bred))))
+			_aw_on_block(defender, rng)            # 64 신비한 보호 · 65 신성 방패 · 38 방출의 힘
 		# 주는 쪽 — "자신의 크리티컬 확률만큼 스킬 피해량 증가"(타로스의 용암구슬).
 		var sdm := _skill_dmg_deal_mult(attacker)
 		if not is_equal_approx(sdm, 1.0):
@@ -481,18 +513,27 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	# ⚠️ 우리 판정 순서는 **회피 → 막기 → 크리**라, 크리가 정해질 땐 이미 회피가 끝나 있다.
 	#    그래서 이 플래그가 있을 때**만** 크리를 먼저 굴려 두고(`pre_crit`), 크리면 회피를
 	#    건너뛴다. 굴린 결과는 아래에서 그대로 쓰므로 난수 소비 횟수는 그대로다.
+	# 93 태양의 불꽃도 같은 통로다 — "크리티컬 발동 시 상대 방어율과 회피율의 절반을 무시".
 	var pre_crit := -1
-	if _has_flag(attacker, "crit_ignores_evade"):
+	var halve := _has_flag(attacker, "crit_halves_guard")
+	if _has_flag(attacker, "crit_ignores_evade") or halve:
 		pre_crit = 1 if _roll_crit(attacker, defender, rng, cap) else 0
 	# `evade_sure` = 각성스킬 81 자격을 갖춘 자 "다음 공격 무조건 회피".
 	var sure_evade := _has_flag(defender, "evade_sure")
-	if pre_crit != 1 and (sure_evade or (not _has_flag(defender, "no_evade") 			and _roll(rng, _evade_chance(attacker, defender), cap))):
+	var evd_pct := _evade_chance(attacker, defender)
+	var blk_pct := _eff(defender, "blk")
+	if pre_crit == 1 and halve:                    # 크리일 때만 절반으로 본다
+		evd_pct = int(evd_pct / 2)
+		blk_pct = int(blk_pct / 2)
+	# `crit_ignores_evade`(홀리) 는 회피를 통째로 건너뛴다 — 93 과 달리 절반이 아니다.
+	var skip_evade := pre_crit == 1 and _has_flag(attacker, "crit_ignores_evade")
+	if not skip_evade and (sure_evade or (not _has_flag(defender, "no_evade") 			and _roll(rng, evd_pct, cap))):
 		if sure_evade:
 			_remove_flag(defender, "evade_sure")
 		ev["miss"] = true
 		_aw_on_evade(defender, attacker, rng)      # 96 하얀 번개 · 666 샛별
 		return ev
-	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff(defender, "blk"), cap)
+	var block := (not _has_flag(defender, "no_block")) and _roll(rng, blk_pct, cap)
 	if block:
 		_aw_on_block(defender, rng)                # 64 신비한 보호 · 65 신성 방패
 	var crit := (pre_crit == 1) if pre_crit >= 0 else _roll_crit(attacker, defender, rng, cap)
@@ -506,7 +547,8 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 		# '막기 혹은 회피에 실패' — 40 복수의 까마귀. 여기까지 왔으면 둘 다 실패한 것이다.
 		_aw_on_hit_unguarded(defender, attacker, rng)
 	var res := _deal_attack(attacker, defender, dmg, false, rng, cfg, skills_db)
-	_aw_on_attack_done(attacker, defender, rng)    # 63 신뢰의 힘 · 25 대양의 분노
+	# 63 신뢰의 힘 · 25 대양의 분노 · 46 블랙홀의 마력(준 피해만큼 흡혈)
+	_aw_on_attack_done(attacker, defender, rng, int(res.get("damage", 0)))
 	for k in res:
 		ev[k] = res[k]
 	# 흡혈(피의 갈증 14)
@@ -785,7 +827,7 @@ static func _act(actor: Dictionary, party_a: Array, party_b: Array, rng: RandomN
 				return [inter]
 			# 각성스킬 반응 — 81 자격을 갖춘 자 · 85 절망의 번개는 '공격 스킬 발동 시' 터진다.
 			if String(sdef.get("category", "")) != "defense":
-				_aw_on_skill_cast(actor, enemies)
+				_aw_on_skill_cast(actor, enemies, rng)
 			# 83 잠재력 — 발동이 정해진 **뒤에** 굴린다(확률에는 영향 없음).
 			actor["_proc_level_bonus"] = _roll_proc_level(actor, rng)
 			var out5 := _apply_skill_effect(actor, s, allies, enemies, rng, cfg, skills_db)
@@ -1141,6 +1183,7 @@ static func _shuffle(arr: Array, rng: RandomNumberGenerator) -> void:
 ## 주도권 마커(initiative) 소비 → 우선 행동할 side("ally"/"enemy") 또는 "". 마커 제거.
 static func _consume_initiative(party_a: Array, party_b: Array) -> String:
 	var side := ""
+	var perm := {}          # 상시 주도권을 가진 진영들 — 양쪽 다면 서로 무효화된다
 	for party in [party_a, party_b]:
 		for c in party:
 			var keep: Array = []
@@ -1150,10 +1193,14 @@ static func _consume_initiative(party_a: Array, party_b: Array) -> String:
 					# 각성스킬 60 선제 공격은 **상시**다(turns=-1) → 소모하지 않고 남긴다.
 					# 스킬 150 빙결의 표식이 거는 것(turns>0)은 1회용이라 여기서 사라진다.
 					if int(e.get("turns", 0)) < 0:
+						perm[side] = true
 						keep.append(e)
 					continue
 				keep.append(e)
 			c["effects"] = keep
+	# 60 선제 공격 "상대방이 동일한 스킬을 보유 시 무효화된다".
+	if perm.size() >= 2:
+		return ""
 	return side
 
 static func _other(side: String) -> String:
@@ -1235,7 +1282,8 @@ static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator,
 				#   **던전 패배 시 지속 행동불능(Dragon::cureTime)에 걸리지 않을 확률**이지
 				#   전투 중 스킬 기절(`AdventureSkillStop`)과는 무관하다.
 				#   → 그쪽은 `Incapacitation` + `battle.gd::_apply_defeat_incapacitation` 담당.
-				events.append({"type": "status_skip", "actor": actor["name"], "round": rounds, "lead": lead})
+				events.append({"type": "status_skip", "actor": actor["name"], "round": rounds, "lead": lead,
+					"source": _flag_source(actor, "stun")})   # 원작 Bicon 아이콘용 출처 스킬
 				continue
 			var evs := _act(actor, party_a, party_b, rng, cfg, skills_db)
 			for ev in evs:
@@ -1401,19 +1449,37 @@ static func _stack_up(r: Dictionary, owner: Dictionary, party: Array) -> bool:
 		return false
 	r["stack"] = cur + add
 	var targets: Array = party if String(r.get("to", "self")) == "ally" else [owner]
+	var src := "react:%d" % int(r.get("no", 0))
 	for t in targets:
 		for st in (r.get("stats", []) as Array):
-			_aw_add_stat(t, String(st), String(r.get("mode", "pct")), add, "react:%d" % int(r.get("no", 0)))
+			# `__dmg_taken`/`__dmg_deal` 은 스탯이 아니라 **피해 계수**를 뜻하는 표기다
+			# (52 뼈갑옷 "피해를 입을 때 마다 다음 피해를 10%만큼 증가"). apply_effect_op 와 같은 규약.
+			match String(st):
+				"__dmg_taken": _push(t, {"kind": "dmg_taken", "pct": add}, src)
+				"__dmg_deal":  _push(t, {"kind": "dmg_deal", "pct": add}, src)
+				_: _aw_add_stat(t, String(st), String(r.get("mode", "pct")), add, src)
 	return true
 
 
-## 공격이 성사됐다 — 누적형 공격 버프(63) · 횟수제 디버프(25).
+## 공격이 성사됐다 — 누적형 공격 버프(63) · 횟수제 디버프(25) · 흡혈(46).
+## `dealt` = 이번 공격으로 실제로 준 피해(흡혈형이 쓴다).
 static func _aw_on_attack_done(attacker: Dictionary, defender: Dictionary,
-		_rng: RandomNumberGenerator) -> void:
+		_rng: RandomNumberGenerator, dealt := 0) -> void:
 	if not bool(attacker.get("alive", true)):
 		return
 	for r in _reacts(attacker, "attack_done"):
 		match String(r.get("do", "stack")):
+			"heal_dealt":
+				# 46 블랙홀의 마력 — "입힌 피해량의 일부를 흡수하여 체력 회복 **및 공격력 상승**".
+				# 회복과 누적 버프를 한 항목이 함께 한다(`stats` 가 있으면 누적도 같이).
+				if dealt <= 0:
+					continue
+				var heal := int(round(float(dealt) * float(r.get("ratio", 1.0))))
+				if heal > 0:
+					attacker["hp"] = mini(int(attacker["hp_max"]), int(attacker["hp"]) + heal)
+				if not (r.get("stats", []) as Array).is_empty():
+					_stack_up(r, attacker, attacker.get("_party", []))
+				_spend(r)
 			"heal_pct":
 				# "자신의 체력 20% 이하일 때 공격 시, 체력 1% 회복"(완숙이의 후라이팬).
 				# 조건은 항목의 `when` 이 이미 걸렀다(`_reacts`).
@@ -1688,6 +1754,20 @@ static func _aw_on_evade(defender: Dictionary, attacker: Dictionary,
 ## 쓰러졌다 — 101 희생과 복수(아군 각성 게이지 회복) 등.
 static func _aw_on_death(dead: Dictionary) -> void:
 	for r in _reacts(dead, "death"):
+		# 35 물의 보호막 — "사망 시 아군 물속성 드래곤들이 다음 3회 받는 데미지가 1로 고정".
+		# 죽는 순간 **살아 있는 대상에게 반응을 심는다**(각자 자기 몫의 횟수를 갖는다).
+		if String(r.get("do", "")) == "plant":
+			for t2 in _targets(String(r.get("to", "ally")), dead, dead.get("_party", [])):
+				var c2 := t2 as Dictionary
+				if not bool(c2.get("alive", true)) or c2 == dead:
+					continue
+				var re := (r.get("plant", {}) as Dictionary).duplicate(true)
+				re["kind"] = REACT
+				re["no"] = int(r.get("no", 0))
+				re["turns"] = -1
+				(c2["effects"] as Array).append(re)
+			_spend(r)
+			continue
 		for t in (dead.get("_party", []) as Array):
 			var c := t as Dictionary
 			if not bool(c.get("alive", true)):
@@ -1699,9 +1779,28 @@ static func _aw_on_death(dead: Dictionary) -> void:
 
 
 ## 스킬을 시전했다 — 81 자격을 갖춘 자(다음 공격 무조건 회피) · 85 절망의 번개(상대 혼란).
-static func _aw_on_skill_cast(caster: Dictionary, targets: Array) -> void:
+static func _aw_on_skill_cast(caster: Dictionary, targets: Array,
+		rng: RandomNumberGenerator = null) -> void:
 	for r in _reacts(caster, "skill_cast"):
 		match String(r.get("do", "")):
+			"random_debuff":
+				# 41 봉인의 힘 — "무작위 효과: 게이지 10% 감소 / 방어력 10% 감소 / 공격력 10% 감소"
+				var ch := r.get("choices", []) as Array
+				if ch.is_empty() or rng == null:
+					continue
+				var pick := ch[rng.randi_range(0, ch.size() - 1)] as Dictionary
+				for t3 in targets:
+					var c3 := t3 as Dictionary
+					if not bool(c3.get("alive", true)):
+						continue
+					if pick.has("gauge_pct"):
+						c3["awaken_gauge"] = maxf(0.0,
+							float(c3.get("awaken_gauge", 0.0)) + float(pick["gauge_pct"]))
+					else:
+						_aw_add_stat(c3, String(pick.get("stat", "")),
+							String(pick.get("mode", "pct")), float(pick.get("value", 0.0)),
+							"react:%d" % int(r.get("no", 0)))
+					break                    # 대상 하나(우리 PvE 는 적이 한 마리다)
 			"self_flag":
 				_add_flag(caster, String(r.get("flag", "")), -1, int(r.get("no", 0)))
 			"confuse_target":
@@ -1745,6 +1844,12 @@ static func _dyn_scale(when, owner: Dictionary, allies: Array, enemies: Array = 
 	var hp_max := maxf(1.0, float(owner.get("hp_max", 1)))
 	var hp_pct := float(owner.get("hp", 0)) / hp_max * 100.0
 	match String(w.get("kind", "")):
+		"enemy_dead_mult":            # 69 암흑 마법 — 상대가 죽을 때마다 배율 +1 (최대 max)
+			var n2 := 1
+			for c in enemies:
+				if not bool((c as Dictionary).get("alive", true)):
+					n2 += 1
+			return float(mini(n2, int(w.get("max", 3))))
 		"enemy_hp_sum":               # 상대 팀 **현재 체력의 합** 자체가 크기 (미르의 별빛방울)
 			var s := 0.0
 			for c in enemies:
@@ -1887,7 +1992,7 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 	if op.has("max"):
 		v = minf(v, float(op["max"]))
 	# 값이 없는 연산(면역 부여·흡수)은 0 이어도 정상이다.
-	const VALUELESS := ["absorb_top", "status_immune", "skill_level_proc", "flag"]
+	const VALUELESS := ["absorb_top", "status_immune", "skill_level_proc", "flag", "initiative"]
 	if is_zero_approx(v) and not (String(op.get("kind", "")) in VALUELESS):
 		return false
 
@@ -1920,6 +2025,10 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				_push(t, {"kind": "dmg_deal_vs_type", "pct": v,
 					"atk_type": String(op.get("atk_type", ""))}, src)
 			"awaken_dmg":    _push(t, {"kind": "awaken_dmg", "pct": v}, src)
+			"initiative":
+				# 60 선제 공격 "전투 시에 아군이 항상 먼저 공격하도록 만든다".
+				# 상시(turns=-1)라 소모되지 않는다 — 스킬 150 빙결의 표식이 거는 1회용과 구분된다.
+				_push(t, {"kind": "initiative", "side": String(t.get("side", "ally"))}, src)
 			"crit_pen":      _push(t, {"kind": "crit_pen", "pct": v}, src)
 			"double_dmg":    _push(t, {"kind": "double_dmg", "pct": v}, src)
 			"skill_dmg_deal": _push(t, {"kind": "skill_dmg_deal", "pct": v}, src)
@@ -1929,7 +2038,9 @@ static func apply_effect_op(op: Dictionary, owner: Dictionary, allies: Array, en
 				# 아티팩트의 `skill_dmg_taken_pct` 와 같은 지점에서 곱해진다.
 				_push(t, {"kind": "skill_dmg_taken", "pct": v}, src)
 			"dmg_taken":     _push(t, {"kind": "dmg_taken", "pct": v}, src)
-			"dmg_taken_flat": _push(t, {"kind": "dmg_taken_flat", "value": v}, src)
+			"dmg_taken_flat":
+				_push(t, {"kind": "dmg_taken_flat", "value": v,
+					"min_dmg": int(op.get("min_dmg", 0))}, src)
 			"dmg_cap_pct":   _push(t, {"kind": "dmg_cap_pct", "pct": v}, src)
 			"pen":
 				# 73 어둠 습격자 "공격 시 대상의 방어력 N% 무시" — damage() 의 pen(0~1).

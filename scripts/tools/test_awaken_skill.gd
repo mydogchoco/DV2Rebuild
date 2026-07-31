@@ -31,6 +31,7 @@ func _init() -> void:
 	fails += _custom_dragon_checks()
 	fails += _dynamic_checks()
 	fails += _react_checks()
+	fails += _late_batch_checks()
 
 	if fails == 0:
 		var p: Dictionary = _table.get("_effect_progress", {})
@@ -555,6 +556,159 @@ func _react_checks() -> int:
 
 # ── helpers ─────────────────────────────────────────────────────────────────
 ## [[각성no, 속성], …] → 전투원 배열. 기준 스탯을 100 으로 둬서 % 검증이 눈에 보이게 한다.
+## 2026-07-31 에 이식한 14종(종전 C_WHY/D_WHY). 각각 **훅이 실제로 도는지** 본다.
+func _late_batch_checks() -> int:
+	var f := 0
+	var rng := RandomNumberGenerator.new()
+
+	# 25 대양의 분노 — 적중마다 상대 방어율 -7 · 자신 크리 +7, 3회까지.
+	var p25 := _party([[25, "aqua"]])
+	var e25 := _enemy("fire")
+	AwakenSkill.apply_battle(p25, [e25], _table, {})
+	for i in 5:
+		B._aw_on_attack_done(p25[0], e25, rng, 10)
+	# 5번 때려도 3회까지만 — `_enemy` 의 기본 방어율은 10 이다.
+	f += _eq("25 상대 방어율 -21(3회에서 멈춤)", B._eff(e25, "blk"), 10 - 21)
+	f += _eq("25 자신 크리 +21", B._eff(p25[0], "cri"), 10 + 21)
+
+	# 26 대장군 완숙이 — 체력 20% 이하일 때만 피해 1, 3회.
+	var p26 := _party([[26, "fire"]])
+	AwakenSkill.apply_battle(p26, [], _table, {})
+	f += _eq("26 체력이 넉넉하면 그대로", B._aw_fix_damage(p26[0], 500), 500)
+	p26[0]["hp"] = 100                                   # 10%
+	f += _eq("26 체력 20% 이하면 1", B._aw_fix_damage(p26[0], 500), 1)
+
+	# 35 물의 보호막 — 사망 시 아군 물속성에게 '3회 피해 1' 을 심는다.
+	var p35 := _party([[35, "aqua"], [0, "aqua"], [0, "fire"]])
+	AwakenSkill.apply_battle(p35, [], _table, {})
+	p35[0]["alive"] = false
+	B._aw_on_death(p35[0])
+	f += _eq("35 물속성 아군에 보호막", B._aw_fix_damage(p35[1], 500), 1)
+	f += _eq("35 다른 속성엔 미적용", B._aw_fix_damage(p35[2], 500), 500)
+
+	# 41 봉인의 힘 — 스킬 시전 시 상대에게 셋 중 하나가 걸린다.
+	var p41 := _party([[41, "dark"]])
+	var e41 := _enemy("light")
+	AwakenSkill.apply_battle(p41, [e41], _table, {})
+	e41["awaken_gauge"] = 50.0
+	rng.seed = 7
+	B._aw_on_skill_cast(p41[0], [e41], rng)
+	var changed := B._eff(e41, "def") < 100 or B._eff(e41, "att") < 100 			or float(e41["awaken_gauge"]) < 50.0
+	f += _true("41 상대에게 무작위 디버프", changed)
+
+	# 46 블랙홀의 마력 — 체력 50% 이하일 때만 흡혈 + 공격력 누적, 5회.
+	var p46 := _party([[46, "dark"]])
+	var e46 := _enemy("light")
+	AwakenSkill.apply_battle(p46, [e46], _table, {})
+	p46[0]["hp"] = 900                                   # 90% — 조건 미충족
+	B._aw_on_attack_done(p46[0], e46, rng, 100)
+	f += _eq("46 체력이 넉넉하면 회복 없음", int(p46[0]["hp"]), 900)
+	p46[0]["hp"] = 400                                   # 40%
+	B._aw_on_attack_done(p46[0], e46, rng, 100)
+	f += _eq("46 준 피해의 50% 회복", int(p46[0]["hp"]), 450)
+	f += _eq("46 공격력 +10%", B._eff(p46[0], "att"), 110)
+
+	# 52 뼈갑옷 — 정액 40 감소(바닥 30) + 피격마다 다음 피해 +10%, 공격 시 초기화.
+	var p52 := _party([[52, "earth"]])
+	AwakenSkill.apply_battle(p52, [], _table, {})
+	f += _eq("52 정액 40 감소", int(B._apply_dmg(p52[0], 500)["dmg"]), 460)
+	f += _eq("52 바닥 30 아래로는 안 깎인다", int(B._apply_dmg(p52[0], 50)["dmg"]), 30)
+	B._aw_on_hit_taken(p52[0], _enemy("fire"), 10, rng)
+	f += _true("52 피격 후 받는 피해 증가", B._dmg_taken_mult(p52[0]) > 1.0)
+	B._aw_on_attack_done(p52[0], _enemy("fire"), rng, 10)
+	f += _eq("52 공격하면 초기화", B._dmg_taken_mult(p52[0]), 1.0)
+
+	# 60 선제 공격 — 한쪽만 가지면 그 진영이 선공, 양쪽 다 가지면 무효.
+	var a60 := _party([[60, "wind"]])
+	var b60 := [_enemy("fire")]
+	AwakenSkill.apply_battle(a60, b60, _table, {})
+	f += _eq("60 한쪽만이면 아군 선공", B._consume_initiative(a60, b60), "ally")
+	AwakenSkill.apply_battle(b60, a60, _table, {})        # 상대도 갖게 한다
+	b60[0]["awaken_no"] = 60
+	AwakenSkill.apply_battle(b60, a60, _table, {})
+	f += _eq("60 양쪽 다면 무효", B._consume_initiative(a60, b60), "")
+
+	# 65 신성 방패 — 막기마다 방어력 5% 누적 → 공격 시 회복.
+	var p65 := _party([[65, "holy"]])
+	AwakenSkill.apply_battle(p65, [], _table, {})
+	p65[0]["hp"] = 500
+	for i in 3:
+		B._aw_on_block(p65[0], rng)
+	B._aw_on_attack_bonus(p65[0], _enemy("dark"), rng, 0)
+	f += _true("65 막기 누적분만큼 회복 (%d)" % int(p65[0]["hp"]), int(p65[0]["hp"]) > 500)
+
+	# 69 암흑 마법 — 상대가 죽을수록 아군 증뎀 배율이 커진다(최대 3).
+	var p69 := _party([[69, "dark"]])
+	p69[0]["grade"] = 5.0
+	var foes := [_enemy("light"), _enemy("light"), _enemy("light")]
+	AwakenSkill.apply_battle(p69, foes, _table, {})
+	B._aw_refresh_dynamic(p69, foes)
+	var m1 := B._dmg_deal_mult(p69[0])
+	foes[0]["alive"] = false
+	foes[1]["alive"] = false
+	B._aw_refresh_dynamic(p69, foes)
+	f += _true("69 상대 사망마다 배율 증가 (%.2f → %.2f)" % [m1, B._dmg_deal_mult(p69[0])],
+		B._dmg_deal_mult(p69[0]) > m1)
+
+	# 75 얼어붙은 날개 — 준 피해의 1/3 누적 → 방어 시 방출.
+	var p75 := _party([[75, "aqua"]])
+	AwakenSkill.apply_battle(p75, [], _table, {})
+	B._aw_on_attack_bonus(p75[0], _enemy("fire"), rng, 90)   # 30 누적
+	f += _true("75 방어 시 누적분 감소", B._aw_fix_damage(p75[0], 500) < 500)
+
+	# 78 용암의 노련함 — 스킬 공격이 막히지 않는다(다른 드래곤은 막힌다).
+	var p78 := _party([[78, "fire"]])
+	AwakenSkill.apply_battle(p78, [], _table, {})
+	var wall := B.make_combatant("W", "enemy", "aqua",
+		{"hp": 999999, "att": 1, "def": 1, "blk": 100})
+	var blocked := 0
+	var free := 0
+	var plain: Dictionary = _party([[0, "fire"]])[0]
+	for i in 40:
+		rng.seed = 1000 + i
+		if int(B._deal_attack(plain, wall, 1000, true, rng, _combat, {})["damage"]) < 1000:
+			blocked += 1
+		rng.seed = 1000 + i
+		if int(B._deal_attack(p78[0], wall, 1000, true, rng, _combat, {})["damage"]) < 1000:
+			free += 1
+	f += _true("78 보통은 스킬도 막힌다 (%d/40)" % blocked, blocked > 0)
+	f += _eq("78 용암의 노련함은 안 막힌다", free, 0)
+
+	# 79 우아한 날개짓 — 모든 공격이 연속공격 + 바람 아군 증뎀.
+	var p79 := _party([[79, "wind"]])
+	var w79: Dictionary = _party([[0, "wind"]])[0]
+	p79.append(w79)
+	AwakenSkill.apply_battle(p79, [], _table, {})
+	f += _true("79 always_double 플래그", B._has_flag(p79[0], "always_double"))
+	f += _eq("79 바람 아군 증뎀 10%", B._dmg_deal_mult(w79), 1.1)
+
+	# 91 타락한 드래곤 — 기본 체력 15% 증가.
+	var p91 := _party([[91, "dark"]])
+	AwakenSkill.apply_battle(p91, [], _table, {})
+	f += _eq("91 체력 +15%", int(p91[0]["hp_max"]), 1150)
+
+	# 93 태양의 불꽃 — 크리일 때 회피·방어율을 절반으로 본다.
+	var p93 := _party([[93, "fire"]])
+	AwakenSkill.apply_battle(p93, [], _table, {})
+	p93[0]["cri"] = 100
+	var guard := B.make_combatant("G", "enemy", "aqua",
+		{"hp": 999999, "att": 1, "def": 1, "evd": 60, "blk": 60})
+	var plain2: Dictionary = _party([[0, "fire"]])[0]
+	plain2["cri"] = 100
+	var miss_plain := 0
+	var miss_sun := 0
+	for i in 60:
+		rng.seed = 2000 + i
+		if bool(B.resolve_attack(plain2, guard, rng, _combat, {}).get("miss", false)):
+			miss_plain += 1
+		rng.seed = 2000 + i
+		if bool(B.resolve_attack(p93[0], guard, rng, _combat, {}).get("miss", false)):
+			miss_sun += 1
+	f += _true("93 크리 시 회피가 줄어든다 (%d → %d)" % [miss_plain, miss_sun],
+		miss_sun < miss_plain)
+	return f
+
+
 func _party(spec: Array) -> Array:
 	var out: Array = []
 	for i in spec.size():

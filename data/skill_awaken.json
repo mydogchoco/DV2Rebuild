@@ -1284,9 +1284,21 @@
     "포세이돈"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "attack_done",
+      "do": "debuff_target",
+      "target_stat": "blk",
+      "target_value": 7,
+      "self_stat": "cri",
+      "self_value": 7,
+      "left": 3
+     }
+    ],
     "tier": "D",
-    "impl": false,
-    "why": "적중마다 3회 한정 — 공격 훅 + 횟수 상태"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -1301,9 +1313,22 @@
     "완숙이"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "pre_damage",
+      "fix": 1,
+      "left": 3,
+      "when": {
+       "kind": "self_hp_at_most",
+       "pct": 20
+      }
+     }
+    ],
+    "partial": "'전투 당 1회 발동' 은 체력이 20% 위로 회복됐다가 다시 내려가면 남은 횟수가 이어진다(재발동이 아니라 이어짐). 전투당 총 3회를 넘지는 않는다.",
     "tier": "D",
-    "impl": false,
-    "why": "체력 20% 이하 트리거, 다음 3회 피해 1 — 체력 훅 + 카운터"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -1550,9 +1575,23 @@
     "아루루가"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "death",
+      "do": "plant",
+      "to": "ally_element:aqua",
+      "plant": {
+       "on": "pre_damage",
+       "fix": 1,
+       "left": 3
+      }
+     }
+    ],
+    "note": "'각성기로 입는 피해는 1명당 1회' 는 pre_damage 가 각성기에도 걸리므로 자연히 각자 자기 몫에서 소모된다. '전투 중 동일 효과 1회' = death 반응이 한 번뿐이라 자연히 지켜진다.",
     "tier": "D",
-    "impl": false,
-    "why": "사망 시 아군에게 3회 피해 1 고정 — 사망 훅 + 카운터"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -1725,9 +1764,31 @@
     "쉴로시"
    ],
    "effect": {
-    "tier": "C",
-    "impl": false,
-    "why": "공격 스킬 발동 시 상대 게이지/스탯 감소 — 스킬 발동 훅"
+    "react": [
+     {
+      "on": "skill_cast",
+      "do": "random_debuff",
+      "choices": [
+       {
+        "gauge_pct": -10
+       },
+       {
+        "stat": "def",
+        "mode": "pct",
+        "value": -10
+       },
+       {
+        "stat": "att",
+        "mode": "pct",
+        "value": -10
+       }
+      ]
+     }
+    ],
+    "tier": "D",
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -1863,9 +1924,30 @@
     "블랙홀"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "attack_done",
+      "do": "heal_dealt",
+      "ratio": 0.5,
+      "left": 5,
+      "when": {
+       "kind": "self_hp_at_most",
+       "pct": 50
+      },
+      "stats": [
+       "att"
+      ],
+      "value": 10,
+      "mode": "pct",
+      "max_total": 50
+     }
+    ],
+    "partial": "'[피의 갈증]과 중첩 불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영",
+    "note": "🟦 원문의 '피해량의 **일부**' 와 공격력 상승폭이 위키에 없다 → 사용자 확정 2026-07-31: **회복 50% · 공격력 +10%**(전용 장비 '블랙홀의 암흑결정체' 가 각각 100%/20% '로 증가' 라고 해서 그 절반을 기본값으로 잡았다). # ASSUMPTION — 근거가 생기면 이 두 값만 고치면 된다.",
     "tier": "D",
-    "impl": false,
-    "why": "체력 50% 이하 흡혈 5회 — 체력 훅 + 카운터"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -2049,9 +2131,34 @@
     "커스 리퍼"
    ],
    "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "dmg_taken_flat",
+      "value": 40,
+      "min_dmg": 30
+     }
+    ],
+    "react": [
+     {
+      "on": "hit_taken",
+      "do": "stack",
+      "stats": [
+       "__dmg_taken"
+      ],
+      "mode": "pct",
+      "value": 10,
+      "max_total": 0
+     },
+     {
+      "on": "attack_done",
+      "do": "reset",
+      "reset_on": "hit_taken"
+     }
+    ],
     "tier": "D",
-    "impl": false,
-    "why": "피격마다 **다음 피해 계수**를 누적하는 형태 — 지금 누적기(_stack_up)는 스탯만 다룬다. 피해 계수(dmg_taken) 누적을 추가하면 된다. 훅 자체는 이미 있다"
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -2282,9 +2389,16 @@
     "데스리퍼"
    ],
    "effect": {
-    "tier": "C",
-    "impl": false,
-    "why": "선제 공격(턴 순서 고정) — 주도권 계산 훅"
+    "ops": [
+     {
+      "to": "self",
+      "kind": "initiative"
+     }
+    ],
+    "note": "'상대방이 동일한 스킬을 보유 시 무효화' — 양쪽 다 이 플래그를 가지면 Battle._decide_lead 가 둘 다 무시한다(원래 규칙으로 돌아간다).",
+    "tier": "D",
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -2435,9 +2549,23 @@
     "카일루스"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "block",
+      "do": "acc",
+      "from_stat": "def",
+      "pct": 5,
+      "left": 5
+     },
+     {
+      "on": "attack_heal"
+     }
+    ],
+    "partial": "'[피의 갈증]과 중첩 불가' 는 우리 엔진에 중첩 배제 규칙이 없어 미반영",
     "tier": "D",
-    "impl": false,
-    "why": "막기 성공마다 누적 → 공격 시 회복 — 막기/공격 훅"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -2549,9 +2677,36 @@
     "블랙퀸"
    ],
    "effect": {
+    "dyn": [
+     {
+      "when": {
+       "kind": "enemy_dead_mult",
+       "max": 3
+      },
+      "ops": [
+       {
+        "to": "ally",
+        "kind": "stat",
+        "stat": "__dmg_deal",
+        "mode": "pct",
+        "from": {
+         "stat": "grade",
+         "ratio": 1.0
+        }
+       },
+       {
+        "to": "ally",
+        "kind": "dmg_deal",
+        "pct": 1
+       }
+      ]
+     }
+    ],
+    "note": "'(드래곤 등급+1)%' 를 등급 파생분 + 상수 1 두 조항으로 나눠 적었다. '상대 사망마다 배율 증가(최대 3)' 가 dyn 의 배수라 두 조항에 함께 걸린다.",
     "tier": "D",
-    "impl": false,
-    "why": "드래곤 등급 + 상대 사망마다 배율 증가 — 사망 훅"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -2737,9 +2892,20 @@
     "다이달로스"
    ],
    "effect": {
+    "react": [
+     {
+      "on": "attack_acc",
+      "ratio": 0.3333,
+      "cap_stat": "att"
+     },
+     {
+      "on": "defend_release"
+     }
+    ],
     "tier": "D",
-    "impl": false,
-    "why": "준 피해 누적 → 방어 시 방출 — 공격/피격 훅 + 누적"
+    "impl": true,
+    "cond": null,
+    "ops": []
    }
   },
   {
@@ -2802,9 +2968,17 @@
     "타로스"
    ],
    "effect": {
-    "tier": "C",
-    "impl": false,
-    "why": "우리 엔진은 **스킬 피해에 막기를 적용하지 않는다**(막기는 평타 경로에만 있다) — 이 스킬을 켜도 이득이 0이다. 스킬에도 막기를 넣을지 먼저 정해야 한다"
+    "ops": [
+     {
+      "to": "self",
+      "kind": "flag",
+      "flag": "skill_ignores_block"
+     }
+    ],
+    "note": "🟦 사용자 확정 2026-07-31 — 이 스킬이 존재한다는 것 자체가 원작에서 **스킬도 막혔다**는 근거다 ⇒ 스킬 공격에도 막기를 적용하고(Battle._deal_attack) 이 플래그가 그 면제다.",
+    "tier": "D",
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -2819,9 +2993,21 @@
     "일란"
    ],
    "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "flag",
+      "flag": "always_double"
+     },
+     {
+      "to": "ally_element:wind",
+      "kind": "dmg_deal",
+      "pct": 10
+     }
+    ],
     "tier": "D",
-    "impl": false,
-    "why": "모든 공격이 연속공격 — 행동 선택 훅"
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -3172,9 +3358,19 @@
     "콜테일"
    ],
    "effect": {
-    "tier": "C",
-    "impl": false,
-    "why": "상대 각성스킬 무효화 — 각성스킬 간 상호작용"
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 15
+     }
+    ],
+    "partial": "'상대 팀 각성 스킬 [다이즈의 가호] 무효화' 는 오프라인 PvE 의 상대가 몬스터라 각성스킬을 갖지 않아 걸릴 일이 없다(기구를 만들어도 무효과).",
+    "tier": "D",
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -3229,9 +3425,17 @@
     "엔투라스"
    ],
    "effect": {
+    "ops": [
+     {
+      "to": "self",
+      "kind": "flag",
+      "flag": "crit_halves_guard"
+     }
+    ],
+    "note": "크리 발동 시 방어율·회피율의 절반 무시. 우리 판정 순서가 회피→막기→크리라 크리를 **먼저 굴려** 두고(홀리의 빛나는 양뿔과 같은 통로) 그 결과로 회피·막기 확률을 절반으로 본다.",
     "tier": "D",
-    "impl": false,
-    "why": "크리 발동 시 방어율·회피율 절반 무시 — 우리 판정 순서가 회피→막기→크리라 크리가 정해질 때는 이미 둘 다 끝나 있다. 판정 순서를 바꿔야 한다"
+    "impl": true,
+    "cond": null
    }
   },
   {
@@ -3729,10 +3933,10 @@
  "_effect_progress": {
   "A_탐험": 8,
   "B_정적": 31,
-  "C_파생시스템": 26,
-  "D_조건부누적": 41,
-  "_impl": 92,
-  "_partial": 2,
+  "C_파생시스템": 22,
+  "D_조건부누적": 45,
+  "_impl": 106,
+  "_partial": 6,
   "_total": 106,
   "_note": "_impl = 효과가 실제로 도는 스킬 수. _partial 은 그중 **일부 조항만** 도는 것(자작 다중조항 스킬) — 각 스킬의 `partial` 에 무엇이 아직 안 되는지 적혀 있다."
  }

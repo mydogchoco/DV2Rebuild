@@ -780,40 +780,86 @@
    "text": "자신이 [심판의 날개] 사용 시 대미지 200% 증가"
   },
   "포세이돈의 삼지창": {
-   "impl": false,
-   "why": "skill:대양의 분노",
+   "awaken_mod": {
+    "skill": "대양의 분노",
+    "patch": {
+     "react.0.target_value": "*2",
+     "react.0.self_value": "*2"
+    },
+    "no": 25
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "자신의 [대양의 분노] 효과가 2배 증가"
   },
   "블랙홀의 암흑결정체": {
-   "impl": false,
-   "why": "skill:블랙홀의 마력",
+   "awaken_mod": {
+    "skill": "블랙홀의 마력",
+    "patch": {
+     "react.0.ratio": 1.0,
+     "react.0.value": 20,
+     "react.0.max_total": 100
+    },
+    "no": 46
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "[블랙홀의 마력]으로 인한 체력 회복량이 100%로 증가, 자신의 공격 력 증가량이 20%로 증가"
   },
   "아루루가의 물갈퀴": {
-   "impl": false,
-   "why": "skill:물의보호막",
+   "awaken_mod": {
+    "skill": "물의 보호막",
+    "patch": {
+     "react.0.plant.left": "+2"
+    },
+    "no": 35
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "[물의보호막] 효과 2회 추가"
   },
   "커스리퍼의 뼈투구": {
-   "impl": false,
-   "why": "skill:뼈갑옷",
+   "awaken_mod": {
+    "skill": "뼈갑옷",
+    "patch": {
+     "ops.0.value": "*2",
+     "react.0.value": "*2"
+    },
+    "no": 52
+   },
+   "partial": "'(감소된 최소 피해량 30)' 은 그대로 둔다 — 원문이 '효과가 2배' 라고만 해서 바닥까지 2배인지 근거가 없다",
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
    "text": "[뼈갑옷]효과가 2배로 증가"
   },
   "콜테일의 헛된희망": {
-   "impl": false,
-   "why": "skill:타락한 드래곤",
+   "awaken_mod": {
+    "skill": "타락한 드래곤",
+    "add_ops": [
+     {
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 15
+     },
+     {
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 15
+     }
+    ],
+    "no": 91
+   },
+   "impl": true,
    "ops": [],
    "react": [],
    "dyn": [],
@@ -837,7 +883,7 @@
   },
   "미니드래곤 고리": {
    "impl": false,
-   "why": "skill:선제 공격",
+   "why": "engine — [선제 공격] 발동 시 '아군 드래곤의 합으로 공격' = 합공격이라는 새 공격 형태",
    "ops": [],
    "react": [],
    "dyn": [],
@@ -845,7 +891,7 @@
   },
   "투탕카의 도리깨": {
    "impl": false,
-   "why": "skill:선제 공격",
+   "why": "engine — [선제 공격] 발동 시 '공격력이 가장 높은 드래곤이 대신 공격' = 행동 주체 교체",
    "ops": [],
    "react": [],
    "dyn": [],
@@ -853,7 +899,7 @@
   },
   "번네스의 화염신발": {
    "impl": false,
-   "why": "skill:선제공격",
+   "why": "engine — '선제공격으로 발동되는 모든 적의 방어율·회피 무시' = 주도권을 가진 라운드에만 상대에게 거는 디버프 통로가 없다",
    "ops": [],
    "react": [],
    "dyn": [],
