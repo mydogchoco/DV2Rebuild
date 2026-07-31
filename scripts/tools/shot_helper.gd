@@ -236,6 +236,38 @@ func _ready() -> void:
 			if int(UserDB.get_dragon(cs_uid).get("level", 1)) < 35:
 				UserDB.set_dragon_field(cs_uid, "level", 40)
 			Scenes.goto("cave", {})
+		"equipfx":
+			# 장비 강화(ItemEnchantPopup) / 제련(EquipOptionLayer) 검수.
+			# `--tab=enchant|smelt`. 장비가 없으면 하나 끼워 준다. begin_batch = 디스크 미기록.
+			UserDB.begin_batch()
+			UserDB.add_currency("gold", 900000)
+			UserDB.add_item("ginu_coin_red", 5)
+			var ef_uid := UserDB.active_uid()
+			var ef_eq: Dictionary = UserDB.get_dragon(ef_uid).get("equip", {}).duplicate(true)
+			var ef_slots: Array = ef_eq.get("slots", [])
+			if ef_slots.is_empty():
+				var ef_rng := RandomNumberGenerator.new(); ef_rng.randomize()
+				ef_slots = [{"slot": "all", "key": "basic:깃털:6", "grade": 4, "enhance": 0,
+					"belong": 0, "options": Equipment.roll_options(4, ef_rng, Data.equipment)}]
+				ef_eq["slots"] = ef_slots
+				UserDB.set_dragon_field(ef_uid, "equip", ef_eq)
+			var ef_slot := String((ef_slots[0] as Dictionary).get("slot", "all"))
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var ef_n := _find_method_node(get_tree().root, "_enhance_option")
+			if ef_n == null:
+				print("SHOT: cave 없음")
+			else:
+				var ef_tab := "enchant"
+				for a in OS.get_cmdline_user_args():
+					if a.begins_with("--tab="): ef_tab = a.substr(6)
+				if ef_tab == "enchant":
+					ItemEnchantPopup.open(ef_n, ef_uid, ef_slot)
+				else:
+					var ef_p = EquipOptionLayer.open(ef_n, ef_uid, ef_slot, "ginu_coin_red", 4)
+					for i in 160: await get_tree().process_frame     # 마법진 연출이 끝나길 기다린다
+					ef_p.set("_pick", 1)
+					ef_p.call("_rebuild_result")
 		"gemshop":
 			# 점술집 지하 — `--tab=disassemble|soul` 로 기능 창을 연다(원작 UpgradeGemLayer(2) /
 			# UpgradeSoulGemLayer). 젬·재료를 임시로 넣는다. begin_batch = 디스크 미기록.

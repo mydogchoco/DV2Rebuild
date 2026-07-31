@@ -581,7 +581,7 @@ func _open_equipment() -> void:
 			box.add_child(rr)
 			var en := Button.new(); en.text = "강화"; en.size = Vector2(66, 38); en.position = Vector2(534, 9)
 			en.disabled = int(sd.get("enhance", 0)) >= Equipment.enhance_limit(eg, Data.equipment)
-			en.pressed.connect(func(): _enhance_option(uid, sid); overlay.queue_free(); _open_equipment())
+			en.pressed.connect(func(): overlay.queue_free(); _enhance_option(uid, sid))
 			box.add_child(en)
 			var rm := Button.new(); rm.text = "해제"; rm.size = Vector2(66, 38); rm.position = Vector2(604, 9)
 			rm.pressed.connect(func():
@@ -642,18 +642,29 @@ func _reroll_options(uid: int, slot_id: String) -> void:
 			used = String(items[g])
 	if grade < 0:
 		_toast("기누의 동전이 없습니다"); return
-	if not UserDB.use_item(used, 1):
-		return
-	var rng := RandomNumberGenerator.new(); rng.randomize()
-	var next: Dictionary = Equipment.reroll(
-		UserDB.get_dragon(uid).get("equip", {}), slot_id, grade, rng, Data.equipment, uid)
-	if next.is_empty():
-		UserDB.add_item(used, 1)      # 슬롯이 비어 있는 등 실패 — 동전을 돌려준다
-		return
-	UserDB.set_dragon_field(uid, "equip", next)
-	_refresh_stats()
+	if _equip_slot_data(UserDB.get_dragon(uid).get("equip", {}), slot_id).is_empty():
+		_toast("장비가 없는 칸입니다"); return
+	# 🔀 2026-07-31: 종전엔 동전을 쓰면 **즉시** 옵션이 바뀌었다. 원작은 확인창 →
+	#   마법진 연출 → `제련` 두 카드(기존/제련 옵션) 중 고르기다
+	#   (참조 `docs/ref/equip/동전사용1~10.png` · `옵션클릭시` · `재시도클릭시`).
 	var gname := String((Data.equipment.get("option", {}).get("grades", [])[grade] as Dictionary).get("name", ""))
-	_toast("%s 옵션으로 변경했습니다" % gname)
+	# 원작 확인창 `<EquipeSelectMsg1>` + 소모 동전 표기.
+	_open_popup_type("장비 선택",
+		"해당 장비의 부가 옵션을 변경하시겠습니까?
+
+%s  X %d"
+			% [Data.item_name(used), UserDB.item_count(used)],
+		func():
+			if not UserDB.use_item(used, 1):
+				return
+			EquipOptionLayer.open(self, uid, slot_id, used, grade,
+				func(changed: bool):
+					_refresh_stats()
+					if changed:
+						_toast("%s 옵션으로 변경했습니다" % gname)
+					else:
+						_toast("기존 옵션을 유지했습니다")),
+		"확인", "취소")
 
 ## 귀속해제(원작 `CaveEquip_Lift`) — '구드라의 지혜' 1개 소모. 위키 item.pdf: 상점 20다이아,
 ## "사용 시 귀속 아이템을 1회 해제시킬 수 있다".
@@ -669,17 +680,12 @@ func _unbind_equip(uid: int, slot_id: String) -> void:
 	UserDB.set_dragon_field(uid, "equip", next)
 	_toast("귀속을 해제했습니다")
 
-const ENHANCE_COST := 8000
+## 장비 강화 — 원작 `ItemEnchantPopup`(톱니 기계 화면)을 연다.
+## 🔀 2026-07-31: 종전엔 버튼 한 번에 즉시 강화됐다. 원작 화면은 톱니 기계 + 보조 재료 3칸 +
+##   성공 확률 + 비용이고, 참조 `docs/ref/equip/장비강화1.png` 가 그 모양을 보여 준다.
+##   창 = `scripts/ui/item_enchant_popup.gd`.
 func _enhance_option(uid: int, slot_id: String) -> void:
-	var rng := RandomNumberGenerator.new(); rng.randomize()
-	var next: Dictionary = Equipment.enhance(
-		UserDB.get_dragon(uid).get("equip", {}), slot_id, rng, Data.equipment)
-	if next.is_empty():
-		_toast("더 강화할 수 없습니다"); return
-	if not UserDB.spend("gold", ENHANCE_COST):
-		_toast("골드가 부족합니다 (%d)" % ENHANCE_COST); return
-	UserDB.set_dragon_field(uid, "equip", next)
-	_refresh_stats()
+	ItemEnchantPopup.open(self, uid, slot_id, func(): _refresh_stats())
 
 ## 장비 선택 — 원작 EQUIP 탭/MultyEquipPop 대응: **보유 장비**(인벤 `equip:` 키) 중
 ## 그 칸에 낄 수 있는 것만 나열. 장착하면 인벤에서 1개 빠지고, 해제하면 돌아온다.

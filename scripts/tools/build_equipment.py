@@ -356,7 +356,9 @@ OPTION = {
         "`scene/worldmap/trancendence_bg_spine` 을 얹는데 그 스파인은 추출 에셋에 없다."
     ),
     # 강화 1회당 기존 옵션이 오르는 양(자작). 위키 §2.6은 횟수만 알려 준다.
-    "enhance_step_pct": 10,
+    "enhance_gold": 8000,
+        "_enhance_gold_authored": "⚠️ 자작 — 원작 강화 비용표는 서버 유실. 종전 cave.gd ENHANCE_COST 를 데이터로 옮긴 것.",
+        "enhance_step_pct": 10,
     "_enhance_step_authored": "⚠️ 자작: 강화 1회 = 해당 옵션 값 +10%(최소 +1). 튜닝 노브.",
 }
 
