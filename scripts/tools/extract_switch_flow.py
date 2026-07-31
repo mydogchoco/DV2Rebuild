@@ -651,8 +651,7 @@ def main():
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
                 flow, t = best, (best_t or cands[0])
-                if t.get("dflt") and default_is_user_talk(at, after, body, t["dflt"], user_talk_addrs):
-                    flow.append({"op": "setUserTalk"})
+                # 표 **밖**의 스텝은 `default` 분기에 있다. 종전에는 `setUserTalk` 만 찾았는데
                 # 🔴 같은 대사 키를 두 번 내지 않는다. BFS 가 서로 다른 스텝에서 **같은 람다
                 #    본문**에 닿으면 같은 줄이 두 번 실린다 — 그게 초과의 정체였다
                 #    (실측 2화: 대사op 25 · 고유 키 23 · 원작 23 → 중복 2 가 곧 초과 2).
@@ -667,6 +666,21 @@ def main():
                         seen_keys.add(k5)
                     dedup.append(o5)
                 flow = dedup
+                # 지금은 대사가 대부분 `setTalk`(람다 경유)라 그걸로는 못 잡는다
+                # ⇒ 같은 `walk_case` 를 default 타깃에도 한 번 태운다.
+                if t.get("dflt"):
+                    dops = walk_case(at, after, fm, body, int(t["dflt"]), slots,
+                                     npc_talk_addrs, user_talk_addrs, text,
+                                     talker_addrs=talker_addrs, rostr=rostr,
+                                     talk_addrs=talk_addrs, want_sn=None,
+                                     lam=lambda_at, ep=sn)
+                    for od in dops:
+                        kd = od.get("key")
+                        if od.get("op") == "setTalk" and isinstance(kd, str) and kd:
+                            if kd in seen_keys:
+                                continue
+                            seen_keys.add(kd)
+                        flow.append(od)
                 out[str(sn)] = flow
                 talk = sum(1 for o in flow if o["op"] in TALK_OPS)
                 nstep = len(t["steps"]) if t.get("kind") == "chain" else t["count"]
