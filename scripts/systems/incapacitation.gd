@@ -12,7 +12,7 @@ extends RefCounted
 ## · 원작 코드: `Dragon::isStun()` = `GameManager::getTime() < this->cureTime`
 ##     (docs/ref/orig_code/decomp/Dragon.c:11359) — **유닉스 시각 한 개**로 표현된다.
 ##     `setCureTime(0)` = 즉시 해제(CaveScene.c:8309·15889, CardMiniGameLayer.c:1248).
-## · 다이아 즉시 회복 = **원작 공식 확정**. `CaveScene.c:8290-8312`:
+## · 다이아 즉시 회복 = **원작 공식 확정**. `CaveScene.c:8307`:
 ##     `if ((cureTime - now) / 0x708 < User::getCash())` → `setCureTime(0)`.
 ##     0x708 = 1800초 ⇒ **남은 30분당 다이아 1개, 최소 1개**(`instant_cost` 의 `+1` 근거 참조).
 ##     문자열 `Tip_35` "드래곤이 행동불능이 될 경우 다이아를 사용해 바로 회복시킬 수 있습니다."
@@ -48,13 +48,16 @@ static func down_until(cfg: Dictionary, now: int) -> int:
 
 ## 즉시 회복 다이아 비용 — 원작 `floor((cureTime - now) / 1800) + 1`. 남은 시간이 없으면 0.
 ##
-## ⚠️ 2026-07-30 정정: 종전엔 `+1` 이 없어 30분 미만이면 **0다이아(공짜)** 였다. 원작은 두 곳이
-## 일치한다 —
-##   · `WorldMapScene::setDragonStun` @01b1cbec 이 표시하는 값 = `setCash(0, remain/1800 + 1, false)`
-##     (디컴프의 `SEXT816(0x48d159e26af37c05)` 매직 곱셈 = **1800 나눗셈**, 뒤에 `+ 1`)
-##   · `CaveScene.c:8302` 의 지불 가능 검사 = `remain/0x708 < User::getCash()`
-##     ⇒ 필요한 보유량이 `floor(remain/1800) + 1` 이라는 뜻으로 위와 같은 값이다.
+## ⚠️ 2026-07-30 정정: 종전엔 `+1` 이 없어 30분 미만이면 **0다이아(공짜)** 였다.
+## 🟢 2026-08-01 재확인 — `0x708` 을 전 디컴프에서 전수 조회해 **표시식과 검사식을 둘 다
+## 리터럴로** 잡았다(종전 주석은 매직 곱셈 추정에 기대고 있었다):
+##   · 표시 비용 `PopupTypeLayer::setCash(this, 0, (int)remain / 0x708 + 1, false)`
+##       — `CaveScene.c:8218` · 같은 식이 `AdventureScene.c:76839` 에도 있다
+##   · 지불 가능 검사 `(int)(cureTime - now) / 0x708 < User::getCash()`
+##       — `CaveScene.c:8307` · `WorldMapScene.c:558`
+## `floor(r/1800) < cash` ⟺ `floor(r/1800) + 1 <= cash` 이므로 **두 식이 같은 값**을 가리킨다.
 ## 즉 **최소 1다이아**이고 30분마다 1씩 는다(1시간 남았으면 3).
+## 회귀 방지 = `test_kades_incap.gd` "원작 지불검사와 동일"(경계 7개 대조).
 static func instant_cost(cfg: Dictionary, cure_time: int, now: int) -> int:
 	var sec := int(cfg.get("instant_cure_seconds_per_dia", 1800))
 	var left := remain(cure_time, now)

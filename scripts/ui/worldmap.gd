@@ -2378,7 +2378,9 @@ func _selected_gate() -> bool:
 ##     %1$s = 남은 시간 `%02d:%02d`(1시간 미만) / `%02d:%02d:%02d` → `Incapacitation.remain_clock`
 ##   `setCash(0, remain/1800 + 1, false)` = 다이아 아이콘 + 소모량 → `Incapacitation.instant_cost`
 ##   확인 `onClickStun` = 다이아 지불 후 `Dragon::setCureTime(0)` · 취소 `onClickCancel`
-## 지불 가능 검사는 원작 `CaveScene.c:8302`(`remain/0x708 < getCash()`)와 같은 뜻이다.
+## 지불 가능 검사는 원작 `CaveScene.c:8307` · `WorldMapScene.c:558`
+## (`remain/0x708 < getCash()`)와 같은 뜻이다 — 표시식 `remain/0x708 + 1`(`CaveScene.c:8218`)과
+## 맞물려 `cost <= cash` 를 뜻한다.
 func _popup_dragon_stun(uid: int) -> void:
 	var now := int(Time.get_unix_time_from_system())
 	var ct := UserDB.cure_time(uid)

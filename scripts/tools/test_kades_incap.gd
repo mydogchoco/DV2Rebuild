@@ -94,11 +94,33 @@ func _init() -> void:
 	fails += _eq("과거 시각이면 회복됨", I.is_down(now - 10, now), false)
 	fails += _eq("기본 회복 1시간", I.down_until(ic, now) - now, 3600)
 
-	# 원작 CaveScene.c:8290 — (cureTime - now) / 1800. **버림**이라 30분 미만은 0다이아.
-	fails += _eq("남은 1시간 = 2다이아", I.instant_cost(ic, now + 3600, now), 2)
-	fails += _eq("남은 30분 = 1다이아", I.instant_cost(ic, now + 1800, now), 1)
-	fails += _eq("남은 29분 = 0다이아", I.instant_cost(ic, now + 1740, now), 0)
+	# 즉시 회복 비용 = **`floor(남은초 / 1800) + 1`** (0x708 = 1800).
+	#
+	# ⚠️ 2026-08-01 정정 — 이 블록의 기대값이 낡아 있었다.
+	#   구현은 2026-07-30 에 `+1` 을 넣어 원작과 맞췄는데(`Incapacitation.instant_cost`)
+	#   테스트만 그 이전 판단("버림이라 30분 미만은 공짜")을 들고 있어 3건이 계속 실패했다.
+	#   원작은 **두 곳이 서로 맞물려** `+1` 을 확정한다:
+	#     · 표시 비용 `PopupTypeLayer::setCash(0, remain/0x708 + 1, false)`
+	#         — `CaveScene.c:8218` · 같은 식이 `AdventureScene.c:76839` 에도 있다
+	#     · 지불 가능 검사 `remain/0x708 < User::getCash()`
+	#         — `CaveScene.c:8307` · `WorldMapScene.c:558`
+	#   `floor(r/1800) < cash` ⟺ `floor(r/1800) + 1 <= cash` 이므로 둘은 **같은 값**을 가리킨다.
+	#   ⇒ 최소 1다이아이고 30분마다 1씩 는다.
+	fails += _eq("남은 1시간 = 3다이아", I.instant_cost(ic, now + 3600, now), 3)
+	fails += _eq("남은 30분 = 2다이아", I.instant_cost(ic, now + 1800, now), 2)
+	fails += _eq("남은 29분 = 1다이아(최소 1)", I.instant_cost(ic, now + 1740, now), 1)
+	fails += _eq("1초만 남아도 1다이아", I.instant_cost(ic, now + 1, now), 1)
 	fails += _eq("정상이면 0다이아", I.instant_cost(ic, 0, now), 0)
+	fails += _eq("이미 지난 시각도 0다이아", I.instant_cost(ic, now - 10, now), 0)
+	# 원작 지불 검사식과 우리 비용이 같은 것을 가리키는지 — 경계에서 직접 대조한다.
+	#   원작: `floor(remain/1800) < cash` 면 지불 가능.
+	var pay_bad := 0
+	for r in [1, 1740, 1800, 3599, 3600, 5400, 7200]:
+		var cost: int = I.instant_cost(ic, now + int(r), now)
+		var orig_ok_min := int(r) / 1800 + 1        # 원작 검사를 통과하는 최소 보유 다이아
+		if cost != orig_ok_min:
+			pay_bad += 1
+	fails += _eq("원작 지불검사와 동일", pay_bad, 0)
 
 	# 부적(cure %) = 패배 시 행동불능을 피할 확률(사용자 확정 2026-07-29).
 	var rng4 := RandomNumberGenerator.new(); rng4.seed = 17

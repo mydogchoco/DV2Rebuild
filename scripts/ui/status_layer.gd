@@ -346,7 +346,7 @@ func _build_stage(a: Dictionary, stage_w: float, top: float, h: float, S: float)
 
 	# ── 행동불능 배지 (원작 `Dragon::isStun`) ────────────────────────────────
 	# 던전 패배로 걸린 지속 상태. 원작은 여기서 **다이아로 즉시 회복**을 제공한다:
-	#   `CaveScene.c:8290-8312` → `(cureTime - now) / 0x708 < User::getCash()` 면 `setCureTime(0)`.
+	#   `CaveScene.c:8307` → `(cureTime - now) / 0x708 < User::getCash()` 면 `setCureTime(0)`.
 	#   0x708 = 1800초 ⇒ 남은 30분당 다이아 1개, **최소 1개**(2026-07-30 정정 — 근거는
 	#   `Incapacitation.instant_cost` 주석). 문자열 `Tip_35` 가 이 기능을 설명한다.
 	var uid_cur := int(a.get("uid", 0))
