@@ -224,16 +224,13 @@ func _do_reset() -> void:
 	# `close()` 가 아니라 직접 free 한다: `closed` 를 쏘면 호출부가 곧 사라질 HUD 를 다시 그린다.
 	queue_free()
 	# 🔴 2026-07-31 — 초기화는 곧 **새 게임 시작**이다. 종전엔 여기서 `Scenes.goto("worldmap")`
-	#    만 불러서 (a) 초기 로드아웃(시작 드래곤·재화·튜토리얼 보상 알)이 안 들어가고
-	#    (b) 최초 1회 닉네임 팝업도 안 뜨고 (c) region 없이 가서 양피지 전체지도가 떴다.
-	#    부팅과 **같은 절차**(`Main.begin_new_game`)를 다시 태운다.
-	#    `get_tree().current_scene` 은 항상 Main 이다 — `Scenes.goto` 는 Main 안의 자식만 갈아 끼운다.
-	var app := get_tree().current_scene
-	if app != null and app.has_method("begin_new_game"):
-		app.call("begin_new_game")
-	else:
-		push_warning("[SettingLayer] Main.begin_new_game 없음 — 메인 화면만 다시 연다")
-		Scenes.goto("worldmap", {"region": "yutakan"})
+	#    만 불러서 (a) 초기 로드아웃(재화·튜토리얼 보상 알)이 안 들어가고 (b) 최초 1회 닉네임
+	#    팝업도 안 뜨고 (c) region 없이 가서 양피지 전체지도가 떴다.
+	# 🟦 2026-08-01 사용자 확정 — 초기화하면 **게임 시작 화면(타이틀)으로 되돌아간다.**
+	#    거기서 화면을 터치하면 부팅과 똑같은 절차(`intro.gd` → `Main.begin_new_game` →
+	#    닉네임 → 튜토리얼)를 탄다. 여기서 `begin_new_game` 을 직접 부르면 타이틀을 건너뛰어
+	#    "초기화했는데 곧바로 이야기가 시작"돼 버린다.
+	Scenes.goto("intro")
 
 # ============================================================ helpers
 func close() -> void:

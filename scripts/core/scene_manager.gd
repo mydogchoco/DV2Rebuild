@@ -117,6 +117,11 @@ func goto(state: String, params: Dictionary = {}) -> bool:
 	return true
 
 func _allowed(from_s: String, to_s: String) -> bool:
+	# 타이틀로 돌아가는 길은 **어디서나** 열려 있다 — 유일한 경로가 세이브 초기화
+	# (`SettingLayer::_do_reset`)이고, 그건 곧 게임 재시작이라 위계를 따질 대상이 아니다.
+	# (설정창은 메인 HUD 어디서든 열리므로 from 을 일일이 적으면 빠뜨린다.)
+	if to_s == "intro":
+		return true
 	if not TRANSITIONS.has(from_s):
 		return true   # 규칙 미정의 → 허용
 	return to_s in TRANSITIONS[from_s]

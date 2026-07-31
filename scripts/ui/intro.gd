@@ -301,7 +301,8 @@ func _try_start() -> void:
 func _start() -> void:
 	_started = true
 	# 원작은 `LoadingLayer` → 게임. 우리는 부팅 절차와 같은 곳(Main)에 위임한다
-	# (초기 로드아웃 → 새 세이브면 프롤로그 → 유타칸 → 최초 1회 닉네임).
+	# (초기 로드아웃 → **최초 1회 닉네임** → 새 세이브면 프롤로그 → 유타칸).
+	# 세이브를 초기화하면 이 화면으로 되돌아오므로, 이 경로가 곧 "새로 시작" 경로다.
 	var app := get_tree().current_scene
 	if app != null and app.has_method("begin_new_game"):
 		app.call("begin_new_game")
