@@ -104,22 +104,28 @@ static func open(parent: Node, is_first: bool, on_confirm := Callable()) -> Canv
 			Vector2(PANEL.x * 0.5 + 120.0 - BTN.x * 0.5, by))
 		win.add_child(cancel)
 
-	# 원작 editBoxTextChanged: 타이핑마다 확정 가능 여부 갱신
+	# 원작 editBoxTextChanged: 타이핑마다 확정 가능 여부 갱신.
+	# ⚠️ 버튼을 `disabled` 로 만들지는 **않는다** — IME 로 한 글자를 조합하는 동안 `text` 는
+	#    아직 비어 있어서, 한 글자짜리 이름은 확인이 눌리지 않는 상태가 된다(위 IME 함정과 같은 뿌리).
+	#    흐릿하게만 표시하고 판정은 누른 뒤 `TextField.value` 로 한다.
 	var refresh := func() -> void:
-		var ok_btn := ok.get_child(0) as Button
-		ok_btn.disabled = edit.text.strip_edges().is_empty()
-		ok.modulate = Color(1, 1, 1, 1.0 if not ok_btn.disabled else 0.55)
+		ok.modulate = Color(1, 1, 1, 1.0 if not edit.text.strip_edges().is_empty() else 0.55)
 	edit.text_changed.connect(func(_t): refresh.call())
 	refresh.call()
 
-	(ok.get_child(0) as Button).pressed.connect(func():
-		var nick := edit.text.strip_edges()
+	# 🔴 한글 IME 조합 함정 — 확인을 누르는 순간 포커스가 버튼으로 넘어가며 **조합 중인
+	#    마지막 글자가 취소**됐다("계란" → "계"). 처방은 `TextField` 주석 참조.
+	TextField.no_steal(win)
+	var confirm := func():
+		var nick := TextField.value(edit)
 		if nick.is_empty():
 			return
 		UserDB.set_user_nickname(nick)
 		layer.queue_free()
 		if on_confirm.is_valid():
-			on_confirm.call(nick))
+			on_confirm.call(nick)
+	(ok.get_child(0) as Button).pressed.connect(confirm)
+	edit.text_submitted.connect(func(_s): confirm.call())      # 엔터로도 확정
 	if cancel != null:
 		(cancel.get_child(0) as Button).pressed.connect(func(): layer.queue_free())
 

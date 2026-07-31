@@ -596,7 +596,8 @@ func _body_code(pop: OrigPopup) -> void:
 	msg.size = Vector2(W - 120.0, 24.0); msg.position = Vector2(60.0, 378.0)
 	pop.content.add_child(msg)
 	pop.add_action_button("확인", func():
-		var code := CardCode.normalize(edit.text)
+		# 한글 IME 조합 함정(TextField 주석) — 코드에 한글이 섞여도 마지막 글자를 잃지 않는다.
+		var code := CardCode.normalize(TextField.value(edit))
 		if code.is_empty():
 			msg.text = "코드를 입력해 주세요."
 			return
@@ -609,6 +610,9 @@ func _body_code(pop: OrigPopup) -> void:
 		# 알 보상이 있으면 뽑기 알 개봉과 같은 공개 연출로 보여 준다(없으면 곧바로 갱신).
 		_reveal_eggs("코드에 응답하여 %s의 알이 나타났습니다."),
 		0, Vector2(220.0, 52.0))
+	# 확인 버튼이 포커스를 뺏으면 IME 조합이 취소된다 → 창 전체 FOCUS_NONE 후 입력칸에 포커스.
+	TextField.no_steal(pop)
+	edit.grab_focus()
 
 ## 카드 코드를 판정하고 **보상을 지급**한다. 못 쓰는 코드면 빈 사전.
 ##

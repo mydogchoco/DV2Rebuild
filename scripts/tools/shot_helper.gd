@@ -203,6 +203,36 @@ func _ready() -> void:
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
 		"cave":
 			Scenes.goto("cave", {})
+		"caveegg":
+			# 알(부화) 검수 — 원작 CaveScene 알 분기 이식본(docs/ref/porting/EggHatch.md).
+			#   --did=<종id>    부화 대상 드래곤(기본 1)
+			#   --remain=<초>   남은 시간. 0 이면 "완료" 상태로 뜬다(기본 143997 = 39:59:57)
+			#   --blessed=1     축복 둥지(황금 월계관 nest_holy + 먼지 + 보너스 성급 분리 연출)
+			#   --enh=<0~3>     알 강화 단계(ani_egg_up1 오라 + 이름 "+N")
+			#   --tap=1         완료 상태에서 알을 탭해 부화 연출을 태운다(--wait 로 시점 선택)
+			UserDB.begin_batch()   # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			var ce_did := 1
+			var ce_remain := 143997
+			var ce_blessed := false
+			var ce_enh := 0
+			var ce_tap := false
+			for a6 in OS.get_cmdline_user_args():
+				if a6.begins_with("--did="): ce_did = int(a6.substr(6))
+				elif a6.begins_with("--remain="): ce_remain = int(a6.substr(9))
+				elif a6 == "--blessed=1": ce_blessed = true
+				elif a6.begins_with("--enh="): ce_enh = int(a6.substr(6))
+				elif a6 == "--tap=1": ce_tap = true
+			var ce_grade := 7.5 if ce_blessed else 6.6
+			var ce_egg := UserDB.add_egg(ce_did, ce_grade, ce_remain, ce_enh, {}, ce_blessed)
+			UserDB.set_active(int(ce_egg["uid"]))
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			print("SHOT caveegg: uid=", ce_egg["uid"], " 남은=", UserDB.hatch_remain(
+				UserDB.get_dragon(int(ce_egg["uid"]))), " 등급=", ce_grade, " 축복=", ce_blessed)
+			if ce_tap:
+				var ce_node := _node_with_method(get_tree().root, "_on_egg_tap")
+				if ce_node != null: ce_node.call("_on_egg_tap")
+				else: print("SHOT caveegg: _on_egg_tap 노드 없음")
 		"status":
 			# 상태창(StatusLayer) 검수 — 원작 진입점 그대로 **월드맵 위**에서 띄운다.
 			# 젬/스킬/장비 칸이 실제 장착분을 그리는지 보려고 임시로 채운다(begin_batch = 디스크 미기록).
@@ -1407,8 +1437,26 @@ func _ready() -> void:
 				print("SHOT intro start -> state=", Scenes.current_state())
 		"nick":
 			# 닉네임 팝업(NickNameLayer) 검수. 세이브에 닉네임이 있으면 '변경' 모드로 강제한다.
+			#   --stage=confirm : 입력 후 확인을 눌러 **저장까지** 확인(IME 조합 함정 회귀용).
+			#                     ⚠️ 위에서 begin_batch 를 걸어 뒀으므로 디스크에는 안 쓴다.
 			for i in 20: await get_tree().process_frame
 			NickNamePopup.open(get_tree().root.get_node("Main"), false)
+			if stage == "confirm":
+				# ⚠️ **디스크 보호** — 이 검수는 진짜 닉네임을 덮어쓴다. 위쪽 begin_batch 는
+				#    닉네임이 이미 있으면 걸리지 않으므로(2026-07-31 실제로 사용자 세이브를
+				#    덮어써 복구했다) 여기서 무조건 배치 모드로 만든다.
+				UserDB.begin_batch()
+				for i in 10: await get_tree().process_frame
+				var le := _find_builtin(get_tree().root, "LineEdit") as LineEdit
+				var btn := _find_button_text(get_tree().root, "확인")
+				print("SHOT nick: 입력칸=", le != null, " 확인버튼=", btn != null,
+					" 포커스뺏김방지=", btn != null and btn.focus_mode == Control.FOCUS_NONE)
+				if le != null and btn != null:
+					le.text = "테스트닉"
+					btn.emit_signal("pressed")
+					for i in 10: await get_tree().process_frame
+					print("SHOT nick 저장=", UserDB.user_nickname(),
+						" 팝업닫힘=", _find_builtin(get_tree().root, "LineEdit") == null)
 		"status":
 			for i in 30: await get_tree().process_frame
 			var dv := _find_method_node(get_tree().root, "_open_dragon_detail")

@@ -1822,15 +1822,17 @@ func _refresh_dragon() -> void:
 	grad.set_color(1, Color(1, 0.97, 0.82, 0.0))
 	dust.color_ramp = grad
 	_stage.add_child(dust)
-	_build_stamina_gauge()
 	var a := _active()
-	if a.is_empty(): return
+	if a.is_empty():
+		_build_stamina_gauge()
+		return
 	# 원작: 부화 대기 중인 **알도 둥지 슬롯을 차지**한다(Dragon::setHatchTime).
-	# 받침대 위에 알 초상 + 남은 시간(countDownBreed) 표시.
-	# 참조: docs/ref/orig_image/cave/Screenshot_2016-05-22-02-24-05.png
+	# 알이면 받침대 앞 정보 판이 **허기 게이지 대신 부화 타이머**가 된다 — 원작도 같은 판
+	# (`CaveScene` this+0x258)을 알/드래곤이 나눠 쓴다. 종전엔 둘을 겹쳐 그리고 있었다.
 	if UserDB.is_egg(a):
 		_build_egg_on_stand(a)
 		return
+	_build_stamina_gauge()
 	# 원작 오라(발광 이펙트) — 드래곤 뒤에 렌더.
 	# 🔴 2026-07-30 게이트 추가(사용자 지적): 종전엔 오라를 고르기만 하면 **성체에도** 구형 번개
 	#   이펙트가 붙었다. 원작은 **오라성체(Lv.45 = 만렙)** 만 이펙트를 갖고, 성체는 스파인만이다.
@@ -2273,66 +2275,471 @@ func _dragon_slot(id: int, level: int, uid: int, is_active: bool) -> Control:
 	slot.add_child(b)
 	return slot
 
-## 부화 대기 알을 받침대 위에 표시(원작 CaveScene countDownBreed + Dragon::getHatchTime).
-## 알 초상 = `dragon/dragon_<id>/egg.png`. 타이머 표기 = Hatchery.format_remain(원작 포맷).
-var _egg_timer_label: Label = null
+# ═══════════════════════════════════════════════════════════════════════════
+# 알(부화) — 원작 `CaveScene` 의 알 분기 1:1 이식.
+#   대기: setDragonInfo(알 분기) + countDownFatigue
+#   완료: countDownFatigue 완료 분기 + setActionEgg
+#   부화: onClickFatigue → sResultEgg (+ increaseRating)
+#   즉시: onClickFatigue(tag5) → onClickEggDia
+# 포팅 카드 = docs/ref/porting/EggHatch.md, 레퍼런스 = docs/ref/egg/*.png
+#
+# **좌표계**: 원작 주역 레이어(`this+0x3a0`)는 `CCLayer 350×300, anchor(0.5,0),
+# pos=(visW*0.5, visH*0.5-80)` 이고 그 안은 **디자인 포인트**다. 우리 `_stage` 는 1080 공간
+# (scale=S1080)이라 단위가 다르므로, `_stage` 안에 **역스케일 노드**(`_egg_layer`)를 하나 두고
+# 그 안은 원작 포인트를 그대로 쓴다. 레이어 로컬 (ox,oy) → 노드 좌표는 `_egg_pt()`.
+# 이 대응은 레퍼런스 스크린샷과 대조해 검증했다(포팅 카드 §2 표 — 월계관·정보판·알 전부 일치).
+# ═══════════════════════════════════════════════════════════════════════════
+
+const EGG_LAYER_SIZE := Vector2(350, 300)   # 원작 CCSize(350,300)
+const EGG_STAND_DY := 80.0                  # 원작 pos y = visH*0.5 − 80
+const EGG_PLATE_DY := 137.0                 # 정보 판 pos y = visH*0.5 − 137
+const EGG_PLATE_SIZE := Vector2(180, 45)    # 9patch/dialogue_box CCSize(180,45)
+const EGG_DIA_COST := 300                   # onClickFatigue: isMEC ? 1500 : 300
+## ⚠️ ASSUMPTION: 빛기둥 8발의 타격음. 원작은 `sResultEgg` 안의 **익명 람다**가 내는데
+## 람다 본문은 디컴프 산출물(클래스 단위)에 없다 → 덤프에 남은 유일한 미사용 알 효과음을 쓴다.
+## 원본이 특정되면 이 상수 한 줄만 고치면 된다.
+const EGG_BEAT_SFX := "effect_egg"
+## sResultEgg 의 CCCallFunc 간격(초) — 앞의 2개(A/B)를 뺀 타격음 8발의 상대 시각.
+const EGG_BEAT_DELAYS := [0.05, 0.35, 0.29, 0.35, 0.25, 0.25, 0.22, 0.21, 0.12, 0.15, 0.11]
+
+var _egg_layer: Node2D = null       # 원작 this+0x3a0 (주역 레이어)
+var _egg_plate: Control = null      # 원작 this+0x258 (9patch/dialogue_box)
+var _egg_time_label: Label = null   # 원작 this+0x260
+var _egg_dia_btn: Control = null    # 원작 정보 판의 tag 5 (common/charge)
+var _egg_body: Node2D = null        # 원작 주역 레이어의 tag 0 (알 본체)
+var _egg_ghosts: Array[Node2D] = [] # 원작 tag 1 · tag 2 (반투명 펄스)
 var _egg_uid := 0
-func _build_egg_on_stand(a: Dictionary) -> void:
-	# 알 프레임은 `dragon_dragon_<id>_egg`(box_ 접두 없음) — 도감과 같은 규약을 쓴다.
-	var did := int(a["id"])
+var _egg_done := false              # 타이머 만료(= "완료" 상태)
+var _egg_busy := false              # 부화 연출 진행 중(중복 탭 차단)
+var _egg_action_tw: Tween = null    # setActionEgg 루프(탭 시 stopAllActions 로 죽인다)
+var _egg_heartbeat: AudioStreamPlayer = null   # 원작 music/effect_heart_beat.mp3 루프
+
+## 레이어 로컬(원작 cocos, y-up, 원점=좌하단) → `_egg_layer` 노드 좌표(y-down, 원점=anchor).
+func _egg_pt(ox: float, oy: float) -> Vector2:
+	return Vector2(ox - EGG_LAYER_SIZE.x * 0.5, -oy)
+
+## 알 그림 1장. 원작은 같은 `Egg::getImage()`(= `dragon/dragon_%d/egg.png`)를 **3번** 쓴다.
+## anchor(0.5,0) = 밑변 기준이라, 트림된 아틀라스 프레임을 **원본(untrimmed) 박스 기준**으로
+## 되돌려 놓는다(`_manifest.json` 의 `src`/`off`). 반환 노드의 scale 이 원작 setScale 이다.
+func _egg_sprite(did: int, org_scale: float) -> Node2D:
+	var S := Design.ASSET_SCALE
 	var pdir := "portrait_%d" % did
-	if not _portrait_manifests.has(pdir):
-		var pf := FileAccess.open("res://assets/converted/%s/_manifest.json" % pdir, FileAccess.READ)
-		_portrait_manifests[pdir] = JSON.parse_string(pf.get_as_text()) if pf else {}
-	var egg := _atlas_sprite(pdir, _dex_stage_frame(did, "egg"), _portrait_manifests[pdir], 1.35)
-	if egg:
-		egg.position = Vector2(0, 120)
-		_stage.add_child(egg)
-		# 은은한 흔들림(원작 setActionEgg 계열 — 부화 대기 중 알이 살짝 움직인다).
-		var tw := egg.create_tween().set_loops()
-		tw.tween_property(egg, "rotation_degrees", 3.0, 1.1).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(egg, "rotation_degrees", -3.0, 1.1).set_trans(Tween.TRANS_SINE)
-	# 받침대 앞 남은시간 패널(원작: 받침대 전면에 타이머).
-	var plate := NinePatchRect.new()
-	plate.texture = load("res://assets/converted/ninepatch_ui/9patch_box1.tres")
-	plate.patch_margin_left = 18; plate.patch_margin_right = 18
-	plate.patch_margin_top = 14; plate.patch_margin_bottom = 14
-	plate.size = Vector2(240, 62); plate.position = Vector2(-120, 262)
-	_stage.add_child(plate)
-	_egg_timer_label = Label.new()
-	_egg_timer_label.add_theme_font_size_override("font_size", 30)
-	_egg_timer_label.add_theme_color_override("font_color", Color(0.18, 0.12, 0.05))
-	_egg_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_egg_timer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_egg_timer_label.size = plate.size
-	plate.add_child(_egg_timer_label)
+	var man := AtlasUI.manifest(pdir)
+	var key := _dex_stage_frame(did, "egg")
+	var info: Dictionary = man.get(key, {})
+	var src: Array = info.get("src", [float(info.get("w", 0)), float(info.get("h", 0))])
+	var off: Array = info.get("off", [0, 0])
+	var src_h := float(src[1])
+	var holder := Node2D.new()
+	holder.position = _egg_pt(EGG_LAYER_SIZE.x * 0.5, EGG_LAYER_SIZE.y * 0.5 - src_h * S)
+	holder.scale = Vector2(org_scale, org_scale)
+	var spr := _atlas_sprite(pdir, key, man, S)
+	# 트림 중심 = 원본 박스 중심 + off(cocos px, y-up) → 밑변 기준 노드 안에서의 위치.
+	spr.position = Vector2(float(off[0]) * S, -(src_h * 0.5 + float(off[1])) * S)
+	holder.add_child(spr)
+	holder.set_meta("home", holder.position)
+	holder.set_meta("src_h_pt", src_h * S)
+	return holder
+
+## 원작 `setDragonInfo` 알 분기 — 받침대 위 알 + 둥지 + 정보 판.
+func _build_egg_on_stand(a: Dictionary) -> void:
+	var S := Design.ASSET_SCALE
+	var did := int(a["id"])
+	var blessed := bool(a.get("egg_blessed", false))
+	var cm := _man_common()
 	_egg_uid = int(a["uid"])
+	_egg_done = false
+	_egg_busy = false
+	_egg_ghosts.clear()
+
+	_egg_layer = Node2D.new()
+	# 원작 주역 레이어 원점은 화면 (visW*0.5, visH*0.5−80) — 우리 `_stage` 원점보다
+	# 88pt 아래다(_stage 는 visH*0.5−8). 1080 공간에서 그만큼 내리고 역스케일한다.
+	_egg_layer.position = Vector2(0, (EGG_STAND_DY + 8.0) / S1080)
+	_egg_layer.scale = Vector2(1.0 / S1080, 1.0 / S1080)
+	_stage.add_child(_egg_layer)
+
+	# 그림자(원작 common/shadow ×1.75 @ (w/2, h/2−135))
+	var sh := _atlas_sprite("common_ui", "common_shadow", cm, S * 1.75)
+	if sh:
+		sh.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 135.0)
+		_egg_layer.add_child(sh)
+	# 둥지 뒤(nest2 / nest_holy2) ×1.5 @ (w/2, h/2−35)
+	var nest_back := _atlas_sprite("common_ui",
+		"common_nest_holy2" if blessed else "common_nest2", cm, S * 1.5)
+	if nest_back:
+		nest_back.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 35.0)
+		_egg_layer.add_child(nest_back)
+	# 알 3겹 — tag1(×1.6, 투명) · tag2(×1.7, 투명) 펄스 유령, tag0(×1.5) 본체.
+	for g in [1.6, 1.7]:
+		var ghost := _egg_sprite(did, g)
+		ghost.modulate.a = 0.0
+		_egg_layer.add_child(ghost)
+		_egg_ghosts.append(ghost)
+	_egg_body = _egg_sprite(did, 1.5)
+	_egg_layer.add_child(_egg_body)
+	# 둥지 앞(nest1 / nest_holy1) ×1.5 — 알보다 앞
+	var nest_front := _atlas_sprite("common_ui",
+		"common_nest_holy1" if blessed else "common_nest1", cm, S * 1.5)
+	if nest_front:
+		nest_front.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5 - 35.0)
+		_egg_layer.add_child(nest_front)
+		# 강화알(+N) 오라 — 원작 common/ani_egg_up1_1~6, 0.15s/프레임, 둥지 뒤(z=−1).
+		if int(a.get("egg_enhance", 0)) > 0 and nest_front.texture:
+			_egg_enhance_aura(nest_front)
+		# 축복 둥지 먼지 — 원작은 getNestLevel()==1 일 때만 붙인다.
+		if blessed:
+			var dust := CocosParticle.spawn(nest_front, "cave_dust", Vector2.ZERO, -2)
+			if dust: dust.one_shot = false
+
+	_egg_wait_anim()
+	_build_egg_plate()
+	# 원작 setDragonInfo 알 분기: stopEffectAll() 후 심장박동을 **루프**로 깐다.
+	# 플레이어를 `_egg_layer` 에 붙여 두면 화면이 바뀔 때(=레이어 소멸) 같이 멈춘다.
+	_egg_heartbeat = Bgm.loop_sfx("effect_heart_beat")
+	if _egg_heartbeat: _egg_layer.add_child(_egg_heartbeat)
 	_tick_egg()
 
-## 매초 남은 시간 갱신(원작 countDownBreed). 0이 되면 레벨1로 부화.
+## 대기 중 알 고유 애니메이션(원작 setDragonInfo 끝의 3개 RepeatForever).
+##   본체 = 숨쉬기(1.5↔1.7) · 유령 2겹 = 시차를 두고 부풀며 사라지는 파동.
+func _egg_wait_anim() -> void:
+	if is_instance_valid(_egg_body):
+		var t := _egg_body.create_tween().set_loops()
+		t.tween_property(_egg_body, "scale", Vector2(1.7, 1.7), 2.0)
+		t.tween_property(_egg_body, "scale", Vector2(1.5, 1.5), 1.5)
+	# (지연, 되돌아갈 배율, 되돌리는 시간) = 원작 tag1 / tag2
+	var spec := [[0.9, 1.6, 0.6], [1.4, 1.7, 0.1]]
+	for i in _egg_ghosts.size():
+		var g := _egg_ghosts[i]
+		var s: Array = spec[i]
+		var t2 := g.create_tween().set_loops()
+		t2.tween_interval(float(s[0]))
+		t2.tween_property(g, "modulate:a", 100.0 / 255.0, 0.1)
+		t2.tween_property(g, "scale", Vector2(2.3, 2.3), 0.9)
+		t2.parallel().tween_property(g, "modulate:a", 0.0, 0.9)
+		t2.tween_property(g, "scale", Vector2(float(s[1]), float(s[1])), float(s[2]))
+
+## 강화알 오라(원작 common/ani_egg_up1_N ×1.1 @ (nestW/2, 60), anchor(0.5,0), 0.15s/프레임).
+func _egg_enhance_aura(nest_front: Sprite2D) -> void:
+	var fx := Sprite2D.new()
+	fx.material = _pma
+	fx.z_index = -1
+	# 부모(둥지)의 배율을 물려받으므로 여기서 ASSET_SCALE 을 또 곱하지 않는다 —
+	# 원작 setScale(1.1) 도 둥지와 같은 좌표계의 1.1 이다(`_inv_egg_grade_fx` 와 같은 규칙).
+	fx.scale = Vector2(1.1, 1.1)
+	nest_front.add_child(fx)
+	var frames: Array = []
+	for i in 6:
+		var t := AtlasUI.tex("common_ui", "common_ani_egg_up1_%d" % (i + 1))
+		if t != null: frames.append(t)
+	if frames.is_empty():
+		fx.queue_free(); return
+	var idx := {"i": 0}
+	var apply := func() -> void:
+		var t: Texture2D = frames[int(idx["i"]) % frames.size()]
+		fx.texture = t
+		# 원작 anchor(0.5,0)·position (nestW/2, 60) — 둥지 텍스처 픽셀 좌표계.
+		fx.position = Vector2(0, nest_front.texture.get_height() * 0.5 - 60.0 / Design.ASSET_SCALE)
+		fx.offset = Vector2(0, -t.get_height() * 0.5)
+		idx["i"] = int(idx["i"]) + 1
+	apply.call()
+	var tm := Timer.new(); tm.wait_time = 0.15; tm.autostart = true
+	tm.timeout.connect(apply); fx.add_child(tm)
+
+## 원작 `CaveScene::init` 의 정보 판(this+0x258) — 알일 때는 부화 타이머가 들어간다.
+## 9patch/dialogue_box(capInsets 20,20,2,2) 180×45 @ (visW*0.5, visH*0.5−137).
+func _build_egg_plate() -> void:
+	var host := Node2D.new()
+	host.position = Vector2(0, (EGG_PLATE_DY + 8.0) / S1080)
+	host.scale = Vector2(1.0 / S1080, 1.0 / S1080)
+	_stage.add_child(host)
+	_egg_plate = Control.new()
+	_egg_plate.size = EGG_PLATE_SIZE
+	_egg_plate.position = -EGG_PLATE_SIZE * 0.5
+	_egg_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(_egg_plate)
+	var np := AtlasUI.nine("ninepatch_ui", "9patch_dialogue_box", EGG_PLATE_SIZE, Rect2(20, 20, 2, 2))
+	if np: _egg_plate.add_child(np)
+	_egg_time_label = Label.new()
+	# 원작 this+0x260 = font_subtitle BMFont ×0.9 → 19px 비트맵 ×4/3×0.9 ≈ 23pt.
+	_lvup_bm_style(_egg_time_label, 23, Color(1, 1, 1), "font_subtitle")
+	_egg_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_egg_time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_egg_time_label.size = EGG_PLATE_SIZE
+	# 원작 라벨 x = boxW/2 + 5 — 왼쪽 다이아 버튼 자리만큼 밀려 있다(완료 시 정중앙으로 돌아온다).
+	_egg_time_label.position = Vector2(5, 0)
+	_egg_plate.add_child(_egg_time_label)
+	# tag5 = common/charge(다이아 즉시 부화) ×1.3 @ 판 좌변 중앙.
+	_egg_dia_btn = Control.new()
+	_egg_dia_btn.size = Vector2(40, 40)
+	_egg_dia_btn.position = Vector2(-20, EGG_PLATE_SIZE.y * 0.5 - 20.0 + 2.0)
+	_egg_plate.add_child(_egg_dia_btn)
+	var chg := AtlasUI.spr("common_ui", "common_charge", Design.ASSET_SCALE * 1.3)
+	if chg:
+		chg.position = _egg_dia_btn.size * 0.5
+		_egg_dia_btn.add_child(chg)
+	var db := Button.new()
+	db.flat = true; db.size = _egg_dia_btn.size
+	db.pressed.connect(_on_egg_dia)
+	_egg_dia_btn.add_child(db)
+
+## 원작 `countDownFatigue` — 매 초 남은 시간 갱신. 0 이 되면 "완료" 상태로 전환한다.
+## (⚠️ 원작은 여기서 부화시키지 않는다 — **탭해야** 부화한다. 종전 구현은 자동 부화였다.)
 func _tick_egg() -> void:
-	if _egg_uid == 0 or not is_instance_valid(_egg_timer_label):
+	if not is_instance_valid(_egg_layer) or _egg_uid == 0:
 		return
 	var d := UserDB.get_dragon(_egg_uid)
 	if d.is_empty() or not UserDB.is_egg(d):
 		return
 	var remain := UserDB.hatch_remain(d)
-	_egg_timer_label.text = Hatchery.format_remain(remain)
 	if remain <= 0:
-		_hatch_now(_egg_uid)
+		if not _egg_done:
+			_egg_reach_complete()
 		return
-	var t := get_tree().create_timer(1.0)
-	t.timeout.connect(_tick_egg)
+	if is_instance_valid(_egg_time_label):
+		_egg_time_label.text = Hatchery.format_remain(remain)
+	var tm := Timer.new(); tm.wait_time = 1.0; tm.one_shot = true; tm.autostart = true
+	tm.timeout.connect(func():
+		tm.queue_free()
+		_tick_egg())
+	_egg_layer.add_child(tm)
 
-## 부화 완료: 초기 등급을 stat_bonus로 환산해 레벨1 드래곤이 된다.
-func _hatch_now(uid: int) -> void:
-	var d := UserDB.get_dragon(uid)
+## 원작 `countDownFatigue` 의 완료 분기 — 라벨을 "완료"로, 다이아 버튼과 펄스 유령을 제거하고
+## 알을 ScaleTo(0.5, 1.5) 로 키운 뒤 `setActionEgg` 루프에 넘긴다. 그리고 탭 영역을 연다.
+func _egg_reach_complete() -> void:
+	_egg_done = true
+	if is_instance_valid(_egg_time_label):
+		_egg_time_label.text = "완료"                  # 원작 문자열 키 `complete`
+		_egg_time_label.position = Vector2.ZERO       # 원작: 판 정중앙으로 되돌린다
+	if is_instance_valid(_egg_dia_btn):
+		_egg_dia_btn.queue_free(); _egg_dia_btn = null
+	for g in _egg_ghosts:
+		if is_instance_valid(g): g.queue_free()
+	_egg_ghosts.clear()
+	if not is_instance_valid(_egg_body):
+		return
+	var body := _egg_body
+	var t := body.create_tween()
+	t.tween_property(body, "scale", Vector2(1.5, 1.5), 0.5)
+	t.tween_callback(func(): _egg_action_loop(body))
+	# 원작 CCMenuItem CCSize(250,300) @ 레이어 중앙 → onClickFatigue.
+	var hit := Button.new()
+	hit.flat = true
+	hit.size = Vector2(250, 300)
+	hit.position = _egg_pt(175, EGG_LAYER_SIZE.y * 0.5) - hit.size * 0.5
+	hit.pressed.connect(_on_egg_tap)
+	_egg_layer.add_child(hit)
+
+## 원작 `CaveScene::setActionEgg` — 완료 상태 알의 고유 애니메이션(무한 반복).
+## 스큐 진동 2회 → 큰 흔들림+감쇠 → 웅크렸다 뛰는 점프 2회 → 착지 여진.
+## ScaleBy 누적곱이 x·y 모두 정확히 1.0, MoveBy 합이 0 이라 닫힌 루프다.
+func _egg_action_loop(n: Node2D) -> void:
+	var home: Vector2 = n.get_meta("home", n.position)
+	var s := Vector2(1.5, 1.5)                 # ScaleTo(0.5, 1.5) 직후 상태
+	var t := n.create_tween().set_loops()
+	_egg_action_tw = t
+	t.tween_interval(0.25)
+	for _pass in 2:
+		for v in [-2.0, 1.5, -1.0, 0.5, 0.0]:
+			t.tween_property(n, "skew", deg_to_rad(v), 0.05)
+		t.tween_interval(0.5)
+	for v in [5.0, -5.0, 5.0, -5.0, 5.0, -5.0, 4.0, -3.0, 2.0, -1.0, 0.0]:
+		t.tween_property(n, "skew", deg_to_rad(v), 0.05)
+	t.tween_interval(0.5)
+	for _jump in 2:
+		s *= Vector2(1.1, 0.8)                                  # 웅크림
+		t.tween_property(n, "scale", s, 0.25)
+		t.tween_callback(func(): Bgm.sfx(EGG_BEAT_SFX))
+		s *= Vector2(0.81818175, 1.25)                          # 도약(위로 100 + 늘어남)
+		t.tween_property(n, "position:y", home.y - 100.0, 0.1).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(n, "scale", s, 0.1)
+		s *= Vector2(1.1111112, 1.0)
+		t.tween_property(n, "scale", s, 0.1)
+		var s1 := s * Vector2(0.9, 1.1)                         # 낙하(아래로 100)
+		var s2 := s1 * Vector2(1.1111112, 0.9090909)
+		s = s2
+		t.tween_property(n, "position:y", home.y, 0.25).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(n, "scale", s1, 0.15)
+		t.parallel().tween_property(n, "scale", s2, 0.1).set_delay(0.15)
+	for m in [Vector2(1.05, 0.9), Vector2(0.9047619, 1.1666666), Vector2(1.0526316, 0.952381)]:
+		s *= m
+		t.tween_property(n, "scale", s, 0.1)
+
+## 원작 `onClickFatigue`(tag≠5) — 완료 상태의 알을 탭했다. 정렬 모션 후 부화 연출로 넘어간다.
+func _on_egg_tap() -> void:
+	if _egg_busy or not _egg_done or not is_instance_valid(_egg_body):
+		return
+	_egg_busy = true
+	Bgm.sfx("effect_button")
+	var n := _egg_body
+	# 원작 `stopAllActions()` — Godot 트윈은 노드에 새 트윈을 붙여도 기존 것이 계속 돈다.
+	if _egg_action_tw != null and _egg_action_tw.is_valid():
+		_egg_action_tw.kill()
+	var tw := n.create_tween()
+	var home: Vector2 = n.get_meta("home", n.position)
+	# Spawn(SkewTo .2 → 0, ScaleTo .2 → 1.5, MoveTo .2 → 제자리, ScaleBy .2 (0.95,1.05))
+	var s := Vector2(1.5, 1.5) * Vector2(0.95, 1.05)
+	tw.tween_property(n, "skew", 0.0, 0.2)
+	tw.parallel().tween_property(n, "position", home, 0.2)
+	tw.parallel().tween_property(n, "scale", s, 0.2)
+	s *= Vector2(1.1052631, 0.9047619)
+	tw.tween_property(n, "scale", s, 0.2)
+	s *= Vector2(0.952381, 1.0526316)      # → 정확히 (1.5, 1.5)
+	tw.tween_property(n, "scale", s, 0.2)
+	tw.tween_callback(func(): _hatch_ceremony(_egg_uid))
+
+## 원작 `onClickFatigue`(tag==5) → `onClickEggDia` — 다이아로 즉시 부화.
+## 문구는 원작 문자열 키 `CaveDiaBronMsg1` 그대로(`%1$s` = 공백 없는 남은 시간 표기).
+func _on_egg_dia() -> void:
+	if _egg_busy or _egg_done or _egg_uid == 0:
+		return
+	var d := UserDB.get_dragon(_egg_uid)
 	if d.is_empty(): return
+	var remain := UserDB.hatch_remain(d)
+	var msg := "알 부화까지 %s 남았습니다.\n알을 즉시 부화시키겠습니까?\n\n다이아 %d개" % [
+		Hatchery.format_remain_compact(remain), EGG_DIA_COST]
+	_open_popup_type("즉시 부화", msg, func():
+		if UserDB.currency("diamond") < EGG_DIA_COST:
+			_toast("다이아가 부족합니다"); return
+		UserDB.add_currency("diamond", -EGG_DIA_COST)
+		UserDB.set_hatch_now(_egg_uid)
+		_tick_egg())
+
+# ---------- 부화 연출(원작 sResultEgg) ----------
+
+## 원작 `CaveScene::sResultEgg` 1:1. 빛기둥 스파인 + 성급 카운트업 + 화이트아웃 + 닉네임 팝업.
+## 데이터 확정(UserDB.hatch_egg)은 **화면이 완전히 흰 순간**에 한다 — 원작도 스크롤 목록 갱신을
+## 3.5초(=흰 화면 아래)에 건다. 그래야 `_refresh()` 가 연출 노드를 지워도 보이지 않는다.
+func _hatch_ceremony(uid: int) -> void:
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty():
+		_egg_busy = false; return
 	var grade := float(d.get("egg_grade", Growth.BASE_GRADE))
-	if UserDB.hatch_egg(uid, Hatchery.stat_bonus_for_grade(grade)):
+	var blessed := bool(d.get("egg_blessed", false))
+
+	# ① 빛기둥 스파인 — 원작 리터럴 그대로. ⚠️ 이 스켈레톤은 **이미 포인트 단위**라
+	#    Design.ASSET_SCALE 을 또 곱하지 않는다(포팅 카드 §6.2).
+	var beam_scale := 0.7 if int(d.get("id", 0)) == 23 else 0.93
+	if is_instance_valid(_egg_layer) and ResourceLoader.exists("res://scenes/fx/egglight.tscn"):
+		var holder := Node2D.new()
+		holder.position = _egg_pt(EGG_LAYER_SIZE.x * 0.5 - 7.0, EGG_LAYER_SIZE.y * 0.5 - 100.0)
+		holder.scale = Vector2(beam_scale, beam_scale)
+		holder.z_index = 5
+		_egg_layer.add_child(holder)
+		var inst = load("res://scenes/fx/egglight.tscn").instantiate()
+		holder.add_child(inst)
+		var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+		if ap and ap.has_animation("egglight"):
+			ap.get_animation("egglight").loop_mode = Animation.LOOP_NONE
+			ap.play("egglight")
+		var ht := holder.create_tween()
+		ht.tween_interval(4.5)
+		ht.tween_property(holder, "modulate:a", 0.0, 0.5)
+		ht.tween_callback(func(): if is_instance_valid(holder): holder.queue_free())
+	# ② 타격음 8발(원작 CCCallFunc 시퀀스의 간격 그대로)
+	var beat_t := 0.0
+	for i in EGG_BEAT_DELAYS.size():
+		beat_t += float(EGG_BEAT_DELAYS[i])
+		if i < 2:
+			continue          # 앞 2개는 다른 람다(A/B) — 타격음은 3번째부터 8발
+		var when := beat_t
+		var bt := create_tween()
+		bt.tween_interval(when)
+		bt.tween_callback(func(): Bgm.sfx(EGG_BEAT_SFX))
+	# ③ 성급 카운트업
+	_egg_rating_counter(grade, blessed)
+	# ④ 화이트아웃 → 데이터 확정 → 닉네임 팝업
+	var cl := CanvasLayer.new(); cl.layer = 80; add_child(cl)
+	var flash := ColorRect.new()
+	flash.color = Color(1, 1, 1, 0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_STOP     # 원작 disableAllTouchesWithoutCurrentLayer
+	cl.add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_interval(3.0)
+	ft.tween_property(flash, "color:a", 1.0, 0.5)
+	ft.tween_callback(func():
+		UserDB.hatch_egg(uid, Hatchery.stat_bonus_for_grade(grade))
 		_egg_uid = 0
-		_refresh()
-		_toast("부화 완료!  등급 %.1f" % grade)
+		_egg_busy = false
+		_refresh())
+	ft.tween_interval(0.5)
+	ft.tween_property(flash, "color:a", 0.0, 1.0)
+	ft.tween_callback(func():
+		if is_instance_valid(cl): cl.queue_free()
+		_open_rename())
+
+## 원작 `CaveScene::increaseRating` + `sResultEgg` 의 카운터 라벨.
+##   font_total BMFont, 화면 중앙에서 scale 0 → 팝인 바운스 → 0.1 씩 0.0125초 간격으로 증가.
+##   축복 둥지면 **기본치까지만 세고**(원작 rating−0.6) 보너스를 뒤에 한 번 더 튕겨 보여준다.
+##   마지막에 font_combine 로 같은 수치를 한 번 더 띄운다(원작 pVVar39).
+func _egg_rating_counter(grade: float, blessed: bool) -> void:
+	var vis := _vis()
+	var base := grade - (Hatchery.BLESSED_NEST_BONUS if blessed else 0.0)
+	var cl := CanvasLayer.new(); cl.layer = 70; add_child(cl)
+	var lab := Label.new()
+	# font_total 은 `size=93` 비트맵 → 배율 1.0 의 포인트 크기 = 93×4/3 = 124.
+	# 원작의 최종 `setScale(0.75)` 은 아래 트윈이 노드 배율로 건다(팝인 바운스와 같은 축).
+	_lvup_bm_style(lab, 124, Color(1, 1, 1), "font_total")
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lab.size = Vector2(400, 160)
+	lab.pivot_offset = lab.size * 0.5
+	lab.text = "0.0"
+	lab.scale = Vector2.ZERO
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 원작: 화면 중앙에서 시작해 center + (0, visH*0.25) 로 이동, 카운트 후 다시 50 위로.
+	var start := Vector2(vis.x * 0.5, vis.y * 0.5) - lab.size * 0.5
+	var mid := start - Vector2(0, vis.y * 0.25)
+	var top := mid - Vector2(0, 50)
+	lab.position = start
+	cl.add_child(lab)
+
+	var t := lab.create_tween()
+	t.tween_property(lab, "position", mid, 0.1)
+	t.parallel().tween_property(lab, "scale", Vector2(0.675, 0.825), 0.1)
+	t.tween_property(lab, "scale", Vector2(0.825, 0.675), 0.1)
+	t.tween_property(lab, "scale", Vector2(0.75, 0.75), 0.1)
+	# increaseRating: 0.1 씩 0.0125초. 목표 도달 시 바운스로 마무리.
+	var steps := int(ceil(maxf(0.0, base) / 0.1))
+	for i in steps:
+		var v := minf(base, float(i + 1) * 0.1)
+		t.tween_callback(func(): if is_instance_valid(lab): lab.text = "%.1f" % v)
+		t.tween_interval(0.0125)
+	t.tween_property(lab, "scale", Vector2(0.675, 0.825), 0.1)
+	t.tween_property(lab, "scale", Vector2(0.825, 0.675), 0.1)
+	t.tween_property(lab, "scale", Vector2(0.75, 0.75), 0.1)
+	t.tween_property(lab, "position", top, 0.0)
+	if blessed:
+		# 원작 nestLevel==1 분기: 잠시 뒤 전체 성급으로 갱신 + 바운스(둥지 보너스 연출).
+		t.tween_interval(0.8)
+		t.tween_callback(func(): if is_instance_valid(lab): lab.text = "%.1f" % grade)
+		t.tween_property(lab, "scale", Vector2(0.675, 0.825), 0.1)
+		t.tween_property(lab, "scale", Vector2(0.825, 0.675), 0.1)
+		t.tween_property(lab, "scale", Vector2(0.75, 0.75), 0.1)
+	t.tween_interval(0.8)
+	# 퇴장: 10 내렸다 35 올리며 0.2 초에 페이드아웃 → 그 자리에 font_combine 최종 라벨.
+	t.tween_property(lab, "position", top + Vector2(0, 10), 0.1)
+	t.parallel().tween_property(lab, "modulate:a", 0.0, 0.2)
+	t.tween_property(lab, "position", top - Vector2(0, 25), 0.1)
+	t.tween_callback(func():
+		if not is_instance_valid(cl): return
+		var fin := Label.new()
+		# 원작: font_combine 을 **카운터와 같은 높이**로 키운다 —
+		#   setScale( h(font_total) / h(font_combine) × 0.75 ) = (112/32)×0.75 = 2.625
+		#   ⇒ 포인트 크기 = 26×4/3×2.625 ≈ 91.
+		_lvup_bm_style(fin, 91, Color(1, 1, 1), "font_combine")
+		fin.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		fin.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fin.size = lab.size
+		fin.position = top
+		fin.text = "%.1f" % grade
+		fin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cl.add_child(fin))
+	# 화이트아웃이 걷힌 뒤 정리(원작은 흰 레이어와 함께 사라진다).
+	var kill := create_tween()
+	kill.tween_interval(5.2)
+	kill.tween_callback(func(): if is_instance_valid(cl): cl.queue_free())
 
 ## 하단 이름/등급/스탯판 갱신. 젬·장비 변경도 스탯에 반영되므로 **슬롯도 같이** 다시 그린다
 ## (원작 setDragonInfo 는 둘을 한 함수에서 그린다 — 따로 갱신하면 어긋난다).
@@ -2854,13 +3261,17 @@ func _open_rename() -> void:
 	# 확인/취소 버튼(cocos(bgW*0.5-120,75)&(+120,75), 220×56 → Godot y'=BH-75 중심)
 	var ok := Button.new(); ok.text = "확인"; ok.size = Vector2(220, 56); ok.position = Vector2(BW * 0.5 - 120 - 110, BH - 75 - 28)
 	var apply := func():
-		UserDB.set_dragon_field(uid, "nick", le.text.strip_edges())
+		# 🔴 한글 IME 조합 함정 — `le.text` 를 그냥 읽으면 마지막 글자가 빠진다(TextField 주석).
+		UserDB.set_dragon_field(uid, "nick", TextField.value(le))
 		UserDB.set_pmeta("name_balloon", bchk.button_pressed)
 		pop.queue_free(); _refresh_stats()
 	ok.pressed.connect(apply); le.text_submitted.connect(func(_s): apply.call())
 	win.add_child(ok)
 	var cancel := Button.new(); cancel.text = "취소"; cancel.size = Vector2(220, 56); cancel.position = Vector2(BW * 0.5 + 120 - 110, BH - 75 - 28)
 	cancel.pressed.connect(func(): pop.queue_free()); win.add_child(cancel)
+	# 버튼이 포커스를 뺏으면 조합이 취소되므로 창 전체를 FOCUS_NONE 으로 만든 뒤 입력칸에 포커스.
+	TextField.no_steal(pop)
+	le.grab_focus()
 
 func _elem_row(parent: Control, label: String, elems: Array, col: Color, y: float) -> void:
 	var l := Label.new(); l.text = label; l.add_theme_font_size_override("font_size", 18)
@@ -5585,7 +5996,9 @@ func _start_hatch(item_key: String) -> void:
 	UserDB.use_item(item_key, 1)
 	if blessed:
 		UserDB.set_pmeta("blessed_nest", false)   # 축복받은 둥지는 1회성 — 이 부화에 썼다
-	var egg := UserDB.add_egg(did, grade, secs, step)
+	# 축복은 1회성이라 **알 개체에 기록**한다 — 둥지 그림(황금 월계관)과 부화 연출의
+	# 보너스 성급 분리 표시가 그 값을 읽는다(원작은 계정의 `User::getNestLevel()` 이었다).
+	var egg := UserDB.add_egg(did, grade, secs, step, {}, blessed)
 	UserDB.set_active(int(egg["uid"]))
 	_close_overlay()
 	_refresh()
