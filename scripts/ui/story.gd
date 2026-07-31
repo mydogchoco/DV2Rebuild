@@ -129,6 +129,11 @@ func _rebuild() -> void:
 			if String((_flow[i] as Dictionary).get("op", "")) in TALK_OPS:
 				_idx += 1
 		_idx = mini(_idx, _lines.size())
+	# 원작 `ScenarioLayer::initWidget` 의 `if (sn == 0x14)` — **20화만** 컷 5장을
+	# 레이어 초기화 때 깐다(스텝이 아니다). 94·99·100화는 스텝(`drawillust_N`)이라 여기 해당 없음.
+	# ⚠️ 원작 좌표는 루프에서 누적돼 리터럴이 없다 → 우리 컷 표시(순차 겹침 + 암전 번뜩임)를 쓴다.
+	if _no == 20 and not Data.scenario_def(str(_no)).get("cuts", []).is_empty():
+		_show_cutin()
 	if not _flow.is_empty():
 		_play_flow()
 	elif _lines.is_empty():
@@ -449,17 +454,21 @@ func _show_cutin() -> void:
 	var cuts: Array = Data.scenario_def(str(_no)).get("cuts", [])
 	if cuts.is_empty():
 		return
-	var lay := _fx()
+	# ⚠️ 컷은 **대사창 아래**(layer 5 < 텍스트박스 8)에 둔다 — 위에 두면 대사를 가린다.
+	var lay := CanvasLayer.new()
+	lay.layer = 5
+	add_child(lay)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lay.add_child(root)
-	var vis := _vis()
-	var order := 0
+	var back: TextureRect = null
+	var panels: Array[TextureRect] = []
 	for c in cuts:
 		var name := String(c)
 		var tex: Texture2D = null
-		if name.ends_with(".jpg"):                      # back.jpg — 낱장 복사본
+		var is_back := name.ends_with(".jpg")
+		if is_back:                                     # back.jpg — 낱장 복사본
 			var p1 := "%s/%s" % [ART_DIR, name]
 			if ResourceLoader.exists(p1):
 				tex = load(p1)
@@ -472,26 +481,36 @@ func _show_cutin() -> void:
 		var tr := TextureRect.new()
 		tr.texture = tex
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if name.ends_with(".jpg") 			else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if is_back 			else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.set_anchors_preset(Control.PRESET_FULL_RECT)
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tr.modulate.a = 0.0
 		root.add_child(tr)
-		var t := tr.create_tween()
-		t.tween_interval(0.35 * float(order))
-		t.tween_property(tr, "modulate:a", 1.0, 0.25)
-		order += 1
-	# 원작의 검은 번뜩임(`Cutin::show`) — 컷이 다 깔린 뒤 한 번.
+		if is_back:
+			back = tr                                   # 배경은 깔아 두고 안 지운다
+		else:
+			tr.modulate.a = 0.0
+			panels.append(tr)
+	if panels.is_empty():
+		return
+	# 🔴 컷은 **한 장씩 교체**한다. 원작 20화는 5장이 각각 다른 장면이라 겹쳐 쌓으면
+	#    화면이 뭉갠다(실측: 난파선 컷이 서로 포개졌다). 94·99·100화도 back.jpg 위의
+	#    연속 컷이라 교체가 맞다.
+	var t := create_tween()
+	for i in panels.size():
+		var cur: TextureRect = panels[i]
+		t.tween_property(cur, "modulate:a", 1.0, 0.25)
+		t.tween_interval(0.9)
+		if i < panels.size() - 1:
+			t.tween_property(cur, "modulate:a", 0.0, 0.2)
+	# 원작의 검은 번뜩임(`Cutin::show` @014febe0) — 마지막 컷 뒤 한 번.
 	var flash := ColorRect.new()
 	flash.color = Color(0, 0, 0, 0)
 	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(flash)
-	var ft := flash.create_tween()
-	ft.tween_interval(0.35 * float(order))
-	ft.tween_property(flash, "color:a", 150.0 / 255.0, 0.1)
-	ft.tween_interval(0.4)
-	ft.tween_property(flash, "color:a", 0.0, 0.1)
+	t.tween_property(flash, "color:a", 150.0 / 255.0, 0.1)
+	t.tween_interval(0.4)
+	t.tween_property(flash, "color:a", 0.0, 0.1)
 
 ## 컷신 몬스터 — 원작 `showMonster`. 전투 몬스터가 아니라 `scenario/monster_npc/` 정지 스프라이트다.
 ## ⚠️ 좌표·크기 인자(float)는 스택에 안 남아 미복원 — 화면 중앙에 세운다(ASSUMPTION).

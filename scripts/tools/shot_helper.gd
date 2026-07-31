@@ -202,11 +202,18 @@ func _ready() -> void:
 					"max_stats": lr_ms}]})
 		"storybattle":
 			# 스토리 전투 배선 검수 — 전투 스텝 직전부터 재생시킨다.
-			#   --stage=<회차> --enc=<전투 스텝 index>
+			#   --stage=<회차> --extra=<재개 스텝 index>
+			# ⚠️ `Scenes` 는 `intro → story` 전환을 막는다(허용표: story 는 worldmap/cave/town/
+			#    adventure/battle 에서만 온다) — 월드맵을 한 번 거쳐야 한다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap",
 				"resume_flow": int(extra)})
 		"story":
 			# 스토리 재생 검수. --stage=<시나리오번호> 로 고른다(삽화 있는 편: 12·19·20·21·101).
+			# ⚠️ intro → story 는 막혀 있다(§Scenes 허용표) — 월드맵을 거친다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
 		"cave":
 			Scenes.goto("cave", {})
