@@ -373,48 +373,14 @@ func _setup_party() -> void:
 		var id := int(d["id"])
 		var ddef := Data.get_dragon(id)
 		var level := int(d.get("level", 1))
-		# 실 스탯 = base + 영구base보정 + Σ레벨업 롤(gain_log). §K-1 정정(랜덤롤 모델).
-		var base_bonus: Dictionary = (d.get("stat_bonus", {}) as Dictionary).get("base", {})
-		var stats := Growth.main_stats(ddef, Data.stat_table, d.get("gain_log", []), base_bonus)
-		# 장착 젬(최대 3슬롯) — flat 가산 → % 배수 → 부가확률(cri/evd/blk). 로직=Gem(scripts/systems/gem.gd),
-		# 데이터=data/gems.json(위키 전량 + 원작 typeDetail 코드). 소울젬의 %·부가확률이 여기서 반영된다.
-		stats = Gem.apply(stats, d.get("gems", {}), Data.gems)
-		# 장비(원작 4칸: 전체/전투형/보조형/아티팩트) + 편린 세트. 로직=Equipment(scripts/systems/equipment.gd),
-		# 데이터=data/equipment.json. 여기서 pure(관통)·depure·cri_pow·accuracy·cure 가 stats 에 실리고
-		# make_combatant 가 그대로 전투원 필드로 옮긴다.
-		stats = Equipment.apply(stats, d.get("equip", {}), Data.equipment)
-		# 아티팩트는 스탯이 아니라 **스킬**을 건드린다(원작 typeDetail BOOST/REQHP/BNR/DEDMG/
-		# INRATE/DERATE). 스킬 id 로 키를 잡은 수정치를 만들어 전투원에 실어 보낸다.
-		stats["artifact"] = Equipment.artifact_mods(d.get("equip", {}), Data.equipment, Data.skills)
-		# 전용·특수 장비의 **조건부 효과**는 스탯이 아니라 사건/배수라 따로 간다 —
-		# 장착 키만 실어 보내고, 전투 시작 시 EquipEffect.apply_battle 이 효과를 심는다.
-		stats["equip_keys"] = EquipEffect.keys_of(d.get("equip", {}))
-		# 구형 장신구 필드(accessories.json) — 장비 시스템 이전 세이브 호환. 신규 장착은 equip 로 간다.
-		var accb: Dictionary = d.get("accessory", {})   # 장신구(cri/evd/blk %)
-		for ak in ["cri", "evd", "blk"]:
-			stats[ak] = int(stats.get(ak, 0)) + int(accb.get(ak, 0))
-		# 속성 조합 팀버프(위키 §2.3.3.1 30종). 스탯마다 적용 방식이 다르다 —
-		#   hp/att/def = 배수(%), cri/evd/blk = 퍼센트 포인트, pure = flat.
-		# combine(조합 구성)은 30/30 복원돼 있다 — 조합이 안 맞으면 team_delta={} → 무효과(안전).
-		stats = TeamBuff.apply(stats, team_delta)
-		# 드링크(버프 물약) — 마지막에 **배율**로 곱한다. 판정=ItemEffect(logic), 값=data/item_effects.json.
-		# 규칙 출처 docs/ref/wiki/item.pdf §2.3 + 사용자 확정 수치(1단계 +5%, 단계마다 +5%p, 10턴).
-		var drinks: Dictionary = d.get("drink_buffs", {})
-		if not drinks.is_empty():
-			for dk: String in ["att", "def", "hp", "crit", "dodge", "block"]:
-				var m := ItemEffect.mult(drinks, dk)
-				if is_equal_approx(m, 1.0): continue
-				# 우리 스탯키 대응: crit→cri, dodge→evd, block→blk
-				var sk: String = {"crit": "cri", "dodge": "evd", "block": "blk"}.get(dk, dk)
-				stats[sk] = int(round(float(int(stats.get(sk, 0))) * m))
+		# 실 스탯 파이프라인(base+gain_log → 젬 → 장비 → 장신구 → 팀버프 → 드링크 → 카데스)은
+		# **탐험 하단 파티 카드와 공유**한다 — `PartyStats.resolve`(scripts/systems/party_stats.gd).
+		# 원작은 탐험·전투가 같은 씬이라 카드가 하나로 이어지는데(레퍼런스 docs/ref/adventure/
+		# 4_전투시작.png ↔ 전투4.png ↔ 승리9.png), 우리는 두 씬으로 나눠 놔서 여기서 따로 계산하면
+		# 탐험 카드와 전투 카드의 숫자가 어긋난다. 순서가 결과를 바꾸므로 모듈 한 곳에만 둔다.
+		var stats := PartyStats.resolve(d, ddef, team_delta, _is_kades(), _field_element())
+		if PartyStats.uses_drink(d):
 			_drink_users.append(int(d["uid"]))
-		# 카데스의 공간 — **미각성 드래곤만** 능력치가 깎인다(위키 dungeon_1.pdf §2).
-		#   혼돈/신성 35% · 던전 속성과 같은 속성 25% · 그 외 50%. 판정=Kades(logic).
-		# 여기가 마지막이어야 한다 — 젬·장비·팀버프·드링크를 전부 반영한 **합계**에 걸린다.
-		if _is_kades():
-			var pen := Kades.penalty_pct(Data.kades, bool(d.get("awakened", false)),
-				String(ddef.get("element", "")), _field_element())
-			stats = Kades.apply_penalty(stats, pen)
 		# 조우 간 HP 영속(어드벤처 다중 조우): hp_state에 uid별 잔여HP가 있으면 그걸로 시작.
 		var hpmax := int(stats.get("hp", 1))
 		var carried: Dictionary = _params.get("hp_state", {})

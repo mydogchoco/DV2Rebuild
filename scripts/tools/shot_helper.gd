@@ -37,6 +37,17 @@ func _ready() -> void:
 
 	for i in 20: await get_tree().process_frame
 	match shot:
+		"advready":
+			# 탐험 조우 선택지 화면 검수 — 레퍼런스 docs/ref/adventure/전투4.png · 전투5.png 대조용.
+			# 보스 게이지(우상단) + 하단 파티 카드 + 좌'도망간다'/우'싸운다' 가 한 화면에 나온다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 1, "hero": false})
+			for i in 30: await get_tree().process_frame
+			var av := _node_with_method(get_tree().root, "_show_battle_ready")
+			if av:
+				av.set("_done_battle_ready", false)
+				av.call("_show_battle_ready", false)
 		"battle":
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
@@ -1299,9 +1310,24 @@ func _ready() -> void:
 				for i in 15: await get_tree().process_frame
 				print("SHOT setting: 볼륨 music=", Bgm.music_volume(),
 					" effect=", Bgm.effects_volume())
-				if stage == "confirm":
+				if stage == "confirm" or stage == "doreset":
 					_press_label_button(get_tree().root, "세이브 데이터 초기화")
 					for i in 15: await get_tree().process_frame
+				if stage == "doreset":
+					# ⚠️ **진짜로 세이브를 지운다** — 확인창의 '초기화'까지 누른다.
+					#    초기화 = 새 게임(Main.begin_new_game)이 다시 도는지 검증하는 모드다:
+					#    초기 로드아웃(튜토리얼 보상)과 닉네임 팝업이 살아나야 한다.
+					#    돌리기 전에 user://save_0.json 을 따로 복사해 둘 것.
+					_press_label_button(get_tree().root, "초기화")
+					for i in 40: await get_tree().process_frame
+					var wm := _find_method_node(get_tree().root, "_region_bgm")
+					print("SHOT doreset: state=", Scenes.current_state(),
+						" region=", (wm.get("_mode") if wm != null else "?"),
+						" 밤=", bool(UserDB.get_pmeta("yutakan_night", false)),
+						" 드래곤=", UserDB.dragon_count(),
+						" 골드=", UserDB.gold(), " 다이아=", UserDB.diamond(),
+						" 빛문알=", int(UserDB.inventory().get("mall_question_egg2", 0)),
+						" 닉네임팝업=", _find_builtin(get_tree().root, "LineEdit") != null)
 		"mainnav":
 			# 메인 하단 메뉴 → 각 씬 라우팅 검수. --stage=<action> (shop/laboratory/magicshop/
 			# breeding/dex/bag/quests/titles/status/cashshop/overview).
@@ -2626,6 +2652,15 @@ func _find_node_of_class(n: Node, cls: String) -> Node:
 		return n
 	for c in n.get_children():
 		var r := _find_node_of_class(c, cls)
+		if r != null: return r
+	return null
+
+## `_find_node_of_class` 는 **스크립트 global name** 으로 찾는다(class_name 있는 우리 클래스).
+## 내장 타입(LineEdit 등)은 스크립트가 없으므로 이쪽을 쓴다.
+func _find_builtin(n: Node, cls: String) -> Node:
+	if n.is_class(cls): return n
+	for c in n.get_children():
+		var r := _find_builtin(c, cls)
 		if r != null: return r
 	return null
 

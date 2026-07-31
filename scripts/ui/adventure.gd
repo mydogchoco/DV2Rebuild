@@ -306,6 +306,9 @@ func _begin_walk() -> void:
 	if _done:
 		return
 	_walking = true
+	# 원작 `setAllHideUiButton` — 전진 애니 동안은 하단 파티 카드를 감춘다
+	# (레퍼런스 `docs/ref/adventure/배회1~5.png` 에 카드가 없다). 조우 선택지에서 다시 뜬다.
+	_hide_party_cards()
 	_start_walk_cycle()
 
 ## 출전 인원 중 굶은 드래곤이 있으면 안내 후 월드맵으로 돌려보낸다. 종료했으면 true.
@@ -1360,6 +1363,174 @@ func _build_hud() -> void:
 	out.pressed.connect(func(): Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")}))
 	add_child(out)
 	_build_objective(int(_params.get("enc", 0)), int((_stage.get("enemies", []) as Array).size()))
+	_build_adventure_navi()
+
+
+# ---------- 보스 게이지(원작 AdventureScene::setAdventureNavi @00c54604) ----------
+#
+# 레퍼런스 `docs/ref/adventure/승리11_탐험재개.png` 우상단: "보스" 라벨 + 초록→노랑 게이지 +
+# 오른쪽 끝 악마 얼굴 아이콘. 탐험이 진행될수록 차오르고 보스 조우에서 가득 찬다.
+#
+# 원작이 쓰는 프레임(재디컴프 리터럴 전수, 전부 **우리 보유분**):
+#   · `scene/adventure/skeleton_fortress/icon_boss_on.png`  — 악마 얼굴(보스 도달 전)
+#   · `scene/adventure/skeleton_fortress/icon_boss2_on.png` — 보스 도달(강조 변형)
+#   · `scene/laboratory/upgrade_gauge_bg.png` / `upgrade_gauge_bar.png` — 게이지 트랙/채움
+#   · `9patch/box1.png` — "보스" 라벨 박스
+#   · `%d/%d` 진행 카운트 라벨
+#   · 아이콘 펄스: CCScaleTo(0.1, s−0.03) → (0.1, s+0.03) → (0.1, s) 반복
+#
+# ⚠️ 원작의 등장 트윈 좌표 리터럴은 `CCPoint(60,-120) → CCPoint(60,60)` 인데, 이 값이 어느
+#   컨테이너 기준인지(부모 노드의 앵커·위치)를 디컴프에서 확정하지 못했다. 그래서 **바의 절대
+#   배치만 레퍼런스 스크린샷 실측으로** 잡고(우상단 고정), 등장 방향(위에서 아래로 0.7초)과
+#   펄스 애니는 원작 리터럴 그대로 쓴다. 좌표 근거가 잡히면 이 함수 한 곳만 고치면 된다.
+var _boss_bar_fill: Sprite2D
+var _boss_count: Label
+
+func _build_adventure_navi() -> void:
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total <= 0:
+		return
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var lab := _man("laboratory_ui")
+	var sf := _man("skeleton_fortress")
+	var navi := Node2D.new()
+	navi.z_index = 50
+	add_child(navi)
+	# 실측(레퍼런스 1267×717 → 디자인 692 기준으로 환산): 바 폭 ≈275, 우측 여백 20, y ≈58.
+	var bar_w := 275.0
+	var right := vis.x - 20.0
+	var y := 58.0
+	var track := _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bg", lab, S)
+	if track:
+		var tw := float((lab.get("scene_laboratory_upgrade_gauge_bg", {}) as Dictionary).get("w", 200)) * S
+		if tw > 0.0:
+			track.scale = Vector2(bar_w / tw * S, S)
+		track.position = Vector2(right - bar_w * 0.5, y)
+		navi.add_child(track)
+	# 채움 — 진행도만큼 가로로 자른다(앵커를 왼쪽으로 옮겨 scale.x 로 늘린다).
+	_boss_bar_fill = _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bar", lab, S)
+	if _boss_bar_fill:
+		_boss_bar_fill.centered = false
+		_boss_bar_fill.position = Vector2(right - bar_w, y - 7.0)
+		navi.add_child(_boss_bar_fill)
+	# 악마 얼굴 — 바 오른쪽 끝. 보스 조우면 icon_boss2_on(강조).
+	var enc := int(_params.get("enc", 0))
+	var at_boss := (enc + 1) >= total
+	var ikey := "scene_adventure_skeleton_fortress_icon_boss%s_on" % ("2" if at_boss else "")
+	var icon := _spr("skeleton_fortress", ikey, sf, 0.55 * S)
+	if icon:
+		icon.position = Vector2(right, y)
+		navi.add_child(icon)
+		# 원작 펄스 — CCScaleTo(0.1) 3연.
+		var base := 0.55 * S
+		var pt := icon.create_tween().set_loops()
+		pt.tween_property(icon, "scale", Vector2(base - 0.03, base - 0.03), 0.1)
+		pt.tween_property(icon, "scale", Vector2(base + 0.03, base + 0.03), 0.1)
+		pt.tween_property(icon, "scale", Vector2(base, base), 0.1)
+		pt.tween_interval(0.5)
+	# "보스" 라벨(원작 9patch/box1) — 바 왼쪽 위.
+	var box := NinePatchRect.new()
+	var boxp := "res://assets/converted/ninepatch_ui/9patch_box1.tres"
+	if ResourceLoader.exists(boxp):
+		box.texture = load(boxp)
+	box.patch_margin_left = 10; box.patch_margin_right = 10
+	box.patch_margin_top = 10; box.patch_margin_bottom = 10
+	box.size = Vector2(52, 26)
+	box.position = Vector2(right - bar_w, y - 40.0)
+	add_child(box)
+	var bl := Label.new()
+	bl.text = "보스"
+	bl.add_theme_font_size_override("font_size", 16)
+	bl.add_theme_color_override("font_color", Color(1, 1, 1))
+	# box1 은 밝은 패널이라 흰 글씨만으론 안 보인다 — 레퍼런스(승리11_탐험재개.png)의
+	# "보스" 도 짙은 테두리가 있다.
+	bl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	bl.add_theme_constant_override("outline_size", 4)
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bl.size = box.size
+	box.add_child(bl)
+	# 진행 카운트 `%d/%d`(원작 리터럴) — "보스" 라벨 **오른쪽**에 붙인다.
+	# ⚠️ 우측 끝에 두면 속도 버튼(vis.x−90, 74×30)과 겹친다.
+	_boss_count = Label.new()
+	_boss_count.add_theme_font_size_override("font_size", 15)
+	_boss_count.add_theme_color_override("font_color", Color(1, 0.95, 0.8))
+	_boss_count.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_boss_count.add_theme_constant_override("outline_size", 4)
+	_boss_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_boss_count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boss_count.size = Vector2(80, 26)
+	_boss_count.position = Vector2(box.position.x + box.size.x + 8.0, box.position.y)
+	add_child(_boss_count)
+	_update_adventure_navi()
+	# 등장 — 원작 MoveTo 0.7 (위에서 내려온다).
+	navi.position = Vector2(0, -120.0)
+	navi.create_tween().tween_property(navi, "position", Vector2.ZERO, 0.7) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+
+
+func _update_adventure_navi() -> void:
+	var total := int((_stage.get("enemies", []) as Array).size())
+	if total <= 0:
+		return
+	# 같은 화면의 목표 라벨(`_build_objective`)이 `enc+1 / total` 로 세므로 여기도 맞춘다 —
+	# 한 화면에 1/5 와 2/5 가 같이 뜨면 어느 쪽이 진짜인지 알 수 없다.
+	var done := clampi(int(_params.get("enc", 0)) + 1, 0, total)
+	if _boss_count:
+		_boss_count.text = "%d/%d" % [done, total]
+	if is_instance_valid(_boss_bar_fill):
+		var lab := _man("laboratory_ui")
+		var fw := float((lab.get("scene_laboratory_upgrade_gauge_bar", {}) as Dictionary).get("w", 200))
+		if fw > 0.0:
+			var ratio := float(done) / float(total)
+			_boss_bar_fill.scale = Vector2(275.0 / fw * ratio, Design.ASSET_SCALE)
+
+
+# ---------- 하단 파티 카드(원작 setInterfaceDragon) ----------
+#
+# 레퍼런스: `4_전투시작.png`(탐험 시작) · `전투4/5.png`(선택지) · `승리9/10.png`(계속하기)에
+# 전부 떠 있고, 배회 애니 중(`배회1~5.png`)에만 사라진다 — 원작 `setAllHideUiButton`/`setAllUiButton`.
+# 그리기 = `PartyCardView`(battle.gd 의 애니메이션판과 같은 InterFace.c 규약).
+# 숫자 = `PartyStats`(logic) — 전투 카드와 **같은 파이프라인**이라 어긋나지 않는다.
+var _party_cards: Array = []
+
+func _show_party_cards() -> void:
+	_hide_party_cards()
+	var uids: Array = _run_party if not _run_party.is_empty() else _leader_party()
+	if uids.is_empty():
+		return
+	var hp_state: Dictionary = {} if _healed else _params.get("hp_state", {})
+	var party := PartyStats.summary(uids, _is_kades(), _field_element_key(), hp_state)
+	_party_cards = PartyCardView.build_row(self, self, party, _vis(), _pma)
+
+
+func _hide_party_cards() -> void:
+	for c in _party_cards:
+		if is_instance_valid(c):
+			c.queue_free()
+	_party_cards.clear()
+
+
+## 카데스 감산 판정에 쓰는 던전 속성 — battle.gd::_field_element 와 같은 규칙.
+func _field_element_key() -> String:
+	var authored := Drops.normalize_element(_stage.get("field_element", ""))
+	if authored == "":
+		authored = Drops.normalize_element(_stage.get("element", ""))
+	if authored != "" and authored != "none":
+		return authored
+	var tally: Dictionary = {}
+	for e in _stage.get("enemies", []):
+		var el := Drops.normalize_element((e as Dictionary).get("element", ""))
+		if el == "" or el == "none":
+			continue
+		tally[el] = int(tally.get(el, 0)) + 1
+	var best := ""
+	var best_n := 0
+	for k in tally:
+		if int(tally[k]) > best_n:
+			best_n = int(tally[k]); best = String(k)
+	return best
 
 ## 원작 QuestAndBattleLabel 1:1: 던전 목표 라벨 — quest_shadow 패널 + profile_bg 아이콘 + 텍스트 + 카운트 + checked(완료).
 ## 근거: QuestAndBattleLabel::initWidget (QuestAndBattleLabel.c:462 CCScale9Sprite 'scene/adventure/quest_shadow.png'
@@ -1659,15 +1830,25 @@ func _show_battle_ready(is_boss: bool) -> void:
 	var y := vis.y * 0.5 - 20.0
 	_ready_layer = CanvasLayer.new(); _ready_layer.layer = 60
 	add_child(_ready_layer)
-	# 좌 = 싸운다(btn2 초록) · 우 = 도망간다/포기한다(btn1 붉은).
-	# ⚠️ 원작 setRetryButton 은 붉은 '그만하기'가 좌, 초록 '계속하기'가 우인데
-	#   setBattleReady 는 그 반대다(fight=btn2 를 먼저 만들고 tag 0xbbe 를 준다).
-	_ready_button("scene_adventure_btn2", "scene_adventure_choice_fight_KR",
-		Vector2(vis.x * 0.5 - (w * 0.5 + 50.0), y), Vector2(-w - 60.0, y), _on_choice_fight)
+	# 좌 = 도망간다/포기한다(btn1 붉은) · 우 = 싸운다(btn2 초록).
+	# ⚠️ 2026-07-31 정정 — 종전 주석("setBattleReady 는 setRetryButton 과 반대")은 **오독**이었다.
+	#   재디컴프한 setBattleReady(@00c57170) 를 변수까지 따라가면 둘은 같은 배치다:
+	#     pCVar24 = btn2 + choice_fight_%s + setTag(0xbbe) → MoveTo(0.5, aCStack_198)
+	#               aCStack_198 = (centerX + btnW*0.5 + 50, …)  ⇒ **우측**
+	#               시작점 aCStack_1f0 = (centerX + btnW + 50, …) = 화면 밖 오른쪽
+	#     pCVar25 = btn1 + choice_run_%s/choice_giveup_%s + setTag(0xbbf) → MoveTo(0.5, aCStack_1a0)
+	#               aCStack_1a0 = (centerX − btnW*0.5 − 50, …)  ⇒ **좌측**
+	#               시작점 aCStack_190 = (−50 − btnW, …) = 화면 밖 왼쪽
+	#   레퍼런스 `docs/ref/adventure/전투5.png` 도 좌=주황 '도망간다' / 우=초록 '싸 운 다' 이고,
+	#   `승리10.png`(그만하기/계속하기)와도 같은 방향이다 — 붉은 좌, 초록 우로 일관된다.
 	_ready_button("scene_adventure_btn1", AdventureRun.escape_frame(_is_fortress()),
-		Vector2(vis.x * 0.5 + (w * 0.5 + 50.0), y), Vector2(vis.x + w + 60.0, y),
+		Vector2(vis.x * 0.5 - (w * 0.5 + 50.0), y), Vector2(-w - 60.0, y),
 		_on_choice_run.bind(is_boss))
-	_narrate("어떻게 하시겠습니까?")
+	_ready_button("scene_adventure_btn2", "scene_adventure_choice_fight_KR",
+		Vector2(vis.x * 0.5 + (w * 0.5 + 50.0), y), Vector2(vis.x + w + 60.0, y), _on_choice_fight)
+	# 원작 문자열 `<AdventureMonster2>` 전문(2줄) — DV2/string/stringsData_KR.xml.
+	_narrate("어떻게 하시겠습니까?\n몬스터의 능력치를 잘 보고 결정하세요.")
+	_show_party_cards()
 
 var _done_battle_ready := false
 
@@ -1677,6 +1858,8 @@ func _ready_button(bg_key: String, label_key: String, to: Vector2, from: Vector2
 	var S := Design.ASSET_SCALE
 	var holder := Node2D.new()
 	holder.position = from
+	# 최종 배치 x — 좌우 배정을 검증(test_adventure_screen.gd)할 수 있게 남긴다.
+	holder.set_meta("target_x", to.x)
 	_ready_layer.add_child(holder)
 	var bg := _spr("adventure_ui", bg_key, _adv, S)
 	if bg:
