@@ -459,6 +459,20 @@ func _build_bottom_bar(vis: Vector2) -> void:
 	var chit := _hit(Rect2(cc - Vector2(cr, cr), Vector2(cr, cr) * 2.0), "동굴")
 	chit.pressed.connect(func(): _act("cave"))
 	_root.add_child(chit)
+	_guide_targets["cave"] = chit      # 원작 `WorldMapScene::getCaveNode` — 튜토리얼 화살표 대상
+	# 하단바 자체도 등록한다 — 튜토리얼 대사 상자가 이 위로 올라와 메뉴를 가리지 않게(아래 참조).
+	var barhit := _hit(Rect2(Vector2(0.0, top), Vector2(vis.x, bar_h * k)), "bottom_bar")
+	barhit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(barhit)
+	_guide_targets["bottom_bar"] = barhit
+
+## 튜토리얼 안내 화살표가 짚는 노드. 원작도 전용 접근자를 둔다
+## (`WorldMapScene::getCaveNode` — `ScenarioLayer::setNextSelecteMode` 의 `SN_0_14_1`/`SN_0_41`).
+## 이름으로 찾지 않는다 — 라벨이 바뀌어도 안 깨지도록 등록해 둔 것만 돌려준다.
+var _guide_targets: Dictionary = {}
+func guide_target(id: String) -> Control:
+	var n = _guide_targets.get(id)
+	return n if is_instance_valid(n) else null
 
 # ============================================================ 유타칸 변형 토글
 ## 원작은 **아모르(tag 0x67) / 카데스(tag 0x68)** 를 같은 자리의 메뉴 항목으로 두고

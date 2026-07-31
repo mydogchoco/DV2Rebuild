@@ -1,0 +1,513 @@
+{
+ "_re_basis": "원작 ScenarioLayer::setNextSelecteMode @016caaac 의 SN_0_* 분기를 그대로 뽑은 표. SN 번호 = 시나리오 0 대사 인덱스(0~34=PrologueTalk, 37~=Tutorial_(N-36)). 추출 = scripts/tools/extract_tutorial_flow.py. 화살표 인자 의미와 오프셋 근거는 그 파일 주석.",
+ "talk_offset": {
+  "prologue_max": 34,
+  "tutorial_offset": 36
+ },
+ "steps": {
+  "SN_0_18": {
+   "action": "name_dragon",
+   "talk_index": 18,
+   "talk": "PrologueTalk18",
+   "text": "좋은 이름이야! 이제 탐험 준비는 다 끝난 것 같아!"
+  },
+  "SN_0_20": {
+   "talk_index": 20,
+   "talk": "PrologueTalk20",
+   "text": "마을 사람들이 공격받고 있어!"
+  },
+  "SN_0_26": {
+   "action": "adventure",
+   "field": 1,
+   "battle": 4,
+   "talk_index": 26,
+   "talk": "PrologueTalk26",
+   "text": "세상에... 드래곤을 다룰 수 있잖아?"
+  },
+  "SN_0_35": {
+   "talk_index": 35
+  },
+  "SN_0_41": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": false,
+     "rot": 90
+    }
+   ],
+   "frames": [
+    "scene/worldmap/ma_btn_cave_image.png"
+   ],
+   "talk_index": 41,
+   "talk": "Tutorial_5",
+   "text": "화살표를 따라 동굴로 들어가봅시다."
+  },
+  "SN_0_42": {
+   "talk_index": 42,
+   "talk": "Tutorial_6",
+   "text": "축하드려요! 초보 드래곤 테이머 보급품은\n드래곤빌리지2를 시작하는데 많은 도움을 줄 거에요."
+  },
+  "SN_0_45": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true,
+     "on_target": true
+    }
+   ],
+   "talk_index": 45,
+   "talk": "Tutorial_9",
+   "text": "동굴 왼쪽에서 내가 갖고 있는 드래곤들을 볼 수 있습니다."
+  },
+  "SN_0_48": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/book.png"
+   ],
+   "talk_index": 48,
+   "talk": "Tutorial_12",
+   "text": "동굴의 스킨과 드래곤의 스탠드를 변경하는 아이콘입니다."
+  },
+  "SN_0_51": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/book.png"
+   ],
+   "talk_index": 51,
+   "talk": "Tutorial_15",
+   "text": "드래곤 도감입니다!\n지금까지 육성한 드래곤을 간편하게 확인할 수 있죠!"
+  },
+  "SN_0_53": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/card.png"
+   ],
+   "talk_index": 53,
+   "talk": "Tutorial_17",
+   "text": "드래곤 카드입니다. 진귀하고 멋진 드래곤 카드들을 모아보세요."
+  },
+  "SN_0_56": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "talk_index": 56,
+   "talk": "Tutorial_20",
+   "text": "가방을 열면 모험이나 거래를 통해 얻은 다양한 아이템을 볼 수 있습니다."
+  },
+  "SN_0_58": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 58,
+   "talk": "Tutorial_22",
+   "text": "이곳은 전투 아이템 슬롯입니다."
+  },
+  "SN_0_60": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 60,
+   "talk": "Tutorial_24",
+   "text": "이곳은 장착 젬 슬롯 입니다."
+  },
+  "SN_0_63": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 63,
+   "talk": "Tutorial_27",
+   "text": "이곳은 스킬 슬롯입니다."
+  },
+  "SN_0_66": {
+   "talk_index": 66,
+   "talk": "Tutorial_30",
+   "text": "보급품에는 젬과 전투 아이템 그리고 드링크가 들어있군요!\n이제 튜토리얼 보상으로 받은 보급품을 사용해 볼까요?"
+  },
+  "SN_0_69": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": "좋아요! 젬과 전투 아이템을 모두 장착했어요!"
+  },
+  "SN_0_77": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true,
+     "on_target": true
+    },
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "stand/stand1.png"
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "드래곤의 능력치가 상승한 게 보이시나요?\n드래곤 머리 위로 이상한 말풍선이 생긴 것도요?"
+  },
+  "SN_0_81": {
+   "talk_index": 81,
+   "talk": "Tutorial_45",
+   "text": "정말 수고하셨습니다!\n그럼 드래곤 빌리지2를 즐겁게 즐겨주세요!"
+  },
+  "SN_0_82": {
+   "action": "finish",
+   "talk_index": 82,
+   "talk": "Tutorial_46"
+  },
+  "SN_0_17_4_reset": {
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_14_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/worldmap/ma_btn_cave_image.png"
+   ],
+   "talk_index": 14,
+   "talk": "PrologueTalk14",
+   "text": "여기가 동굴이야. 네가 가장 많이 방문할 공간이기도 해."
+  },
+  "SN_0_14_2": {
+   "action": "enter_cave",
+   "talk_index": 14,
+   "talk": "PrologueTalk14",
+   "text": "여기가 동굴이야. 네가 가장 많이 방문할 공간이기도 해."
+  },
+  "SN_0_17_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_2": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "common/element_bg.png"
+   ],
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_3": {
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_4": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_5": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_6": {
+   "action": "hatch_confirm",
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_7": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_17_8": {
+   "action": "dialog",
+   "talk_index": 17,
+   "talk": "PrologueTalk17",
+   "text": "좋아! 드래곤이 부화했어! 녀석의 이름을 지어주는 건 어때?"
+  },
+  "SN_0_20_1": {
+   "talk_index": 20,
+   "talk": "PrologueTalk20",
+   "text": "마을 사람들이 공격받고 있어!"
+  },
+  "SN_0_67_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": "좋아요! 드래곤이 전투 아이템을 장착하는 데 성공했습니다."
+  },
+  "SN_0_67_2": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "common/element_bg.png"
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": "좋아요! 드래곤이 전투 아이템을 장착하는 데 성공했습니다."
+  },
+  "SN_0_67_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": "좋아요! 드래곤이 전투 아이템을 장착하는 데 성공했습니다."
+  },
+  "SN_0_67_4": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": "좋아요! 드래곤이 전투 아이템을 장착하는 데 성공했습니다."
+  },
+  "SN_0_69_1": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": "좋아요! 젬과 전투 아이템을 모두 장착했어요!"
+  },
+  "SN_0_69_2": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": "좋아요! 젬과 전투 아이템을 모두 장착했어요!"
+  },
+  "SN_0_69_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": "좋아요! 젬과 전투 아이템을 모두 장착했어요!"
+  },
+  "SN_0_69_4": {
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": "좋아요! 젬과 전투 아이템을 모두 장착했어요!"
+  },
+  "SN_0_77_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "드래곤의 능력치가 상승한 게 보이시나요?\n드래곤 머리 위로 이상한 말풍선이 생긴 것도요?"
+  },
+  "SN_0_77_2": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "드래곤의 능력치가 상승한 게 보이시나요?\n드래곤 머리 위로 이상한 말풍선이 생긴 것도요?"
+  },
+  "SN_0_77_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "드래곤의 능력치가 상승한 게 보이시나요?\n드래곤 머리 위로 이상한 말풍선이 생긴 것도요?"
+  },
+  "SN_0_77_4": {
+   "action": "dialog",
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "드래곤의 능력치가 상승한 게 보이시나요?\n드래곤 머리 위로 이상한 말풍선이 생긴 것도요?"
+  }
+ },
+ "order": [
+  "SN_0_14_1",
+  "SN_0_14_2",
+  "SN_0_17_1",
+  "SN_0_17_2",
+  "SN_0_17_3",
+  "SN_0_17_4_reset",
+  "SN_0_17_4",
+  "SN_0_17_5",
+  "SN_0_17_6",
+  "SN_0_17_7",
+  "SN_0_17_8",
+  "SN_0_18",
+  "SN_0_20",
+  "SN_0_20_1",
+  "SN_0_26",
+  "SN_0_35",
+  "SN_0_41",
+  "SN_0_42",
+  "SN_0_45",
+  "SN_0_48",
+  "SN_0_51",
+  "SN_0_53",
+  "SN_0_56",
+  "SN_0_58",
+  "SN_0_60",
+  "SN_0_63",
+  "SN_0_66",
+  "SN_0_67_1",
+  "SN_0_67_2",
+  "SN_0_67_3",
+  "SN_0_67_4",
+  "SN_0_69",
+  "SN_0_69_1",
+  "SN_0_69_2",
+  "SN_0_69_3",
+  "SN_0_69_4",
+  "SN_0_77",
+  "SN_0_77_1",
+  "SN_0_77_2",
+  "SN_0_77_3",
+  "SN_0_77_4",
+  "SN_0_81",
+  "SN_0_82"
+ ]
+}

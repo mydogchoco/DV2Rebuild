@@ -215,6 +215,25 @@ func _ready() -> void:
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
+		"tutorial":
+			# 오프닝 튜토리얼(원작 시나리오 0 의 `SN_0_*`) 검수.
+			#   --step=<SN_0_…> : 그 스텝부터 시작(기본은 처음부터)
+			# ⚠️ 세이브를 건드리지 않으려고 begin_batch 로 연다.
+			UserDB.begin_batch()
+			var tu_step := ""
+			for a7 in OS.get_cmdline_user_args():
+				if a7.begins_with("--step="): tu_step = a7.substr(7)
+			UserDB.set_pmeta("tutorial_done", false)
+			UserDB.set_pmeta("tutorial_step", tu_step)
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 25: await get_tree().process_frame
+			var tu_app := get_tree().current_scene
+			if tu_app != null and tu_app.has_method("start_tutorial"):
+				tu_app.call("start_tutorial")
+			for i in 10: await get_tree().process_frame
+			var tu := _find_method_node(get_tree().root, "_advance")
+			print("SHOT tutorial: 스텝=", UserDB.get_pmeta("tutorial_step", "?"),
+				" 가이드=", tu != null)
 		"cave":
 			Scenes.goto("cave", {})
 		"caveegg":

@@ -217,6 +217,12 @@ func _advance() -> void:
 	if _lines.is_empty() or _idx + 1 >= _lines.size():
 		UserDB.set_progress("prologue_seen", true)
 		Scenes.goto(String(_params.get("back", "worldmap")), _params.get("back_params", {}))
+		# 원작 시나리오 0 은 프롤로그 대사와 튜토리얼(`SN_0_*`)이 **한 흐름**이다 —
+		# 대사가 끝나면 안내 상태기계가 이어받는다(`Main` 이 소유해 씬 전환을 넘어 산다).
+		if String(_params.get("then", "")) == "tutorial":
+			var app := get_tree().current_scene
+			if app != null and app.has_method("start_tutorial"):
+				app.call("start_tutorial")
 		return
 	_show_line(_idx + 1)
 

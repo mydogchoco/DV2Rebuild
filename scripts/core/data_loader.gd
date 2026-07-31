@@ -22,6 +22,9 @@ var scenario: Dictionary = {}
 ## `_Kadeath` 로 가르고 그 클래스들이 연출을 **하드코딩**한다(102화 이상만 `ScenarioCommon`
 ## = 서버 script 라 진짜 유실). 추출 = extract_scenario_flow.py → parse_scenario_flow.py.
 var scenario_flow: Dictionary = {}
+## 오프닝 튜토리얼(시나리오 0) 스텝 표 — 원작 `ScenarioLayer::setNextSelecteMode` 의 `SN_0_*`
+## 분기를 그대로 뽑은 것. 추출 = extract_tutorial_flow.py(대사 원문까지 실려 있다).
+var tutorial_flow: Dictionary = {}
 ## 스토리 전투 — 원작 AdventureScene 의 두 표(switch · initEventBattle) + 직접 호출 목록.
 var story_battles: Dictionary = {}
 ## 스토리 전용 몬스터 3종(사용자 확정 스탯 + 회차·전투번호).
@@ -114,6 +117,7 @@ func _ready() -> void:
 	titles = _load_json("res://data/titles.json")
 	scenario = _load_json("res://data/scenario.json")
 	scenario_flow = _load_json("res://data/scenario_flow.json")
+	tutorial_flow = _load_json("res://data/tutorial_flow.json")
 	story = _load_json("res://data/story.json")
 	story_subquest = _load_json("res://data/story_subquest.json")
 	story_battles = _load_json("res://data/story_battles.json")
@@ -450,6 +454,12 @@ func scenario_npc_folder(npc_no: int) -> String:
 ## 연출 스텝의 배경 번호 → 원작 경로들[원경, 전경아이템?] (`ScenarioSupport::changeBackGround`).
 func scenario_bg_paths(bg_no: int) -> Array:
 	return scenario_flow.get("backgrounds", {}).get(str(bg_no), [])
+
+## 회차가 열릴 때 깔리는 배경의 **원작 경로**(`ScenarioLayer::initWidget` 의 sn switch).
+## 빈 문자열이면 원작도 배경을 만들지 않는 회차다 — 임의로 채우지 말 것.
+## 1~78화는 `changeBackGround` 스텝이 하나도 없어서 배경 근거가 이 표뿐이다.
+func scenario_initial_bg(no: int) -> String:
+	return String(scenario_flow.get("initial_bg", {}).get(str(no), ""))
 
 ## 연출 스텝의 BGM 필드 번호 → 트랙 이름 (`ScenarioSupport::playBackGroundFieldMusic`).
 ## 없는 번호(17)는 원작도 무음이다 — 빈 문자열을 돌려준다.

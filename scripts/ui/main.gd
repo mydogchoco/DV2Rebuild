@@ -39,6 +39,29 @@ func _start_after_nickname(fresh: bool) -> void:
 	if fresh:
 		# 갓 시작한 유저는 프롤로그부터(사용자 확정 2026-07-31). 원작 `<PrologueTalk0~33>` 이식본은
 		# 이미 있었는데 아무도 부르지 않아 한 번도 보이지 않았다.
-		Scenes.goto("prologue", {"back": "worldmap", "back_params": main_params})
+		# 프롤로그가 끝나면 **튜토리얼**(원작 시나리오 0 의 `SN_0_*` 상태기계)이 이어받는다.
+		UserDB.set_pmeta(TutorialGuide.STEP_KEY, "")     # 처음부터
+		UserDB.set_pmeta(TutorialGuide.DONE_KEY, false)
+		Scenes.goto("prologue", {"back": "worldmap", "back_params": main_params,
+			"then": "tutorial"})
 	else:
 		Scenes.goto("worldmap", main_params)
+		_resume_tutorial()
+
+
+# ── 튜토리얼(원작 시나리오 0 의 `SN_0_*` 상태기계) ────────────────────────────
+# `Main` 이 소유해야 씬을 갈아타도 살아 있다 — `Scenes` 는 `$SceneRoot` 만 교체한다.
+# 원작도 같은 구조다: `TutorialLayer`/`ScenarioLayer` 는 러닝 씬 위에 얹히는 레이어다.
+var _tutorial: TutorialGuide = null
+
+## 프롤로그가 끝나면 부른다(`prologue.gd` 가 `then: "tutorial"` 을 받았을 때).
+func start_tutorial() -> void:
+	if is_instance_valid(_tutorial):
+		return
+	_tutorial = TutorialGuide.start(self)
+
+## 진행 중이던 튜토리얼을 다시 붙인다(껐다 켜도 이어진다).
+func _resume_tutorial() -> void:
+	if is_instance_valid(_tutorial):
+		return
+	_tutorial = TutorialGuide.resume(self)
