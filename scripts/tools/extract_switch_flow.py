@@ -349,7 +349,7 @@ def main():
             #    회차마다 대사가 절반쯤 빠지던 원인(ep63 25/46 · ep59 10/22).
             npc_talk_addrs: set[int] = set()
             npc_talk_addr = None
-            user_talk_addrs, talker_addrs = set(), set()
+            user_talk_addrs, talker_addrs, talk_addrs = set(), set(), set()
             for i in iter_range(at, after, lo, hi):
                 if i.getMnemonicString() != "bl":
                     continue
@@ -363,16 +363,21 @@ def main():
                     npc_talk_addr = i.getAddress().getOffset()
                 elif "setUserTalk" in nm:
                     user_talk_addrs.add(i.getAddress().getOffset())
-                elif nm in ("setTalker", "setTalk"):
-                    # 🔴 `setTalk` 는 `setTalker` 와 **다른 함수**다.
-                    #    이름 정확일치만 보다가 이걸 놓쳐서 Scenario7 68~78화가
-                    #    통째로 "대사 0" 이었다. 원작 흐름:
-                    #      adrp/add x1=<NPC 이름 문자열> ; add x0,this,#0x1f0
-                    #      → basic_string::assign(this+0x1f0, 이름)
+                elif nm == "setTalk":
+                    # 🔴 `setTalk` 는 `setTalker` 와 **다른 함수**이고, 넘기는 문자열도 다르다.
+                    #    이름 정확일치만 보다가 놓쳐서 Scenario7 68~78화가 "대사 0" 이었다.
+                    #
+                    #      adrp/add x1=<대사 키> ; add x0,this,#0x1f0
+                    #      → basic_string::assign(this+0x1f0, 키)
                     #      → ScenarioLayer::setTalk(this, true)
-                    #    이름을 인자로 받는 대신 **멤버에 먼저 써 두고** 부른다.
+                    #
+                    #    ⚠️ 그 문자열은 NPC 이름이 아니라 **대사 문자열 키**(`ScenarioTalk60_1`)다.
+                    #       화자로 쓰면 이름칸에 키가 찍힌다 — 별도 op 로 뺀다.
+                    #       대신 이 경로는 **줄 번호가 확정**된다(순서 추정이 필요 없다).
+                    talk_addrs.add(i.getAddress().getOffset())
+                elif nm == "setTalker":
                     talker_addrs.add(i.getAddress().getOffset())
-            if npc_talk_addr is None and not talker_addrs:
+            if npc_talk_addr is None and not talker_addrs and not talk_addrs:
                 names = {}
                 for i in iter_range(at, after, lo, hi):
                     if i.getMnemonicString() != "bl":
@@ -581,7 +586,7 @@ def main():
                         print(f"  {cls}: 스텝 테이블 {t0['tbl']:#x} 회차 판별 실패"); continue
                     pairs.append((sn0, t0))
 
-            TALK_OPS = ("setNpcTalk", "setUserTalk", "setTalker")
+            TALK_OPS = ("setNpcTalk", "setUserTalk", "setTalker", "setTalk")
             for sn, tt in pairs:
                 cands = tt if isinstance(tt, list) else [tt]
                 best: list[dict] = []
@@ -595,14 +600,15 @@ def main():
                     for a4 in addrs:
                         f0.extend(walk_case(at, after, fm, body, a4, slots,
                                             npc_talk_addrs, user_talk_addrs, text,
-                                            talker_addrs, rostr, None))
+                                            talker_addrs=talker_addrs, rostr=rostr,
+                                            talk_addrs=talk_addrs, want_sn=None))
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
                 flow, t = best, (best_t or cands[0])
                 if t.get("dflt") and default_is_user_talk(at, after, body, t["dflt"], user_talk_addrs):
                     flow.append({"op": "setUserTalk"})
                 out[str(sn)] = flow
-                talk = sum(1 for o in flow if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
+                talk = sum(1 for o in flow if o["op"] in TALK_OPS)
                 nstep = len(t["steps"]) if t.get("kind") == "chain" else t["count"]
                 if "--debug-eps" in sys.argv:
                     a0 = (t["steps"][sorted(t["steps"])[0]] if t.get("kind") == "chain"
@@ -686,6 +692,7 @@ def default_is_user_talk(_at, _after, body, dflt: int, user_talk_addrs: set) -> 
 def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               npc_talk_addrs: set, user_talk_addrs: set, text,
               talker_addrs: set | None = None, rostr=None,
+              talk_addrs: set | None = None,
               want_sn: int | None = None) -> list[dict]:
     """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
 
@@ -779,6 +786,10 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                 return ops
             if a in user_talk_addrs:
                 ops.append({"op": "setUserTalk"})
+                return ops
+            if talk_addrs and a in talk_addrs:
+                # 대사 키를 그대로 싣는다 — `ScenarioTalk<회차>_<줄번호>`.
+                ops.append({"op": "setTalk", "key": last_str})
                 return ops
             if talker_addrs and a in talker_addrs:
                 # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state

@@ -275,6 +275,13 @@ func _play_flow() -> void:
 					_show_npc(f2)
 				_next_line()
 				return
+			"setTalk":
+				# 원작 `ScenarioLayer::setTalk(bool)` — 이름을 인자로 받지 않고
+				# **대사 문자열 키**(`ScenarioTalk<회차>_<줄>`)를 멤버에 써 두고 부른다.
+				# ⇒ 이 경로는 줄 번호가 확정이라 순서 추정 없이 그 줄을 바로 집는다.
+				#   화자는 이 호출이 알려 주지 않는다(앞선 setTalker 가 정한 이름을 유지).
+				_line_by_key(String(o.get("key", "")))
+				return
 			"setUserTalk":
 				# 주인공(=플레이어) 대사·지문. 원작도 이때 NPC 초상을 띄우지 않는다.
 				_name_label.text = ""
@@ -451,6 +458,22 @@ func _title_label(text: String, size: int) -> Label:
 	l.add_theme_color_override("font_color", Color.WHITE)
 	l.size = l.get_minimum_size()
 	return l
+
+## 키(`ScenarioTalk<회차>_<줄>`)로 그 줄을 바로 집는다. 키 형식이 아니면 순서대로 폴백.
+## 원작 문자열 키가 순서를 인코딩하고 있어서(§build_scenario.py) 줄 번호가 곧 `k` 다.
+func _line_by_key(key: String) -> void:
+	var m := RegEx.create_from_string(r"^ScenarioTalk\d+(?:_\d+)?_(\d+)$").search(key)
+	if m == null:
+		_next_line()
+		return
+	var want := int(m.get_string(1))
+	for i in _lines.size():
+		var d: Dictionary = _lines[i]
+		if int(d.get("k", -1)) == want:
+			_show_line_text(String(d.get("text", "")))
+			_idx = i + 1
+			return
+	_next_line()
 
 ## 다음 대사 한 줄. 흐름이 대사보다 길면(분기 회차) 조용히 끝낸다 — 지어내지 않는다.
 func _next_line() -> void:

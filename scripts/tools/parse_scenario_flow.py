@@ -45,6 +45,7 @@ NPC_SRC = DECOMP / "ScenarioSupport.c"
 ##   근거 = 각 클래스 디컴프의 `/* cocos2d::…::fn(…) */` 원형 주석.
 OPS: dict[str, list[str]] = {
     # ScenarioSupport
+    "setTalk": ["b1"],
     "setNpcTalk": ["npc", "state", "pos", "emoticon",
                    "b1", "b2", "b3", "b4", "b5", "b6", "b7"],
     "setUserTalk": ["b1"],
@@ -455,7 +456,7 @@ def accept_if_exact(flows: dict[str, list[dict]], scenarios: dict) -> dict[str, 
         # ⚠️ `setTalker` 도 대사 스텝이다 — 1~78화(`Scenario1~7`)는 NPC 를 번호가 아니라
         #    **이름 문자열**로 넘기는 이 오버로드를 쓴다. 종전에는 이걸 안 세서 그 회차들이
         #    전부 "흐름 대사 0" 으로 보였고, 추출이 성공한 뒤에도 게이트가 통째로 막았다.
-        talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
+        talk = sum(1 for o in ops if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker", "setTalk"))
         lines = sum(len(p.get("lines", [])) for p in scenarios.get(sn, {}).get("parts", []))
         if lines and talk == lines:
             ok[sn] = ops
