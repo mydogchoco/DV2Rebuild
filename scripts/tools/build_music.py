@@ -73,6 +73,14 @@ def wanted_keys() -> set[str]:
     kd = json.loads((REPO / "data" / "kades.json").read_text(encoding="utf-8"))
     if kd.get("bgm_worldmap"):
         keys.add(str(kd["bgm_worldmap"]))
+    # 시나리오 연출 BGM — 원작 `ScenarioSupport::playBackGroundFieldMusic` 의 번호→트랙 표를
+    # 디컴프에서 뽑아 data/scenario_flow.json `bgm` 에 담아 뒀다. story.gd 는 그 값을 변수로
+    # 넘기므로 `Bgm.play("리터럴")` 스캔에 안 걸린다 — 여기서 걷지 않으면 스토리가 조용해진다.
+    sf = REPO / "data" / "scenario_flow.json"
+    if sf.exists():
+        for track in json.loads(sf.read_text(encoding="utf-8")).get("bgm", {}).values():
+            if track:
+                keys.add(str(track))
     for mp3 in SRC.glob("*.mp3"):
         stem = mp3.stem
         if any(p.match(stem) for p in PATTERNS):

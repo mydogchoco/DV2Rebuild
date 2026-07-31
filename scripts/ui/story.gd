@@ -52,6 +52,8 @@ const ARROW := "res://assets/converted/common_ui/common_btn_arrow2.tres"
 const SKIP := "res://assets/converted/common_ui/common_btn_skip.tres"
 const DIALOG_BOX := "res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres"
 const ART_DIR := "res://assets/converted/scenario"
+## 제목 카드 폰트 — 원작 `GameManager::getFontName_subtitle`(§10 의 unicode=0 보정본).
+const TITLE_FONT := "res://assets/converted/font_ui/font_subtitle.fnt"
 ## 타자기 속도(문자/초). 원작 `ScenarioTextBox::setTextSpeed` 값은 코스메틱 클라 설정이라
 ## 정확값 미확정 → ASSUMPTION 40cps (BattleTextBox 이식과 같은 값).
 const CPS := 40.0
@@ -75,6 +77,11 @@ var _arrow: Sprite2D
 var _typing := false
 var _timer: Timer
 var _npc_node: Node2D
+
+## 연출용 — 텍스트박스(암전/섬광이 아래로 밀어낸다) · 화면 전체 색막 · 제목 카드 레이어.
+var _box: NinePatchRect
+var _box_home := Vector2.ZERO
+var _fx_layer: CanvasLayer
 
 func enter(params: Dictionary = {}) -> void:
 	_params = params
@@ -153,6 +160,8 @@ func _build_textbox() -> void:
 	box.position = Vector2(10.0, vis.y - BOX_H)      # 앵커(0.5,0.0) 하단
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lay.add_child(box)
+	_box = box
+	_box_home = box.position
 	# 화자 이름(원작 @ (20, 130) — Cocos y-up 이라 박스 위쪽). 유실이라 대개 빈 칸이다.
 	_name_label = Label.new()
 	_name_label.add_theme_font_size_override("font_size", 22)
@@ -217,8 +226,29 @@ func _build_skip() -> void:
 	l.size = b.size
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
-	b.pressed.connect(_finish)
+	b.pressed.connect(_confirm_skip)
 	lay.add_child(b)
+
+## 건너뛰기 확인 — 원작 문자열 `<ScenarioSkipTitle>`("시나리오 Skip") ·
+## `<ScenarioSkip>`("해당 시나리오를 패스 하시겠습니끼?" — 원작 오타 그대로).
+## 종전에는 확인 없이 바로 종료해서 오조작으로 회차를 날릴 수 있었다.
+func _confirm_skip() -> void:
+	var p := OrigPopup.open(self, "시나리오 Skip", Vector2(620.0, 330.0))
+	var l := Label.new()
+	l.text = "해당 시나리오를 패스 하시겠습니끼?"
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(0.16, 0.09, 0.0))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.position = Vector2(20.0, 62.0)
+	l.size = Vector2(p.win_size.x - 40.0, 70.0)
+	p.content.add_child(l)
+	p.add_action_button("확인", func() -> void:
+		p.close()
+		_finish(), 0, Vector2(200.0, 56.0),
+		Vector2(p.win_size.x * 0.5 - 110.0, p.win_size.y - 60.0))
+	p.add_action_button("취소", func() -> void: p.close(), 0, Vector2(200.0, 56.0),
+		Vector2(p.win_size.x * 0.5 + 110.0, p.win_size.y - 60.0))
 
 # ── 원작 연출 스텝 재생 ────────────────────────────────────────────────────────
 ## `data/scenario_flow.json` 의 스텝을 **대사 하나가 나올 때까지** 소비한다.
@@ -259,9 +289,168 @@ func _play_flow() -> void:
 					_illust.visible = false
 			"setOutTalker":
 				_hide_npc()
+			"playBackGroundFieldMusic":
+				# 원작 `ScenarioSupport::playBackGroundFieldMusic(int)` — 번호→트랙 표는
+				# 디컴프에서 그대로 뽑아 `scenario_flow.json` `bgm` 에 있다.
+				Bgm.play(Data.scenario_bgm(int(o.get("field", 0))))
+			"setTitleScenario":
+				_show_title_card(int(o.get("title", _no)))
+			"scenarioBlackLayer":
+				# 원작 @0165b028 — 검은 막을 FadeTo(0.5,255) → 대기1.0 → FadeTo(0.5,50) → 대기1.0.
+				_color_flash(Color(0, 0, 0, 0), [[0.5, 1.0], [1.0, 0.0], [0.5, 50.0 / 255.0], [1.0, 0.0]])
+			"shineAction":
+				# 원작 @0165b830 — 흰 막(ccColor4B 0xffffffff)을 FadeTo(0.25,255) → FadeTo(0.25,0).
+				_color_flash(Color(1, 1, 1, 0), [[0.25, 1.0], [0.25, 0.0]])
+			"showColorLayer":
+				# 원작 @0165e208 — FadeTo(0.2, opacity) → 대기 0.2. 인자(색·불투명도)는
+				# 스텝이 구조체로 넘겨 리터럴 복원이 안 됐다 → 기본값 검정 불투명.
+				# ASSUMPTION: 색·최종 불투명도(원작 param_1/param_5) 미복원.
+				_color_flash(Color(0, 0, 0, 0), [[0.2, 1.0], [0.2, 1.0]], 300)
+			"deleteColorLayer":
+				# 원작 @0165e44c — tag 0x12d(=301) 막을 걷어낸다.
+				_clear_color_layer(300)
+			"actionSmoke":
+				# 원작 @0165c594 — 막을 FadeTo(0.2,125) → 대기 0.5 → RemoveSelf.
+				_color_flash(Color(0.5, 0.5, 0.5, 0), [[0.2, 125.0 / 255.0], [0.5, 125.0 / 255.0], [0.2, 0.0]])
+			"shakeAction":
+				# 원작 @0165b7fc — `Shake::actionWithDuration(0.3, 5.0)`.
+				_shake(0.3, 5.0)
+			"sound_CryMonster":
+				# 원작 @0165df7c — 몬스터 울음. 두 분기(param 1·2) 모두 `music/voice1.mp3`.
+				Bgm.sfx("voice1")
 			_:
-				pass          # 아직 이식 안 한 연출(전투·미니게임·파티클)은 건너뛴다
+				pass          # 아직 이식 안 한 연출(전투·미니게임·NPC 워크)은 건너뛴다
 	_finish()
+
+# ── 연출 헬퍼(원작 ScenarioSupport / ScenarioLayer) ────────────────────────────
+## 연출 전용 오버레이 레이어. 원작은 색막을 z=0x62(98) 로 깔아 **텍스트박스 위**에 둔다.
+func _fx() -> CanvasLayer:
+	if not is_instance_valid(_fx_layer):
+		_fx_layer = CanvasLayer.new()
+		_fx_layer.layer = 10
+		add_child(_fx_layer)
+	return _fx_layer
+
+## 텍스트박스를 아래로 250 밀어 치운다(원작 암전/섬광 공통 앞동작:
+## `CCMoveBy::create(0.5, (0,-250))` + `CCEaseExponentialOut`). Cocos y-up 이라 우리는 +y.
+func _push_box_away() -> void:
+	if not is_instance_valid(_box):
+		return
+	var t := _box.create_tween()
+	t.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
+	t.tween_property(_box, "position", _box_home + Vector2(0.0, 250.0), 0.5)
+
+## 화면 전체 색막 한 장 + 페이드 시퀀스. `steps` = [[초, 목표알파], …].
+## 원작은 `CCLayerColor` 를 z=98·tag=100 으로 깔고 `CCSequence(CCFadeTo…)` 를 돌린다.
+func _color_flash(base: Color, steps: Array, tag := 100) -> void:
+	_push_box_away()
+	_clear_color_layer(tag)
+	var r := ColorRect.new()
+	r.name = "fx_%d" % tag
+	r.color = base
+	r.set_anchors_preset(Control.PRESET_FULL_RECT)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx().add_child(r)
+	var t := r.create_tween()
+	for s in steps:
+		var arr: Array = s
+		t.tween_property(r, "color:a", float(arr[1]), float(arr[0]))
+	# 마지막 알파가 0이면 원작처럼 스스로 걷힌다(`CCRemoveSelf`). 남는 막은 다음 op 가 지운다.
+	if not steps.is_empty() and is_zero_approx(float((steps[-1] as Array)[1])):
+		t.tween_callback(func() -> void:
+			if is_instance_valid(r):
+				r.queue_free())
+	# 박스를 다시 올린다 — 원작은 시퀀스 꼬리의 CCCallFunc 가 되돌린다.
+	t.tween_callback(_restore_box)
+
+func _restore_box() -> void:
+	if not is_instance_valid(_box):
+		return
+	var t := _box.create_tween()
+	t.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
+	t.tween_property(_box, "position", _box_home, 0.5)
+
+func _clear_color_layer(tag := 100) -> void:
+	if not is_instance_valid(_fx_layer):
+		return
+	var n := _fx_layer.get_node_or_null("fx_%d" % tag)
+	if n != null:
+		n.queue_free()
+
+## 원작 `Shake::actionWithDuration(dur, amp)` — 매 프레임 [-amp, amp] 무작위 오프셋.
+func _shake(dur: float, amp: float) -> void:
+	var home := position
+	var t := create_tween()
+	var n := int(dur * 60.0)
+	for i in n:
+		t.tween_property(self, "position",
+			home + Vector2(randf_range(-amp, amp), randf_range(-amp, amp)), dur / float(n))
+	t.tween_property(self, "position", home, 0.0)
+
+## 회차 제목 카드 — 원작 `ScenarioLayer::setTitleScenario(int, bool)` @016d55f8.
+##   · `music/effect_jingle.mp3` 재생
+##   · 전체 색막 위에 두 줄: `<ScenarioTitleNumber>스토리 %1$d.` @ (w*0.2, h*0.8)
+##                            회차 제목                        @ (w*0.5, h*0.55)
+##     (원작 y 는 Cocos 상향이라 화면 위쪽 = 0.8 → 우리 좌표로 뒤집는다)
+##   · 두 줄 모두 `GameManager::getFontName_subtitle` = `font/font_subtitle.fnt`
+## ⚠️ 제목 텍스트는 원작이 로컬 SQLite `info_scenario_v2.title` 에서 읽는데 그 DB 가
+##    덤프에 없다 → 위키에서 1~146화 전량 복원(`build_scenario.py::read_titles`).
+func _show_title_card(no: int) -> void:
+	Bgm.sfx("effect_jingle")
+	var vis := _vis()
+	var lay := _fx()
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(root)
+	# 원작 시퀀스(전부 `CCEaseExponentialInOut`):
+	#   색막·번호 = FadeTo(0.9,255) → 대기 2.7 → FadeTo(0.36,0)
+	#   제목      = 대기 1.1 → FadeTo(0.9,255) → 대기 1.6 → FadeTo(0.36,0)
+	# 색막 바탕색은 `ccColor4B{0,0,0,0}`(local_268[0]=0) — 검정이 **완전 불투명까지** 찬다.
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(dim)
+	var num := _title_label("스토리 %d." % no, 30)      # 원작 <ScenarioTitleNumber> 그대로
+	num.position = Vector2(vis.x * 0.2, vis.y * 0.2)
+	num.modulate.a = 0.0
+	root.add_child(num)
+	var ttl := _title_label(Data.scenario_title(no), 42)
+	ttl.position = Vector2(vis.x * 0.5 - ttl.size.x * 0.5, vis.y * 0.45)
+	ttl.modulate.a = 0.0
+	root.add_child(ttl)
+	for pair in [[dim, "color:a"], [num, "modulate:a"]]:
+		var n: CanvasItem = pair[0]
+		var t0 := n.create_tween()
+		t0.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_EXPO)
+		t0.tween_property(n, String(pair[1]), 1.0, 0.9)
+		t0.tween_interval(2.7)
+		t0.tween_property(n, String(pair[1]), 0.0, 0.36)
+	var t := ttl.create_tween()
+	t.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_EXPO)
+	t.tween_interval(1.1)
+	t.tween_property(ttl, "modulate:a", 1.0, 0.9)
+	t.tween_interval(1.6)
+	t.tween_property(ttl, "modulate:a", 0.0, 0.36)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(root):
+			root.queue_free())
+
+## 원작 폰트(`font_subtitle`)로 한 줄. 비트맵이라 `fixed_size_scale_mode` 를 켜야 크기가 먹는다(§10).
+func _title_label(text: String, size: int) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var f := load(TITLE_FONT) if ResourceLoader.exists(TITLE_FONT) else null
+	if f != null:
+		if f is FontFile:
+			(f as FontFile).fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+		l.add_theme_font_override("font", f)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.size = l.get_minimum_size()
+	return l
 
 ## 다음 대사 한 줄. 흐름이 대사보다 길면(분기 회차) 조용히 끝낸다 — 지어내지 않는다.
 func _next_line() -> void:
@@ -382,7 +571,29 @@ func _advance() -> void:
 		return
 	_show_line(_idx + 1)
 
+## 시나리오 완료 알림 — 원작 문자열 `<ScenarioComplete>`/`<ScenarioCompleteTitle>`.
+##   ScenarioComplete      = "스토리 보기 완료~!"          ← 창 제목
+##   ScenarioCompleteTitle = "{제목}\n스토리를 완료하였습니다."  ← 본문(%1$s = 회차 제목)
+## 이미 본 회차를 다시 볼 때는 띄우지 않는다(원작 setIsReview 분기와 같은 취지).
+func _show_complete_notice() -> void:
+	var ep := Data.story_episode(_no)
+	var title := String(ep.get("title", "%d화" % _no))
+	var p := OrigPopup.open(self, "스토리 보기 완료~!", Vector2(620.0, 330.0))
+	var l := Label.new()
+	l.text = "%s\n스토리를 완료하였습니다." % title
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(0.16, 0.09, 0.0))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.position = Vector2(20.0, 60.0)
+	l.size = Vector2(p.win_size.x - 40.0, 90.0)
+	p.content.add_child(l)
+	p.add_action_button("확인", func() -> void:
+		p.close()
+		_leave())
+
 func _finish() -> void:
+	var first: bool = not bool(UserDB.get_progress("scenario_%d_%d" % [_no, _part], false))
 	# 본 시나리오를 봤다고 기록(원작 setScenarioMark 대응) — 재관람/진행도 판정용.
 	UserDB.set_progress("scenario_%d_%d" % [_no, _part], true)
 	# 회차별 특별보상(원작 `ScenarioManager::setSpecialReward` 3건) — 클리어 시 지급.
@@ -390,6 +601,9 @@ func _finish() -> void:
 	var rw := StoryProgress.grant_special_reward(_no)
 	if not rw.is_empty():
 		_show_special_reward(rw)
+		return
+	if first:
+		_show_complete_notice()
 		return
 	_leave()
 

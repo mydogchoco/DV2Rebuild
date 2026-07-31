@@ -445,12 +445,34 @@ func scenario_npc_folder(npc_no: int) -> String:
 func scenario_bg_paths(bg_no: int) -> Array:
 	return scenario_flow.get("backgrounds", {}).get(str(bg_no), [])
 
+## 연출 스텝의 BGM 필드 번호 → 트랙 이름 (`ScenarioSupport::playBackGroundFieldMusic`).
+## 없는 번호(17)는 원작도 무음이다 — 빈 문자열을 돌려준다.
+func scenario_bgm(field: int) -> String:
+	return String(scenario_flow.get("bgm", {}).get(str(field), ""))
+
 ## 프롤로그 대사 34줄 — 원작 `<PrologueTalk0~33>`(회차 구조 밖의 인트로).
 func prologue_lines() -> Array[String]:
 	var out: Array[String] = []
 	for v in scenario.get("prologue", []):
 		out.append(String(v))
 	return out
+
+## 회차 제목 — 원작 `info_scenario_v2.title`(로컬 SQLite, 덤프에 없음).
+## `docs/ref/wiki/story.pdf` 에서 1~146화 전량 복원(`build_scenario.py::read_titles`).
+func scenario_title(no: int) -> String:
+	return String(scenario.get("titles", {}).get(str(no), ""))
+
+## 챕터 11종 `[{no, name, from, to}]`. 경계는 위키 목차 그대로.
+func scenario_chapters() -> Array:
+	return scenario.get("chapters", [])
+
+## 이 회차가 속한 챕터(없으면 빈 Dictionary).
+func scenario_chapter_of(no: int) -> Dictionary:
+	for c in scenario_chapters():
+		var d: Dictionary = c
+		if no >= int(d.get("from", 0)) and no <= int(d.get("to", 0)):
+			return d
+	return {}
 
 ## NPC 표시 이름(원작 `<NPC_<폴더>>` 62종). 없으면 폴더명 그대로.
 func npc_name(folder: String) -> String:

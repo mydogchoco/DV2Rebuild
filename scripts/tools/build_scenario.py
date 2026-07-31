@@ -66,6 +66,56 @@ def unescape(s: str) -> str:
              .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"'))
 
 
+WIKI_STORY = ROOT / "docs" / "ref" / "wiki" / "story.pdf"
+
+
+def read_titles() -> tuple[dict[str, str], list[dict]]:
+    """회차 제목 146종 + 챕터 11종을 커뮤니티 위키에서 복원한다.
+
+    ## 왜 위키인가 (조회 근거, 2026-07-31)
+
+    원작은 제목을 **로컬 SQLite** 에서 읽는다 —
+    `ScenarioData::setInfo` @015214b8 의 리터럴:
+
+        select db_no, min_lv, point, title, daynight from info_scenario_v2 where no=%d and sub_no=%d
+
+    그 `.db` 는 우리 덤프에 없다(`find DV2 -iname "*.db"` → 0건). 문자열 리소스에도 없다
+    (`grep -o "<Scenario[A-Za-z]*>" stringsData_KR.xml` → Complete/Pass/Skip/Reward/TitleNumber 뿐,
+    회차 제목 키 없음). ⇒ 원작 제목 카드(`ScenarioLayer::setTitleScenario` @016d55f8)가
+    두 번째 줄에 그리는 텍스트가 통째로 유실이었다.
+
+    `docs/ref/wiki/story.pdf` 에 `<N>화 <제목>` 형태로 **1~146화 전량**이 있다(빠짐 0).
+    ⚠️ 위키 오타는 그대로 둔다(예: 1화 "희망의 숲 야야기") — 우리가 고치면 출처와 어긋난다.
+    """
+    if not WIKI_STORY.exists():
+        return {}, []
+    try:
+        import fitz
+    except ImportError:
+        print("[scenario] pymupdf 없음 — 회차 제목 건너뜀")
+        return {}, []
+    doc = fitz.open(WIKI_STORY)
+    txt = "\n".join(doc[i].get_text() for i in range(doc.page_count))
+    titles: dict[str, str] = {}
+    chapters: list[dict] = []
+    cur: dict | None = None
+    for ln in txt.split("\n"):
+        s = ln.strip()
+        m = re.fullmatch(r"Chapter(\d+) (.+)", s)
+        if m and not any(c["no"] == int(m.group(1)) for c in chapters):
+            cur = {"no": int(m.group(1)), "name": m.group(2).strip(), "from": 0, "to": 0}
+            chapters.append(cur)
+            continue
+        m = re.fullmatch(r"(\d+)화 (.+)", s)
+        if m:
+            no, title = m.group(1), m.group(2).strip()
+            titles.setdefault(no, title)
+            if cur is not None:
+                cur["from"] = cur["from"] or int(no)
+                cur["to"] = max(cur["to"], int(no))
+    return titles, chapters
+
+
 def main() -> None:
     if not XML.exists():
         raise SystemExit(f"원본 문자열 리소스가 없다: {XML}")
@@ -137,6 +187,8 @@ def main() -> None:
             if not dst.exists():
                 shutil.copyfile(f, dst)
 
+    titles, chapters = read_titles()
+
     # 프롤로그 대사 — `<PrologueTalk%d>` 34줄(원작 인트로). 회차 구조 밖이라 따로 담는다.
     pro = {int(k): unescape(v).strip()
            for k, v in re.findall(r"<PrologueTalk(\d+)>(.*?)</PrologueTalk\1>", raw, re.S)}
@@ -164,8 +216,14 @@ def main() -> None:
             "moveData/eventData/sceneAction)는 서버 JSON(ResponseScriptJson)이라 **유실**. "
             "→ 화자·배경·연출은 docs/input/review/scenario_sheet.md 로 사용자가 채운다."),
         "_generated": "scripts/tools/build_scenario.py",
+        "_title_basis": (
+            "회차 제목 = 원작 로컬 SQLite info_scenario_v2.title (ScenarioData::setInfo @015214b8) "
+            "인데 그 .db 가 덤프에 없다 → docs/ref/wiki/story.pdf 에서 1~146화 전량 복원(빠짐 0). "
+            "번호 문구는 원작 문자열 <ScenarioTitleNumber>스토리 %1$d.</> 그대로."),
         "npc_names": npc_names,
         "prologue": prologue,
+        "titles": titles,
+        "chapters": chapters,
         "scenarios": scenarios,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -175,6 +233,8 @@ def main() -> None:
     nlines = sum(len(p["lines"]) for s in scenarios.values() for p in s["parts"])
     print(f"[scenario] 시나리오 {len(scenarios)}편 · 파트 "
           f"{sum(len(s['parts']) for s in scenarios.values())} · 대사 {nlines}줄")
+    print(f"[scenario] 회차 제목 {len(titles)}종 · 챕터 {len(chapters)}종 "
+          f"· 프롤로그 {len(prologue)}줄")
     print(f"[scenario] NPC 이름 {len(npc_names)}종 · 삽화 {sum(len(v) for v in illust.values())}장 "
           f"· 컷 {sum(len(v) for v in cuts.values())}장 → {OUT.relative_to(ROOT)}")
 
