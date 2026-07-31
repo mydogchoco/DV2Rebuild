@@ -504,6 +504,45 @@ func _ready() -> void:
 								r["facing"] = f
 								tn.call("_npc_face", r)
 								tn.call("_npc_play", r, "walk")
+		"questflow":
+			# 마을 미션 대사 흐름 회귀(원작 TownQuestManager) — 세이브 미기록(begin_batch).
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 8: await get_tree().process_frame
+			Scenes.goto("town", {"area": "elpis"})
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()
+			UserDB.set_pmeta("quests", {"date": Time.get_date_string_from_system()})
+			var qs := Scenes.current_scene()
+			print("QF state0=", qs.call("_npc_quest_state", 1))          # kanggalo = 알 부화
+			qs.call("_on_npc_click", "kanggalo")
+			await get_tree().create_timer(2.5).timeout
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_qf_offer.png")
+			# 수락 버튼(선택 레이어의 첫 버튼)
+			var ch := _find_label_button(qs, "수락")
+			if ch != null: ch.emit_signal("pressed")
+			for i in 10: await get_tree().process_frame
+			print("QF accepted=", UserDB.quest_accepted("hatches"), " state1=", qs.call("_npc_quest_state", 1))
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_qf_ok.png")
+			# 진행 → 목표 달성 → 다시 말 걸면 완료 대사 + 보상
+			UserDB.bump_quest("hatches")
+			print("QF progress=", UserDB.quest_progress("hatches"), " state2=", qs.call("_npc_quest_state", 1))
+			var g0 := UserDB.gold()
+			qs.call("_on_npc_click", "kanggalo")
+			for i in 10: await get_tree().process_frame
+			print("QF cleared=", UserDB.quest_claimed("hatches"), " gold+", UserDB.gold() - g0)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_qf_clear.png")
+			# 거절 경로 + 레벨 게이트(yuria = 전투 승리, lv 5)
+			UserDB.set_pmeta("quests", {"date": Time.get_date_string_from_system()})
+			qs.call("_on_npc_click", "pino")
+			for i in 8: await get_tree().process_frame
+			var nb := _find_label_button(qs, "거절")
+			if nb != null: nb.emit_signal("pressed")
+			for i in 8: await get_tree().process_frame
+			print("QF refused gaveup=", UserDB.quest_gaveup("feeds"), " state=", qs.call("_npc_quest_state", 2))
+			get_tree().quit()
 		"townwire":
 			# 마을 배선 회귀 검사 — 원작 `TownMainMenuLayer` 이식(2026-07-31) 검증용.
 			#   ① 우상단 close_btn(tag 700) → 월드맵 복귀   ② 두루마리(tag 0x2c1) → 퀘스트 팝업
@@ -556,7 +595,9 @@ func _ready() -> void:
 			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_questpop_done.png")
 			print("WIRE shot_done=res://scratch_shots/_questpop_done.png")
 			# 라온 도움 창(다이아 결제) — 미션을 다시 미완료로 되돌리고 연다.
-			UserDB.set_pmeta("quests", {})
+			# 라온 도움은 **수락한 미션**이 대상이다(원작 getTargetQuest) → 하나 수락시켜 둔다.
+			UserDB.set_pmeta("quests", {"date": Time.get_date_string_from_system()})
+			UserDB.accept_quest("battles")
 			for c3 in tw_scene.get_children():
 				if c3 is CanvasLayer and (c3 as CanvasLayer).layer >= 30: c3.queue_free()
 			for i in 5: await get_tree().process_frame
@@ -2145,9 +2186,21 @@ func _ready() -> void:
 				var sruid := UserDB.active_uid()
 				var srd := UserDB.get_dragon(sruid)
 				var srbefore := UserDB.get_dragon(sruid)
-				var srpop := ItemCommentPopup.open_slot_reset(srcv, srkind, srd, srkey,
-					func(): srcv.call("_apply_slot_reset", srkey,
-						"skillslot" if srkind == "skill" else "gemslot", sruid))
+				# **실제 경로**로 들어간다 — 가방 → 아이템 사용 → 대상 선택 → 확인창.
+				srcv.call("_open_inventory")
+				for i in 10: await get_tree().process_frame
+				srcv.call("_use_consumable", srkey,
+					"skillslot" if srkind == "skill" else "gemslot")
+				for i in 5: await get_tree().process_frame
+				# 대상 선택 모달에서 활성 드래곤 줄을 누른다.
+				var srname: String = Icons.name_of(srd)
+				var srpicked := false
+				for b in _all_buttons(srcv):
+					if String((b as Button).text).find(srname) >= 0:
+						(b as Button).pressed.emit(); srpicked = true
+						break
+				print("SHOT slotreset 대상선택=", srpicked, " (", srname, ")")
+				var srpop := _find_node_of_class(srcv, "ItemCommentPopup")
 				await get_tree().create_timer(1.0).timeout
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(out.get_basename() + "_00.png")
@@ -2156,7 +2209,7 @@ func _ready() -> void:
 					" skill_slots=", Loadout.slot_types(srbefore))
 				# 확인 버튼을 **팝업 안에서** 라벨로 찾아 누른다(배선까지 함께 검증).
 				var srhit := false
-				for b in _all_buttons(srpop):
+				for b in _all_buttons(srpop if srpop != null else srcv):
 					var par := (b as Button).get_parent()
 					for l in _all_labels(par):
 						if String((l as Label).text) == "확인":
@@ -2348,6 +2401,16 @@ func _find_method_node(n: Node, method: String) -> Node:
 	if n.has_method(method): return n
 	for c in n.get_children():
 		var r := _find_method_node(c, method)
+		if r != null: return r
+	return null
+
+## 트리에서 그 스크립트 class_name 을 가진 첫 노드(팝업 인스턴스 찾기용).
+func _find_node_of_class(n: Node, cls: String) -> Node:
+	var sc: Variant = n.get_script()
+	if sc is Script and String((sc as Script).get_global_name()) == cls:
+		return n
+	for c in n.get_children():
+		var r := _find_node_of_class(c, cls)
 		if r != null: return r
 	return null
 

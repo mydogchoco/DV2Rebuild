@@ -99,6 +99,82 @@ def load_strings(path):
     return out
 
 
+# ── 임프상인(퐁) 대사 ────────────────────────────────────────────────────
+# 원작 `ImpShopScene::setSellerInto` 가 세 갈래로 고른다(리터럴 그대로):
+#   `ShopWelcomeImp%d` ← (r % 3) + 7  → 7~9
+#   `ShopWelcomeImp%d` ← (r & 1) + 5  → 5·6
+#   `ShopWelcomeImp%d` ← (r & 3) + 1  → 1~4
+# 어느 갈래인지는 서버 상태(주간 랭킹/보유 보석)로 갈렸는데 랭킹이 ⚫CUT 이라 우리는 1~4 를 쓴다.
+# 구매 직후는 `ShopBuyImpPong_%d`(1~4). NPC 이름은 `NPC_pong` = "임프 퐁".
+IMP_WELCOME = ["ShopWelcomeImp%d" % i for i in range(1, 10)]
+IMP_BUY = ["ShopBuyImpPong_%d" % i for i in range(1, 5)]
+
+
+def imp_block(get):
+    """{name, welcome[9], buy[4]} — 없는 키는 건너뛴다."""
+    out = {
+        "_re_basis": ("ImpShopScene::setSellerInto — ShopWelcomeImp(r%3+7 / r&1+5 / r&3+1), "
+                      "구매 후 ShopBuyImpPong_%d. 이름 = NPC_pong."),
+        "_cut": "주간 트레저헌터 랭킹은 ⚫CUT 이라 랭킹 갈래(7~9)는 쓰지 않는다.",
+        "name": get("NPC_pong") or "임프 퐁",
+        "welcome": [t for t in (get(k) for k in IMP_WELCOME) if t],
+        "buy": [t for t in (get(k) for k in IMP_BUY) if t],
+    }
+    return out
+
+
+
+# ── 마을 미션 대사 (TownQuestManager::setQuestNpcSpeech) ──────────────────
+# 원작은 NPC id 를 strcmp 로 비교해 접두사 4종을 고르고, 난수 접미사를 붙여 대사를 만든다:
+#   제안 `<P>Quest{1..3}`      ← (arc4random() % 3) + 1   → setNpcSpeechInNormal
+#   수락 `<P>QuestOk{1..2}`    ← (arc4random() & 1) + 1   → setNpcSpeechInYes
+#   거절 `<P>QuestCancel{1..2}`← 같은 난수                → setNpcSpeechInNo
+#   완료 `<P>QuestClear{1..2}` ← 같은 난수                → setNpcSpeechInCompleted
+# 미션을 주는 NPC 는 이 6명뿐이다(strcmp 대상 = TownWorldPopUp 아이콘 6종과 동일).
+QUEST_NPC = {
+    "yuria": "Uria", "kanggalo": "Kangalo", "pino": "Pino",
+    "romini": "Rumini", "nuri": "Noori", "raon": "Raon",
+}
+# 흐름 중 뜨는 공용 문구.
+QUEST_MISC = {
+    "annonce": "annonce",              # 알림 팝업 제목
+    "giveup": "GiveUpQuest",           # 포기 확인 (showQuestGivePopUp)
+    "level": "TownQuestLevel",         # 대표 드래곤 레벨 부족 (checkQuestLv)
+}
+
+
+def collect_town_quest(S):
+    """NPC 별 {offer[3], ok[2], cancel[2], clear[2]} + 공용 문구."""
+    def series(prefix, n):
+        out = []
+        for i in range(1, n + 1):
+            key = "%s%d" % (prefix, i)
+            if key in S:
+                out.append(S[key])
+        return out
+
+    npcs = {}
+    for npc, pre in QUEST_NPC.items():
+        npcs[npc] = {
+            "prefix": pre,
+            "offer": series(pre + "Quest", 3),
+            "ok": series(pre + "QuestOk", 2),
+            "cancel": series(pre + "QuestCancel", 2),
+            "clear": series(pre + "QuestClear", 2),
+        }
+        d = npcs[npc]
+        print("  quest %-9s 제안 %d · 수락 %d · 거절 %d · 완료 %d"
+              % (npc, len(d["offer"]), len(d["ok"]), len(d["cancel"]), len(d["clear"])))
+    return {
+        "_re_basis": "TownQuestManager::setQuestNpcSpeech @docs/ref/orig_code/decomp/"
+                     "TownQuestManager.c — strcmp(npc) 로 접두사 선택, 제안 rand%3+1 / "
+                     "나머지 rand&1+1. 키는 .so ADRP/ADD 디스어셈블로 복원했다(Ghidra 가 떨궜다).",
+        "_note": "미션을 주는 NPC 6명 = TownWorldPopUp::initWidgetTotal 아이콘 테이블과 동일.",
+        "npcs": npcs,
+        "misc": {k: S[v] for k, v in QUEST_MISC.items() if v in S},
+    }
+
+
 def main():
     if not os.path.exists(XML):
         print("[skip] 원본 문자열 없음:", XML)
@@ -124,6 +200,8 @@ def main():
         "_note": "aria/guy/grandma/nelson 은 showNpcText 에 쌍이 없다 — 배회 전용 행인으로 추정",
         "npcs": npcs,
         "shop": collect_shop(S),
+        "imp_shop": imp_block(lambda k: S.get(k, "")),
+        "town_quest": collect_town_quest(S),
     }
     os.makedirs("data", exist_ok=True)
     json.dump(doc, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

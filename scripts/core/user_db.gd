@@ -676,6 +676,45 @@ func claim_quest(key: String) -> void:
 	q["claimed_" + key] = true
 	set_pmeta("quests", q)
 
+## ---- 마을 미션 수락/포기 (원작 TownQuestManager 흐름) ----
+## 원작은 서버가 퀘스트 상태를 들고 있다(`requestTownQuest`/`responseTownQuest`).
+## 오프라인은 같은 `quests` 일일 딕셔너리에 상태를 얹는다:
+##   `accepted_<key>` 수락 여부 · `base_<key>` 수락 시점의 카운터(그 뒤 증가분만 진행도로 센다)
+##   · `gaveup_<key>` 포기(원작 `GiveUpQuest` = "포기한 퀘스트는 다시 진행할 수 없습니다")
+func quest_accepted(key: String) -> bool:
+	var q: Dictionary = get_pmeta("quests", {})
+	if String(q.get("date", "")) != Time.get_date_string_from_system(): return false
+	return bool(q.get("accepted_" + key, false))
+
+func quest_gaveup(key: String) -> bool:
+	var q: Dictionary = get_pmeta("quests", {})
+	if String(q.get("date", "")) != Time.get_date_string_from_system(): return false
+	return bool(q.get("gaveup_" + key, false))
+
+## 수락. 카운터는 전역이므로(전투·부화 등은 수락 여부를 모른다) **수락 시점 값을 기준선으로**
+## 남겨 그 뒤 증가분만 진행도로 센다.
+func accept_quest(key: String) -> void:
+	var today := Time.get_date_string_from_system()
+	var q: Dictionary = (get_pmeta("quests", {}) as Dictionary).duplicate()
+	if String(q.get("date", "")) != today: q = {"date": today}
+	q["accepted_" + key] = true
+	q["base_" + key] = int(q.get(key, 0))
+	set_pmeta("quests", q)
+
+func giveup_quest(key: String) -> void:
+	var today := Time.get_date_string_from_system()
+	var q: Dictionary = (get_pmeta("quests", {}) as Dictionary).duplicate()
+	if String(q.get("date", "")) != today: q = {"date": today}
+	q["gaveup_" + key] = true
+	q.erase("accepted_" + key)
+	set_pmeta("quests", q)
+
+## 수락 이후의 진행도. 미수락이면 0.
+func quest_progress(key: String) -> int:
+	if not quest_accepted(key): return 0
+	var q: Dictionary = get_pmeta("quests", {})
+	return maxi(0, int(q.get(key, 0)) - int(q.get("base_" + key, 0)))
+
 ## kind 재화를 amount만큼 소비. 부족하면 false.
 func spend(kind: String, amount: int) -> bool:
 	if currency(kind) < amount:

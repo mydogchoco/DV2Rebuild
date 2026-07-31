@@ -576,14 +576,18 @@ func _sort_npc_z() -> void:
 ##    종전엔 11명에게 순번 0~10 을 그대로 붙이고 있었다.
 ##    ⚠️ 미션 **내용**은 여전히 유실(서버 `getElpisDic`) — `_QUESTS` 참조.
 const QMARK_TAG := 0x66
+## 원작 `TownQuestManager` 상태 + `changeNpcQstate`:
+##   "" 없음(수령 완료 / 포기) · "offer" 미수락 · "progress" 수락·진행중 · "reward" 완료·보상대기
 func _npc_quest_state(qslot: int) -> String:
 	if qslot < 0 or qslot >= _QUESTS.size():
 		return ""
 	var qd: Dictionary = _QUESTS[qslot]
 	var key := String(qd["key"])
-	if UserDB.quest_claimed(key):
+	if UserDB.quest_claimed(key) or UserDB.quest_gaveup(key):
 		return ""
-	if UserDB.quest_count(key) >= int(qd["goal"]):
+	if not UserDB.quest_accepted(key):
+		return "offer"
+	if UserDB.quest_progress(key) >= int(qd["goal"]):
 		return "reward"
 	return "progress"
 
@@ -705,34 +709,18 @@ func _npc_stop_talking() -> void:
 func _on_npc_click(npc_id: String) -> void:
 	var db: Dictionary = Data.npc_lines() if Data.has_method("npc_lines") else {}
 	var info: Dictionary = db.get(npc_id, {})
-	var lines: Array = info.get("lines", [])
+	var lines_: Array = info.get("lines", [])
 	var who := String(info.get("name", ""))
-	if lines.is_empty():
+	if lines_.is_empty():
 		return    # 대사가 없는 행인(aria/guy/grandma/nelson)은 무반응 — 원작도 쌍이 없다
 	# 원작 `TownQuestManager::requestTalkCountUp(no)` → `game_quest/request_quest_counter.hb`.
 	# 마을 주민과의 대화가 미션 카운터로 올라간다(오프라인은 로컬 카운터).
 	UserDB.bump_quest("talks")
-	# 개별 미션 보상은 이 창(전체 현황판)이 아니라 **NPC 에게서** 받는다 —
-	# 원작도 `TownQuestManager::setQuestReward` 가 NPC 대화 흐름에 있다.
-	for qi in _QUESTS.size():
-		var q: Dictionary = _QUESTS[qi]
-		if String(q["npc"]) != npc_id:
-			continue
-		if _npc_quest_state(qi) == "reward":
-			UserDB.claim_quest(String(q["key"]))
-			UserDB.add_currency("gold", int(q["gold"]))
-			_refresh_quest_marks()
-			_refresh_hud()
-			_open_town_reward(int(q["gold"]))
-			return
-		break
-	# 원작 showNpcText: 대사 번호 = `(arc4random() & 7) + 1` → 8줄 중 **무작위**.
-	var i := randi() % lines.size()
+	# 대화가 끝날 때까지 그 자리에 선다 — 종전엔 상호작용 모션 그대로 배회를 이어가 어색했다.
 	var rec := {}
 	for r in _npcs:
 		if String(r["id"]) == npc_id:
 			rec = r; break
-	# 대화가 끝날 때까지 그 자리에 선다 — 종전엔 상호작용 모션 그대로 배회를 이어가 어색했다.
 	_npc_stop_talking()
 	if not rec.is_empty():
 		rec["talking"] = true
@@ -741,7 +729,15 @@ func _on_npc_click(npc_id: String) -> void:
 		_talking = rec
 		_npc_play(rec, "happy")   # 원작 happy 애니(있는 NPC만)
 		rec["endt"] = 1.2
-	_show_npc_balloon(rec, who, String(lines[i]))
+	# 미션을 주는 6명이면 미션 흐름이 우선한다(원작 TownQuestManager).
+	for qi in _QUESTS.size():
+		if String((_QUESTS[qi] as Dictionary)["npc"]) != npc_id:
+			continue
+		if _npc_quest_talk(npc_id, qi, rec, who):
+			return
+		break
+	# 원작 showNpcText: 대사 번호 = `(arc4random() & 7) + 1` → 8줄 중 **무작위**.
+	_show_npc_balloon(rec, who, String(lines_[randi() % lines_.size()]))
 
 ## 말풍선 = 원작 `SpeechBalloonBox::init` 이식.
 ##   본체 `scene/town/elpis/txt_balloon2.png` 를 **CCScale9Sprite(capInsets 20,20,5,5)** 로 늘리고,
@@ -1293,8 +1289,11 @@ func _show_tip() -> void:
 ##    근거가 있는 것은 **구조**(6개·담당 NPC 6명)와 "오늘 하루"(`ElpisQuestTotalComment`)라는
 ##    **일일 리셋** 성격뿐이다. 단 `talks`(주민과 대화)는 원작에도 카운터가 있다 —
 ##    `TownQuestManager::requestTalkCountUp` → `game_quest/request_quest_counter.hb`.
+##    `lv` = 원작 `checkQuestLv` 가 **대표 드래공** 레벨과 비교하는 요구치다
+##    (미달이면 `TownQuestLevel` 안내). 값은 `QuestData` 서버 레코드라 유실 → 자작이고,
+##    없거나 0 이면 검사를 건너륐다.
 const _QUESTS := [
-	{"npc": "yuria",    "icon": "yulia",    "key": "battles",  "label": "전투 승리",   "goal": 3, "gold": 300},
+	{"npc": "yuria",    "icon": "yulia",    "key": "battles",  "label": "전투 승리",   "goal": 3, "gold": 300, "lv": 5},
 	{"npc": "kanggalo", "icon": "kanggalo", "key": "hatches",  "label": "알 부화",     "goal": 1, "gold": 200},
 	{"npc": "pino",     "icon": "pino",     "key": "feeds",    "label": "먹이 주기", "goal": 3, "gold": 150},
 	{"npc": "romini",   "icon": "romini",   "key": "levelups", "label": "레벨업", "goal": 1, "gold": 250},
@@ -1472,8 +1471,17 @@ func _open_quests() -> void:
 		plate.z_index = 4
 		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		win.add_child(plate)
-		var st := "완료" if done else "%d/%d" % [
-			mini(UserDB.quest_count(String(qd["key"])), int(qd["goal"])), int(qd["goal"])]
+		# 상태 표기 — 원작 TownQuestManager 흐름(미수락/진행/완료/포기).
+		var qkey := String(qd["key"])
+		var st := ""
+		if done:
+			st = "완료"
+		elif UserDB.quest_gaveup(qkey):
+			st = "포기"
+		elif not UserDB.quest_accepted(qkey):
+			st = "미수락"
+		else:
+			st = "%d/%d" % [mini(UserDB.quest_progress(qkey), int(qd["goal"])), int(qd["goal"])]
 		var cap := _q_label("%s %s" % [String(qd["label"]), st], "font_common", 12,
 			Color(1, 0.95, 0.85) if done else Color(0.85, 0.84, 0.82),
 			c + Vector2(0.0, -39.0), Vector2(cap_w, 18.0))
@@ -1585,7 +1593,7 @@ func _raon_price() -> int:
 ## 원작은 "현재 진행 중인 퀘스트" 1개가 대상이라(`QuestManager::getTargetQuest`) 같은 성격이다.
 func _raon_target() -> int:
 	for i in _QUESTS.size():
-		if not _quest_done(_QUESTS[i]):
+		if _npc_quest_state(i) in ["progress", "reward"]:
 			return i
 	return -1
 
@@ -1675,6 +1683,184 @@ func _open_raon_help() -> void:
 		_refresh_quest_marks()
 		_refresh_hud()
 		finish.call(_RAON_CLEAR[randi() % _RAON_CLEAR.size()]))
+
+
+# ── 마을 미션 대사 흐름 (원작 TownQuestManager) ─────────────────────────────
+## 원작 `setQuestNpcSpeech(QuestData*, npcId)` 는 NPC id 를 `strcmp` 로 비교해 접두사를 고르고
+## 난수 접미사를 붙여 **4가지 대사 세트**를 만든다(키는 .so ADRP/ADD 로 복원, 전부 보유):
+##   제안 `<P>Quest{1..3}`       ← `arc4random() % 3 + 1` → `setNpcSpeechInNormal`
+##   수락 `<P>QuestOk{1..2}`     ← `arc4random() & 1 + 1` → `setNpcSpeechInYes`
+##   거절 `<P>QuestCancel{1..2}` ← 같은 난수            → `setNpcSpeechInNo`
+##   완료 `<P>QuestClear{1..2}`  ← 같은 난수            → `setNpcSpeechInCompleted`
+## 접두사: yuria→Uria · kanggalo→Kangalo · pino→Pino · romini→Rumini · nuri→Noori · raon→Raon
+## (= 미션을 주는 6명. `TownWorldPopUp` 아이콘 테이블과 독립적으로 일치한다.)
+##
+## 상태 기계(원작 `QuestManager::NpcTalkMode` + 리스너):
+##   미수락 → 제안 → [수락] `setQuestConfirmRequest`(+`checkQuestLv`) / [거절] `setQuestCancel`
+##   진행중 → 진행 안내 → [포기] `showQuestGivePopUp`(`GiveUpQuest`) → `setQuestGiveUp`
+##   완료   → `setQuestClear` → `setQuestReward` → `TownRewardPopUp`
+##
+## ⚪ 표시 계층은 원작이 `NpcTalkLayer`(setTalker 5,584B, 프레임을 `TalkNpc` 데이터로 받는다)인데
+##    그건 별건이라 우리 말풍선(`_show_npc_balloon`) + 선택 버튼으로 낸다.
+## ⚠️ `Data.npc_lines()` 는 문서 전체가 아니라 **`npcs` 하위만** 돌려준다(data_loader.gd:547).
+##    미션 대사는 문서 최상위 `town_quest` 에 있으므로 `npc_lines_doc` 을 직접 본다.
+func _quest_doc() -> Dictionary:
+	var doc: Dictionary = Data.npc_lines_doc if "npc_lines_doc" in Data else {}
+	return doc.get("town_quest", {})
+
+func _quest_lines(npc_id: String) -> Dictionary:
+	return (_quest_doc().get("npcs", {}) as Dictionary).get(npc_id, {})
+
+func _quest_misc(key: String, fallback: String) -> String:
+	return String((_quest_doc().get("misc", {}) as Dictionary).get(key, fallback))
+
+## 대사 세트에서 한 줄. 원작 난수 규칙(제안 %3, 나머지 &1)은 배열 길이로 자연히 재현된다.
+func _quest_say(npc_id: String, kind: String) -> String:
+	var arr: Array = _quest_lines(npc_id).get(kind, [])
+	return String(arr[randi() % arr.size()]) if not arr.is_empty() else ""
+
+## NPC 클릭 시 미션 흐름을 탄다. 처리했으면 true(일반 잡담을 건너뛴다).
+func _npc_quest_talk(npc_id: String, qi: int, rec: Dictionary, who: String) -> bool:
+	var qd: Dictionary = _QUESTS[qi]
+	var key := String(qd["key"])
+	match _npc_quest_state(qi):
+		"reward":
+			# 원작 setQuestClear → setQuestReward → TownRewardPopUp
+			_show_npc_balloon(rec, who, _quest_say(npc_id, "clear"))
+			UserDB.claim_quest(key)
+			UserDB.add_currency("gold", int(qd["gold"]))
+			_refresh_quest_marks()
+			_refresh_hud()
+			_open_town_reward(int(qd["gold"]))
+			return true
+		"offer":
+			# 원작 setNpcSpeechInNormal + Yes/No 리스너
+			_show_npc_balloon(rec, who, _quest_say(npc_id, "offer"))
+			_npc_choice("수락", "거절",
+				func():
+					# 원작 checkQuestLv: **대표 드래곤** 레벨이 요구치 미만이면 진행 불가.
+					var need := int(qd.get("lv", 0))
+					var a := UserDB.active_dragon()
+					if need > 0 and (a.is_empty() or int(a.get("level", 1)) < need):
+						_open_annonce(_quest_misc("level",
+							"선택한 드래곤의 레벨이 부족하여 퀘스트를 진행할 수 없습니다."))
+						return
+					UserDB.accept_quest(key)
+					_show_npc_balloon(rec, who, _quest_say(npc_id, "ok"))
+					_refresh_quest_marks()
+					_refresh_hud(),
+				func():
+					UserDB.giveup_quest(key)   # 원작 setQuestCancel — 거절도 그날은 끝이다
+					_show_npc_balloon(rec, who, _quest_say(npc_id, "cancel"))
+					_refresh_quest_marks()
+					_refresh_hud())
+			return true
+		"progress":
+			# 진행 안내 + 포기(원작 showQuestGivePopUp → GiveUpQuest 확인 → setQuestGiveUp)
+			_show_npc_balloon(rec, who, "%s  (%d/%d)" % [String(qd["label"]),
+				UserDB.quest_progress(key), int(qd["goal"])])
+			_npc_choice("포기하기", "계속하기",
+				func(): _open_giveup_confirm(key),
+				func(): pass)
+			return true
+	return false
+
+## 말풍선 아래 2지선다. 원작 `NpcTalkLayer` 의 Yes/No 자리를 대신한다.
+var _choice_layer: CanvasLayer
+func _npc_choice(yes_text: String, no_text: String, on_yes: Callable, on_no: Callable) -> void:
+	_close_choice()
+	var vis := _vis()
+	_choice_layer = CanvasLayer.new()
+	_choice_layer.layer = 25
+	add_child(_choice_layer)
+	var y := FLOOR - 120.0
+	var a := _rounded_button(yes_text, Vector2(vis.x * 0.5 - 120.0, y), true)
+	var b := _rounded_button(no_text, Vector2(vis.x * 0.5 + 120.0, y), true)
+	for btn in [a, b]:
+		btn.size = Vector2(180.0, 48.0)
+	a.position = Vector2(vis.x * 0.5 - 120.0, y) - a.size * 0.5
+	b.position = Vector2(vis.x * 0.5 + 120.0, y) - b.size * 0.5
+	a.pressed.connect(func(): _close_choice(); on_yes.call())
+	b.pressed.connect(func(): _close_choice(); on_no.call())
+	_choice_layer.add_child(a)
+	_choice_layer.add_child(b)
+
+func _close_choice() -> void:
+	if _choice_layer != null and is_instance_valid(_choice_layer):
+		_choice_layer.queue_free()
+	_choice_layer = null
+
+## 원작 `annonce` 제목의 단순 안내 팝업(`checkQuestLv` 가 쓰는 PopupTypeLayer 자리).
+func _open_annonce(msg: String) -> void:
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 46; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT); layer.add_child(dim)
+	const BW := 480.0
+	const BH := 230.0
+	var win := NinePatchRect.new()
+	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	win.patch_margin_left = 130; win.patch_margin_top = 190
+	win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(BW, BH)
+	win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
+	layer.add_child(win)
+	var tbar := NinePatchRect.new()
+	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20
+	tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(BW * 0.8, 50.0)
+	tbar.position = Vector2((BW - tbar.size.x) * 0.5, 38.0 - tbar.size.y * 0.5)
+	win.add_child(tbar)
+	win.add_child(_q_label(_quest_misc("annonce", "알림"), "font_subtitle", 21, Color.WHITE,
+		Vector2(BW * 0.5, 38.0), Vector2(tbar.size.x, 34.0)))
+	var m := _q_label(msg, "font_common", 16, Color8(90, 60, 25),
+		Vector2(BW * 0.5, 118.0), Vector2(BW - 70.0, 60.0))
+	m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	win.add_child(m)
+	var ok := _rounded_button("확인", Vector2(BW * 0.5, BH - 48.0), true)
+	ok.pressed.connect(func(): layer.queue_free())
+	win.add_child(ok)
+
+## 원작 `showQuestGivePopUp` — `annonce` 제목 + `GiveUpQuest` 문구 + 확인/취소.
+## 문구가 "포기한 퀘스트는 다시 진행할 수 없습니다" 이므로 포기하면 **그날은 끝**이다.
+func _open_giveup_confirm(key: String) -> void:
+	var vis := _vis()
+	var layer := CanvasLayer.new(); layer.layer = 46; add_child(layer)
+	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT); layer.add_child(dim)
+	const BW := 520.0
+	const BH := 250.0
+	var win := NinePatchRect.new()
+	win.texture = load("res://assets/converted/ninepatch_ui/9patch_popup4.tres")
+	win.patch_margin_left = 130; win.patch_margin_top = 190
+	win.patch_margin_right = 55; win.patch_margin_bottom = 81
+	win.size = Vector2(BW, BH)
+	win.position = Vector2(round(vis.x * 0.5 - BW * 0.5), round(vis.y * 0.5 - BH * 0.5))
+	layer.add_child(win)
+	var tbar := NinePatchRect.new()
+	tbar.texture = load("res://assets/converted/ninepatch_ui/9patch_pop_title_bg.tres")
+	tbar.patch_margin_left = 20; tbar.patch_margin_right = 20
+	tbar.patch_margin_top = 12; tbar.patch_margin_bottom = 12
+	tbar.size = Vector2(BW * 0.8, 50.0)
+	tbar.position = Vector2((BW - tbar.size.x) * 0.5, 38.0 - tbar.size.y * 0.5)
+	win.add_child(tbar)
+	win.add_child(_q_label(_quest_misc("annonce", "알림"), "font_subtitle", 21, Color.WHITE,
+		Vector2(BW * 0.5, 38.0), Vector2(tbar.size.x, 34.0)))
+	var m := _q_label(_quest_misc("giveup", "현재 진행중인 퀘스트를 포기하시겠습니까?"),
+		"font_common", 16, Color8(90, 60, 25), Vector2(BW * 0.5, 122.0), Vector2(BW - 70.0, 64.0))
+	m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	win.add_child(m)
+	var ok := _rounded_button("확인", Vector2(BW * 0.5 - 118.0, BH - 48.0), true)
+	ok.pressed.connect(func():
+		UserDB.giveup_quest(key)
+		layer.queue_free()
+		_refresh_quest_marks()
+		_refresh_hud())
+	win.add_child(ok)
+	var no := _rounded_button("취소", Vector2(BW * 0.5 + 118.0, BH - 48.0), true)
+	no.pressed.connect(func(): layer.queue_free())
+	win.add_child(no)
 
 ## 원작 TownRewardPopUp 1:1(initValue_town): 보상 획득 팝업 — popup4 + pop_title_bg + backlight3(광배)
 ## + yongsin_ball spine(용신 볼 축하연출) + coin 보상. 근거: TownRewardPopUp.c(9patch/popup4·pop_title_bg,
