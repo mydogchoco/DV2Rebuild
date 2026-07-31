@@ -89,6 +89,13 @@ static func _flag_source(c: Dictionary, flag: String) -> int:
 			return int(e.get("source", 0))
 	return 0
 
+## 그 상태의 **남은 턴**. 원작 `Bicon::setTurnCount` 가 아이콘 위에 이 숫자를 찍는다.
+static func _flag_turns(c: Dictionary, flag: String) -> int:
+	for e in c.get("effects", []):
+		if e.get("kind") == "status" and e.get("flag") == flag:
+			return maxi(0, int(e.get("turns", 0)))
+	return 0
+
 static func _remove_flag(c: Dictionary, flag: String) -> void:
 	var keep: Array = []
 	for e in c.get("effects", []):
@@ -1239,7 +1246,7 @@ static func _round_end(party_a: Array, party_b: Array, events: Array, round: int
 						c["hp"] = maxi(0, int(c["hp"]) - dmg)
 						var dead := int(c["hp"]) <= 0
 						if dead: c["alive"] = false
-						events.append({"type": "dot", "target": c["name"], "damage": dmg, "dead": dead, "round": round, "source": e.get("source", 0)})
+						events.append({"type": "dot", "target": c["name"], "damage": dmg, "dead": dead, "round": round, "source": e.get("source", 0), "turns": maxi(0, int(e.get("turns", 1)) - 1)})
 					var t := int(e["turns"]) - 1
 					if t > 0 and c["alive"]:
 						e["turns"] = t; keep.append(e)
@@ -1251,7 +1258,7 @@ static func _round_end(party_a: Array, party_b: Array, events: Array, round: int
 							c["hp"] = maxi(0, int(c["hp"]) - dmg2)
 							var dead2 := int(c["hp"]) <= 0
 							if dead2: c["alive"] = false
-							events.append({"type": "timed", "target": c["name"], "damage": dmg2, "dead": dead2, "round": round, "source": e.get("source", 0)})
+							events.append({"type": "timed", "target": c["name"], "damage": dmg2, "dead": dead2, "round": round, "source": e.get("source", 0), "turns": 0})
 					else:
 						e["turns"] = t2; keep.append(e)
 				else:
@@ -1294,7 +1301,7 @@ static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator,
 				#   전투 중 스킬 기절(`AdventureSkillStop`)과는 무관하다.
 				#   → 그쪽은 `Incapacitation` + `battle.gd::_apply_defeat_incapacitation` 담당.
 				events.append({"type": "status_skip", "actor": actor["name"], "round": rounds, "lead": lead,
-					"source": _flag_source(actor, "stun")})   # 원작 Bicon 아이콘용 출처 스킬
+					"source": _flag_source(actor, "stun"), "turns": _flag_turns(actor, "stun")})   # 원작 Bicon 아이콘용 출처 스킬
 				continue
 			var evs := _act(actor, party_a, party_b, rng, cfg, skills_db)
 			for ev in evs:

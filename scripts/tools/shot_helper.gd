@@ -56,6 +56,26 @@ func _ready() -> void:
 				for rep in 20:
 					bs.call("_play_skill_spine", sid, bs.get("_views").get("E0", {}))
 					await get_tree().create_timer(0.4).timeout
+		"bicon":
+			# 버프/디버프 아이콘(원작 Bicon) 검수 — 전투를 띄우고 아이콘을 직접 붙인다(결정적).
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			# ⚠️ `get_tree().current_scene` 는 항상 Main 이다 — Scenes.goto 는 Main 안의 자식을
+			# 갈아 끼우지 트리 루트 씬을 바꾸지 않는다. 메서드를 가진 노드를 직접 찾는다.
+			var bs2 := _node_with_method(get_tree().root, "_bicon_add")
+			if bs2:
+				var views: Dictionary = bs2.get("_views")
+				# 적에 디버프 3종, 아군 카드에 버프 2종 — 바탕/폰트 두 갈래를 한 화면에서 본다.
+				# 아군 카드에 디버프 2 + 버프 2 — 바탕(buff/debuff)과 폰트(heal/total) 두 갈래를 한 화면에.
+				# (적은 몇 초 만에 쓰러져 setRemoveAllBicon 으로 걷히므로 검수엔 안 쓴다.)
+				# 전투가 몇 초 만에 끝나 캡처 타이밍이 흔들린다 → 캡처 시점까지 계속 다시 붙인다.
+				for rep in 8:
+					for pair in [[11, false, 3], [20, false, 2], [12, true, 5], [26, true, 9]]:
+						bs2.call("_bicon_add", views.get("A0", {}), pair[0], pair[1], pair[2])
+					await get_tree().create_timer(0.35).timeout
 		"teambuff":
 			# 조합 팀버프 연출(원작 CombineElementsLayer) 통합 검수 — **전투 씬 안에서** 확인한다.
 			# 보유 드래곤 중 아이콘 있는 버프를 발동시키는 3마리를 골라 party_uids 로 넘긴다.
@@ -2604,3 +2624,14 @@ func _pick_team_buff_party() -> Array:
 				int(buff["no"]), buff["name"], str(need), str(uids)])
 			return uids
 	return []
+
+
+## 트리에서 그 메서드를 가진 첫 노드. `get_tree().current_scene` 이 Main 고정이라 필요하다.
+func _node_with_method(n: Node, m: String) -> Node:
+	if n.has_method(m):
+		return n
+	for c in n.get_children():
+		var r := _node_with_method(c, m)
+		if r != null:
+			return r
+	return null

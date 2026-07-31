@@ -36,6 +36,11 @@ SOURCES = [
     # 흡혈 임팩트 — 원작 AdventureScene::setVampImpact @00ca52e4 가 피격 지점에 scale 0.8 로
     # 붙인다(그 함수의 나머지 절반인 `common/backlight1.png` 은 추출 아틀라스에 없다 — §10 표).
     ("scene/adventure/pt_skill_14_vamp", "pt_skill_14_vamp"),
+    # 전투 스킬 파티클 — 원작 AdventureScene::makeSkillParticle @00c9e4a4 가 부르는 3종.
+    #   pt_shild = 방어막(스킬 카테고리 defense) · effect_fire2 = 화염계 · pt_monster_dead_2_2 = 격파
+    ("scene/adventure/pt_shild", "pt_shild"),
+    ("scene/adventure/effect_fire2", "effect_fire2"),
+    ("scene/adventure/pt_monster_dead_2_2", "pt_monster_dead_2_2"),
 ]
 # 초월맥스 가산은 연출측(battle.gd)에서 처리; 여기선 순수 파티클 파라미터만.
 

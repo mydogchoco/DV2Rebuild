@@ -890,6 +890,8 @@ const _BMF := {
 	"subtitle": "res://assets/480/font/font_subtitle.fnt",
 	"common": "res://assets/480/font/font_common.fnt",
 	"total": "res://assets/480/font/font_total.fnt",
+	# 원작 `Bicon::init` 이 버프 아이콘의 남은 턴에 쓰는 폰트(숫자 12자뿐이라 그대로 쓸 수 있다).
+	"heal": "res://assets/480/font/font_heal.fnt",
 }
 var _bmf_cache: Dictionary = {}
 func _bmf_font(kind: String) -> Font:
@@ -1492,12 +1494,12 @@ func _play_event(ev: Dictionary) -> void:
 		"dot", "timed":
 			var tg: Dictionary = _find(String(ev.get("target", "")))
 			_hurt(tg, int(ev.get("damage", 0)), false)
-			_bicon_add(tg, int(ev.get("source", 0)))   # 원작 Bicon = 그 효과를 건 스킬 아이콘
+			_bicon_add(tg, int(ev.get("source", 0)), false, int(ev.get("turns", 0)))   # 지속피해 = 디버프
 			_burning_fx(tg)   # 원작 setViewBurningEffect: 지속피해 화염 연출
 			if bool(ev.get("dead", false)): _kill(tg)
 			_log("%s 지속피해 %d" % [_disp(ev.get("target", "")), int(ev.get("damage", 0))])
 		"status_skip":
-			_bicon_add(_find(String(ev.get("actor", ""))), int(ev.get("source", 0)))
+			_bicon_add(_find(String(ev.get("actor", ""))), int(ev.get("source", 0)), false, int(ev.get("turns", 0)))
 			_log("%s 행동불가!" % _disp(ev.get("actor", "")))
 
 ## 스킬 이벤트 연출(증분 3). 공격형=피해, 힐/디버프/정화 각 표시. per-드래곤 spine은 폴리시 TODO.
@@ -1524,13 +1526,13 @@ func _play_skill(ev: Dictionary) -> void:
 		_hurt(caster, int(ev["self_loss"]), false)
 	if ev.has("debuff"):
 		_fx_text(tgt, "", String(ev["debuff"]), Color(0.9, 0.6, 1.0))
-		_bicon_add(tgt, int(ev.get("skill_id", 0)))
+		_bicon_add(tgt, int(ev.get("skill_id", 0)), false, int(ev.get("turns", 0)))
 	if bool(ev.get("cleanse", false)):
 		_fx_text(tgt, "", "정화", Color(0.7, 1.0, 0.8))
 	# 버프/방어 카테고리 스킬 → 시전자에 강화 배지.
 	var scat := String(Data.skills.get(str(int(ev.get("skill_id", 0))), {}).get("category", ""))
 	if scat == "buff" or scat == "defense":
-		_bicon_add(caster, int(ev.get("skill_id", 0)))
+		_bicon_add(caster, int(ev.get("skill_id", 0)), true, int(ev.get("turns", 0)))
 	_log("%s 발동 — %s" % [sname, _disp(ev.get("caster", ""))])
 
 ## 스킬 카테고리별 이펙트(원작 skillMimic/skillBomb/skillBlock 분기).
@@ -1578,6 +1580,25 @@ func _skill_fx(ev: Dictionary, caster: Dictionary, target: Dictionary) -> void:
 	#   변환: scripts/tools/build_skill_fx.py → build_skill_fx_scenes.gd → scenes/fx/skill_{id}_spine.tscn
 	#   있으면 그걸 쓰고, 없으면 아래 카테고리별 도형 이펙트로 폴백한다.
 	if sid > 0 and _play_skill_spine(sid, (target if not target.is_empty() else caster)):
+		return
+	# 전용 스파인이 없는 스킬의 **원작 폴백** — 카테고리별로 원작이 쓰는 자산이 따로 있다.
+	#   방어/방어막 = `skill/skill_adbloking_spine`(원작 `setCheckShildImpact` @00c8cdb4,
+	#     `setAnimation("animation", loop=false)` → `Delay(0.7)` → Hide) + 파티클 `pt_shild`
+	#     (원작 `makeSkillParticle` @00c9e4a4 가 부르는 3종 중 하나).
+	#   화염계 = `effect_fire2` · 격파 = `pt_monster_dead_2_2`(같은 함수).
+	# 아래 `_SKILL_FX` 도형 폴백보다 **먼저** 쓴다 — 도형은 원작에 없는 자작이다.
+	var on_v: Dictionary = caster if cat == "buff" or cat == "defense" else target
+	if on_v.is_empty():
+		on_v = caster
+	if cat == "defense" and not on_v.is_empty():
+		var shielded := _play_fx_spine_scene(
+			"res://scenes/worldmap_fx/skill_adbloking_spine.tscn", on_v)
+		if on_v.has("center"):
+			CocosParticle.spawn(self, "pt_shild", on_v["center"], 99, 0.4)
+		if shielded:
+			return
+	if sel == "fire" and not on_v.is_empty() and on_v.has("center"):
+		CocosParticle.spawn(self, "effect_fire2", on_v["center"], 99, 0.5)
 		return
 	var spec: Dictionary = _SKILL_FX.get(cat, _SKILL_FX["attack"])
 	var v: Dictionary = caster if String(spec["on"]) == "caster" else target
@@ -1799,6 +1820,9 @@ func _kill(v: Dictionary) -> void:
 	v["alive"] = false
 	_bicon_clear(v)          # 원작 setRemoveAllBicon: 쓰러지면 버프 아이콘도 전부 걷힌다
 	Bgm.sfx("effect_dead")   # 원작 사망 효과음
+	# 원작 `makeSkillParticle` @00c9e4a4 의 격파 파티클(`pt_monster_dead_2_2.plist`).
+	if v.has("center"):
+		CocosParticle.spawn(self, "pt_monster_dead_2_2", v["center"], 98, 0.9)
 	var node: Node = v["node"]
 	if node is CanvasItem:
 		create_tween().tween_property(node, "modulate:a", 0.25 if v["kind"] == "party" else 0.0, 0.4)
@@ -2563,18 +2587,25 @@ func _vamp_impact(victim: Dictionary, attacker: Dictionary) -> void:
 ##   벗어난다 → **아이콘 실폭 비율로 환산**해 쓴다(원작 리터럴은 `_BICON_STEP_ORIG` 에 보존).
 ##   원작 카드 계층(InterFace)을 그대로 이식하면 그때 리터럴로 되돌린다.
 const _BICON_STEP_ORIG := 270.0        # 원작 setBiconPositioning 가로 간격
-const _BICON_ICON_PX := 75.0           # skill/%d.png 실측(전 48종 동일)
-const _BICON_SCALE := 0.42             # 카드 위에 얹히는 크기(아이콘 75px → 약 31pt)
+const _BICON_BASE_PX := 85.0           # skill/buff·debuff 실측
+const _BICON_SCALE := 0.42             # 카드 위에 얹히는 크기(바탕 85px → 약 36pt)
 const _BICON_MAX := 4                  # 카드 폭을 넘지 않는 선
 
-## 전투원 뷰에 스킬 아이콘 하나를 붙인다. skill_id 가 없으면(=출처 불명) 아무것도 안 한다 —
-## 원작도 스킬 아이콘이 근거라 "출처 없는 배지"는 존재할 수 없다.
-func _bicon_add(v: Dictionary, skill_id: int) -> void:
+## 아이콘 한 장을 붙인다 — **원작 `Bicon::init` @00d2ffd4 구조 그대로**
+## (2026-07-31 `batch_decompile.py --classes Bicon` 으로 새로 디컴파일해 확정):
+##   ① 바탕 = `skill/buff.png`(버프) / `skill/debuff.png`(디버프)  ← 85×85
+##   ② 스킬 아이콘 = `skill/%d.png` 를 **scale 0.9** 로 바탕 중앙에
+##   ③ 남은 턴 = 버프면 `font/font_heal.fnt` **scale 1.5**, 디버프면 `font/font_total.fnt` scale 1.0.
+##      바탕 중앙에 앵커 **(0.0, 0.2)** 로 붙는다(= 오른쪽 아래로 흘러나오는 숫자).
+## `Bicon::setTurnCount` 가 턴이 줄 때마다 이 숫자를 갱신한다.
+## 출처 스킬을 모르면 아무것도 그리지 않는다 — 원작 아이콘의 근거가 스킬이라 대체물이 없다.
+func _bicon_add(v: Dictionary, skill_id: int, is_buff := false, turns := 0) -> void:
 	if v.is_empty() or not v.has("center") or skill_id <= 0:
 		return
-	var path := "res://assets/converted/skill/skill_%d.tres" % skill_id
-	if not ResourceLoader.exists(path):
+	var icon_path := "res://assets/converted/skill/skill_%d.tres" % skill_id
+	if not ResourceLoader.exists(icon_path):
 		return
+	var sm := _man("skill")
 	var row: Array = v.get("bicons", [])
 	if row.size() >= _BICON_MAX:
 		var old: Sprite2D = row.pop_front()
@@ -2582,24 +2613,35 @@ func _bicon_add(v: Dictionary, skill_id: int) -> void:
 			old.queue_free()
 	var c: Vector2 = v["center"]
 	var offs := -74.0 if v.get("kind") == "enemy" else -96.0
+	# ① 바탕
+	var base := _spr("skill", "skill_buff" if is_buff else "skill_debuff", sm, _BICON_SCALE * 0.5)
+	if base == null:
+		return
+	base.z_index = 96
+	add_child(base)          # ⚠️ battle.gd 의 `_spr` 은 트리에 붙이지 않는다(생성만)
+	base.position = c
+	# ② 스킬 아이콘(바탕 중앙, 0.9)
 	var ico := Sprite2D.new()
-	ico.texture = load(path)
+	ico.texture = load(icon_path)
 	ico.material = _pma
-	ico.z_index = 96
-	ico.position = c                                   # 전투원 위에서 튀어나온다
-	ico.scale = Vector2.ONE * _BICON_SCALE * 0.5       # 원작 첫 Spawn 의 ScaleTo(0.4, 0.5)
-	add_child(ico)
-	row.append(ico)
+	ico.scale = Vector2.ONE * 0.9
+	base.add_child(ico)
+	# ③ 남은 턴
+	if turns > 0:
+		var lb := _bmf_label("heal" if is_buff else "total", 1.5 if is_buff else 1.0)
+		lb.text = str(turns)
+		lb.position = Vector2(0, -_BICON_BASE_PX * 0.2)   # 원작 앵커(0.0, 0.2)
+		base.add_child(lb)
+	row.append(base)
 	v["bicons"] = row
-	# 원작 스케일 비트 그대로(0.5 → 1.8 → 1.5 → 1.7 → 0.7 → 슬롯).
-	var t := ico.create_tween()
-	t.tween_property(ico, "position", c + Vector2(0, offs * 0.4), 0.4) \
-		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
-	t.parallel().tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 0.5, 0.4)
-	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.8, 0.4)
-	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.5, 0.4)
-	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 1.7, 0.2)
-	t.tween_property(ico, "scale", Vector2.ONE * _BICON_SCALE * 0.7, 0.2)
+	# 원작 setBiconSkillSetting 의 스케일 비트(0.5 → 1.8 → 1.5 → 1.7 → 0.7 → 슬롯).
+	var t := base.create_tween()
+	t.tween_property(base, "position", c + Vector2(0, offs * 0.4), 0.4) 		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+	t.parallel().tween_property(base, "scale", Vector2.ONE * _BICON_SCALE * 0.5, 0.4)
+	t.tween_property(base, "scale", Vector2.ONE * _BICON_SCALE * 1.8, 0.4)
+	t.tween_property(base, "scale", Vector2.ONE * _BICON_SCALE * 1.5, 0.4)
+	t.tween_property(base, "scale", Vector2.ONE * _BICON_SCALE * 1.7, 0.2)
+	t.tween_property(base, "scale", Vector2.ONE * _BICON_SCALE * 0.7, 0.2)
 	t.tween_callback(_bicon_positioning.bind(v))
 	_bicon_positioning(v)
 
@@ -2622,7 +2664,7 @@ func _bicon_positioning(v: Dictionary) -> void:
 		return
 	var c: Vector2 = v["center"]
 	var offs := -74.0 if v.get("kind") == "enemy" else -96.0
-	var step := _BICON_ICON_PX * _BICON_SCALE * (_BICON_STEP_ORIG / 256.0)   # 원작 비율 환산
+	var step := _BICON_BASE_PX * _BICON_SCALE * (_BICON_STEP_ORIG / 256.0)   # 원작 비율 환산
 	var x0 := c.x - step * (live.size() - 1) * 0.5
 	for i in live.size():
 		var s: Sprite2D = live[i]
@@ -3693,6 +3735,26 @@ func _spr(dir: String, name: String, man: Dictionary, scale := 1.0) -> Sprite2D:
 ## 🔴 여기서 `target` 은 몬스터 스파인이 아니라 `BattleMonster::getAnimatedSpriteNode()`
 ##   **컨테이너**다(AdventureScene.c:38855 의 부모 = plVar10 추적). 원작 노드 구조와 왜 형제로
 ##   붙여야 하는지는 `_normal_attack_fx` 위의 구조 주석에 정리해 뒀다.
+## 임의 경로의 스파인 씬 한 번 재생 — `_play_skill_spine` 과 같은 배치 규약(z=100, 0.7초 뒤 정리).
+func _play_fx_spine_scene(path: String, v: Dictionary) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	var holder := Node2D.new()
+	holder.z_index = 100
+	add_child(holder)
+	holder.position = v.get("center", _vis() * 0.5)
+	holder.scale = v.get("base_scale", Vector2(0.85, 0.85))
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+	if ap and ap.has_animation("animation"):
+		ap.get_animation("animation").loop_mode = Animation.LOOP_NONE
+		ap.play("animation")            # 원작 setAnimation("animation", loop=false)
+	var t2 := holder.create_tween()
+	t2.tween_interval(_SKILL_SPINE_SEC)   # 원작 Delay(0.7) → Hide → 제거
+	t2.tween_callback(holder.queue_free)
+	return true
+
 func _play_skill_spine(sid: int, v: Dictionary) -> bool:
 	var path := "res://scenes/fx/skill_%d_spine.tscn" % sid
 	if not ResourceLoader.exists(path):
