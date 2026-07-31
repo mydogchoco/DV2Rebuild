@@ -30,9 +30,21 @@
 
 `data/scenario_flow_switch.json` — `parse_scenario_flow.py` 가 읽어 합친다(대사 수 검증 통과분만).
 
+## 대사 함수가 **셋**이다 (2026-07-31 확정)
+
+    ScenarioSupport::setNpcTalk(NPC_NAME*, Character_State*, …)   번호로 받는다
+    ScenarioSupport::setUserTalk(bool)                            주인공 지문
+    ScenarioLayer::setTalker(bool, string, int body, int state…)  이름 문자열을 인자로
+    ScenarioLayer::setTalk(bool)                                  ← 이름을 **멤버에 써 두고** 부른다
+        adrp/add x1=<이름> ; add x0,this,#0x1f0 ; assign ; setTalk(this, true)
+
+넷째(`setTalk`)를 이름 정확일치로 거르다 놓쳐서 Scenario7 68~78화가 통째로 "대사 0" 이었다.
+
 사용:
     python scripts/tools/extract_switch_flow.py --classes Scenario8
     python scripts/tools/extract_switch_flow.py --all
+    python scripts/tools/extract_switch_flow.py --classes Scenario7 --debug-tables  # 검출된 표
+    python scripts/tools/extract_switch_flow.py --classes Scenario7 --debug-eps     # 회차별 귀속
 """
 from __future__ import annotations
 import json, os, re, sys
@@ -271,21 +283,34 @@ def main():
             """
             reach = max(body_end, entry + 0x400)
             tables = []
-            cur, n = at(entry), 0
-            while cur is not None and n < MAX_SCAN:
-                a = cur.getAddress().getOffset()
-                if a > min(reach + 0x800, cap):
+            seen_br: set[int] = set()
+            # 🔴 **고정점까지 반복**한다. 한 번만 훑으면 `a > reach + 0x800` 에서 멈추는데,
+            #    그 시점의 reach 는 그때까지 본 표만 반영한다 — 뒤쪽 회차의 case 블록이
+            #    범위 밖으로 잘리고, 그 블록 안의 대사 호출 주소도 talker_addrs 에 안 들어가
+            #    walk_case 가 **아무 대사도 못 알아본다**(Scenario7 68~78화가 전부 "대사 0"
+            #    이었던 이유). 새 표가 안 나올 때까지 넓혀 가며 다시 훑는다.
+            for _ in range(8):
+                grew = False
+                cur, n = at(entry), 0
+                while cur is not None and n < MAX_SCAN:
+                    a = cur.getAddress().getOffset()
+                    if a > min(reach + 0x800, cap):
+                        break
+                    if cur.getMnemonicString() == "br" and a not in seen_br:
+                        t = read_table(cur)
+                        if t:
+                            seen_br.add(a)
+                            tables.append(t)
+                            for i in range(t["count"]):
+                                tgt = entry_target(t, i)
+                                if tgt > reach:
+                                    reach, grew = tgt, True
+                            if t["dflt"] and t["dflt"] > reach:
+                                reach, grew = t["dflt"], True
+                    cur = after(cur)
+                    n += 1
+                if not grew:
                     break
-                if cur.getMnemonicString() == "br":
-                    t = read_table(cur)
-                    if t:
-                        tables.append(t)
-                        for i in range(t["count"]):
-                            reach = max(reach, entry_target(t, i))
-                        if t["dflt"]:
-                            reach = max(reach, t["dflt"])
-                cur = after(cur)
-                n += 1
             return entry, min(reach + 0x400, cap), tables
 
         funcs = {}
@@ -319,7 +344,12 @@ def main():
             lo, hi, tables = discover(entry, body_end, cap)
 
             # ── 대사 호출 위치(범위 기반) ────────────────────────────────────
-            npc_talk_addr, user_talk_addrs, talker_addrs = None, set(), set()
+            # 🔴 `setNpcTalk` 호출 지점은 **여럿이다.** 종전에는 단일 변수라 마지막 하나만
+            #    남았고, 다른 지점으로 합류하는 스텝은 대사로 인식되지 않았다 —
+            #    회차마다 대사가 절반쯤 빠지던 원인(ep63 25/46 · ep59 10/22).
+            npc_talk_addrs: set[int] = set()
+            npc_talk_addr = None
+            user_talk_addrs, talker_addrs = set(), set()
             for i in iter_range(at, after, lo, hi):
                 if i.getMnemonicString() != "bl":
                     continue
@@ -329,10 +359,18 @@ def main():
                     continue
                 nm = callee.getName()
                 if "setNpcTalk" in nm:
+                    npc_talk_addrs.add(i.getAddress().getOffset())
                     npc_talk_addr = i.getAddress().getOffset()
                 elif "setUserTalk" in nm:
                     user_talk_addrs.add(i.getAddress().getOffset())
-                elif nm == "setTalker":
+                elif nm in ("setTalker", "setTalk"):
+                    # 🔴 `setTalk` 는 `setTalker` 와 **다른 함수**다.
+                    #    이름 정확일치만 보다가 이걸 놓쳐서 Scenario7 68~78화가
+                    #    통째로 "대사 0" 이었다. 원작 흐름:
+                    #      adrp/add x1=<NPC 이름 문자열> ; add x0,this,#0x1f0
+                    #      → basic_string::assign(this+0x1f0, 이름)
+                    #      → ScenarioLayer::setTalk(this, true)
+                    #    이름을 인자로 받는 대신 **멤버에 먼저 써 두고** 부른다.
                     talker_addrs.add(i.getAddress().getOffset())
             if npc_talk_addr is None and not talker_addrs:
                 names = {}
@@ -556,7 +594,7 @@ def main():
                         addrs = [entry_target(t, i) for i in range(t["count"])]
                     for a4 in addrs:
                         f0.extend(walk_case(at, after, fm, body, a4, slots,
-                                            npc_talk_addr, user_talk_addrs, text,
+                                            npc_talk_addrs, user_talk_addrs, text,
                                             talker_addrs, rostr, None))
                     if sum(1 for o in f0 if o["op"] in TALK_OPS) >                        sum(1 for o in best if o["op"] in TALK_OPS):
                         best, best_t = f0, t
@@ -566,6 +604,11 @@ def main():
                 out[str(sn)] = flow
                 talk = sum(1 for o in flow if o["op"] in ("setNpcTalk", "setUserTalk", "setTalker"))
                 nstep = len(t["steps"]) if t.get("kind") == "chain" else t["count"]
+                if "--debug-eps" in sys.argv:
+                    a0 = (t["steps"][sorted(t["steps"])[0]] if t.get("kind") == "chain"
+                          else entry_target(t, 0))
+                    print(f"     [dbg] ep{sn} tbl={t.get('tbl', 0):#x} 첫타깃={a0:#x} "
+                          f"범위={lo:#x}~{hi:#x} in={lo <= a0 <= hi}")
                 print(f"  {cls} ep{sn}: 스텝 {nstep} · 대사 {talk}"
                       f"{' (체인)' if t.get('kind') == 'chain' else ''}")
 
@@ -641,7 +684,7 @@ def default_is_user_talk(_at, _after, body, dflt: int, user_talk_addrs: set) -> 
 
 
 def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
-              npc_talk_addr: int, user_talk_addrs: set, text,
+              npc_talk_addrs: set, user_talk_addrs: set, text,
               talker_addrs: set | None = None, rostr=None,
               want_sn: int | None = None) -> list[dict]:
     """case 블록을 따라가며 슬롯 대입을 모으고, 어떤 대사 호출로 합류하는지 판정.
@@ -731,7 +774,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
         if m and m.group(2) in xstr:
             xstr[m.group(1)] = xstr[m.group(2)]
         if cur.getMnemonicString() == "bl":
-            if a == npc_talk_addr:
+            if a in npc_talk_addrs:
                 ops.append({"op": "setNpcTalk", **store})
                 return ops
             if a in user_talk_addrs:
