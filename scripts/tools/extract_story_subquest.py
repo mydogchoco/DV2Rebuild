@@ -229,6 +229,38 @@ def parse_mark_fields() -> dict[str, int]:
 
 
 # ────────────────────────────────────────────────────────────── ④ 스토리 이벤트 전투 정의
+
+def parse_adventure_battles() -> dict:
+    """`AdventureScene` 의 `switch(battleNo)` → {battleNo: {monster_no, level}}.
+
+    `isEventBattle` 이 아닌 전투번호는 **여기서** 몬스터와 레벨을 얻는다.
+    앵커 = `"AdventureEvent" << mScenarioManager()->0x168`(=회차 sn) 직후의 스위치.
+    각 case 는 `Monster::create(no)` → `setMonster(this, no, lv, hp, att, def, 0, name, 1)` 로
+    합류하고, hp/att/def 는 그 몬스터 DB 값이라 리터럴이 아니다(우리는 monsters/stages 표를 쓴다).
+
+    ⇒ 이걸로 **91화(전투 28)** 편성이 채워진다: #181 관문의 수호자 Lv100.
+      26·27·29 는 `isEventBattle` 이라 `getEventBattleData` 쪽이 이긴다.
+    """
+    src = (DECOMP.parent / "AdventureScene.c").read_text(encoding="utf-8", errors="replace")
+    i = src.index('"AdventureEvent",0xe')
+    seg = src[i:i + 40000]
+    out: dict[str, dict] = {}
+    cur: list[int] = []
+    for line in seg.splitlines():
+        m = re.match(r"\s*case (0x[0-9a-f]+|\d+):", line)
+        if m:
+            cur.append(_num(m.group(1)))
+            continue
+        m = re.search(r"setMonster\(this,(0x[0-9a-f]+|\d+),(0x[0-9a-f]+|\d+),", line)
+        if m and cur:
+            for b in cur:
+                out[str(b)] = {"monster_no": _num(m.group(1)), "level": _num(m.group(2))}
+            cur = []
+    if not out:
+        raise SystemExit("[adventure_battle] 스위치를 못 읽었다 — 파서 수정 필요")
+    return out
+
+
 def parse_event_battles(fns: dict[str, str]) -> dict[str, dict]:
     """`getEventBattleData(eventNo)` — 키는 **AdventureScene 이벤트 번호**(회차 아님).
 
@@ -427,6 +459,7 @@ def main() -> int:
         # `isEventBattle` 인라인 배열 {0x1a, 0x1b, 0x1d, 100}. 1000 은 100 과 같은 분기.
         "event_battle_ids": [0x1A, 0x1B, 0x1D, 100],
         "event_battle": parse_event_battles(fns),
+        "adventure_battle": parse_adventure_battles(),
         # 회차별 특별보상(드래곤) — `ScenarioManager::setSpecialReward` 3건.
         "special_reward": parse_special_rewards(),
     }

@@ -47,14 +47,21 @@ OUT = ROOT / "data" / "story_monsters.json"
 MONSTERS = [
     {
         "id": 73, "name": "기계 만드라고낙", "episodes": [27], "stage": 10,
-        "_stats_status": "미상 — 사용자 확인 대기",
+        "hp_max": 2170, "att": 185, "def": 185,
+        "_stats_status": "사용자 확정 2026-07-31",
     },
     {
         "id": 74, "name": "정령 스파이크젤", "episodes": [28], "stage": 11,
-        "_stats_status": "미상 — 사용자 확인 대기",
+        "hp_max": 2170, "att": 185, "def": 185,
+        "_stats_status": "사용자 확정 2026-07-31 (기계 만드라고낙과 같은 값)",
     },
     {
-        "id": 75, "name": "다크프로스티", "episodes": [32, 33], "stage": 14,
+        # ⚠️ 스프라이트 번호 75 는 **확정이 아니다.** mapping_sheet 가 빛의 탑(~72)과
+        #    정령의 숲(76~) 사이 빈 세 자리에 순서대로 채운 값이다.
+        #    원작 `AdventureScene` 의 battleNo 스위치는 15·29 **두 곳**에서 #75 를 부르는데,
+        #    사용자는 "다크프로스티는 32·33화 이후 안 나온다" 고 확정했다(2026-07-31)
+        #    ⇒ 둘 중 하나(특히 29=92화)는 다른 몬스터다. 번호는 미확정으로 둔다.
+        "id": 75, "id_confirmed": False, "name": "다크프로스티", "episodes": [32, 33], "stage": 14,
         "hp_max": 1200, "att": 160, "def": 80, "pure": 1000,
         "_stats_status": "사용자 확정 2026-07-31",
         "_pure_basis": "사용자 확정: '공격 시 고정 데미지 1000'. 우리 전투의 `pure`"

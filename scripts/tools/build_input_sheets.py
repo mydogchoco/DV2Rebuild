@@ -311,7 +311,10 @@ def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
     flows = load("scenario_flow.json")["flows"]
     titles = load("scenario.json").get("titles", {})
     stages = load("stages.json")["stages"]
-    ev = load("story_subquest.json").get("event_battle", {})
+    sq = load("story_subquest.json")
+    ev = sq.get("event_battle", {})
+    # `isEventBattle` 이 아닌 전투번호는 AdventureScene 의 switch 가 몹·레벨을 준다.
+    adv = sq.get("adventure_battle", {})
     # 🔴 몬스터 번호 → 이름은 **stages.json 을 먼저** 본다.
     #    `monsters.json` 의 `asset_id` 는 extract_wiki 의 자동 부여라 틀린 항목이 있다
     #    (73/74/75 를 G스컬·다크닉스·그리파르로 잡지만 게임은 #30·#36·#138 로 쓴다).
@@ -355,11 +358,18 @@ def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
                              e.get("lv"), "O",
                              f"원작복원(hp{e.get('hp')}/공{e.get('att')}/방{e.get('def')}) — 확인만"])
                 continue
-            field = int(o.get("field") or 0)        # 이벤트 아님 → 그 필드의 일반 편성
+            field = int(o.get("field") or 0)        # 이벤트 아님 → AdventureScene switch
+            a = adv.get(str(battle))
+            if a:
+                rows.append([sn, titles.get(str(sn), ""), field, place(field), battle, 1, "",
+                             mons.get(int(a["monster_no"]), f"#{a['monster_no']}"),
+                             a["level"], "O",
+                             "원작복원(AdventureScene switch) — 확인만"])
+                continue
             for slot in (1, 2, 3):
                 rows.append([sn, titles.get(str(sn), ""), field,
                              place(field), battle, slot,
-                             "", "", "", "", "이벤트 전투 아님 — 편성 미상"])
+                             "", "", "", "", "편성 미상"])
     # ── 1~78화의 스토리 전용 몹 ──────────────────────────────────────────────
     # 🔴 이 구간은 원작 클라에 **전투 스텝이 없다**(`scenarioBattle` xref 전수 = Scenario1~8 에 0건)
     #    그리고 서브퀘스트 표(subquest_field/mark_field/click_count)도 **79화부터** 시작한다.
