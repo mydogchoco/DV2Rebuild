@@ -395,6 +395,13 @@
           "cur": "gold"
         },
         {
+          "item": "holynest",
+          "price": 300,
+          "cur": "diamond",
+          "once": "blessed_nest",
+          "_once_note": "1회 구매 후 영구 적용(원작 ShopScene.c:4180-4186 — 아이템 425를 User::getNestLevel()!=0 이면 목록에서 숨긴다, 스카우터 428과 같은 패턴). `once` = 구매 시 인벤 대신 UserDB pmeta 플래그를 켜고, 켜져 있으면 진열하지 않는다(shop.gd). 가격 300다이아 = 🟦 사용자 확정 2026-07-31(원작 판매가는 서버 소실). 효과(+0.6 = 체8/공2/방2)는 Hatchery.BLESSED_NEST_BONUS 참조."
+        },
+        {
           "item": "namechange",
           "price": 33,
           "cur": "diamond"

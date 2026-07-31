@@ -2998,8 +2998,11 @@ func _do_summon() -> void:
 		_toast("지금은 소환할 수 없습니다.")
 		return
 	# 알을 먼저 만들고 재료를 소멸시킨다 — 마지막 1마리를 바쳐도 둥지가 비지 않는다.
-	UserDB.add_egg(int(plan["species"]), float(plan["grade"]), int(plan["seconds"]),
-		0, plan.get("inherit", {}))
+	# 축복받은 둥지(영구, pmeta)는 소환 알에도 적용 — 원작 설명 "부화 될 **모든** 드래곤"
+	# (items.json holynest desc). 스냅샷을 알에 남겨야 둥지 그림(황금 월계관)과 맞는다.
+	var nest_blessed := bool(UserDB.get_pmeta("blessed_nest", false))
+	UserDB.add_egg(int(plan["species"]), Hatchery.bless(float(plan["grade"]), nest_blessed),
+		int(plan["seconds"]), 0, plan.get("inherit", {}), nest_blessed)
 	UserDB.consume_dragon(_summon_uid)
 	# 해금 플래그는 **변환 시점에 소비**한다(1회 = 1변환). 다시 열려면 트리거를 또 달성해야 한다.
 	UserDB.set_pmeta(Summon.FLAG_UNLOCK, false)

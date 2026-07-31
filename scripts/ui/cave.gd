@@ -5720,13 +5720,15 @@ func _use_consumable(key: String, kind: String) -> void:
 		"levelup", "leveldown":
 			_open_consumable_target(key, kind)
 		"holynest":
-			# 사용자 확정: 다음 부화의 초기 등급 +1.0. 판정은 Hatchery.roll_grade(blessed=true).
+			# 영구 적용(원작 `User::getNestLevel()` 계정 상태) — 정식 획득처는 상점 ETC 탭
+			# 300다이아 1회 구매(shop.json `once`)다. 이 분기는 **구판 세이브의 인벤 잔여분**
+			# 소진용으로만 남는다(효과는 Hatchery.BLESSED_NEST_BONUS = +0.6 = 체8/공2/방2).
 			if bool(UserDB.get_pmeta("blessed_nest", false)):
 				_toast("이미 둥지에 축복이 걸려 있습니다"); return
 			UserDB.use_item(key, 1)
 			UserDB.set_pmeta("blessed_nest", true)
 			_close_overlay(); _refresh()
-			_toast("둥지에 축복을 걸었습니다 — 다음 부화 등급 +1.0")
+			_toast("둥지에 축복을 걸었습니다 — 이후 모든 부화 등급 +0.6 (영구)")
 		"gembox":
 			# 진귀한 보석 상자 개봉 → **높은 등급의 일반 젬** 1개(위키 item.pdf §9.3).
 			# ⚠️ 다이아 가챠와 표가 다르다(가챠=혼성·소울 전티어) → 전용 표 box.jem_random.
@@ -6009,10 +6011,9 @@ func _start_hatch(item_key: String) -> void:
 	var grade := Hatchery.grade_for(step, ecfg, RNG.randf(), blessed)
 	var secs := Hatchery.hatch_seconds(grade)
 	UserDB.use_item(item_key, 1)
-	if blessed:
-		UserDB.set_pmeta("blessed_nest", false)   # 축복받은 둥지는 1회성 — 이 부화에 썼다
-	# 축복은 1회성이라 **알 개체에 기록**한다 — 둥지 그림(황금 월계관)과 부화 연출의
-	# 보너스 성급 분리 표시가 그 값을 읽는다(원작은 계정의 `User::getNestLevel()` 이었다).
+	# 축복받은 둥지는 **영구**다(원작 아이템 설명 "기한 : 영구적", 계정 상태 `User::getNestLevel()`
+	# — 2026-07-31 종전의 1회성 소진을 폐기). 알 개체에도 스냅샷을 남긴다 — 둥지 그림(황금
+	# 월계관)과 부화 연출의 보너스 성급 분리 표시가 그 값을 읽는다(구매 전 시작한 알은 일반 둥지).
 	var egg := UserDB.add_egg(did, grade, secs, step, {}, blessed)
 	UserDB.set_active(int(egg["uid"]))
 	_close_overlay()

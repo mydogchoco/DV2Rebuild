@@ -1352,6 +1352,11 @@ func _ready() -> void:
 			# 원작 ShopScene 탭별 검수. 탭 id = data/shop.json `tabs[].id`.
 			#   (구 `shopgem/shopequip/shopgacha` 는 젬·장비·뽑기가 ITEM 탭으로,
 			#    환전이 ETC 탭으로 접히면서 `shopitem`/`shopetc` 로 대체됐다.)
+			# `--extra=owned` = 영구 1회 상품(축복받은 둥지)을 이미 산 상태로 진입 —
+			#   진열 제외(원작 ShopScene.c:4180-4186 의 getNestLevel 필터)를 검수한다.
+			if extra == "owned":
+				UserDB.begin_batch()          # 검수용 — save() 안 함
+				UserDB.set_pmeta("blessed_nest", true)
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 8: await get_tree().process_frame
 			Scenes.goto("town", {"area": "elpis"})

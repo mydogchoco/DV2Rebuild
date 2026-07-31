@@ -336,9 +336,14 @@ func _on_hatch() -> void:
 	var did := int(ids[r.randi() % ids.size()])
 	# 알 강화 단계 → **확정 부화 등급**(위키). 등급을 stat_bonus 로 환산해 개체에 심는다
 	# (동굴 둥지의 `_hatch_now` 와 같은 경로: Hatchery.stat_bonus_for_grade).
+	# 축복받은 둥지(영구, pmeta)도 여기 적용 — 원작 설명 "부화 될 **모든** 드래곤"(+0.6=체8/공2/방2).
+	var nest_blessed := bool(UserDB.get_pmeta("blessed_nest", false))
 	var fixed := EggUpgrade.hatch_grade(egg_grade, Data.laboratory.get("egg_upgrade", {}))
 	if fixed > 0.0:
-		UserDB.add_dragon(did, 1, Hatchery.stat_bonus_for_grade(fixed))
+		UserDB.add_dragon(did, 1, Hatchery.stat_bonus_for_grade(Hatchery.bless(fixed, nest_blessed)))
+	elif nest_blessed:
+		# 미강화 알은 등급 굴림 없이 기준선(7.0)으로 태어난다 — 축복 몫만 얹는다.
+		UserDB.add_dragon(did, 1, Hatchery.stat_bonus_for_grade(Hatchery.bless(Growth.BASE_GRADE, true)))
 	else:
 		UserDB.add_dragon(did, 1)   # ASSUMPTION: 알→드래곤 매핑 유실 → 랜덤
 	UserDB.bump_quest("hatches")

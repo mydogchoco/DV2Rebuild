@@ -147,8 +147,8 @@ func add_egg(id: int, grade: float, seconds: int, enhance := 0, inherit: Diction
 	inst["egg"] = true
 	inst["egg_grade"] = snappedf(grade, 0.1)
 	inst["egg_enhance"] = int(enhance)          # 이름 앞 "+N" 배지(연구소 알 강화, 미구현)
-	# 축복받은 둥지로 시작한 알인가. 원작은 `User::getNestLevel()`(계정 상태)로 갈렸지만
-	# 우리 축복은 **1회성**이라 알 개체에 기록한다. 읽는 곳 = `cave.gd` 의 둥지 그림
+	# 축복받은 둥지로 시작한 알인가. 계정 상태는 pmeta `blessed_nest`(영구 — 원작
+	# `User::getNestLevel()` 대응)이고, 여기 스냅샷은 표시용이다. 읽는 곳 = `cave.gd` 의 둥지 그림
 	# (nest_holy1/2 + 먼지)과 부화 연출의 보너스 성급 분리 표시(docs/ref/porting/EggHatch.md §1).
 	inst["egg_blessed"] = bool(blessed)
 	inst["hatch_at"] = int(Time.get_unix_time_from_system()) + maxi(0, seconds)

@@ -530,6 +530,10 @@ func _entries() -> Array:
 		var it: Dictionary = Data.items.get(key, {})
 		if it.is_empty():
 			continue                      # 아이템 DB에 없는 후기판 상품은 조용히 건너뛴다
+		# 영구 1회 상품(축복받은 둥지 등)은 이미 사면 진열하지 않는다 — 원작 `ShopScene::initWidget`
+		# 이 아이템 425를 `User::getNestLevel()!=0` 이면 목록에서 빼는 것(ShopScene.c:4180-4186).
+		if e.has("once") and bool(UserDB.get_pmeta(String(e["once"]), false)):
+			continue
 		e["kind"] = "item"
 		if not e.has("label"):
 			e["label"] = String(it.get("name", key))
@@ -686,22 +690,29 @@ func _confirm_buy(e: Dictionary) -> void:
 	var cur := String(e.get("cur", "gold"))
 	var bundle := int(e.get("bundle", 1))     # 1회 구매로 들어오는 개수(묶음 상품)
 	var label := String(e.get("label", key))
+	# 영구 1회 상품(shop.json `once`) — 인벤에 넣지 않고 계정 플래그를 켠다. 원작도 아이템
+	# 425(축복받은 둥지)·428(스카우터)은 구매 = 계정 상태(`User::getNestLevel/getScouter`)다.
+	var once := String(e.get("once", ""))
 	_detail_popup({
 		"title": label, "desc": _item_desc(key), "icon": _entry_icon(e),
 		"note": ("1회 구매 시 %d개" % bundle) if bundle > 1 else "",
-		"price": price, "cur": cur, "action": "구매", "max": _afford_max(cur, price),
+		"price": price, "cur": cur, "action": "구매",
+		"max": 1 if once != "" else _afford_max(cur, price),
 		"on_ok": func(n: int):
 			if not _pay(cur, price * n):
 				_toast("재화가 부족합니다.")
 				return
-			UserDB.add_item(key, bundle * n)
+			if once != "":
+				UserDB.set_pmeta(once, true)
+			else:
+				UserDB.add_item(key, bundle * n)
 			UserDB.bump_quest("buys")   # 마을 미션: 상점 구매 카운트
 			_react = label
 			_rebuild()
 			# 원작은 `addItem` 직후 `ShowGetItemDetailLayer` 로 획득물을 공개한다
 			# (`ItemDetailLayer.c:2041`). 대사창 안내는 그대로 남긴다(원작 setText 경로).
 			_toast("%s 구매 완료%s" % [label, ("  ×%d" % (bundle * n)) if bundle * n > 1 else ""])
-			GetItemPopup.open(self, [{"key": key, "count": bundle * n}]),
+			GetItemPopup.open(self, [{"key": key, "count": bundle * n if once == "" else 1}]),
 	})
 
 ## 지금 재화로 몇 개까지 살 수 있나.
