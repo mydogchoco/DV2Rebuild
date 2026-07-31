@@ -83,6 +83,12 @@ const ITEMS := [
 		{"key": "disassemble", "label": "젬 분해", "icon": "icon_alchemy_04", "dir": "al", "orig": "UpgradeGemLayer(2)"},
 		{"key": "potion_make", "label": "용액 제작", "icon": "icon_alchemy_03", "dir": "al", "orig": "PotionLayer(1)"},
 		{"key": "potion_shop", "label": "용액 상점", "icon": "icon_alchemy_05", "dir": "al", "orig": "구판 전용(후기판 코드에 없음)"},
+		# 🔀 2026-07-31 복구: 종전엔 아이콘(`alchemy/icon_soul`) 부재 + 2016 지하 스샷에 없다는
+		#   이유로 뺐는데, 사용자가 준 참조 영상(`docs/ref/gem/소울젬1.png`)의 **지하 6칸**에
+		#   `소울젬 승급/강화` 카드가 실재한다 ⇒ 항목은 원작에 있다. 없는 것은 **카드 아이콘뿐**이라
+		#   위키에서 복원한 소울젬 그림(`assets/converted/gem_soul/`)으로 대신한다.
+		{"key": "soul", "label": "소울젬 승급/강화", "icon": "", "alt_icon": "gem_soul_att9",
+			"dir": "al", "orig": "UpgradeSoulGemLayer"},
 	],
 ]
 ## 두 층 다 3열(구판 레퍼런스 실측).
@@ -100,6 +106,10 @@ var _box: BottomTextBox
 var _popup: OrigPopup
 var _money_root: Control
 ## 드래곤 소환 화면 상태 — 재료로 고른 개체 uid, 부를 종(600/700). 팝업 재빌드를 넘어 유지된다.
+## 젬 분해 6칸에 올려 둔 인벤 키(원작 `UpgradeGemLayer` 의 선택 슬롯 배열).
+var _dis_slots: Array = ["", "", "", "", "", ""]
+## 소울젬 승급/강화의 대상 인벤 키(원작 `UpgradeSoulGemLayer::settingGem` 의 선택 젬).
+var _soul_key := ""
 var _summon_uid := 0
 var _summon_species := Summon.SPECIES_DEF
 ## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, opts}.
@@ -356,6 +366,10 @@ func _build_menu(vis: Vector2) -> void:
 			var rt := back.create_tween().set_loops()
 			rt.tween_property(back, "rotation", TAU / 6.0, 3.0).as_relative()
 		var ic := _spr(String(it["icon"]), S, String(it.get("dir", "ui")))
+		if ic == null and String(it.get("alt_icon", "")) != "":
+			# 원본 카드 아이콘이 없는 항목(소울젬 = `alchemy/icon_soul` 부재)의 대체 —
+			# 위키에서 복원한 소울젬 그림. 자작 도형이 아니라 원작 자산이다.
+			ic = AtlasUI.spr("gem_soul", String(it["alt_icon"]), S * 0.62)
 		if ic != null:
 			ic.position = Vector2(cw * 0.5, ch * 0.5 + 10.0)
 			card.add_child(ic)
@@ -792,6 +806,7 @@ func _build_body(pop: OrigPopup) -> void:
 		"drink": _body_drink_craft(pop)       # 원작 DrinkCraftLayer — 드링크(물약) 강화
 		"potion_shop": _body_potion_shop(pop)
 		"disassemble": _body_disassemble(pop)
+		"soul": _body_soul(pop)          # 원작 UpgradeSoulGemLayer — 소울젬 승급/강화
 		"egg": _body_egg(pop)
 		"slot": _body_slot(pop)
 		"trans": _body_trans(pop)
@@ -1562,61 +1577,247 @@ func _hybrid_upgrade(uid: int, slot: int) -> void:
 ## ⚠️ `tier` 는 프로젝트 공통 규약대로 **0-base**(1강 = 0)다. 위키 표는 강 번호(1~18)라
 ##    아래 산출 함수들은 `tier + 1` 로 비교한다.
 
-## 원작 `UpgradeGemLayer::create(1)` = 젬 분해(<MagicAlchemy_menu3>).
-## 출처: docs/ref/orig_image/shop/점술집_젬강화.pdf — "젬 분해로 얻은 가루는 혼성젬 제작·용액 제작에 이용",
-##   "초월의 용액은 13강 젬(공/방의 젬 +25, 체력의 젬 +100) 분해로 얻는다",
-##   "1개 분해 시 강화 등급에 따라 **최소 1개 ~ 최대 36개**", "원형젬 분해 시 가루 2,666 + 용액 36".
-## ⇒ 13강 미만 젬도 분해는 되고 **가루만** 나온다. 13강 이상부터 초월의 용액이 함께 나온다.
+## 원작 `UpgradeGemLayer::create(2)` = 젬 분해(`<MagicAlchemy_menu3>`).
+##
+## 🔀 2026-07-31 재이식 — 종전엔 "젬 한 줄에 [분해] 버튼" 자작 목록이었다.
+##   참조 영상(`docs/ref/gem/젬분해1~7.png`)의 원작 화면은 **6칸 일괄 분해**다:
+##     · 왼쪽 = `scene/magicshop/gem_bg` 육각 칸 **2행 3열**(빈 칸엔 "젬" 글자)
+##     · 가운데 = `common/btn_fold` 를 90° 돌린 ▶
+##     · 오른쪽 = `9patch/train_box3` 안에 마법가루 3종(붉은/푸른/노란) 산출량
+##     · 아래 = 코인 + 비용 버튼 → 확인창(`<AlchemyMsg2>`) → 결과창
+##   칸을 누르면 젬 목록(원작 `setSelectedItem` 이 여는 인벤 격자)에서 고른다.
+##
+## 산출 규칙 출처: `docs/ref/orig_image/shop/점술집_젬강화.pdf` —
+##   "분해로 얻은 가루는 혼성젬 제작·용액 제작에 이용" · "초월의 용액은 13강 이상 젬 분해로
+##   1개당 최소 1 ~ 최대 36개" · "원형젬 1개 = 가루 2,666 + 용액 36".
+##
+## 🟦 **비용은 참조 영상에서 역산했다** — `젬분해4.png` 의 6칸 합계
+##   12+11+642+597+439+1207 = 2,908개에 비용이 정확히 **1,454,000골드** ⇒ **젬 1개당 500골드**.
+const DIS_SLOTS := 6
+const DIS_COLS := 3
+
+## 마법가루 3종(원작 표시 순서: 붉은 → 푸른 → 노란).
+const DUST_ROWS := [
+	{"key": "att_powder", "label": "붉은 마법가루"},
+	{"key": "def_powder", "label": "푸른 마법가루"},
+	{"key": "hp_powder", "label": "노란 마법가루"},
+]
+
+## 분해 비용(젬 1개당) — 위 역산값. 튜닝 노브는 data/gems.json `disassemble.gold_per_gem`.
+func _dis_gold_per_gem() -> int:
+	return int((Data.gems.get("disassemble", {}) as Dictionary).get("gold_per_gem", 500))
+
+
 func _body_disassemble(pop: OrigPopup) -> void:
-	var col := _body_panel(pop)
-	var dc: Dictionary = Data.gems.get("disassemble", {})
-	col.add_child(_note("젬을 분해해 마법가루를 얻습니다. %d강 이상 젬은 초월의 용액(최대 %d개)도 나옵니다.
-(원작 UpgradeGemLayer(1) · docs/ref/orig_image/shop/점술집_젬강화.pdf)"
-		% [int(dc.get("special_min_tier", 13)), int(dc.get("special_max", 36))]))
-	col.add_child(_note("⚠️ 분해하면 선택한 젬은 사라집니다 (원작 <AlchemyMsg2>)."))
-	var rows := 0
-	for k in UserDB.inventory().keys():
-		var g := Gem.parse_item_key(String(k))
-		if g.is_empty() or int(UserDB.inventory()[k]) <= 0:
+	var W: float = pop.win_size.x
+	var H: float = pop.win_size.y
+	var S := Design.ASSET_SCALE
+	while _dis_slots.size() < DIS_SLOTS:
+		_dis_slots.append("")
+
+	# ── 왼쪽 육각 칸 2×3 (원작 `gem_bg`) ────────────────────────────────
+	var hex := AtlasUI.size_pt("magicshop_ui", "scene_magicshop_gem_bg") * 0.62
+	var gx := hex.x + 14.0
+	var gy := hex.y + 12.0
+	var x0 := 70.0 + hex.x * 0.5
+	var y0 := 130.0 + hex.y * 0.5
+	for i in DIS_SLOTS:
+		var c := Vector2(x0 + float(i % DIS_COLS) * gx, y0 + float(i / DIS_COLS) * gy)
+		var root := Control.new()
+		root.size = hex
+		root.position = c - hex * 0.5
+		pop.content.add_child(root)
+		var bg := _spr("gem_bg", S * 0.62)
+		if bg:
+			bg.position = hex * 0.5
+			root.add_child(bg)
+		var ik := String(_dis_slots[i])
+		if ik == "":
+			var l := Label.new()
+			l.text = "젬"
+			l.add_theme_font_size_override("font_size", 17)
+			l.add_theme_color_override("font_color", Color(0.42, 0.30, 0.18))
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			l.size = hex
+			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			root.add_child(l)
+		else:
+			var g := Gem.parse_item_key(ik)
+			var gi := Icons.rect(Icons.gem_texture(
+				String(Gem.gem_def(String(g["name"]), Data.gems).get("code", "")),
+				int(g["tier"])), hex.x * 0.62)
+			if gi:
+				gi.position = (hex - gi.size) * 0.5
+				root.add_child(gi)
+			var n := Label.new()
+			n.text = "x%d" % UserDB.item_count(ik)
+			n.add_theme_font_size_override("font_size", 15)
+			n.add_theme_color_override("font_color", Color(1, 1, 1))
+			n.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+			n.add_theme_constant_override("outline_size", 4)
+			n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			n.position = Vector2(0, hex.y - 24.0)
+			n.size = Vector2(hex.x, 22.0)
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			root.add_child(n)
+		var idx := i
+		var b := Button.new()
+		b.flat = true
+		b.size = hex
+		b.pressed.connect(func(): _dis_click_slot(idx))
+		root.add_child(b)
+
+	# ── ▶ (원작 `common/btn_fold` 를 90° 회전) ──────────────────────────
+	var arrow := AtlasUI.spr("common_ui", "common_btn_fold", S * 0.8)
+	if arrow:
+		arrow.rotation = deg_to_rad(90.0)
+		arrow.position = Vector2(x0 + 2.0 * gx + hex.x * 0.5 + 26.0, y0 + gy * 0.5)
+		pop.content.add_child(arrow)
+
+	# ── 오른쪽 산출 패널(원작 `9patch/train_box3`) ─────────────────────
+	var yields := _dis_yields()
+	var px := x0 + 2.0 * gx + hex.x * 0.5 + 56.0
+	var pw := W - px - 50.0
+	for r in DUST_ROWS.size():
+		var d: Dictionary = DUST_ROWS[r]
+		var ry := 118.0 + float(r) * 64.0
+		var row := AtlasUI.nine("ninepatch_ui", "9patch_train_box3",
+			Vector2(pw, 56.0), Rect2(20, 20, 4, 4))
+		if row:
+			row.position = Vector2(px, ry)
+			pop.content.add_child(row)
+		var ip := Data.item_icon_path(String(d["key"]))
+		if ip != "" and ResourceLoader.exists(ip):
+			var ic := Sprite2D.new()
+			ic.texture = load(ip)
+			ic.material = _pma
+			ic.scale = Vector2(0.34, 0.34)
+			ic.position = Vector2(px + 32.0, ry + 28.0)
+			pop.content.add_child(ic)
+		var nl := Label.new()
+		nl.text = String(d["label"])
+		nl.add_theme_font_size_override("font_size", 16)
+		nl.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+		nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		nl.position = Vector2(px + 62.0, ry + 17.0)
+		nl.size = Vector2(pw - 200.0, 22.0)
+		pop.content.add_child(nl)
+		var have := int(yields.get(String(d["key"]), 0))
+		var vl := Label.new()
+		vl.text = "%s개" % _comma(have)
+		vl.add_theme_font_size_override("font_size", 18)
+		vl.add_theme_color_override("font_color",
+			Color(0.10, 0.42, 0.16) if have > 0 else Color(0.45, 0.33, 0.20))
+		vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		vl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		vl.position = Vector2(px, ry + 16.0)
+		vl.size = Vector2(pw - 22.0, 24.0)
+		pop.content.add_child(vl)
+
+	# ── 비용 버튼(원작 코인 + RoundedButton) ───────────────────────────
+	var cost := _dis_cost()
+	var btn := _frame_button(pop.content, _comma(cost),
+		Vector2(W * 0.5 - 110.0, H - 84.0), Vector2(220.0, 52.0), _dis_confirm, 0, cost <= 0)
+	var coin := AtlasUI.spr("common_ui", "common_coin_small1", S * 0.9)
+	if coin:
+		coin.position = Vector2(30.0, 26.0)
+		btn.add_child(coin)
+
+
+## 고른 젬들이 낼 가루(계열별 합). 개수는 **가진 만큼 전부**(참조 영상도 스택째 넣는다).
+func _dis_yields() -> Dictionary:
+	var out := {"att_powder": 0, "def_powder": 0, "hp_powder": 0}
+	for ik in _dis_slots:
+		var key := String(ik)
+		if key == "":
 			continue
-		var tier := int(g["tier"])
-		rows += 1
-		var nm := String(g["name"])
-		var ik := String(k)
-		var yield_dust := _dust_yield(tier)
-		var yield_sp := _special_yield(tier)
-		# 행 = 젬 아이콘(원작 `gem_bg` 판) + 산출 표기 + 분해 버튼(RoundedButton).
-		var bw := _body_w(pop)
-		var row := Control.new(); row.custom_minimum_size = Vector2(0, 64)
-		var bgn := _row_bg(bw, 64)
-		if bgn: row.add_child(bgn)
-		var slot_bg := _spr("gem_bg", Design.ASSET_SCALE * 0.38)
-		if slot_bg:
-			slot_bg.position = Vector2(38, 32)
-			row.add_child(slot_bg)
-		var gi := Icons.rect(Icons.gem_texture(
-			String(Gem.gem_def(nm, Data.gems).get("code", "")), tier), 34.0)
-		if gi:
-			gi.position = Vector2(21, 15)
-			row.add_child(gi)
-		var l := Label.new()
-		l.text = "%s   ×%d" % [Gem.display_name(nm, tier, Data.gems), int(UserDB.inventory()[k])]
-		l.add_theme_font_size_override("font_size", 18)
-		l.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
-		l.position = Vector2(74, 8); l.size = Vector2(300, 24)
-		row.add_child(l)
-		var y2 := Label.new()
-		y2.text = "→ 가루 %d개%s" % [yield_dust,
-			("" if yield_sp <= 0 else " + 초월의 용액 %d개" % yield_sp)]
-		y2.add_theme_font_size_override("font_size", 16)
-		y2.add_theme_color_override("font_color", Color(0.42, 0.28, 0.14))
-		y2.position = Vector2(74, 34); y2.size = Vector2(360, 22)
-		row.add_child(y2)
-		_frame_button(row, "분해", Vector2(bw - 150.0, 12.0), Vector2(130.0, 40.0),
-			func(): _disassemble(ik, nm, tier), 0)
-		col.add_child(row)
-	if rows == 0:
-		col.add_child(_note("분해할 젬이 가방에 없습니다."))
+		var g := Gem.parse_item_key(key)
+		if g.is_empty():
+			continue
+		var dk := _dust_key_for(String(g["name"]))
+		out[dk] = int(out[dk]) + _dust_yield(int(g["tier"])) * UserDB.item_count(key)
+	return out
+
+
+func _dis_special() -> int:
+	var sp := 0
+	for ik in _dis_slots:
+		var key := String(ik)
+		if key == "":
+			continue
+		var g := Gem.parse_item_key(key)
+		if g.is_empty():
+			continue
+		sp += _special_yield(int(g["tier"])) * UserDB.item_count(key)
+	return sp
+
+
+func _dis_count() -> int:
+	var n := 0
+	for ik in _dis_slots:
+		if String(ik) != "":
+			n += UserDB.item_count(String(ik))
+	return n
+
+
+func _dis_cost() -> int:
+	return _dis_count() * _dis_gold_per_gem()
+
+
+func _dis_click_slot(i: int) -> void:
+	if String(_dis_slots[i]) != "":
+		_dis_slots[i] = ""
+		_refresh_feature()
+		return
+	_open_gem_picker("", func(key: String):
+		if key in _dis_slots:
+			return                          # 같은 스택을 두 칸에 못 넣는다
+		_dis_slots[i] = key
+		_refresh_feature())
+
+
+## 원작 `<AlchemyMsg2>` 확인창 → `requestDisassemble` → `responseDisassemble` 결과창.
+func _dis_confirm() -> void:
+	var cost := _dis_cost()
+	if cost <= 0:
+		return
+	if UserDB.gold() < cost:
+		_toast("골드가 부족합니다")
+		return
+	PopupType.open(self, "알림",
+		"젬을 분해할 경우 선택한 젬은 사라집니다.\n분해하시겠습니까?", _dis_run, "확인", "취소")
+
+
+func _dis_run() -> void:
+	var cost := _dis_cost()
+	if cost <= 0 or not UserDB.spend("gold", cost):
+		return
+	var yields := _dis_yields()
+	var sp := _dis_special()
+	for ik in _dis_slots:
+		var key := String(ik)
+		if key != "":
+			UserDB.use_item(key, UserDB.item_count(key))
+	var got: Array = []
+	for k in yields.keys():
+		var n := int(yields[k])
+		if n > 0:
+			UserDB.add_item(String(k), n)
+			got.append({"key": String(k), "count": n})
+	if sp > 0:
+		UserDB.add_item("alchemy_special", sp)
+		got.append({"key": "alchemy_special", "count": sp})
+	_dis_slots = ["", "", "", "", "", ""]
+	_refresh_feature()
+	if not got.is_empty():
+		GetItemPopup.open(self, got)          # 원작 `resultPopup`
+	if sp > 0:
+		# 원작 `<AlchemyMsg21>` — "젬분해 추가 보상으로 %s %d개를 받았습니다."
+		PopupType.open(self, "알림",
+			"젬분해 추가 보상으로 초월의 용액 %d개를 받았습니다." % sp, Callable(), "확인", "")
+	_toast("젬 분해를 완료 하였습니다.")            # <AlchemyMsg25>
+
 
 ## 분해 산출 가루 수. 위키에 등급별 표는 없고 "원형젬 = 2,666개"라는 상한 관측만 있다
 ## → 티어 비례 곡선(자작)으로 그 상한에 수렴시킨다.
@@ -2613,6 +2814,396 @@ func _dragon_portrait(d: Dictionary, box: float) -> Control:
 func _frame_button(parent: Control, text: String, pos: Vector2, sz: Vector2, cb: Callable,
 		kind := 0, disabled := false) -> Control:
 	return AtlasUI.frame_button(parent, text, pos, sz, cb, kind, disabled)
+
+# ── 소울젬 승급/강화(UpgradeSoulGemLayer) ──────────────────────────────────
+## 원작 `UpgradeSoulGemLayer` (`<MagicAlchemy_menu6>` = "소울젬 승급/강화").
+##
+## 🔀 2026-07-31 복구 — CLAUDE.md §10 이 "2016 지하 스샷에 없다 ⇒ 후기 추가분 ⇒ 항목 삭제"로
+##   적어 뒀지만, 사용자가 준 참조 영상 `docs/ref/gem/소울젬1.png` 의 지하 6칸에 이 카드가
+##   실재한다. 없는 것은 **카드 아이콘(`alchemy/icon_soul`)뿐**이라 항목을 되살렸다.
+##
+## 원작 배치(`initWidget` 리터럴, 좌표는 창 로컬 cocos → 여기선 y 를 뒤집었다):
+##   · `9patch/pop_title_bg` (w×0.9) @ (w/2, h−50) + 제목 + `common/btn_info`
+##   · `9patch/scroll_box` cap(65,65,6,6) **(w×0.9, h×0.5)** @ (w/2, h/2) — 본체 상자
+##   · `scene/magicshop/gem_bg` 육각 대상 칸 @ (w×0.13, h/2)
+##   · `common/plus` @ (w/2 − 183, h/2)
+##   · 재료 칸 3개(가운데)
+##   · `common/btn_fold` **rotation 90°** @ (w/2 + 183, h/2)
+##   · `scene/magicshop/element_bg` 결과 판 @ (w×0.87, h/2)
+##   · `RoundedButton(205×56, onClickUpgrade)` + `common/coin_small1` 비용
+##
+## 규칙(위키 `<ToolTipSoulGemAlchemyExplain>` + `data/gems.json`):
+##   · **19등급(최대 티어) 혼성젬을 승급**하면 소울젬이 된다 — `upgrade.promote.gold`(100만).
+##   · 소울젬 강화는 **실패하지 않는다**. 단계 1~10, 비용은 `upgrade.soul_steps`
+##     (참조 영상 `소울젬4.png` = 9단계 900,000골드 + 가루 2000 + 발록재료 6 + 핵 1 과 일치).
+##   · 결과 이름/수치도 검산됐다 — 참조 결과창 "공격의 소울젬 [38/16/3]" =
+##     `gems.json` 공격의 소울젬 tier 8 (att 38 / att_pct 16 / cri 3).
+## 단계표 재료 코드 → 아이템 키. 표는 `data/gems.json` `upgrade.soul_mat_items`
+## (`dust` 는 젬 계열에 따라 갈리므로 여기서 정한다). **빈 값 = 그 재료 요구 생략** —
+## 위키가 말하는 '발록 재료'에 해당하는 아이템이 우리 items.json 에 없다(있는 건 발록의 핵뿐).
+func _soul_mat_item(code: String) -> String:
+	return String((Data.gems.get("upgrade", {}) as Dictionary)
+		.get("soul_mat_items", {}).get(code, ""))
+
+func _body_soul(pop: OrigPopup) -> void:
+	var W: float = pop.win_size.x
+	var H: float = pop.win_size.y
+	var S := Design.ASSET_SCALE
+	var midy := H * 0.5
+
+	# 본체 상자 — `9patch/scroll_box` (w×0.9, h×0.5) 중앙.
+	var bw := W * 0.9
+	var bh := H * 0.5
+	var box := AtlasUI.nine("ninepatch_ui", "9patch_scroll_box", Vector2(bw, bh), Rect2(65, 65, 6, 6))
+	if box:
+		box.position = Vector2(W * 0.5 - bw * 0.5, midy - bh * 0.5)
+		pop.content.add_child(box)
+
+	# 대상 칸(육각) @ (w×0.13, h/2)
+	var hex := AtlasUI.size_pt("magicshop_ui", "scene_magicshop_gem_bg") * 0.72
+	var slot := Control.new()
+	slot.size = hex
+	slot.position = Vector2(W * 0.13, midy) - hex * 0.5
+	pop.content.add_child(slot)
+	var hbg := _spr("gem_bg", S * 0.72)
+	if hbg:
+		hbg.position = hex * 0.5
+		slot.add_child(hbg)
+	var cur := Gem.parse_item_key(_soul_key) if _soul_key != "" else {}
+	if cur.is_empty():
+		var hint := Label.new()
+		hint.text = "젬"
+		hint.add_theme_font_size_override("font_size", 18)
+		hint.add_theme_color_override("font_color", Color(0.42, 0.30, 0.18))
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hint.size = hex
+		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(hint)
+	else:
+		var gi := Icons.rect(Icons.gem_texture(
+			String(Gem.gem_def(String(cur["name"]), Data.gems).get("code", "")),
+			int(cur["tier"])), hex.x * 0.66)
+		if gi:
+			gi.position = (hex - gi.size) * 0.5
+			slot.add_child(gi)
+	var sb := Button.new()
+	sb.flat = true
+	sb.size = hex
+	sb.pressed.connect(func(): _open_gem_picker("soul", func(k: String):
+		_soul_key = k
+		_refresh_feature()))
+	slot.add_child(sb)
+
+	# + / ▶
+	var plus := AtlasUI.spr("common_ui", "common_plus", S * 0.8)
+	if plus:
+		plus.position = Vector2(W * 0.5 - 183.0, midy)
+		pop.content.add_child(plus)
+	var fold := AtlasUI.spr("common_ui", "common_btn_fold", S * 0.8)
+	if fold:
+		fold.rotation = deg_to_rad(90.0)
+		fold.position = Vector2(W * 0.5 + 183.0, midy)
+		pop.content.add_child(fold)
+
+	# 재료 3칸(가운데)
+	var plan := _soul_plan()
+	var mats: Array = plan.get("mats", [])
+	for i in mats.size():
+		var m: Dictionary = mats[i]
+		var c := Vector2(W * 0.5 - 120.0 + float(i) * 100.0, midy)
+		var cell := Panel.new()
+		cell.size = Vector2(86.0, 92.0)
+		cell.position = c - cell.size * 0.5
+		var sbf := StyleBoxFlat.new()
+		sbf.bg_color = Color(0, 0, 0, 0.32)
+		sbf.corner_radius_top_left = 12; sbf.corner_radius_top_right = 12
+		sbf.corner_radius_bottom_left = 12; sbf.corner_radius_bottom_right = 12
+		cell.add_theme_stylebox_override("panel", sbf)
+		pop.content.add_child(cell)
+		var ip := Data.item_icon_path(String(m["key"]))
+		if ip != "" and ResourceLoader.exists(ip):
+			var ic := Sprite2D.new()
+			ic.texture = load(ip)
+			ic.material = _pma
+			ic.scale = Vector2(0.36, 0.36)
+			ic.position = Vector2(43.0, 38.0)
+			cell.add_child(ic)
+		var nl := Label.new()
+		var have := UserDB.item_count(String(m["key"]))
+		var need := int(m["need"])
+		nl.text = "%d/%d" % [mini(have, need), need]
+		nl.add_theme_font_size_override("font_size", 15)
+		nl.add_theme_color_override("font_color",
+			Color(0.85, 1.0, 0.85) if have >= need else Color(1.0, 0.62, 0.55))
+		nl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		nl.add_theme_constant_override("outline_size", 4)
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.position = Vector2(0, 68.0)
+		nl.size = Vector2(86.0, 22.0)
+		cell.add_child(nl)
+
+	# 결과 판 @ (w×0.87, h/2)
+	var ebg := _spr("element_bg", S * 0.85)
+	if ebg:
+		ebg.position = Vector2(W * 0.87, midy)
+		pop.content.add_child(ebg)
+	var res_name := String(plan.get("result_name", ""))
+	if res_name != "":
+		var rg := Icons.rect(Icons.gem_texture(String(plan.get("result_code", "")),
+			int(plan.get("result_tier", 0))), 66.0)
+		if rg:
+			rg.position = Vector2(W * 0.87, midy) - rg.size * 0.5
+			pop.content.add_child(rg)
+	var rl := Label.new()
+	rl.text = res_name if res_name != "" else "소울젬"
+	rl.add_theme_font_size_override("font_size", 15)
+	rl.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rl.position = Vector2(W * 0.87 - 110.0, midy + bh * 0.5 - 34.0)
+	rl.size = Vector2(220.0, 22.0)
+	pop.content.add_child(rl)
+
+	# 안내 + 실행 버튼
+	var msg := String(plan.get("msg", ""))
+	if msg != "":
+		var ml := Label.new()
+		ml.text = msg
+		ml.add_theme_font_size_override("font_size", 15)
+		ml.add_theme_color_override("font_color", Color(0.82, 0.78, 0.92))
+		ml.add_theme_color_override("font_outline_color", Color(0.06, 0.03, 0.12, 0.9))
+		ml.add_theme_constant_override("outline_size", 4)
+		ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ml.position = Vector2(60.0, midy + bh * 0.5 + 6.0)
+		ml.size = Vector2(W - 120.0, 44.0)
+		pop.content.add_child(ml)
+
+	var gold := int(plan.get("gold", 0))
+	var can := bool(plan.get("ok", false))
+	var btn := _frame_button(pop.content, _comma(gold) if gold > 0 else "승급/강화",
+		Vector2(W * 0.5 - 102.0, H - 84.0), Vector2(205.0, 56.0), _soul_run, 0, not can)
+	if gold > 0:
+		var coin := AtlasUI.spr("common_ui", "common_coin_small1", S * 0.9)
+		if coin:
+			coin.position = Vector2(28.0, 28.0)
+			btn.add_child(coin)
+
+
+## 지금 선택으로 무엇이 되는가 — {ok, gold, mats:[{key,need}], result_*, msg}.
+## 원작 `settingGem` + `settingUpgradeButton` 이 하던 판정.
+func _soul_plan() -> Dictionary:
+	var out := {"ok": false, "gold": 0, "mats": [], "result_name": "", "result_code": "",
+		"result_tier": 0, "msg": "승급할 19등급 혼성젬이나 강화할 소울젬을 고르세요."}
+	if _soul_key == "":
+		return out
+	var g := Gem.parse_item_key(_soul_key)
+	if g.is_empty():
+		return out
+	var nm := String(g["name"])
+	var tier := int(g["tier"])
+	var gd: Dictionary = Gem.gem_def(nm, Data.gems)
+	var up: Dictionary = Data.gems.get("upgrade", {})
+	if String(gd.get("category", "")) == "soul":
+		# 강화 — 단계표(soul_steps). 원작: 실패하지 않는다.
+		var steps: Array = up.get("soul_steps", [])
+		if tier + 1 >= steps.size():
+			out["msg"] = "이미 최대 단계입니다."
+			out["result_name"] = Gem.display_name(nm, tier, Data.gems)
+			out["result_code"] = String(gd.get("code", ""))
+			out["result_tier"] = tier
+			return out
+		var st: Dictionary = steps[tier + 1]
+		out["gold"] = int(st.get("gold", 0))
+		out["mats"] = _soul_mats(st, nm)
+		out["result_name"] = Gem.display_name(nm, tier + 1, Data.gems)
+		out["result_code"] = String(gd.get("code", ""))
+		out["result_tier"] = tier + 1
+		out["msg"] = "소울젬 강화는 실패하지 않습니다."
+		out["ok"] = _soul_afford(int(out["gold"]), out["mats"])
+		return out
+	# 승급 — 최대 티어 혼성젬만.
+	var to_code := String(gd.get("promote_to", ""))
+	if to_code == "" or tier < Gem.max_tier(nm, Data.gems):
+		out["msg"] = "최대 등급(19)의 혼성젬만 소울젬으로 승급할 수 있습니다."
+		return out
+	var to_name := Gem.name_of_code(to_code, Data.gems)
+	out["gold"] = int((up.get("promote", {}) as Dictionary).get("gold", 1000000))
+	out["mats"] = _soul_mats((up.get("soul_steps", [{}]) as Array)[0], to_name)
+	out["result_name"] = Gem.display_name(to_name, 0, Data.gems)
+	out["result_code"] = to_code
+	out["result_tier"] = 0
+	out["msg"] = "19등급 혼성젬을 소울젬으로 승급합니다."
+	out["ok"] = _soul_afford(int(out["gold"]), out["mats"])
+	return out
+
+
+## 단계표 한 줄 → 재료 목록. 가루는 그 소울젬 계열(공/방/체)의 가루를 쓴다.
+func _soul_mats(step: Dictionary, gem_name: String) -> Array:
+	var out: Array = []
+	if int(step.get("dust", 0)) > 0:
+		out.append({"key": _dust_key_for(gem_name), "need": int(step["dust"])})
+	var mk := _soul_mat_item("mat")
+	if int(step.get("mat", 0)) > 0 and mk != "":
+		out.append({"key": mk, "need": int(step["mat"])})
+	var ck := _soul_mat_item("core")
+	if int(step.get("core", 0)) > 0 and ck != "":
+		out.append({"key": ck, "need": int(step["core"])})
+	return out
+
+
+func _soul_afford(gold: int, mats: Array) -> bool:
+	if UserDB.gold() < gold:
+		return false
+	for m in mats:
+		if UserDB.item_count(String((m as Dictionary)["key"])) < int((m as Dictionary)["need"]):
+			return false
+	return true
+
+
+## 원작 `requestSoulGemMakeAndUpgrade` → `responseSoulGemMakeAndUpgrade`.
+func _soul_run() -> void:
+	var plan := _soul_plan()
+	if not bool(plan.get("ok", false)) or _soul_key == "":
+		return
+	if not UserDB.spend("gold", int(plan["gold"])):
+		return
+	for m in (plan["mats"] as Array):
+		UserDB.use_item(String((m as Dictionary)["key"]), int((m as Dictionary)["need"]))
+	UserDB.use_item(_soul_key, 1)
+	var g := Gem.parse_item_key(_soul_key)
+	var new_name := Gem.name_of_code(String(plan["result_code"]), Data.gems)
+	if new_name == "":
+		new_name = String(g["name"])
+	var new_key := Gem.item_key(new_name, int(plan["result_tier"]))
+	UserDB.add_item(new_key, 1)
+	_soul_key = new_key
+	_refresh_feature()
+	GetItemPopup.open(self, [{"key": new_key, "count": 1}])
+	_toast("%s!" % String(plan["result_name"]), 4)
+
+
+# ── 젬 고르기(원작 UpgradeGemLayer::setSelectedItem / GemsPopup) ───────────
+## 가방의 젬을 격자로 보여 주고 하나를 고른다. 원작도 같은 그릇
+## (`9patch/popup4` + `9patch/scroll_box` 격자 + 우측 상세 + `선택`)이다 —
+## 참조 `docs/ref/gem/젬분해2~3.png`.
+## `mode` = "soul" 이면 **승급 가능한 최대티어 혼성젬 + 소울젬**만 보인다.
+func _open_gem_picker(mode: String, on_pick: Callable) -> void:
+	var vis := _vis()
+	var layer := Control.new()
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.z_index = 80
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+
+	var sz := Vector2(minf(880.0, vis.x - 40.0), vis.y - 80.0)
+	var win := Control.new()
+	win.size = sz
+	win.position = ((vis - sz) * 0.5).round()
+	layer.add_child(win)
+	var fr := AtlasUI.nine("ninepatch_ui", "9patch_popup4", sz, Rect2(130, 190, 40, 58))
+	if fr:
+		win.add_child(fr)
+	var t := Label.new()
+	t.text = "젬"                                   # <gem>
+	t.add_theme_font_size_override("font_size", 26)
+	t.add_theme_color_override("font_color", Color.WHITE)
+	t.add_theme_color_override("font_outline_color", Color(0.35, 0.14, 0.03, 0.95))
+	t.add_theme_constant_override("outline_size", 5)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.position = Vector2(0, 26.0)
+	t.size = Vector2(sz.x, 40.0)
+	win.add_child(t)
+	var cb := TextureButton.new()
+	var ct := AtlasUI.tex("common_ui", "common_close_btn")
+	if ct:
+		cb.texture_normal = ct
+		cb.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE) * 1.3
+	cb.position = Vector2(sz.x - 76.0, 24.0)
+	cb.pressed.connect(func(): layer.queue_free())
+	win.add_child(cb)
+
+	var box_sz := Vector2(sz.x - 90.0, sz.y - 160.0)
+	var np := AtlasUI.nine("ninepatch_ui", "9patch_scroll_box", box_sz, Rect2(65, 65, 6, 6))
+	if np:
+		np.position = Vector2(45.0, 80.0)
+		win.add_child(np)
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(58.0, 92.0)
+	sc.size = box_sz - Vector2(26.0, 26.0)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	win.add_child(sc)
+	var grid := GridContainer.new()
+	grid.columns = maxi(1, int(sc.size.x / 104.0))
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	sc.add_child(grid)
+
+	var rows := 0
+	for k in UserDB.inventory().keys():
+		var key := String(k)
+		var g := Gem.parse_item_key(key)
+		if g.is_empty() or UserDB.item_count(key) <= 0:
+			continue
+		var nm := String(g["name"])
+		var gd: Dictionary = Gem.gem_def(nm, Data.gems)
+		if mode == "soul":
+			var is_soul := String(gd.get("category", "")) == "soul"
+			var promotable := String(gd.get("promote_to", "")) != "" \
+				and int(g["tier"]) >= Gem.max_tier(nm, Data.gems)
+			if not (is_soul or promotable):
+				continue
+		rows += 1
+		grid.add_child(_gem_pick_cell(key, g, layer, on_pick))
+	if rows == 0:
+		var e := Label.new()
+		e.text = "고를 수 있는 젬이 가방에 없습니다."
+		e.add_theme_font_size_override("font_size", 18)
+		e.add_theme_color_override("font_color", Color(0.42, 0.30, 0.18))
+		e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		e.position = Vector2(45.0, 80.0 + box_sz.y * 0.5 - 14.0)
+		e.size = Vector2(box_sz.x, 28.0)
+		win.add_child(e)
+
+
+func _gem_pick_cell(key: String, g: Dictionary, layer: Control, on_pick: Callable) -> Control:
+	var cell := Panel.new()
+	cell.custom_minimum_size = Vector2(98.0, 104.0)
+	var sbf := StyleBoxFlat.new()
+	sbf.bg_color = Color(0, 0, 0, 0.32)
+	sbf.corner_radius_top_left = 12; sbf.corner_radius_top_right = 12
+	sbf.corner_radius_bottom_left = 12; sbf.corner_radius_bottom_right = 12
+	cell.add_theme_stylebox_override("panel", sbf)
+	var nm := String(g["name"])
+	var gi := Icons.rect(Icons.gem_texture(
+		String(Gem.gem_def(nm, Data.gems).get("code", "")), int(g["tier"])), 58.0)
+	if gi:
+		gi.position = Vector2(20.0, 10.0)
+		cell.add_child(gi)
+	var n := Label.new()
+	n.text = "X %d" % UserDB.item_count(key)
+	n.add_theme_font_size_override("font_size", 15)
+	n.add_theme_color_override("font_color", Color(1, 1, 1))
+	n.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	n.add_theme_constant_override("outline_size", 4)
+	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	n.position = Vector2(0, 76.0)
+	n.size = Vector2(98.0, 22.0)
+	cell.add_child(n)
+	cell.tooltip_text = Gem.display_name(nm, int(g["tier"]), Data.gems)
+	var b := Button.new()
+	b.flat = true
+	b.size = Vector2(98.0, 104.0)
+	b.pressed.connect(func():
+		layer.queue_free()
+		on_pick.call(key))
+	cell.add_child(b)
+	return cell
+
 
 # ── 공용 위젯 ──────────────────────────────────────────────────────────────
 func _note(text: String) -> Label:

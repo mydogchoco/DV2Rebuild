@@ -236,6 +236,44 @@ func _ready() -> void:
 			if int(UserDB.get_dragon(cs_uid).get("level", 1)) < 35:
 				UserDB.set_dragon_field(cs_uid, "level", 40)
 			Scenes.goto("cave", {})
+		"gemshop":
+			# 점술집 지하 — `--tab=disassemble|soul` 로 기능 창을 연다(원작 UpgradeGemLayer(2) /
+			# UpgradeSoulGemLayer). 젬·재료를 임시로 넣는다. begin_batch = 디스크 미기록.
+			UserDB.begin_batch()
+			UserDB.add_currency("gold", 9000000)
+			var gs_want := "disassemble"
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--tab="): gs_want = a.substr(6)
+			for gs_n in ["공격의 젬", "방어의 젬", "체력의 젬"]:
+				for gs_t in [0, 4, 13]:
+					UserDB.add_item(Gem.item_key(gs_n, gs_t), 12 + gs_t * 30)
+			UserDB.add_item(Gem.item_key("공격의 소울젬", 8), 1)
+			UserDB.add_item("att_powder", 5000)
+			UserDB.add_item("balrog_core", 5)
+			Scenes.goto("magicshop", {})
+			for i in 20: await get_tree().process_frame
+			var gs := _find_method_node(get_tree().root, "_open_feature")
+			if gs == null:
+				print("SHOT: magicshop 없음")
+			else:
+				gs.set("_floor", 1)
+				gs.call("_rebuild")
+				for i in 8: await get_tree().process_frame
+				var gs_items: Array = gs.call("_items")
+				for gi in gs_items.size():
+					if String((gs_items[gi] as Dictionary)["key"]) == gs_want:
+						gs.call("_open_feature", gi)
+						break
+				for i in 8: await get_tree().process_frame
+				if gs_want == "disassemble":
+					var gs_keys: Array = []
+					for k in UserDB.inventory().keys():
+						if not Gem.parse_item_key(String(k)).is_empty(): gs_keys.append(String(k))
+					gs_keys.sort()
+					gs.set("_dis_slots", (gs_keys.slice(0, 6) + ["", "", "", "", "", ""]).slice(0, 6))
+				else:
+					gs.set("_soul_key", Gem.item_key("공격의 소울젬", 8))
+				gs.call("_refresh_feature")
 		"artmix":
 			# 아티펙트 합성(원작 ArtifactMix) 검수 — 아티팩트 4개를 임시로 넣고 창을 연다.
 			# begin_batch = 디스크 미기록.

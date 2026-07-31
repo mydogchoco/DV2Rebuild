@@ -193,6 +193,14 @@ SOUL_UPGRADE = [
     {"step": 10, "gold": 1_000_000, "dust": 3000, "mat": 9, "core": 2},
 ]
 
+# 소울젬 단계표의 재료 코드 → 우리 `data/items.json` 키.
+#   dust 는 젬 계열(공/방/체)에 따라 붉은/푸른/노란 가루라 **코드에서 정한다**(빈 값).
+#   ⚠️ `mat`(위키가 말하는 '발록 재료')에 해당하는 아이템이 우리 items.json 에 없다 —
+#      원작 아이템 목록(build_items.py 산출)에 `balrog_core`(발록의 핵) 하나뿐이다.
+#      없는 아이템을 지어내지 않고 **빈 값 = 그 재료 요구를 생략**으로 둔다.
+#      원본에서 키를 찾으면 여기만 채우면 소울젬 화면이 자동으로 그 재료를 요구한다.
+SOUL_MAT_ITEMS = {"dust": "", "mat": "", "core": "balrog_core"}
+
 # 위키 §2.2 "승급시 …의 소울젬이 된다" — 혼성젬 → 소울젬 승급 대응.
 PROMOTE = {
     "HPATT": "SOULHP", "HPDEF": "SOULHP",
@@ -357,6 +365,7 @@ def build() -> dict:
                 "docs/ref/orig_image/shop/점술집_젬강화.pdf 표 — 복구 비용(다이아) = "
                 "티어 번호와 동일(1~18). 기존 값과 일치 확인.")),
             "soul_steps": SOUL_UPGRADE,
+            "soul_mat_items": SOUL_MAT_ITEMS,
             "promote": PROMOTE_COST,
             "_wiki_ref": WIKI_REF,
             "cost_gold": {
