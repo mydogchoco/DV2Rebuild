@@ -526,6 +526,71 @@ def parse_switch_class(cls: str) -> dict[str, list[dict]]:
     return out
 
 
+def fill_missing_lines(flows: dict[str, list[dict]], scenarios: dict) -> tuple[int, int]:
+    """순회가 **못 닿은 대사**를 키 리터럴에서 보충한다.
+
+    ## 왜 정당한가
+
+    빠진 줄의 키(`ScenarioTalk<회차>_<줄>`)가 **원작 바이너리에 리터럴로 실재**한다
+    (1~78화 실측: 빠진 291줄 중 286줄 = 98%). 즉 그 회차가 실제로 띄우는 대사인데
+    우리 순회가 그 람다에 못 닿았을 뿐이다. 텍스트도 순서도 원작 것이다 —
+    키가 줄 번호를 인코딩하므로 **끼워 넣을 자리도 원작이 정해 준다.**
+
+    ⚠️ 모르는 것은 그 줄의 **화자·표정**이다. 비워 두면 story.gd 가 직전 화자를 유지하는데,
+       그건 원작에서도 화자 대입이 없는 스텝의 동작이라 어긋나지 않는다.
+    ⚠️ 보충분은 `_recovered` 로 표시한다 — 게이트가 통과해도 **추출 품질은 따로** 봐야 한다.
+    """
+    so = REPO / "lib" / "arm64-v8a" / "libgame.so"
+    if not so.exists():
+        so = REPO / "libgame.so"
+    if not so.exists():
+        return (0, 0)
+    blob = so.read_bytes()
+    n_ep = n_line = 0
+    for sn, ops in flows.items():
+        lines = sum(len(p.get("lines", [])) for p in scenarios.get(sn, {}).get("parts", []))
+        if not lines:
+            continue
+        have: dict[int, int] = {}          # 줄번호 → ops 인덱스
+        for i, o in enumerate(ops):
+            k = o.get("key")
+            if o.get("op") == "setTalk" and isinstance(k, str):
+                m = re.search(r"_(\d+)$", k)
+                if m:
+                    have[int(m.group(1))] = i
+        miss = [k for k in range(1, lines + 1) if k not in have]
+        if not miss:
+            continue
+        # 🔴 **부족분만큼만** 채운다. `have` 는 키가 있는 `setTalk` 만 세는데 대사 op 에는
+        #    키 없는 것(`setUserTalk`·`setNpcTalk`)도 있다 — 그걸 "빠진 줄"로 오인해 채우면
+        #    멀쩡히 맞던 회차가 초과로 뒤집힌다(실측: 27화가 60/60 → 61/60 으로 떨어졌다).
+        talk_now = sum(1 for o in ops
+                       if o.get("op") in ("setNpcTalk", "setUserTalk", "setTalker", "setTalk"))
+        quota = lines - talk_now
+        if quota <= 0:
+            continue
+        added = 0
+        for k in miss:
+            if added >= quota:
+                break
+            key = "ScenarioTalk%s_%d" % (sn, k)
+            if key.encode() + bytes(1) not in blob:
+                continue                   # 리터럴이 없으면 그 회차 대사가 아닐 수 있다 — 안 넣는다
+            prev = max((x for x in have if x < k), default=None)
+            pos = (have[prev] + 1) if prev is not None else 0
+            ops.insert(pos, {"op": "setTalk", "key": key, "npc_name": None,
+                             "body": None, "state": None, "_recovered": True})
+            for kk in list(have):          # 뒤 인덱스를 밀어 준다
+                if have[kk] >= pos:
+                    have[kk] += 1
+            have[k] = pos
+            added += 1
+        if added:
+            n_ep += 1
+            n_line += added
+    return (n_ep, n_line)
+
+
 def inject_story_battles(flows: dict[str, list[dict]]) -> int:
     """1~78화의 스토리 전투를 흐름에 **주입**한다.
 
@@ -657,12 +722,18 @@ def main():
     sw_json = REPO / "data" / "scenario_flow_switch.json"
     if sw_json.exists():
         sw = json.loads(sw_json.read_text(encoding="utf-8")).get("flows", {})
+        fe, fl = fill_missing_lines(sw, scenarios)
+        if fl:
+            print(f"  (보충) 키 리터럴에서 {fe}회차 {fl}줄 — 순회가 못 닿은 대사")
         flows.update(accept_if_exact(sw, scenarios))
     if "--switch" in argv:
         for c in [f"Scenario{i}" for i in range(1, 9)]:
             sw = parse_switch_class(c)
             if sw:
-                flows.update(accept_if_exact(sw, scenarios))
+                fe, fl = fill_missing_lines(sw, scenarios)
+        if fl:
+            print(f"  (보충) 키 리터럴에서 {fe}회차 {fl}줄 — 순회가 못 닿은 대사")
+        flows.update(accept_if_exact(sw, scenarios))
     for c in classes:
         f = parse_class(c)
         if c in VARIANT_CLASSES:

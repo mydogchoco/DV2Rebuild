@@ -20,18 +20,20 @@ extends SceneTree
 ## 채택 회차 수의 **바닥값**. 종전엔 회차가 통째로 사라져도 테스트가 못 잡았다 —
 ## `flows` 에 없는 회차는 아래 검사 루프를 아예 안 돌기 때문이다(2026-07-31 실측:
 ## 추출을 고치자 3·31·36·50 이 조용히 빠졌는데 PASS 였다).
-const MIN_EPISODES := 74
+const MIN_EPISODES := 99
 
 ## 1~78화(점프 테이블 추출)는 대사 수가 정확히 맞은 것만 올린다 — 회귀 앵커.
 ## ⚠️ 여기 오른 회차는 **flows 에 반드시 있어야 한다**(없으면 FAIL).
 const EXACT := {
 	1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
-	9: true, 10: true, 11: true, 13: true, 14: true, 15: true, 16: true, 17: true,
-	18: true, 20: true, 21: true, 23: true, 26: true, 27: true, 28: true, 31: true,
-	36: true, 37: true, 39: true, 40: true, 41: true, 42: true, 44: true, 45: true,
-	47: true, 48: true, 49: true, 51: true, 52: true, 53: true, 54: true, 55: true,
-	56: true, 57: true, 58: true, 59: true, 60: true, 61: true, 63: true, 64: true,
-	65: true, 66: true,
+	9: true, 10: true, 11: true, 12: true, 13: true, 14: true, 15: true, 16: true,
+	17: true, 18: true, 19: true, 20: true, 21: true, 22: true, 23: true, 26: true,
+	27: true, 28: true, 30: true, 31: true, 32: true, 33: true, 34: true, 35: true,
+	36: true, 37: true, 39: true, 40: true, 41: true, 42: true, 43: true, 44: true,
+	45: true, 46: true, 47: true, 48: true, 49: true, 51: true, 52: true, 53: true,
+	54: true, 55: true, 56: true, 57: true, 58: true, 59: true, 60: true, 61: true,
+	63: true, 64: true, 65: true, 66: true, 67: true, 68: true, 69: true, 70: true,
+	71: true, 72: true, 73: true, 74: true, 75: true, 76: true, 77: true, 78: true,
 	79: true, 80: true, 81: true,
 	82: true, 83: true, 84: true, 85: true, 87: true, 88: true,
 	89: true, 90: true, 91: true, 94: true, 96: true, 97: true, 99: true, 100: true}
@@ -129,7 +131,9 @@ func _init() -> void:
 		#   who            = `<NPC_who>???`(정체불명 화자)
 		#   monsterevent*  = `<NPC_monsterevent1>실험체 만드라고낙` 등 스토리 몬스터 화자.
 		#                    `DV2/480/npc/` 126개에 없다(몬스터라 초상 파츠가 아니라 스파인이다).
-		for k_no_art in ["who", "monsterevent1", "monsterevent2", "monsterevent3"]:
+		#   stonekeeper·lightorb = 빛의 탑 몬스터가 화자로 말한다(<NPC_stonekeeper>스톤키퍼 등).
+		for k_no_art in ["who", "monsterevent1", "monsterevent2", "monsterevent3",
+				"stonekeeper", "lightorb"]:
 			missing_art.erase(k_no_art)
 		if not missing_art.is_empty():
 			print("WARN 초상 미변환 NPC: ", missing_art.keys())
@@ -151,7 +155,21 @@ func _init() -> void:
 	if not bg_missing.is_empty():
 		print("WARN 배경 미보유(§10 판본 불일치): ", bg_missing)
 
-	print("[flow] 회차 %d · 정합 검사 %d회차 · 화자 유지(직전 화자) %d" % [flows.size(), checked, unresolved])
+	# 보충분(`_recovered`) = 순회가 못 닿아 **키 리터럴에서 채운** 대사.
+	# 게이트(대사 수 일치)는 통과해도 추출 품질은 이 비율로 따로 본다.
+	var rec := 0
+	var talk_all := 0
+	for sn2 in flows.keys():
+		for o2 in flows[sn2]:
+			var d2: Dictionary = o2
+			if String(d2.get("op", "")) in ["setNpcTalk", "setUserTalk", "setTalker", "setTalk"]:
+				talk_all += 1
+				if bool(d2.get("_recovered", false)):
+					rec += 1
+	if talk_all > 0 and rec * 100 / talk_all > 15:
+		print("FAIL 보충 비율 %d%% — 추출이 퇴행했다(15%% 초과)" % (rec * 100 / talk_all)); fails += 1
+	print("[flow] 회차 %d · 정합 검사 %d회차 · 화자 유지 %d · 보충 %d/%d" % [
+		flows.size(), checked, unresolved, rec, talk_all])
 	print("PASS" if fails == 0 else "FAIL %d" % fails)
 	quit(0 if fails == 0 else 1)
 
