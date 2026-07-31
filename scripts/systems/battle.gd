@@ -11,10 +11,12 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 	# skills_db는 "30" 문자열 키라 str(30.0)="30.0"이면 조회 실패 → 스킬이 전혀 발동 안 함.
 	# 여기서 int로 정규화해 str(id)가 항상 "30"이 되게 한다(원본 배열은 건드리지 않음).
 	var norm: Array = []
+	var lv_sum := 0
 	for s in skills:
 		var sc: Dictionary = (s as Dictionary).duplicate()
 		sc["id"] = int(s.get("id", 0))
 		sc["level"] = int(s.get("level", 1))
+		lv_sum += int(sc["level"])
 		norm.append(sc)
 	return {
 		"name": name, "side": side, "element": element,
@@ -52,6 +54,10 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# 이 파티의 **탐험 골드 증가량(%)**. 전투 계수가 아니라 참조값이다 —
 		# 전용 장비 다크프로스티의 무늬가 "그 증가량만큼 공격력% 증가" 라고 이 값을 읽는다.
 		"explore_gold_pct": int(stats.get("explore_gold_pct", 0)),
+		# **스킬 슬롯에 착용 중인 스킬의 레벨 합**. 역시 참조값이다 —
+		# 전용 장비 불나래의 불꽃구슬이 "레벨합 × 4 만큼 받는 대미지 감소" 라고 읽는다.
+		# 인자로 직접 주면 그 값을 쓴다(카드 생성 전 임시 전투원처럼 skills 가 비어 있을 때).
+		"skill_level_sum": int(stats.get("skill_level_sum", lv_sum)),
 		"skills": norm, "skill_uses": {}, "effects": [],
 		# 장착 중인 장비의 카탈로그 키(EquipEffect.keys_of). 조건부 효과를 심을 때만 쓰고,
 		# 스탯은 이미 Equipment.apply 로 stats 에 반영돼 들어온다.
@@ -1977,6 +1983,13 @@ static func effect_cond_ok(cond, owner: Dictionary, allies: Array, enemies: Arra
 			return allies.size() >= int(c.get("min", 1))
 		"enemy_boss":
 			return bool(ctx.get("enemy_boss", false))
+		"team_buff_active":
+			# 전용 장비 세로님의 전쟁보닛 "팀버프 [흑풍]을 활성화한 경우 …".
+			# 팀버프(종족 조합)는 파티 구성만으로 정해지므로 전투 **시작 전에** 확정된다 →
+			# render 가 `ctx.team_buffs`(활성 버프 이름 배열)로 넘긴다. 판정은 여기서 한다.
+			# ⚠️ ctx 에 그 열쇠가 아예 없으면(옛 호출부) **발동하지 않는다** — 모르는 조건은
+			#    걸지 않는다는 이 함수의 기본 규약대로다.
+			return String(c.get("value", "")) in (ctx.get("team_buffs", []) as Array)
 		"self_type":
 			# 해골요새 장비의 후반 조항 — "방어형 드래곤이 장착 시 회피율 10% 상승".
 			# 값은 `dragons.json` 의 `type`(atk/hp/def/hd/ha/ad) 그대로다.

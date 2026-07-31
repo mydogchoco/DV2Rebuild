@@ -241,6 +241,32 @@ func _test_d_batch(tbl: Dictionary, cfg: Dictionary) -> void:
 	EE.apply_battle([fd], [], tbl, {})
 	_eq("스킬 효과 레벨 +1", B._skill_level_bonus(fd), 1)
 
+	# 세로님의 전쟁보닛 — 팀버프 [흑풍] 이 **활성일 때만** 공격하지 않는다.
+	# ⚠️ 팀버프는 파티 구성으로 정해지므로 전투 시작 전에 확정된다 → ctx 로 넘어온다.
+	var se := _mk("SE", "wind", {"att": 100}, ["exclusive:세로님의 전쟁보닛"])
+	EE.apply_battle([se], [], tbl, {"team_buffs": ["흑풍"]})
+	_true("흑풍 활성 → 공격 안 함", B._has_flag(se, "no_attack"))
+	var se2 := _mk("SE2", "wind", {"att": 100}, ["exclusive:세로님의 전쟁보닛"])
+	EE.apply_battle([se2], [], tbl, {"team_buffs": ["창궁"]})
+	_true("다른 팀버프면 정상 공격", not B._has_flag(se2, "no_attack"))
+	var se3 := _mk("SE3", "wind", {"att": 100}, ["exclusive:세로님의 전쟁보닛"])
+	EE.apply_battle([se3], [], tbl, {})
+	_true("팀버프 정보가 없으면 발동 안 함", not B._has_flag(se3, "no_attack"))
+
+	# 불나래의 불꽃구슬 — 장착 스킬 레벨 합 × 4 만큼 받는 대미지 정액 감소.
+	var bn := _mk("BN", "fire", {"hp": 9999, "skill_level_sum": 8},
+		["exclusive:불나래의 불꽃구슬"])
+	EE.apply_battle([bn], [], tbl, {})
+	_eq("레벨합 8 → 32 감소", int(B._apply_dmg(bn, 500)["dmg"]), 468)
+	# [철갑 방패](11) 와 중첩된다 — 같은 축이라 정액 감소가 합산된다.
+	(bn["effects"] as Array).append({"kind": "dmg_taken_flat", "value": 35.0,
+		"turns": -1, "src": "skill:11"})
+	_eq("철갑 방패와 중첩(32+35)", int(B._apply_dmg(bn, 500)["dmg"]), 433)
+	var bn0 := _mk("BN0", "fire", {"hp": 9999, "skill_level_sum": 0},
+		["exclusive:불나래의 불꽃구슬"])
+	EE.apply_battle([bn0], [], tbl, {})
+	_eq("스킬을 안 꼈으면 감소 0", int(B._apply_dmg(bn0, 500)["dmg"]), 500)
+
 	# 디기의 금빛장식 — [약점 공략](71) 추가대미지 상한 150 → 250
 	var dg := _mk_aw("DG", "fire", 71, {"att": 500, "def": 500}, ["exclusive:디기의 금빛장식"])
 	var weak := _mk_aw("WK", "fire", 0, {"hp": 9999, "att": 1, "def": 1}, [])

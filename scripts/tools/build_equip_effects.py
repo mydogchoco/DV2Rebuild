@@ -232,7 +232,16 @@ EXCLUSIVE = {
             op("stat", stat="att", mode="pct", value=15),
             op("stat", stat="def", mode="pct", value=15)])},
     "루페스의 결정화된 분노": {"impl": False, "why": "skill:복수의 거울"},
-    "불나래의 불꽃구슬": {"impl": False, "why": "skill:철갑방패 · 각인 에자녹의 권능"},
+    "불나래의 불꽃구슬": {         # 스킬 슬롯 착용 스킬의 **레벨 합 × 4** 만큼 받는 대미지 감소
+        # 🟦 사용자 지시 2026-07-31 — **각인 조항만 빼고 구현**한다.
+        # 축 판정: 형제 스킬 [철갑 방패](11)가 "10+스킬레벨*5 **피해 감소**" 로 정액이고,
+        # 원문이 그 스킬과 "중첩 가능" 하다고 못 박으므로 이것도 **정액 감소**다.
+        # 중첩은 저절로 된다 — `dmg_taken_flat` 은 출처별로 쌓인다.
+        # 값은 전투원의 `skill_level_sum`(장착 2칸의 레벨 합)에서 파생한다.
+        "ops": [op("dmg_taken_flat",
+                   **{"from": {"stat": "skill_level_sum", "ratio": 4.0}})],
+        "partial": "'각인[에자녹의 권능]으로 인한 스킬레벨 증가도 포함' 은 각인 시스템이 "
+                   "에셋 부재로 컷돼 있어 그 조항만 뺐다(사용자 지시)"},
     "미니드래곤 고리": {"impl": False,
         "why": "engine — [선제 공격] 발동 시 '아군 드래곤의 합으로 공격' = 합공격이라는 새 공격 형태"},
     "투탕카의 도리깨": {"impl": False,
@@ -256,7 +265,13 @@ EXCLUSIVE = {
         "awaken_mod": awk("신성 방패", {"react.0.pct": 10})},
     "디기의 금빛장식": {          # [약점 공략] 의 추가대미지 상한 150 → 250
         "awaken_mod": awk("약점 공략", {"react.0.max": 250})},
-    "세로님의 전쟁보닛": {"impl": False, "why": "skill:팀버프 흑풍"},
+    "세로님의 전쟁보닛": {         # 팀버프 [흑풍] 활성 시 자신은 공격하지 않음
+        # 🟦 사용자 지시 2026-07-31 — 전투가 팀버프 활성 여부를 알도록 메커니즘을 고쳤다:
+        # `_setup_party` 가 이미 산출하는 활성 버프 목록을 ctx.team_buffs 로 넘기고,
+        # `Battle.effect_cond_ok` 에 `team_buff_active` 조건을 추가했다.
+        # 흑풍 = 어둠2 + 바람1 (data/team_buffs.json no.18).
+        "cond": {"kind": "team_buff_active", "value": "흑풍"},
+        "ops": [op("flag", flag="no_attack")]},
     "진의 나무비늘": {           # 아군 땅속성 수만큼 각성기 데미지 20% 증가(최대 60%)
         "ops": [op("awaken_dmg", pct=20, per="ally_element:earth", max=60)]},
     "레지아나의 빛나는 깃털": {     # 해당 드래곤 사망 시 아군 각성기 피해량 50% 증가

@@ -489,12 +489,24 @@ func _apply_awaken_skills() -> void:
 		# 전용 장비 다크프로스티의 무늬 — "탐험에서 골드 획득 증가량만큼 자신의 공격력% 증가".
 		# 그 증가량은 우리도 갖고 있다(각성스킬의 탐험 보너스) → 전투원에 실어 준다.
 		st["explore_gold_pct"] = int(_awaken_explore().get("gold_pct", 0))
+		# 장착 스킬 레벨 합 — 임시 전투원은 skills 를 안 받으므로 여기서 직접 넘긴다
+		# (전용 장비 불나래의 불꽃구슬이 이 값을 읽는다).
+		var lvsum := 0
+		for sd in (pd.get("skills", []) as Array):
+			lvsum += int((sd as Dictionary).get("level", 1))
+		st["skill_level_sum"] = lvsum
 		var c := Battle.make_combatant("A%d" % i, "ally", String(pd["element"]), st)
 		c["hp_max"] = int(pd["hp_max"]); c["hp"] = int(pd["hp"])
 		pa.append(c)
 	var eb := Battle.make_combatant("E0", "enemy", String(_enemy.get("element", "")),
 		{"hp": int(_enemy.get("hp_max", 1)), "att": 1, "def": 1})
-	var _ectx := {"field_element": _field_element(), "enemy_boss": _is_boss()}
+	# 활성 팀버프 이름 — `_setup_party` 가 이미 산출해 둔 것을 조건 판정용으로 넘긴다
+	# (전용 장비 세로님의 전쟁보닛이 "팀버프 [흑풍]을 활성화한 경우" 로 이 값을 본다).
+	var _tbnames: Array = []
+	for b in _active_team_buffs:
+		_tbnames.append(String((b as Dictionary).get("name", "")))
+	var _ectx := {"field_element": _field_element(), "enemy_boss": _is_boss(),
+		"team_buffs": _tbnames}
 	# ⚠️ 순서가 중요하다 — 장비의 **각성스킬 수정자**를 먼저 찍어야 각성스킬이 그 값으로 심는다.
 	EquipEffect.awaken_mods(pa, Data.equip_effects)
 	_awaken_fired = AwakenSkill.apply_battle(pa, [eb], Data.skill_awaken, _ectx)
