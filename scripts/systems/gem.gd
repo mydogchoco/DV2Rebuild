@@ -191,15 +191,18 @@ static func all_full(gems_field: Dictionary) -> bool:
 #   순번이라 칸과 어긋났다 — 슬롯 타입 도입으로 칸 고정이 필수가 됐다.
 
 ## 맞는 빈 칸을 찾아 장착. 미정의 젬·맞는 칸 없음이면 {} (실패).
-static func equip(gems_field: Dictionary, gem_name: String, tier: int, table: Dictionary) -> Dictionary:
+static func equip(gems_field: Dictionary, gem_name: String, tier: int, table: Dictionary,
+		meta: Dictionary = {}) -> Dictionary:
 	var slot := fit_slot(gems_field, gem_name, table)
 	if slot < 0:
 		return {}
-	return equip_at(gems_field, slot, gem_name, tier, table)
+	return equip_at(gems_field, slot, gem_name, tier, table, meta)
 
 ## 지정한 칸에 장착(원작 onClickGem → GemsPopup::setSelectTag(slot) 경로).
 ## 미정의 젬 · 칸 범위 밖 · 이미 찬 칸 · 타입 불일치면 {} (실패).
-static func equip_at(gems_field: Dictionary, slot: int, gem_name: String, tier: int, table: Dictionary) -> Dictionary:
+## `meta` = 가방 키가 들고 온 연금술 진행도({points, potions, broken}) — 장착해도 안 날아간다.
+static func equip_at(gems_field: Dictionary, slot: int, gem_name: String, tier: int,
+		table: Dictionary, meta: Dictionary = {}) -> Dictionary:
 	if slot < 0 or slot >= SLOTS or gem_def(gem_name, table).is_empty():
 		return {}
 	var en := entries(gems_field)
@@ -208,8 +211,22 @@ static func equip_at(gems_field: Dictionary, slot: int, gem_name: String, tier: 
 	var ty := types(gems_field)
 	if not accepts(String(ty[slot]), gem_name, table):
 		return {}
-	en[slot] = {"name": gem_name, "tier": clampi(tier, 0, maxi(0, max_tier(gem_name, table)))}
+	var e := {"name": gem_name, "tier": clampi(tier, 0, maxi(0, max_tier(gem_name, table)))}
+	if int(meta.get("points", 0)) > 0:
+		e["points"] = int(meta["points"])
+	if int(meta.get("potions", 0)) > 0:
+		e["potions"] = int(meta["potions"])
+	if bool(meta.get("broken", false)):
+		e["broken"] = true
+	en[slot] = e
 	return {"types": ty, "slots": en}
+
+## 가방 키 그대로 장착(진행도 포함). 맞는 빈 칸이 없으면 {}.
+static func equip_key(gems_field: Dictionary, key: String, table: Dictionary) -> Dictionary:
+	var g := parse_item_key(key)
+	if g.is_empty():
+		return {}
+	return equip(gems_field, String(g["name"]), int(g["tier"]), table, g)
 
 ## 그 칸을 비운 새 gems 필드.
 static func unequip_at(gems_field: Dictionary, slot: int) -> Dictionary:
@@ -300,16 +317,27 @@ static func success_chance(gems_field: Dictionary, slot: int, table: Dictionary)
 	return clampi(base_success(String(e["name"]), int(e["tier"]), table)
 		+ point_bonus(int(e.get("points", 0)), table), 0, 100)
 
-## 용액 투입 — 1~max 포인트 증가. 반환 {field, gained, points, reset, uses_left} / 실패 시 {}.
+## 젬 **개체 하나**의 성공률(%). 개체 = {name, tier, points?, potions?, broken?} —
+## 가방 키(`item_key_to_slot`)에서 온 것이든 장착 슬롯 엔트리든 같은 모양이다.
+static func inst_success_chance(inst: Dictionary, table: Dictionary) -> int:
+	if inst.is_empty():
+		return 0
+	return clampi(base_success(String(inst.get("name", "")), int(inst.get("tier", 0)), table)
+		+ point_bonus(int(inst.get("points", 0)), table), 0, 100)
+
+## ── 개체 단위 연금술 ────────────────────────────────────────────────────────
+## 원작이 **가방의 젬**을 대상으로 하므로(§docs/ref/porting/GemAlchemy.md §3) 규칙의 본체는
+## 여기(개체)에 두고, 아래 `add_potion`/`roll_upgrade`(장착 슬롯 판)는 이걸 감싸기만 한다.
+
+## 용액 투입 — 1~max 포인트 증가. 반환 {inst, gained, points, reset, uses_left} / 실패 시 {}.
 ## `potion` = data/gems.json `upgrade.potions` 의 한 항목.
-static func add_potion(gems_field: Dictionary, slot: int, potion: Dictionary, table: Dictionary,
+static func inst_add_potion(inst: Dictionary, potion: Dictionary, table: Dictionary,
 		rng: RandomNumberGenerator = null) -> Dictionary:
-	var en := entries(gems_field)
-	if slot < 0 or slot >= SLOTS or en[slot] == null or is_broken(en[slot]):
+	if inst.is_empty() or is_broken(inst):
 		return {}
 	var up: Dictionary = table.get("upgrade", {})
 	var max_try := int(up.get("potion_max_per_try", 5))
-	var e: Dictionary = (en[slot] as Dictionary).duplicate()
+	var e: Dictionary = inst.duplicate()
 	var used := int(e.get("potions", 0))
 	if used >= max_try:
 		return {}                                   # 원작 "남은 용액 투입 수" 0
@@ -327,24 +355,22 @@ static func add_potion(gems_field: Dictionary, slot: int, potion: Dictionary, ta
 		reset = true
 	e["points"] = pts
 	e["potions"] = used + 1
-	en[slot] = e
-	return {"field": {"types": types(gems_field), "slots": en}, "gained": gained,
-			"points": pts, "reset": reset, "uses_left": max_try - (used + 1)}
+	return {"inst": e, "gained": gained, "points": pts, "reset": reset,
+			"uses_left": max_try - (used + 1)}
 
-## 강화 판정 — 성공하면 티어 +1, 실패하면 **파손**(효과 0, 복구 필요).
+## 강화 판정(개체) — 성공하면 티어 +1, 실패하면 **파손**(효과 0, 복구 필요).
 ## 성공/실패 어느 쪽이든 연금포인트·투입 횟수는 소모된다(원작 AlchemyMsg7 "사용된 재료는 사라집니다").
-## 반환 {field, ok, broken, chance} / 대상이 없거나 최대 티어면 {}.
-static func roll_upgrade(gems_field: Dictionary, slot: int, table: Dictionary,
+## 반환 {inst, ok, broken, chance} / 대상이 없거나 최대 티어면 {}.
+static func inst_roll_upgrade(inst: Dictionary, table: Dictionary,
 		rng: RandomNumberGenerator = null) -> Dictionary:
-	var en := entries(gems_field)
-	if slot < 0 or slot >= SLOTS or en[slot] == null or is_broken(en[slot]):
+	if inst.is_empty() or is_broken(inst):
 		return {}
-	var e: Dictionary = (en[slot] as Dictionary).duplicate()
-	var nm := String(e["name"])
-	var tier := int(e["tier"])
+	var e: Dictionary = inst.duplicate()
+	var nm := String(e.get("name", ""))
+	var tier := int(e.get("tier", 0))
 	if tier >= max_tier(nm, table):
 		return {}
-	var chance := success_chance(gems_field, slot, table)
+	var chance := inst_success_chance(e, table)
 	var roll := (rng.randf() if rng != null else randf()) * 100.0
 	var ok := roll < float(chance)
 	e["points"] = 0
@@ -353,9 +379,44 @@ static func roll_upgrade(gems_field: Dictionary, slot: int, table: Dictionary,
 		e["tier"] = tier + 1
 	else:
 		e["broken"] = true
-	en[slot] = e
-	return {"field": {"types": types(gems_field), "slots": en}, "ok": ok,
-			"broken": not ok, "chance": chance}
+	return {"inst": e, "ok": ok, "broken": not ok, "chance": chance}
+
+## 파손 해제(개체). 다이아 차감은 호출부.
+static func inst_repair(inst: Dictionary) -> Dictionary:
+	if not is_broken(inst):
+		return {}
+	var e: Dictionary = inst.duplicate()
+	e.erase("broken")
+	return e
+
+## ── 장착 슬롯 판(위 개체 함수의 얇은 래퍼) ─────────────────────────────────
+## 반환에 `field`(새 gems 필드)를 실어 준다 — 기존 호출부 규약 유지.
+
+static func add_potion(gems_field: Dictionary, slot: int, potion: Dictionary, table: Dictionary,
+		rng: RandomNumberGenerator = null) -> Dictionary:
+	var en := entries(gems_field)
+	if slot < 0 or slot >= SLOTS or en[slot] == null:
+		return {}
+	var r := inst_add_potion(en[slot], potion, table, rng)
+	if r.is_empty():
+		return {}
+	en[slot] = r["inst"]
+	r.erase("inst")
+	r["field"] = {"types": types(gems_field), "slots": en}
+	return r
+
+static func roll_upgrade(gems_field: Dictionary, slot: int, table: Dictionary,
+		rng: RandomNumberGenerator = null) -> Dictionary:
+	var en := entries(gems_field)
+	if slot < 0 or slot >= SLOTS or en[slot] == null:
+		return {}
+	var r := inst_roll_upgrade(en[slot], table, rng)
+	if r.is_empty():
+		return {}
+	en[slot] = r["inst"]
+	r.erase("inst")
+	r["field"] = {"types": types(gems_field), "slots": en}
+	return r
 
 # ======================= 혼성젬 제작 (원작 UpgradeGemLayer 모드 1) =======================
 ## 제작으로 나올 수 있는 젬 = `category == "hybrid"` 전부. 이름순으로 고정해 **재현 가능**하게
@@ -579,17 +640,90 @@ static func name_of_code(code: String, table: Dictionary) -> String:
 
 const ITEM_PREFIX := "gem:"
 
-## 젬 이름+티어 → 인벤토리 키.
-static func item_key(gem_name: String, tier: int) -> String:
-	return "%s%s:%d" % [ITEM_PREFIX, gem_name, tier]
+# ── 개체 상태(연금술 진행도)를 가방 키에 싣는다 ─────────────────────────────
+#
+# 원작 `AlchemyLayer`(혼성젬 강화)의 대상은 **가방의 젬**이고, 연금술 포인트·용액 투입
+# 횟수는 서버가 **그 젬 개체에 붙여** 보관했다(`alchemy_gem_check` 의 `remain`/`cnt`).
+# 종전 우리 모델은 그 상태를 드래곤 슬롯 엔트리에만 둬서 "장착한 젬만 강화 가능" 이었다.
+#
+# 해결은 이미 프로젝트에 있는 규약을 그대로 쓴다 — `Equipment.item_key` 의 `<meta>@<본체>`:
+#
+#     gem:체력의 젬:7           진행도 없음 → **기존 키와 동일**(스택 유지, 구세이브 무손실)
+#     gem:p12,u2@체력의 젬:7    연금포인트 12 · 용액 2회 투입
+#     gem:x@체력의 젬:7         파손(강화 실패)
+#
+# 진행도가 다르면 키가 달라져 자연히 다른 스택이 된다 = 개체 구분. 별도 uid 레지스트리가
+# 필요 없고, 진행도 0인 젬은 예전과 완전히 같은 키라 마이그레이션도 필요 없다.
+const META_POINTS := "p"      # 연금술 포인트
+const META_POTIONS := "u"     # 용액 투입 횟수(used)
+const META_BROKEN := "x"      # 파손
 
-## 인벤토리 키 → {name, tier}. 젬 키가 아니면 {}.
+## 젬 이름+티어(+개체 상태) → 인벤토리 키.
+## `meta` = {points, potions, broken} — 0/false 는 생략돼 진행도 없는 젬은 옛 형식 그대로다.
+static func item_key(gem_name: String, tier: int, meta: Dictionary = {}) -> String:
+	var body := "%s:%d" % [gem_name, tier]
+	var tok: PackedStringArray = []
+	if int(meta.get("points", 0)) > 0:
+		tok.append("%s%d" % [META_POINTS, int(meta["points"])])
+	if int(meta.get("potions", 0)) > 0:
+		tok.append("%s%d" % [META_POTIONS, int(meta["potions"])])
+	if bool(meta.get("broken", false)):
+		tok.append(META_BROKEN)
+	if tok.is_empty():
+		return ITEM_PREFIX + body
+	return "%s%s@%s" % [ITEM_PREFIX, ",".join(tok), body]
+
+## 인벤토리 키 → {name, tier, points, potions, broken}. 젬 키가 아니면 {}.
 ## ⚠️ 젬 이름에 ':' 이 없다는 가정 대신 **마지막 ':' 로 쪼갠다**(이름 안전).
 static func parse_item_key(key: String) -> Dictionary:
 	if not key.begins_with(ITEM_PREFIX):
 		return {}
-	var body := key.substr(ITEM_PREFIX.length())
-	var cut := body.rfind(":")
+	var rest := key.substr(ITEM_PREFIX.length())
+	var meta := ""
+	var at := rest.find("@")
+	if at > 0:
+		meta = rest.substr(0, at)
+		rest = rest.substr(at + 1)
+	var cut := rest.rfind(":")
 	if cut <= 0:
 		return {}
-	return {"name": body.substr(0, cut), "tier": int(body.substr(cut + 1))}
+	var out := {"name": rest.substr(0, cut), "tier": int(rest.substr(cut + 1)),
+		"points": 0, "potions": 0, "broken": false}
+	for t in meta.split(",", false):
+		var s := String(t)
+		var body := s.substr(1)
+		match s.substr(0, 1):
+			META_POINTS: out["points"] = int(body) if body.is_valid_int() else 0
+			META_POTIONS: out["potions"] = int(body) if body.is_valid_int() else 0
+			META_BROKEN: out["broken"] = true
+	return out
+
+## 가방 키의 개체 상태만 → {points, potions, broken}.
+static func item_key_meta(key: String) -> Dictionary:
+	var g := parse_item_key(key)
+	if g.is_empty():
+		return {"points": 0, "potions": 0, "broken": false}
+	return {"points": int(g["points"]), "potions": int(g["potions"]), "broken": bool(g["broken"])}
+
+## 장착 슬롯 엔트리 → 가방 키(해제할 때 연금술 진행도를 고스란히 되돌린다).
+## `Equipment.slot_to_item_key` 와 같은 역할이다.
+static func slot_to_item_key(entry) -> String:
+	if typeof(entry) != TYPE_DICTIONARY:
+		return ""
+	var e: Dictionary = entry
+	return item_key(String(e.get("name", "")), int(e.get("tier", 0)), e)
+
+## 가방 키 → 장착 슬롯 엔트리(장착할 때 진행도를 그대로 옮긴다).
+## 진행도가 0이면 부가 필드를 넣지 않는다(구형 엔트리와 같은 모양 유지).
+static func item_key_to_slot(key: String) -> Dictionary:
+	var g := parse_item_key(key)
+	if g.is_empty():
+		return {}
+	var e := {"name": String(g["name"]), "tier": int(g["tier"])}
+	if int(g["points"]) > 0:
+		e["points"] = int(g["points"])
+	if int(g["potions"]) > 0:
+		e["potions"] = int(g["potions"])
+	if bool(g["broken"]):
+		e["broken"] = true
+	return e

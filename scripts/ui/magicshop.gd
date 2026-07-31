@@ -110,6 +110,9 @@ var _money_root: Control
 var _dis_slots: Array = ["", "", "", "", "", ""]
 ## 소울젬 승급/강화의 대상 인벤 키(원작 `UpgradeSoulGemLayer::settingGem` 의 선택 젬).
 var _soul_key := ""
+## 혼성젬 강화의 대상 **가방 젬 키**(원작 `AlchemyLayer` 는 `AccountManager::getItem()` 에서
+## 고른다 — 장착 젬이 아니다). 연금술 진행도는 키 자체에 실려 있다(`Gem.item_key` 메타).
+var _hybrid_key := ""
 var _summon_uid := 0
 var _summon_species := Summon.SPECIES_DEF
 ## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, opts}.
@@ -1355,30 +1358,20 @@ func _open_potion_use(uid: int, slot: int) -> void:
 func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 	var W: float = pop.win_size.x
 	var H: float = pop.win_size.y
-	var uid := UserDB.active_uid()
-	var d := UserDB.get_dragon(uid)
-	var gf: Dictionary = d.get("gems", {})
-	var en := Gem.entries(gf)
-	# 대상 = 장착 젬 중 혼성(hybrid). 없으면 안내만.
-	var slot := -1
-	for i in Gem.SLOTS:
-		if en[i] == null:
-			continue
-		if String(Gem.gem_def(String(en[i]["name"]), Data.gems).get("category", "")) == "hybrid":
-			slot = i
-			break
+	# 🔵 2026-07-31 — 대상이 **가방의 젬**이 됐다(원작 그대로).
+	#   참조 `docs/ref/gem/혼성젬강화1.png`(투입 슬롯 비어 있음) → `혼성젬강화2(젬선택팝업).png`
+	#   에서 가방 격자로 고른다. 종전엔 활성 드래곤의 **장착** 혼성젬을 자동으로 잡았다.
+	#   진행도(포인트·투입 횟수)는 `Gem.item_key` 메타로 그 젬 개체에 붙어 다닌다.
+	if _hybrid_key != "" and UserDB.item_count(_hybrid_key) <= 0:
+		_hybrid_key = ""                                  # 다 쓰거나 키가 바뀌었다
+	var inst := Gem.item_key_to_slot(_hybrid_key) if _hybrid_key != "" else {}
+	var has := not inst.is_empty()
 	# ── 좌: 투입 슬롯 ────────────────────────────────────────────────
 	var slot_cx := 210.0
-	var cap := Label.new()
-	cap.text = "투입된 혼성젬"
-	cap.add_theme_font_size_override("font_size", 20)
-	cap.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
-	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cap.size = Vector2(300.0, 26.0); cap.position = Vector2(slot_cx - 150.0, 96.0)
-	pop.content.add_child(cap)
+	# 방 배경(원작 `alchemy/box_bg`) — 참조에선 이 판이 왼쪽 절반을 거의 다 채운다.
 	var panel := Control.new()
-	panel.size = Vector2(300.0, 300.0)
-	panel.position = Vector2(slot_cx - 150.0, 122.0)
+	panel.size = Vector2(300.0, 268.0)
+	panel.position = Vector2(slot_cx - 150.0, 128.0)
 	panel.clip_contents = true
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pop.content.add_child(panel)
@@ -1387,14 +1380,35 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 	if pbg != null:
 		pbg.position = panel.size * 0.5
 		panel.add_child(pbg)
-	# 투입 슬롯(원작 `alchemy/posion_bg`) — 방 배경 위에 놓인다.
-	var pslot := AtlasUI.spr("magicshop_alchemy", "scene_magicshop_alchemy_posion_bg",
-		Design.ASSET_SCALE * 1.2)
-	if pslot != null:
-		pslot.position = Vector2(slot_cx, 258.0)
-		pop.content.add_child(pslot)
-	if slot >= 0:
-		var e: Dictionary = en[slot]
+	# "투입된 혼성젬" 캡션 + 그 오른쪽의 **작은 네모 슬롯**(원작 `alchemy/alchemy_gem_slot`).
+	# 참조 `docs/ref/gem/혼성젬강화1·3.png` — 캡션과 슬롯이 방 그림 **위쪽에 겹쳐** 놓인다.
+	# (종전엔 `posion_bg` 큰 병을 판 한가운데 놓고 있었다 — 그건 용액 칸 프레임이다.)
+	var slot_sz := AtlasUI.size_pt("magicshop_alchemy",
+		"scene_magicshop_alchemy_alchemy_gem_slot") * 0.8
+	var cap := Label.new()
+	cap.text = "투입된 혼성젬"
+	cap.add_theme_font_size_override("font_size", 19)
+	cap.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cap.size = Vector2(190.0, slot_sz.y)
+	cap.position = Vector2(slot_cx - 150.0, 94.0)
+	pop.content.add_child(cap)
+	var gslot := AtlasUI.spr("magicshop_alchemy", "scene_magicshop_alchemy_alchemy_gem_slot",
+		Design.ASSET_SCALE * 0.8)
+	var gs_c := Vector2(slot_cx - 150.0 + 190.0 + 12.0 + slot_sz.x * 0.5, 94.0 + slot_sz.y * 0.5)
+	if gslot != null:
+		gslot.position = gs_c
+		pop.content.add_child(gslot)
+	if has:
+		var e: Dictionary = inst
+		# 슬롯 안의 젬(작게) — 참조와 같은 자리.
+		var si := Icons.rect(Icons.gem_texture(
+			String(Gem.gem_def(String(e["name"]), Data.gems).get("code", "")), int(e["tier"])),
+			slot_sz.x * 0.72)
+		if si != null:
+			si.position = gs_c - si.size * 0.5
+			pop.content.add_child(si)
 		var gi := Icons.rect(Icons.gem_texture(
 			String(Gem.gem_def(String(e["name"]), Data.gems).get("code", "")), int(e["tier"])), 72.0)
 		if gi != null:
@@ -1402,8 +1416,11 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 			pop.content.add_child(gi)
 		var nl := Label.new()
 		nl.text = Gem.display_name(String(e["name"]), int(e["tier"]), Data.gems)
+		if Gem.is_broken(e):
+			nl.text += "  (파손)"
 		nl.add_theme_font_size_override("font_size", 19)
-		nl.add_theme_color_override("font_color", Color(1, 0.96, 0.82))
+		nl.add_theme_color_override("font_color",
+			Color(1.0, 0.62, 0.55) if Gem.is_broken(e) else Color(1, 0.96, 0.82))
 		nl.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.02))
 		nl.add_theme_constant_override("outline_size", 5)
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1411,7 +1428,7 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		pop.content.add_child(nl)
 	else:
 		var nl2 := Label.new()
-		nl2.text = "혼성젬을 장착한 뒤\n다시 와 주세요."
+		nl2.text = "[혼성젬 선택] 으로\n강화할 젬을 고르세요."
 		nl2.add_theme_font_size_override("font_size", 17)
 		nl2.add_theme_color_override("font_color", Color(1, 0.94, 0.80))
 		nl2.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.02))
@@ -1484,11 +1501,10 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		cl.position = Vector2(row.size.x - 110.0, 20.0); cl.size = Vector2(90.0, 24.0)
 		row.add_child(cl)
 		var b := Button.new(); b.flat = true; b.size = row.size
-		b.disabled = slot < 0
+		b.disabled = not has or Gem.is_broken(inst)
 		var pp := p
 		var pk := ik
-		var sl := slot
-		b.pressed.connect(func(): _pour_potion(uid, sl, pp, pk))
+		b.pressed.connect(func(): _pour_potion(pp, pk))
 		row.add_child(b)
 	if owned.is_empty():
 		var nn := _note("보유한 용액이 없습니다.\n'용액 제작'에서 만드세요.")
@@ -1499,25 +1515,15 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 	if info != null:
 		info.position = Vector2(lx, 292.0)
 		pop.content.add_child(info)
-	# 포인트·투입 횟수는 젬 엔트리에 들어 있다(Gem.add_potion 이 세는 값 그대로).
-	var pnt := int((en[slot] as Dictionary).get("points", 0)) if slot >= 0 else 0
-	var used := int((en[slot] as Dictionary).get("potions", 0)) if slot >= 0 else 0
+	# 포인트·투입 횟수는 **가방 키의 메타**에 들어 있다(원작은 서버가 그 젬에 붙여 보관했다).
+	var pnt := int(inst.get("points", 0)) if has else 0
+	var used := int(inst.get("potions", 0)) if has else 0
 	var pmax := int((Data.gems.get("upgrade", {}) as Dictionary).get("potion_max_per_try", 5))
-	var rate := Gem.success_chance(gf, slot, Data.gems) if slot >= 0 else 0
-	var gsz := AtlasUI.size_pt("common_ui", "common_gauge")
-	var gbg := AtlasUI.spr("common_ui", "common_gauge_bg", Design.ASSET_SCALE)
-	if gbg != null:
-		gbg.centered = false
-		gbg.position = Vector2(lx + 16.0, 308.0)
-		pop.content.add_child(gbg)
-	var gfg := AtlasUI.spr("common_ui", "common_gauge", Design.ASSET_SCALE)
-	if gfg != null:
-		gfg.centered = false
-		gfg.position = Vector2(lx + 16.0, 308.0)
-		gfg.region_enabled = true
-		var t := gfg.texture
-		gfg.region_rect = Rect2(0, 0, t.get_width() * clampf(pnt / 100.0, 0.0, 1.0), t.get_height())
-		pop.content.add_child(gfg)
+	var rate := Gem.inst_success_chance(inst, Data.gems) if has else 0
+	# ⚠️ 게이지 바를 그리지 않는다 — 원작 `AlchemyLayer` 는 연금술 포인트를 **텍스트 `2/100`**
+	#   으로만 낸다(참조 `docs/ref/gem/혼성젬강화1·3·5.png`). `scene/magicshop/gauge` 는
+	#   혼성젬 **제작** 수량 `CCControlSlider` 의 부품이지 이 화면 것이 아니다
+	#   (docs/ref/porting/GemAlchemy.md §5 — CLAUDE.md §10 오진 정정분).
 	var rows := [["연금술 포인트", "%d /100" % pnt], ["남은 용액 투입 수", "%d회" % maxi(0, pmax - used)],
 		["성공률", "%d%%" % rate]]
 	for i in rows.size():
@@ -1525,14 +1531,14 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		kl.text = String((rows[i] as Array)[0])
 		kl.add_theme_font_size_override("font_size", 17)
 		kl.add_theme_color_override("font_color", Color(0.98, 0.92, 0.62))
-		kl.position = Vector2(lx + 16.0, 332.0 + i * 22.0); kl.size = Vector2(200.0, 22.0)
+		kl.position = Vector2(lx + 16.0, 312.0 + i * 24.0); kl.size = Vector2(200.0, 22.0)
 		pop.content.add_child(kl)
 		var vl := Label.new()
 		vl.text = String((rows[i] as Array)[1])
 		vl.add_theme_font_size_override("font_size", 17)
 		vl.add_theme_color_override("font_color", Color(1, 1, 1))
 		vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		vl.position = Vector2(lx + lw - 190.0, 332.0 + i * 22.0); vl.size = Vector2(174.0, 22.0)
+		vl.position = Vector2(lx + lw - 190.0, 312.0 + i * 24.0); vl.size = Vector2(174.0, 22.0)
 		pop.content.add_child(vl)
 	var warn := Label.new()
 	warn.text = "100포인트가 넘으면 성공률이 하락합니다."   # 원작 <AlchemyMsg11>
@@ -1541,37 +1547,104 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 	warn.position = Vector2(lx, 402.0); warn.size = Vector2(lw, 22.0)
 	pop.content.add_child(warn)
 	# ── 버튼 2개 ────────────────────────────────────────────────────
-	pop.add_action_button("혼성젬 선택", func(): _toast("동굴 하단 젬 칸에서 혼성젬을 장착하세요."),
+	# [혼성젬 선택] — 원작 `AlchemyLayer::onClickItemMenu` → 젬 고르기(`MagicSelectLayer`).
+	#   참조 `docs/ref/gem/혼성젬강화2(젬선택팝업).png` 은 **수량칸이 없다**(1개만 고른다).
+	pop.add_action_button("혼성젬 선택", func(): _open_gem_picker("hybrid", func(k: String):
+			_hybrid_key = k
+			_refresh_feature()),
 		2, Vector2(190.0, 50.0), Vector2(lx + 100.0, H - 30.0))
-	pop.add_action_button("강화", func(): _hybrid_upgrade(uid, slot),
+	pop.add_action_button("강화", _hybrid_upgrade,
 		0, Vector2(190.0, 50.0), Vector2(lx + 300.0, H - 30.0))
 
+
+## 가방 젬 1개를 새 상태로 갈아 끼운다 — 옛 키 1개를 빼고 새 키 1개를 넣는다.
+## (진행도가 키에 실리므로 상태 변화 = 키 변화다.) 새 키를 돌려준다.
+func _rekey_gem(old_key: String, new_inst: Dictionary) -> String:
+	var nk := Gem.slot_to_item_key(new_inst)
+	if nk == "" or UserDB.item_count(old_key) <= 0:
+		return old_key
+	UserDB.use_item(old_key, 1)
+	UserDB.add_item(nk, 1)
+	return nk
+
+
 ## 용액 1개 투입 — 로직은 전부 `Gem`(§8.2). 화면은 결과 문구만 낸다.
-func _pour_potion(uid: int, slot: int, potion: Dictionary, item_key: String) -> void:
-	if slot < 0:
+## 원작 `alchemy_gem_boost.hb`. 대상은 **가방의 젬**이라 결과를 키에 다시 실어 준다.
+func _pour_potion(potion: Dictionary, item_key: String) -> void:
+	if _hybrid_key == "":
 		return
+	var inst := Gem.item_key_to_slot(_hybrid_key)
 	var rng2 := RandomNumberGenerator.new(); rng2.randomize()
-	var res: Dictionary = Gem.add_potion(
-		UserDB.get_dragon(uid).get("gems", {}), slot, potion, Data.gems, rng2)
+	var res: Dictionary = Gem.inst_add_potion(inst, potion, Data.gems, rng2)
 	if res.is_empty():
 		_toast("더 투입할 수 없습니다"); return
+	if UserDB.item_count(item_key) <= 0:
+		_toast("용액이 없습니다"); return
 	UserDB.use_item(item_key, 1)
-	UserDB.set_dragon_field(uid, "gems", res["field"])
+	_hybrid_key = _rekey_gem(_hybrid_key, res["inst"])
 	if bool(res.get("reset", false)):
 		_toast("연금포인트가 100을 넘어 초기화됐습니다 (+%d)" % int(res["gained"]))
 	else:
 		_toast("연금포인트 +%d → %d" % [int(res["gained"]), int(res["points"])])
 	_refresh_feature()
 
-func _hybrid_upgrade(uid: int, slot: int) -> void:
-	if slot < 0:
-		_toast("강화할 혼성젬이 없어요."); return
-	var gf: Dictionary = UserDB.get_dragon(uid).get("gems", {})
-	var en := Gem.entries(gf)
-	if en[slot] == null:
+
+## 강화 실행 — 원작 `alchemy_gem_upgrade.hb`. 실패하면 **파손**되고 복구창을 띄운다
+## (참조 `docs/ref/gem/혼성젬강화_실패.png` → `혼성젬강화9_실패복구.png`).
+func _hybrid_upgrade() -> void:
+	if _hybrid_key == "":
+		_toast("강화할 혼성젬을 먼저 고르세요."); return
+	var inst := Gem.item_key_to_slot(_hybrid_key)
+	if inst.is_empty():
 		return
-	var e: Dictionary = en[slot]
-	_try_upgrade(uid, slot, _gem_cost(String(e["name"]), int(e["tier"])))
+	if Gem.is_broken(inst):
+		_toast("파손된 젬입니다 — 먼저 복구하세요."); return
+	var cost := _gem_cost(String(inst["name"]), int(inst["tier"]))
+	if UserDB.gold() < cost:
+		_toast("골드가 부족하네요"); return                # 원작 <MagicErrorMsg2>
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	var res: Dictionary = Gem.inst_roll_upgrade(inst, Data.gems, rng)
+	if res.is_empty():
+		_toast("이미 최대 등급입니다"); return
+	if not UserDB.spend("gold", cost):
+		return
+	var before := _gem_result_line(inst)
+	var after_inst: Dictionary = res["inst"]
+	_hybrid_key = _rekey_gem(_hybrid_key, after_inst)
+	var ok := bool(res.get("ok", false))
+	if ok:
+		_toast("축하드려요! 강화에 성공했습니다!")          # <MagicGemSucces>
+	else:
+		_toast("아쉽게 실패했네요. 다음을 기약하죠. (성공률 %d%% — 파손)"
+			% int(res.get("chance", 0)), 4)
+	_show_upgrade_result(ok, before, _gem_result_line(after_inst), after_inst)
+	if not ok:
+		_offer_repair(before)
+	_refresh_feature()
+
+
+## 실패 직후 복구 제안 — 원작 `혼성젬강화9_실패복구.png` ("다이아를 사용하여 해당 젬을
+## 복구하시겠습니까?"). 복구 비용은 티어별 다이아(`Gem.repair_cost`).
+func _offer_repair(label: String) -> void:
+	var inst := Gem.item_key_to_slot(_hybrid_key)
+	if inst.is_empty() or not Gem.is_broken(inst):
+		return
+	var dia := Gem.repair_cost(int(inst["tier"]), Data.gems)
+	PopupType.open(self, "젬 복구",
+		"%s\n다이아를 사용하여 해당 젬을 복구하시겠습니까?\n💎 X %d" % [label, dia],
+		func(): _repair_bag_gem(dia), "확인", "취소")
+
+
+func _repair_bag_gem(dia: int) -> void:
+	var inst := Gem.item_key_to_slot(_hybrid_key)
+	var fixed := Gem.inst_repair(inst)
+	if fixed.is_empty():
+		return
+	if not UserDB.spend("diamond", dia):
+		_toast("다이아가 부족합니다"); return
+	_hybrid_key = _rekey_gem(_hybrid_key, fixed)
+	_toast("젬을 복구했습니다.")
+	_refresh_feature()
 
 # ── 젬 분해 / 용액 상점 / 알 조합 / 뽑기 ────────────────────────────────────
 ## ⚠️ `tier` 는 프로젝트 공통 규약대로 **0-base**(1강 = 0)다. 위키 표는 강 번호(1~18)라
@@ -3116,7 +3189,9 @@ func _soul_run() -> void:
 ## (원작 `UpgradeSoulGemPopup` 은 1개만 고른다). 그 외에는 수량을 함께 고르고
 ## `on_pick.call(key, cnt)` 로 돌려준다.
 func _open_gem_picker(mode: String, on_pick: Callable, dis_slot := -1) -> void:
-	var pick_qty := mode != "soul"
+	# 수량칸은 젬 분해에만 있다 — 소울젬 승급도, 혼성젬 강화도 1개만 고른다
+	# (참조 `docs/ref/gem/혼성젬강화2(젬선택팝업).png` 에 ▲▼ 가 없다).
+	var pick_qty := mode == ""
 	var vis := _vis()
 	var layer := Control.new()
 	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -3198,6 +3273,13 @@ func _open_gem_picker(mode: String, on_pick: Callable, dis_slot := -1) -> void:
 			var promotable := String(gd.get("promote_to", "")) != "" \
 				and int(g["tier"]) >= Gem.max_tier(nm, Data.gems)
 			if not (soul_ok or promotable):
+				continue
+		elif mode == "hybrid":
+			# 혼성젬 강화 대상 — 혼성 계열이면서 아직 최대 티어가 아닌 것.
+			# 파손된 젬도 보여 준다(복구 대상이라 골라야 한다).
+			if String(gd.get("category", "")) != "hybrid":
+				continue
+			if int(g["tier"]) >= Gem.max_tier(nm, Data.gems) and not bool(g.get("broken", false)):
 				continue
 		# 같은 스택을 이미 다른 칸이 다 쓰고 있으면 고를 게 없다.
 		if pick_qty and dis_slot >= 0 \

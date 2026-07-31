@@ -80,6 +80,41 @@ func _init() -> void:
 	fails += _true("젬 아닌 키는 빈 dict", G.parse_item_key("equip:basic:깃털:6").is_empty())
 	fails += _true("접두어만 있는 키 거부", G.parse_item_key("gem:").is_empty())
 
+	# 9b) 개체 상태(연금술 진행도)를 키에 싣는 형식 — `Equipment.item_key` 와 같은 `<meta>@<본체>`.
+	#     원작 `AlchemyLayer` 가 **가방의 젬**을 대상으로 하고 서버가 포인트를 그 젬에 붙여
+	#     보관했기 때문이다(docs/ref/porting/GemAlchemy.md §3).
+	fails += _eq("진행도 0 이면 옛 키 그대로",
+		G.item_key("체력의 젬", 7, {"points": 0, "potions": 0}), "gem:체력의 젬:7")
+	fails += _eq("포인트+투입 메타",
+		G.item_key("체공젬", 4, {"points": 12, "potions": 2}), "gem:p12,u2@체공젬:4")
+	fails += _eq("파손 메타", G.item_key("체공젬", 4, {"broken": true}), "gem:x@체공젬:4")
+	var mrt := G.parse_item_key("gem:p12,u2@체공젬:4")
+	fails += _eq("메타 왕복 이름", String(mrt.get("name", "")), "체공젬")
+	fails += _eq("메타 왕복 티어", int(mrt.get("tier", -1)), 4)
+	fails += _eq("메타 왕복 포인트", int(mrt.get("points", -1)), 12)
+	fails += _eq("메타 왕복 투입", int(mrt.get("potions", -1)), 2)
+	fails += _true("메타 왕복 파손", not bool(mrt.get("broken", true)))
+	fails += _true("파손 왕복", bool(G.parse_item_key("gem:x@체공젬:4").get("broken", false)))
+	# 슬롯 엔트리 ↔ 가방 키 왕복 — 해제/장착으로 진행도가 날아가면 안 된다.
+	var inst := {"name": "체공젬", "tier": 4, "points": 12, "potions": 2}
+	fails += _eq("엔트리→키", G.slot_to_item_key(inst), "gem:p12,u2@체공젬:4")
+	fails += _eq("키→엔트리", G.item_key_to_slot("gem:p12,u2@체공젬:4"), inst)
+	fails += _eq("진행도 없는 엔트리는 부가 필드 없음",
+		G.item_key_to_slot("gem:체력의 젬:7"), {"name": "체력의 젬", "tier": 7})
+
+	# 9c) 개체 단위 연금술 — 장착 여부와 무관하게 가방 젬에 바로 걸린다.
+	var pot0 := {"name": "테스트", "points": [10, 10]}
+	var ap0 := G.inst_add_potion({"name": "체공젬", "tier": 4}, pot0, table)
+	fails += _eq("용액 1회 포인트", int((ap0["inst"] as Dictionary).get("points", 0)), 10)
+	fails += _eq("용액 1회 투입수", int((ap0["inst"] as Dictionary).get("potions", 0)), 1)
+	fails += _eq("남은 투입 수", int(ap0.get("uses_left", -1)), 4)
+	fails += _true("파손 젬엔 용액 못 넣는다",
+		G.inst_add_potion({"name": "체공젬", "tier": 4, "broken": true}, pot0, table).is_empty())
+	# 포인트 배율 0.5 → 기본 + 5
+	fails += _eq("개체 성공률 = 기본 + 포인트×0.5",
+		G.inst_success_chance({"name": "체공젬", "tier": 4, "points": 10}, table),
+		G.base_success("체공젬", 4, table) + 5)
+
 	# 10) 슬롯 타입(원작 Dragon::getGemType + GemsPopup::setGemsList 필터) — 2026-07-27 도입.
 	fails += _eq("타입 없으면 ALL 폴백", G.types({}), ["ALL", "ALL", "ALL"])
 	fails += _eq("타입 길이 보정", G.types({"types": ["ATT"]}), ["ATT", "ALL", "ALL"])
@@ -138,7 +173,10 @@ func _init() -> void:
 	fails += _true("용액 투입 성공", not ap.is_empty())
 	fails += _true("포인트 1~5 증가", int(ap.get("gained", 0)) >= 1 and int(ap.get("gained", 0)) <= 5)
 	fails += _eq("남은 투입 수", int(ap.get("uses_left", -1)), 4)
-	fails += _eq("성공률에 포인트 가산", G.success_chance(ap["field"], 0, table), want5 + int(ap["points"]))
+	# 가산분은 **포인트 × point_rate**(0.5 %/point) 다 — 원작 `gem_rate_data` 의 point_rate.
+	# 종전엔 1:1 로 봤는데 참조 영상(2pt→60%, 6pt→62%)과 맞지 않았다.
+	fails += _eq("성공률에 포인트 가산", G.success_chance(ap["field"], 0, table),
+		want5 + G.point_bonus(int(ap["points"]), table))
 	# 5회 넘게는 못 넣는다(원작 "남은 용액 투입 수")
 	var f5: Dictionary = f11
 	for _k in 5:

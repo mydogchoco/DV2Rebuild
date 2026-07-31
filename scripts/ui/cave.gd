@@ -382,9 +382,10 @@ func _gem_slots(a: Dictionary) -> Array:
 ## 젬 장착: 타입이 맞는 빈 칸을 찾아 장착. 실패 시 false.
 ## 원작에도 두 경로가 있다 — 칸을 먼저 누르면 그 칸(`onClickGem` → `equip_at`),
 ## 가방에서 고르면 맞는 칸을 찾는다(여기).
-func _equip_gem(uid: int, gem_name: String, tier: int) -> bool:
+## `meta` = 가방 키가 들고 온 연금술 진행도({points, potions, broken}).
+func _equip_gem(uid: int, gem_name: String, tier: int, meta: Dictionary = {}) -> bool:
 	var d := UserDB.get_dragon(uid)
-	var next: Dictionary = Gem.equip(d.get("gems", {}), gem_name, tier, Data.gems)
+	var next: Dictionary = Gem.equip(d.get("gems", {}), gem_name, tier, Data.gems, meta)
 	if next.is_empty(): return false
 	UserDB.set_dragon_field(uid, "gems", next)
 	return true
@@ -418,7 +419,7 @@ func _equip_gem_from_bag(item_key: String) -> void:
 	var tier := int(g["tier"])
 	if Gem.all_full(UserDB.get_dragon(uid).get("gems", {})):
 		_toast("젬 슬롯이 모두 사용 중입니다"); return
-	if not _equip_gem(uid, gem_name, tier):
+	if not _equip_gem(uid, gem_name, tier, g):      # g 에 진행도가 실려 온다
 		# 원작 CaveGemEuqipMsg2 — 빈 칸은 있는데 계열이 안 맞는 경우.
 		_open_popup_type("젬 장착", "선택한 젬과 맞는 슬롯이 없습니다.", func(): pass, "확인", "")
 		return
@@ -454,7 +455,9 @@ func _gold_str(g: int) -> String:
 func _unequip_gem(uid: int, slot: int) -> void:
 	var en := Gem.entries(UserDB.get_dragon(uid).get("gems", {}))
 	if slot >= 0 and slot < Gem.SLOTS and en[slot] != null:
-		UserDB.add_item(Gem.item_key(String(en[slot]["name"]), int(en[slot]["tier"])), 1)
+		# 연금술 진행도(포인트·투입 횟수·파손)를 가방 키에 실어 돌려준다 — 안 그러면
+		# 해제 한 번에 강화 진행이 조용히 사라진다(`Gem.slot_to_item_key`).
+		UserDB.add_item(Gem.slot_to_item_key(en[slot]), 1)
 	UserDB.set_dragon_field(uid, "gems", Gem.unequip_at(UserDB.get_dragon(uid).get("gems", {}), slot))
 
 ## 장착 젬 전량 해제 후 인벤 반환. 반환 개수를 돌려준다('샌즈의 비약'·'젬슬롯 초기화'용).
@@ -462,7 +465,7 @@ func _return_all_gems(uid: int, gems_field: Dictionary) -> int:
 	var n := 0
 	for e in Gem.entries(gems_field):
 		if e != null:
-			UserDB.add_item(Gem.item_key(String(e["name"]), int(e["tier"])), 1)
+			UserDB.add_item(Gem.slot_to_item_key(e), 1)      # 진행도 보존(위와 같은 이유)
 			n += 1
 	if n > 0:
 		UserDB.set_dragon_field(uid, "gems",
