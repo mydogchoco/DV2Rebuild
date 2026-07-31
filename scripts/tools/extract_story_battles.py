@@ -164,10 +164,16 @@ def main() -> int:
         "ScenarioSubQuestData::getEventBattleData 가 덮어쓴다(data/story_subquest.json event_battle)."
     )
     doc["_episode_basis"] = (
-        "⚠️ 주소 기반 회차 귀속은 **추정**이다 — 사용자 확정(#73=27화·#74=28화)과 어긋난다. "
-        "확실한 축은 몬스터↔전투번호(리터럴 switch)이고 회차는 사용자 지식으로 잇는다. "
-        "다만 문자열 <AdventureEvent%d>(%d=회차 sn)는 33·46·62·91 넷이 실재하고, "
-        "<AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다."
+        "⚠️ 회차 귀속은 **코드에서 못 뽑는다.** 두 방법을 다 시도해 둘 다 실패했다(2026-07-31): "
+        "① 주소 근접('호출 주소 이하 최대 스텝 타깃') — 사용자 확정(#73=27화·#74=28화)과 어긋난다. "
+        "② 스텝 블록 순회 중 호출 포착 — 호출이 **공유 꼬리**에 있어 회차마다 같은 값이 나온다"
+        "(Scenario3 의 20~29화가 전부 battleNo 13). "
+        "⇒ 확실한 축은 **몬스터↔전투번호**(리터럴 switch)뿐이고, 회차는 사용자 지식으로 잇는다"
+        "(data/story_monsters.json 의 battle_no). "
+        "보조 근거: 문자열 <AdventureEvent%d>(%d=회차 sn)가 33·46·62·91 넷 실재하고 "
+        "<AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다. "
+        "같은 논리로 battleNo 16(#72 라이트 오브 Lv55)은 switch 경로의 나머지 한 건이고 "
+        "<AdventureEvent46> 이 실재하므로 **46화**로 본다(추정, 사용자 확인 대상)."
     )
     doc["_tool"] = "scripts/tools/extract_story_battles.py"
     doc["monster_by_battle"] = {str(k): v for k, v in sorted(sw.items())}

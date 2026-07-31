@@ -938,6 +938,10 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                 callee = fm.getFunctionAt(fl[0]) if fl else None
                 if callee is not None and primary:
                     nm = callee.getName()
+                    # ⚠️ `AdventureScene::scene`(1~78화 전투)은 여기서 잡지 않는다.
+                    #    호출이 **공유 꼬리**에 있어 회차마다 같은 값이 나온다
+                    #    (실측 2026-07-31: Scenario3 의 20~29화가 전부 battleNo 13).
+                    #    전투 귀속은 data/story_battles.json + 사용자 지식으로 잇는다.
                     if "changeBackGround" in nm:
                         # ⚠️ 2번째 인자는 `BackGruundName*` = 스택 슬롯 포인터다(정수 아님)
                         ops.append({"op": "changeBackGround",

@@ -1,7 +1,7 @@
 {
  "_re_basis": "1~78화의 스토리 전투는 ScenarioSupport::scenarioBattle 이 아니라 AdventureScene::scene(FieldType, BattleType, string) 직접 호출이다(xref 전수 16건). FieldType=1 은 던전 id 가 아니라 모드 enum(레이드 23 · 던전 6 · 월드맵 8 · 스토리 1).",
  "_monster_basis": "battle_no → 몬스터·레벨 = AdventureScene 의 switch(battleNo). 표에 없는 번호(5~14)는 default 분기라 런타임 값이고, 그중 26·27·29 는 ScenarioSubQuestData::getEventBattleData 가 덮어쓴다(data/story_subquest.json event_battle).",
- "_episode_basis": "⚠️ 주소 기반 회차 귀속은 **추정**이다 — 사용자 확정(#73=27화·#74=28화)과 어긋난다. 확실한 축은 몬스터↔전투번호(리터럴 switch)이고 회차는 사용자 지식으로 잇는다. 다만 문자열 <AdventureEvent%d>(%d=회차 sn)는 33·46·62·91 넷이 실재하고, <AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다.",
+ "_episode_basis": "⚠️ 회차 귀속은 **코드에서 못 뽑는다.** 두 방법을 다 시도해 둘 다 실패했다(2026-07-31): ① 주소 근접('호출 주소 이하 최대 스텝 타깃') — 사용자 확정(#73=27화·#74=28화)과 어긋난다. ② 스텝 블록 순회 중 호출 포착 — 호출이 **공유 꼬리**에 있어 회차마다 같은 값이 나온다(Scenario3 의 20~29화가 전부 battleNo 13). ⇒ 확실한 축은 **몬스터↔전투번호**(리터럴 switch)뿐이고, 회차는 사용자 지식으로 잇는다(data/story_monsters.json 의 battle_no). 보조 근거: 문자열 <AdventureEvent%d>(%d=회차 sn)가 33·46·62·91 넷 실재하고 <AdventureEvent33> 이 '다크프로스티'를 직접 부른다 — 사용자 확정 32·33화와 맞는다. 같은 논리로 battleNo 16(#72 라이트 오브 Lv55)은 switch 경로의 나머지 한 건이고 <AdventureEvent46> 이 실재하므로 **46화**로 본다(추정, 사용자 확인 대상).",
  "_tool": "scripts/tools/extract_story_battles.py",
  "monster_by_battle": {
   "15": {
