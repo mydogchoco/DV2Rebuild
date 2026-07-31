@@ -531,6 +531,12 @@ func _ready() -> void:
 			var g0 := UserDB.gold()
 			qs.call("_on_npc_click", "kanggalo")
 			for i in 10: await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_qf_talk.png")
+			# 원작 NpcTalkLayer 는 대사를 넘겨야(탭) 다음으로 간다 → advanced 를 직접 쏜다.
+			for c4 in qs.get_children():
+				if c4 is NpcTalkLayer: c4.emit_signal("advanced")
+			for i in 10: await get_tree().process_frame
 			print("QF cleared=", UserDB.quest_claimed("hatches"), " gold+", UserDB.gold() - g0)
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("res://scratch_shots/_qf_clear.png")

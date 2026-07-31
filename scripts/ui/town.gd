@@ -1720,75 +1720,60 @@ func _quest_say(npc_id: String, kind: String) -> String:
 	return String(arr[randi() % arr.size()]) if not arr.is_empty() else ""
 
 ## NPC 클릭 시 미션 흐름을 탄다. 처리했으면 true(일반 잡담을 건너뛴다).
-func _npc_quest_talk(npc_id: String, qi: int, rec: Dictionary, who: String) -> bool:
+## 표시는 원작 `NpcTalkLayer`(딤 없는 터치 차단 + 중앙 화자 + 하단 ScenarioTextBox) 이식본을 쓴다 —
+## 잡담(`showNpcText`)은 원작도 머리 위 말풍선이라 그대로 둔다.
+func _npc_quest_talk(npc_id: String, qi: int, _rec: Dictionary, who: String) -> bool:
 	var qd: Dictionary = _QUESTS[qi]
 	var key := String(qd["key"])
-	match _npc_quest_state(qi):
+	var st := _npc_quest_state(qi)
+	if st == "":
+		return false
+	var tl := NpcTalkLayer.open(self, npc_id, who, "")
+	match st:
 		"reward":
 			# 원작 setQuestClear → setQuestReward → TownRewardPopUp
-			_show_npc_balloon(rec, who, _quest_say(npc_id, "clear"))
-			UserDB.claim_quest(key)
-			UserDB.add_currency("gold", int(qd["gold"]))
-			_refresh_quest_marks()
-			_refresh_hud()
-			_open_town_reward(int(qd["gold"]))
-			return true
+			tl.set_text(_quest_say(npc_id, "clear"))
+			tl.advanced.connect(func():
+				tl.close()
+				UserDB.claim_quest(key)
+				UserDB.add_currency("gold", int(qd["gold"]))
+				_refresh_quest_marks()
+				_refresh_hud()
+				_open_town_reward(int(qd["gold"])))
 		"offer":
 			# 원작 setNpcSpeechInNormal + Yes/No 리스너
-			_show_npc_balloon(rec, who, _quest_say(npc_id, "offer"))
-			_npc_choice("수락", "거절",
-				func():
+			tl.set_text(_quest_say(npc_id, "offer"))
+			tl.set_choices(["수락", "거절"])
+			tl.chosen.connect(func(idx: int):
+				tl.clear_choices()
+				if idx == 0:
 					# 원작 checkQuestLv: **대표 드래곤** 레벨이 요구치 미만이면 진행 불가.
 					var need := int(qd.get("lv", 0))
 					var a := UserDB.active_dragon()
 					if need > 0 and (a.is_empty() or int(a.get("level", 1)) < need):
+						tl.close()
 						_open_annonce(_quest_misc("level",
 							"선택한 드래곤의 레벨이 부족하여 퀘스트를 진행할 수 없습니다."))
 						return
 					UserDB.accept_quest(key)
-					_show_npc_balloon(rec, who, _quest_say(npc_id, "ok"))
-					_refresh_quest_marks()
-					_refresh_hud(),
-				func():
+					tl.set_text(_quest_say(npc_id, "ok"))
+				else:
 					UserDB.giveup_quest(key)   # 원작 setQuestCancel — 거절도 그날은 끝이다
-					_show_npc_balloon(rec, who, _quest_say(npc_id, "cancel"))
-					_refresh_quest_marks()
-					_refresh_hud())
-			return true
+					tl.set_text(_quest_say(npc_id, "cancel"))
+				_refresh_quest_marks()
+				_refresh_hud())
+			tl.advanced.connect(func(): tl.close())
 		"progress":
 			# 진행 안내 + 포기(원작 showQuestGivePopUp → GiveUpQuest 확인 → setQuestGiveUp)
-			_show_npc_balloon(rec, who, "%s  (%d/%d)" % [String(qd["label"]),
+			tl.set_text("%s  (%d/%d)" % [String(qd["label"]),
 				UserDB.quest_progress(key), int(qd["goal"])])
-			_npc_choice("포기하기", "계속하기",
-				func(): _open_giveup_confirm(key),
-				func(): pass)
-			return true
-	return false
-
-## 말풍선 아래 2지선다. 원작 `NpcTalkLayer` 의 Yes/No 자리를 대신한다.
-var _choice_layer: CanvasLayer
-func _npc_choice(yes_text: String, no_text: String, on_yes: Callable, on_no: Callable) -> void:
-	_close_choice()
-	var vis := _vis()
-	_choice_layer = CanvasLayer.new()
-	_choice_layer.layer = 25
-	add_child(_choice_layer)
-	var y := FLOOR - 120.0
-	var a := _rounded_button(yes_text, Vector2(vis.x * 0.5 - 120.0, y), true)
-	var b := _rounded_button(no_text, Vector2(vis.x * 0.5 + 120.0, y), true)
-	for btn in [a, b]:
-		btn.size = Vector2(180.0, 48.0)
-	a.position = Vector2(vis.x * 0.5 - 120.0, y) - a.size * 0.5
-	b.position = Vector2(vis.x * 0.5 + 120.0, y) - b.size * 0.5
-	a.pressed.connect(func(): _close_choice(); on_yes.call())
-	b.pressed.connect(func(): _close_choice(); on_no.call())
-	_choice_layer.add_child(a)
-	_choice_layer.add_child(b)
-
-func _close_choice() -> void:
-	if _choice_layer != null and is_instance_valid(_choice_layer):
-		_choice_layer.queue_free()
-	_choice_layer = null
+			tl.set_choices(["포기하기", "계속하기"])
+			tl.chosen.connect(func(idx: int):
+				tl.close()
+				if idx == 0:
+					_open_giveup_confirm(key))
+			tl.advanced.connect(func(): tl.close())
+	return true
 
 ## 원작 `annonce` 제목의 단순 안내 팝업(`checkQuestLv` 가 쓰는 PopupTypeLayer 자리).
 func _open_annonce(msg: String) -> void:
