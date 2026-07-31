@@ -29,7 +29,10 @@ const NOTHING := "nothing"          # 1     setEventNothing
 const MONSTER := "monster"          # 2,4   setEventMonster
 const HEAL_HOLY := "heal_holy"      # 0x13  setEventHealArea(true)   effect_holy_well_2.mp3
 const HEAL_PLAIN := "heal_plain"    # 0x14  setEventHealArea(false)  effect_water_in.mp3
-const TREASURE := "treasure"        # 0x15  setEventTreasure(true)
+# ⚫ CUT(사용자 확정 2026-07-31) — 상수는 원작 상태값 대응표를 위해 남기지만
+#   `data/adventure_events.json` 의 events 에서 **뺐으므로 뽑히지 않는다**(`steps._cut_treasure`).
+#   종착지인 seek(탐색)이 서버 규칙 유실 + UI 자산 부재라 입구만 열어 둘 수 없다.
+const TREASURE := "treasure"        # 0x15  setEventTreasure(true) — ⚫풀에서 제외
 const QUEST := "quest"              # 0x16  setEventQuest
 const SHOP := "shop"                # 0x1a  setEventDungeonShop
 const CHOICE := "choice"            # 0x1b  setEventDungeonChoice  (해골요새 전용)

@@ -35,18 +35,25 @@ func _ready() -> void:
 		UserDB.begin_batch()
 		UserDB.set_user_nickname("계란")
 
+	# 타이틀 화면 종류(2020/구판) 검수 — **오토로드는 main.gd 보다 먼저 돌기 때문에** 여기서
+	# 미리 정해 둬야 인트로가 그 값으로 지어진다. begin_batch = 디스크 미기록.
+	if shot == "intro" and (stage == "old" or stage == "2020"):
+		UserDB.begin_batch()
+		UserDB.set_pmeta("title_screen", stage)
+
 	for i in 20: await get_tree().process_frame
 	match shot:
-		"advtreasure":
-			# 보물 이벤트 워드아트 검수 — 원작 setEventTreasure(플래시+회전 워드아트+파티클).
+		"advfountain":
+			# 회복샘 워드아트 검수 — 원작 setEventHealArea(플래시+회전 워드아트+파티클+샘 스프라이트).
+			# ⚠️ 종전 `advtreasure` 모드를 여기로 바꿨다 — 보물 조우는 ⚫CUT 되어
+			#   `_open_treasure` 자체가 없다(data/adventure_events.json `steps._cut_treasure`).
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
 			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 1})
 			for i in 30: await get_tree().process_frame
-			var tv := _node_with_method(get_tree().root, "_open_treasure")
-			if tv:
-				var rr := RandomNumberGenerator.new(); rr.seed = 7
-				tv.call("_open_treasure", rr)
+			var fv := _node_with_method(get_tree().root, "_show_fountain")
+			if fv:
+				fv.call("_show_fountain", extra == "1")
 		"advready":
 			# 탐험 조우 선택지 화면 검수 — 레퍼런스 docs/ref/adventure/전투4.png · 전투5.png 대조용.
 			# 보스 게이지(우상단) + 하단 파티 카드 + 좌'도망간다'/우'싸운다' 가 한 화면에 나온다.

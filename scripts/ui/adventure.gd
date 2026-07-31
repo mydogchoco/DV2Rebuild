@@ -255,9 +255,8 @@ func _play_event(ev: Dictionary) -> bool:
 		AdventureRun.HEAL_PLAIN:
 			_show_fountain(false)
 			return true
-		AdventureRun.TREASURE:
-			_open_treasure(_event_rng("treasure"))
-			return true
+		# ⚫ AdventureRun.TREASURE(0x15) 는 **풀에서 뺐다** — data/adventure_events.json
+		#   `steps._cut_treasure`. 종착지(seek)가 유실돼 입구만 열어 둘 수 없다. 아래 §CUT 주석 참조.
 		AdventureRun.CHOICE:
 			_open_choice(_event_rng("choice"))
 			return true
@@ -698,72 +697,18 @@ func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: Canva
 		if is_instance_valid(layer): layer.queue_free()
 		_step_done())
 
-## 원작 `AdventureScene::setEventTreasure(bool)` @00c72c84 (상태 0x15).
+## ⚫ **CUT — 보물지도 조우(원작 `setEventTreasure` 0x15)** (사용자 확정 2026-07-31)
 ##
-## 🔴 **2026-07-31 정정 — 종전 구현은 연출이 통째로 자작이었다**(사용자 지적).
-##   걷어낸 것: 금상자 스프라이트(`common/box_gold`) · 흔들림 루프 · **클릭해서 열기** 상호작용 ·
-##   전체화면 검은 dim(0.72) · 지어낸 문구 "보물상자 발견! — 클릭해서 열기".
-##   원작에는 **상자 그림도 클릭도 없다.** 재디컴프한 리터럴대로:
-##     · `CCLabelBMFont::create(<문자열>, GameManager::getFontName_title(), -1.0)` = **제목 폰트 워드아트**
-##       @ (w*0.5, h*0.7). 문자열은 `<AdventureRewardTreasure>` = **"보물지도 발견!"**
-##       (반대 갈래는 `<AdventureUseTreasure>` "보물찾기 시작!")
-##     · 애니: ScaleTo(0.4, **1.7**) + RotateTo(0.2, **380°**) → RotateTo(0.1333, −30) →
-##       (0.1333, 15) → (0.1333, −5) → ScaleTo(0.1, **1.2**), 그 뒤 MoveBy(0.2, **(0,140)**)
-##     · 화면 플래시 `CCLayerColor` FadeTo(**0.5, 200**)
-##     · 효과음 `music/effect_box_peong.mp3`(이건 종전 구현도 맞게 쓰고 있었다)
-##     · 파티클 `particle/scene/adventure/pt_monster_income_1.plist`
-##   같은 안무를 `setEventHealArea`(회복샘)도 쓴다 → 공용 헬퍼 `_wordart_burst`.
+## 탐험 이벤트 풀에서 뺐다(`data/adventure_events.json` `steps._cut_treasure`, 종전 weight=22).
+## 이유: 원작의 이 이벤트는 "보물**지도**를 줍는다"이고, 주운 지도는
+##   `setAdventureMiniMapIcon`(미니맵 아이콘) → `use_map.hb` → "보물찾기 시작!" 으로 이어져
+##   결국 **seek(탐색)** 로 간다. 그런데 seek 은 **칸별 배치를 서버가 정하던 시스템**이라
+##   규칙(`avail_way`/`quest_goal`)이 유실됐고 UI 자산(`newScene/seek/`·`new9patch/st_*`)도 없다.
+##   ⇒ 종착지가 없는 입구를 열어 두지 않는다.
 ##
-## ⚠️ **남은 설계 차이(사용자 결정 필요)**: 원작의 이 이벤트는 "보물**지도**를 줍는다"이고,
-##   그 지도를 나중에 **사용해야** 보물찾기가 시작된다(2단계). 우리는 즉시 골드+아이템을 준다.
-##   2단계로 바꾸려면 보물지도 아이템과 사용 흐름이 필요하다 —
-##   현재 `data/items.json` 의 `map_*` 는 지역 입장 지도라 별개다. 지금은 즉시 지급을 유지한다.
-##   드롭 판정(`Drops.roll_exploration` SOURCE_CHEST)은 서버 유실분이라 원래부터 자작이다.
-##
-## 등장 확률은 `data/adventure_events.json`(다른 이벤트와 배타 추첨).
-func _open_treasure(r: RandomNumberGenerator) -> void:
-	_event_open = true   # 보행 정지
-	var vis := _vis()
-	# 원작 연출 — 플래시 + 효과음 + 워드아트 + 파티클. 클릭 없이 자동으로 흐른다.
-	_wordart_burst("보물지도 발견!")            # <AdventureRewardTreasure>
-	Bgm.sfx("effect_box_peong")                 # 원작 music/effect_box_peong.mp3
-	if true:
-		var gold := _grant_gold(100 + r.randi() % 220)
-		# 젬·장비 드롭(사용자 확정 2026-07-27): **보물상자는 일반몹보다 좋은 것**이 나온다
-		# (일반몹 < 보물상자 < 보스). 판정=Drops(logic) · 표=data/drops.json.
-		# 카데스의 공간이면 아티팩트도 나온다 — 종류는 던전마다 다르다(위키 §2, 배정=자작).
-		var grng := RandomNumberGenerator.new(); grng.randomize()
-		var got := Drops.roll_exploration(Data.drops, int(_stage.get("level", 1)),
-			Drops.SOURCE_CHEST, Data.equipment, grng, _is_kades(), _base_field(),
-			# 각성 스킬 '구드라의 가호'(17) — 전설 난이도 지역 아티팩트 확률 50% 증가.
-			AwakenSkill.mult_of(_awaken_explore(), "artifact_chance_pct"))
-		if got != "":
-			UserDB.add_item(got, 1)
-		else:
-			# 젬/장비가 안 나오면 **화이트리스트 안에서만** 다시 굴린다(사용자 확정 2026-07-31):
-			# 먹이(그 지역 속성) → 속성 정기 순. 지역 속성이 비어 있으면(우노) 골드만 나온다.
-			# 🟠 걷어낸 것: `items_by("consumable")+items_by("material")` 폴백 —
-			#   지역과 무관한 아무 재료나 상자에서 나오던 경로다.
-			if grng.randf() < float((Data.drops.get("food", {}).get("chance", {}) as Dictionary).get(Drops.SOURCE_CHEST, 0.0)):
-				got = Drops.roll_food(Data.items, _stage.get("element", ""), grng)
-				if got != "":
-					UserDB.add_item(got, 1)
-			if got == "":
-				var ess := Drops.roll_essence(Data.drops, Data.items,
-					_stage.get("element", ""), Drops.SOURCE_CHEST, grng)
-				if not ess.is_empty():
-					got = String(ess["key"])
-					UserDB.add_item(got, int(ess["count"]))
-		# 골드 획득 문구는 원작 `<AdventureResultGold>` 형식으로 하단 텍스트박스에.
-		_narrate("%d 골드를 얻었습니다." % gold)
-		# 워드아트 안무가 끝난 **뒤에** 보상 팝업을 띄운다 — 겹치면 둘 다 못 읽는다.
-		#   0.4(확대) + 0.1333×3(흔들림) + 0.1(정착) + 0.7(대기) + 0.2(상승) ≈ **1.9s**
-		var got2 := got
-		get_tree().create_timer(_WORDART_SECS / maxf(_speed, 1.0)).timeout.connect(func():
-			if got2 != "":
-				_show_loot(got2)
-			_step_done())
-
+## 원작 연출(워드아트 안무·플래시·효과음·문자열 키)은 전부
+## `docs/ref/porting/AdventureScene.md` §5 에 기록해 뒀다 — 되살릴 근거가 생기면 거기서 시작한다.
+## 안무 자체는 회복샘이 같은 것을 쓰므로 아래 `_wordart_burst` 로 살아 있다.
 ## 원작 이벤트 워드아트 — `setEventTreasure` · `setEventHealArea` 가 **같은 안무**를 쓴다.
 ##
 ## `CCLabelBMFont::create(text, GameManager::getFontName_title(), -1.0)` @ (w*0.5, h*0.7) 에
@@ -849,58 +794,53 @@ func _show_fountain(holy: bool) -> void:
 	_healed = true    # 이 조우 전투는 풀피로 시작(hp_state 초기화)
 	Bgm.sfx("effect_holy_well_2" if holy else "effect_water_in")
 	var vis := _vis()
-	# 회복샘 그래픽(원작 scene/adventure/fountain). 없으면 힐 크로스 아이콘.
-	var f := _spr("adventure_ui", "scene_adventure_fountain_dv2_fountain_base", _adv, 0.7)
-	if f == null:
-		f = _spr("common_ui", "common_icon_greencross", _man("common_ui"), 1.2)
+	# 회복샘 그래픽 — 원작 `scene/adventure/fountain` 아틀라스(base + 01~05).
+	# 🟠 2026-07-31 수정: 이 아틀라스가 **변환돼 있지 않아** 키가 없었고(`adventure_ui` 매니페스트에
+	#   `fountain` 0건) `_spr` 이 null 을 돌려줘 **샘이 아예 안 그려지고 있었다**(초록 발광만 보였다).
+	#   `cocos_export.py DV2/480/scene/adventure/fountain.img_plist adventure_fountain` 로 변환하고
+	#   전용 디렉터리 키로 바꾼다. 원작이 부르는 6프레임이 전부 여기 있다.
+	var fman := _man("adventure_fountain")
+	var f := _spr("adventure_fountain", "scene_adventure_fountain_dv2_fountain_base", fman, 0.7)
 	if f:
 		f.position = Vector2(vis.x * 0.5, FLOOR * 0.5); add_child(f)
 		# 원작 setEventHealArea: 평범한 쪽(0x14)만 청록 틴트를 먹인다(ccColor3B 0x80bf/0xf2).
 		if not holy:
 			f.modulate = Color8(0xbf, 0x80, 0xf2)
-	# 초록 힐 발광(그라디언트) + 상승 파티클(원작 회복 연출 강화).
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0.4, 1.0, 0.5, 0.5)); grad.set_color(1, Color(0.4, 1.0, 0.5, 0.0))
-	var gtex := GradientTexture2D.new()
-	gtex.gradient = grad; gtex.fill = GradientTexture2D.FILL_RADIAL
-	gtex.fill_from = Vector2(0.5, 0.5); gtex.fill_to = Vector2(1.0, 0.5); gtex.width = 360; gtex.height = 360
-	var glow := Sprite2D.new(); glow.texture = gtex
-	var addm := CanvasItemMaterial.new(); addm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	glow.material = addm; glow.position = Vector2(vis.x * 0.5, FLOOR * 0.5); glow.z_index = -1
-	add_child(glow)
-	var pgrad := Gradient.new(); pgrad.set_color(0, Color(1, 1, 1, 1)); pgrad.set_color(1, Color(1, 1, 1, 0))
-	var ptex := GradientTexture2D.new()
-	ptex.gradient = pgrad; ptex.fill = GradientTexture2D.FILL_RADIAL
-	ptex.fill_from = Vector2(0.5, 0.5); ptex.fill_to = Vector2(1.0, 0.5); ptex.width = 24; ptex.height = 24
-	var heal := CPUParticles2D.new()
-	heal.texture = ptex; heal.position = Vector2(vis.x * 0.5, FLOOR * 0.5 + 60)
-	heal.amount = 20; heal.lifetime = 2.0
-	heal.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE; heal.emission_rect_extents = Vector2(120, 20)
-	heal.direction = Vector2(0, -1); heal.spread = 16.0; heal.gravity = Vector2(0, -18)
-	heal.initial_velocity_min = 40.0; heal.initial_velocity_max = 90.0
-	heal.scale_amount_min = 6.0; heal.scale_amount_max = 14.0; heal.color = Color(0.5, 1.0, 0.6, 0.9)
-	add_child(heal)
-	var t := Label.new()
-	t.text = "성스러운 회복의 샘!  파티가 회복되었습니다" if holy \
-		else "회복의 샘!  파티가 회복되었습니다"
-	t.add_theme_font_size_override("font_size", 22)
-	t.add_theme_color_override("font_color", Color(1, 1, 0.75) if holy else Color(0.6, 1, 0.7))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.size = Vector2(vis.x, 28); t.position = Vector2(0, vis.y * 0.34)
-	t.pivot_offset = Vector2(vis.x * 0.5, 14)
-	add_child(t)
-	# 원작 제목 등장 — ScaleTo(0.4, 1.7) + RotateBy(0.2, 380°) 뒤 0.7초 후 위로 MoveBy(0.2, +100).
-	t.scale = Vector2(0.2, 0.2)
-	var tw := t.create_tween()
-	tw.tween_property(t, "scale", Vector2(1.7, 1.7), 0.4).set_trans(Tween.TRANS_BACK)
-	tw.parallel().tween_property(t, "rotation", TAU + deg_to_rad(20.0), 0.2)
-	tw.tween_property(t, "rotation", 0.0, 0.13)
-	tw.tween_property(t, "scale", Vector2.ONE, 0.1)
-	tw.tween_interval(0.7)
-	# Cocos y-up → Godot y-down 이라 부호를 뒤집는다(원작은 +100 = 위로).
-	tw.tween_property(t, "position:y", t.position.y - 100.0, 0.2)
+		# 물결 애니 — 원작이 같은 함수에서 부르는 `dv2_fountain_01~05` 5프레임.
+		# 프레임 간격은 우리 앰비언트 규약과 같은 0.2s([[dv2-worldmap-ambient]]).
+		var wave := _spr("adventure_fountain", "scene_adventure_fountain_dv2_fountain_01", fman, 0.7)
+		if wave:
+			wave.position = f.position
+			if not holy:
+				wave.modulate = Color8(0xbf, 0x80, 0xf2)
+			add_child(wave)
+			var frames: Array[Texture2D] = []
+			for i in range(1, 6):
+				var tp := "res://assets/converted/adventure_fountain/scene_adventure_fountain_dv2_fountain_%02d.tres" % i
+				if ResourceLoader.exists(tp):
+					frames.append(load(tp))
+			if frames.size() > 1:
+				var wt := wave.create_tween().set_loops()
+				for tex in frames:
+					wt.tween_callback(func(): wave.texture = tex)
+					wt.tween_interval(0.2)
+	# 🟠 2026-07-31 걷어냄 — 종전엔 여기 **자작 초록 발광(그라디언트 가산) + 자작 상승 파티클**이
+	#   있었다(주석에 "원작 회복 연출 **강화**"라고 적혀 있던 그것). 원본 샘 아틀라스를 변환해
+	#   붙이고 나니 그 발광이 원작 그림을 통째로 덮었다.
+	#   원작 `setEventHealArea` 가 쓰는 파티클은 **`pt_monster_income_1.plist` 하나뿐**이다
+	#   (보물·조우 연출과 공유하는 그 파티클 — 디컴프 리터럴 확인). 그대로 쓴다.
+	CocosParticle.spawn(self, "pt_monster_income_1",
+		Vector2(vis.x * 0.5, FLOOR * 0.5), 60, 0.7)
+	# 제목 — 원작도 `setEventTreasure` 와 **같은 워드아트 안무**를 쓰므로 공용 헬퍼로 낸다
+	# (`font_title` BMFont + ScaleTo(0.4,1.7)+RotateTo(0.2,380°)+흔들림+MoveBy(0,140)).
+	# 🟠 2026-07-31 정정 — 종전 문구 "성스러운 회복의 샘! 파티가 회복되었습니다"는 **자작**이었다.
+	#   원작 문자열이 둘 다 있다: 워드아트 `<AdventureQuestCount_heal>` = "회복의 샘 발견",
+	#   텍스트박스 `<AdventureHealArea>` = "회복의 샘을 발견하여 체력이 조금 회복되었습니다."
+	#   (원작은 성/평범 갈래로 문구를 나누지 않는다 — 갈리는 건 효과음과 틴트뿐이다.)
+	_wordart_burst("회복의 샘 발견")
+	_narrate("회복의 샘을 발견하여 체력이 조금 회복되었습니다.")
 	# 회복샘은 원작에서 **선택지 없이** 흘러가는 스텝이다 → 연출이 끝나면 다음 스텝으로.
-	tw.tween_callback(_step_done)
+	get_tree().create_timer(_WORDART_SECS / maxf(_speed, 1.0)).timeout.connect(_step_done)
 
 ## 혼돈의 틈새 화염 — 원작 `AdventureScene::init`(:20929)이 **다크닉스 모드일 때만**
 ## `particle/scene/adventure/pt_monster_fire_back.plist` 를 새 CCLayer(z=999999 / tag=0x9c)에

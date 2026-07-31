@@ -177,6 +177,21 @@ func _ready() -> void:
 		UserDB.add_item(pkey, -(after - (before - 5)))
 	fails += 0 if ok5 else 1
 
+	# 6) ⚫ 보물지도 조우가 **절대 안 뽑히는지** — 종착지(seek)가 유실돼 풀에서 뺐다.
+	#    `data/adventure_events.json` 을 되돌리면 여기서 잡힌다.
+	var seen_treasure := 0
+	var trials := 4000
+	for i in trials:
+		var rr := RandomNumberGenerator.new()
+		rr.seed = i * 7919 + 13
+		for st2 in AdventureRun.build_steps({"enemies": [{}, {}, {}, {}, {}]},
+				Data.adventure_events, i % 4, {"hurt": true, "fortress": true}, rr):
+			if String((st2 as Dictionary).get("type", "")) == AdventureRun.TREASURE:
+				seen_treasure += 1
+	var ok6 := seen_treasure == 0
+	print("%-26s %d회 시행 · 보물 조우 %d  %s" % ["보물 조우 배제", trials, seen_treasure, _v(ok6)])
+	fails += 0 if ok6 else 1
+
 	_finish(fails)
 
 
