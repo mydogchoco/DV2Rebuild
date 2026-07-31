@@ -94,6 +94,7 @@ func _build() -> void:
 
 	_build_title(vis)
 	_build_volume_rows(vis)
+	_build_title_screen_row(vis)
 	_build_reset_section(vis)
 
 # ============================================================ 제목바 · 닫기
@@ -143,6 +144,40 @@ func _build_volume_rows(vis: Vector2) -> void:
 		var sl := FrameSlider.new(float(r[1]), r[2])
 		sl.position = Vector2(x, sy)
 		_root.add_child(sl)
+
+# ============================================================ 타이틀 화면 선택
+## 🟦 **원작에 없는 항목**(사용자 확정 2026-07-31). 원작 `IntroScene` 은 2020 타이틀 하나만
+## 안다 — 구판 타이틀 자산(`intro_dragon`/`intro_cloud`)은 에셋 덤프에 남아 있는데 그리는
+## 코드가 5.1.1 바이너리에 없다(문자열 전수 확인). 둘 다 보고 싶다는 요청이라 고르게 한다.
+## 구획 어휘는 원작 그대로(구분선 + 선 위 섹션 라벨 + `RoundedButton`).
+## 자리 = 초기화 버튼(-110) **아래**. 원작에서 언어/계정 구획이 있던 빈 공간이다.
+const TITLE_ROW_RULE_DY := -160.0
+const TITLE_ROW_LABEL_DY := -155.0
+const TITLE_ROW_BTN_DY := -215.0
+func _build_title_screen_row(vis: Vector2) -> void:
+	var rule := AtlasUI.spr(SET, "scene_setting_line", Design.ASSET_SCALE)
+	if rule != null:
+		rule.position = Vector2(vis.x * 0.5, Design.flip_y(vis.y * 0.5 + TITLE_ROW_RULE_DY, vis.y))
+		_root.add_child(rule)
+	var hy := Design.flip_y(vis.y * 0.5 + TITLE_ROW_LABEL_DY, vis.y)
+	_root.add_child(_label("타이틀 화면", SECTION_FONT, Color(1, 0.94, 0.80),
+		Vector2(vis.x * 0.5 - 120.0, hy - 18.0), Vector2(240.0, 36.0)))
+
+	var cur := String(UserDB.get_pmeta("title_screen", "2020"))
+	var by := Design.flip_y(vis.y * 0.5 + TITLE_ROW_BTN_DY, vis.y)
+	var bsz := Vector2(220.0, 52.0)
+	var opts := [["2020 (시즌3)", "2020"], ["구판", "old"]]
+	for i in opts.size():
+		var o: Array = opts[i]
+		var on: bool = cur == String(o[1])
+		var x := vis.x * 0.5 + (-10.0 - bsz.x if i == 0 else 10.0)
+		AtlasUI.frame_button(_root, String(o[0]), Vector2(x, by - bsz.y * 0.5), bsz,
+			func(): _set_title_screen(String(o[1])),
+			0 if on else 1, false, 20)
+
+func _set_title_screen(kind: String) -> void:
+	UserDB.set_pmeta("title_screen", kind)
+	_build()          # 선택 표시(눌린 쪽만 빨강)를 즉시 갱신
 
 # ============================================================ 세이브 데이터 초기화
 ## 🟦 **원작에 없는 기능**(사용자 지시 2026-07-30). 오프라인 전용 게임이라 '새로 시작'

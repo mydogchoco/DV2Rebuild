@@ -60,6 +60,27 @@ const FONT := "res://assets/converted/font_ui/font_common.fnt"
 const UI := "intro_ui"
 const TITLE_SPINE := "res://scenes/fx/intro_title_spine.tscn"
 
+# ── 구판 타이틀 (사용자 확정 2026-07-31 — 설정에서 고른다) ──────────────────────
+## 어느 타이틀을 쓸지: `"2020"`(기본) / `"old"`. 원작에 없는 우리 옵션이라 세이브 meta 에 둔다.
+const PREF_KEY := "title_screen"
+const OLD_BG := "intro_old_bg"
+const OLD_BG_KEY := "intro_intro_dragon_intro_dragon"
+const OLD_CLOUD := "intro_old_cloud"
+const OLD_CLOUD_KEY := "intro_intro_cloud_intro_cloud"
+## 원작 저작 캔버스(리소스 해상도). 트림 메타의 `src` 와 같다.
+const CANVAS := Vector2(768.0, 519.0)
+## 🟦 맨 아래 하늘 배경(사용자 지시). 원본 파일명 오타 주의 — `loag_main_bg.jpg`.
+const SKY := "res://assets/converted/intro_old_bg/loag_main_bg.jpg"
+## 원작 `addLogo` 리터럴 — 로고를 우하단에서 (−55·w/1024, 70·h/692) 만큼 들여 놓는다.
+const LOGO_INSET := Vector2(55.0, 70.0)
+const LOGO_SCALE := 0.75
+## 🟠 자작 — 구름의 움직임은 원작 근거가 없다(배치 코드 유실). 사용자 확정: **아주 느린 상하 부유**.
+const CLOUD_DRIFT := 5.0        # 리소스 픽셀
+const CLOUD_PERIOD := 5.0       # 편도 초
+
+## 시작 문구가 올라올 자리(cocos). `Vector2.INF` = 2020 기본값(w*0.85, 80).
+## 구판은 `addLogo` 가 로고 밑에 상태 라벨을 놓으므로 `_build_title_old` 가 채운다.
+var _status_anchor := Vector2.INF
 var _ready_to_start := false        # 원작 this+0x1c8 (ccTouchBegan 가 검사하는 플래그)
 var _started := false               # 중복 진입 방지(원작 this+0x1c9)
 
@@ -86,7 +107,10 @@ func _build() -> void:
 	back.z_index = -30          # 스파인 홀더(-20)보다도 뒤
 	add_child(back)
 
-	_build_title(vis)
+	if String(UserDB.get_pmeta(PREF_KEY, "2020")) == "old":
+		_build_title_old(vis)
+	else:
+		_build_title(vis)
 	_build_copyright(vis)
 	# 원작은 DB 준비가 끝난 뒤 `initSetting` 이 띄운다. 오프라인은 준비할 것이 없으므로 바로.
 	_build_start_prompt(vis)
@@ -112,6 +136,78 @@ func _build_title(vis: Vector2) -> void:
 	if ap != null and ap.has_animation("animation"):
 		ap.get_animation("animation").loop_mode = Animation.LOOP_LINEAR
 		ap.play("animation")
+
+
+## 구판 타이틀 — 드래곤 일러스트 + 구름 띠 + 로고.
+##
+## ⚠️ **배치 코드는 남아 있지 않다.** 우리가 가진 libgame.so 는 5.1.1(2020판)이고, 그 안의
+##    `intro*` 문자열 전수 54개에 `intro_dragon`·`intro_cloud`·`intro_spine.img_plist` 가
+##    **하나도 없다**(= 그리는 코드가 통째로 유실). 구판 로고 경로 `IntroScene::addLogo` 는
+##    심볼만 남고 호출자 0건(.text BL 전수 스캔).
+##
+## 그래서 **정지 배치만 원본 근거로 복원**한다:
+##   · 배경 `intro_dragon` — `sourceSize {768,519}` 트림 없음 = 리소스 전체 화면.
+##   · 구름 `intro_cloud` — `offset {0,38}` = 캔버스 중앙에서 38pt 위(트림 메타).
+##     매니페스트의 `off`/`src` 를 그대로 읽어 좌표를 만든다(하드코딩 금지, §10.4).
+##   · 로고 `intro_logo_kr` — 죽은 `addLogo` 의 리터럴: scale 0.75, 앵커 우하단,
+##     `(right − 55·w/1024, 70·h/692)`.
+## 🟠 **자작은 구름의 움직임 하나**(아주 느린 상하 부유, 사용자 확정). 구판 스파인은
+##    페이지 PNG 만 있고 skeleton json 이 어디에도 없어 연출을 복원할 수 없다.
+func _build_title_old(vis: Vector2) -> void:
+	# 🟦 맨 아래 하늘 배경(사용자 지시 2026-07-31) — `scene/adventure/load_bg/loag_main_bg.jpg`.
+	#    ⚠️ 원본 파일명이 오타다(`load_` 가 아니라 `loag_`). libgame.so 문자열 전수에 `loag` 가
+	#    없어 **원작 코드가 부르지 않는 자산**이다(구판 로딩 화면 잔재로 보인다).
+	#    드래곤 일러스트는 11%가 투명(하늘 부분)이라 그 사이로 이 배경이 비친다.
+	var sky_tex := load(SKY) if ResourceLoader.exists(SKY) else null
+	if sky_tex != null:
+		var sky := Sprite2D.new()
+		sky.texture = sky_tex
+		sky.position = vis * 0.5
+		var ss: float = maxf(vis.x / sky_tex.get_width(), vis.y / sky_tex.get_height())
+		sky.scale = Vector2(ss, ss)
+		sky.z_index = -25          # 검정 back(-30) 위, 일러스트 stage(-20) 아래
+		add_child(sky)
+
+	var stage := Node2D.new()
+	stage.position = vis * 0.5
+	# 리소스 캔버스(768×519)를 화면에 꽉 차게 — 넓은 PC 화면에서 좌우가 비지 않도록 cover.
+	var s: float = maxf(vis.x / CANVAS.x, vis.y / CANVAS.y)
+	stage.scale = Vector2(s, s)
+	stage.z_index = -20
+	add_child(stage)
+
+	var bg := AtlasUI.spr(OLD_BG, OLD_BG_KEY, 1.0)
+	if bg == null:
+		push_warning("[Intro] 구판 배경 없음 — build_intro_assets.py 를 돌려야 한다")
+		return
+	stage.add_child(bg)          # 캔버스 중앙 = stage 원점
+
+	var cloud := AtlasUI.spr(OLD_CLOUD, OLD_CLOUD_KEY, 1.0)
+	if cloud != null:
+		# 트림 메타 `off` = (트림된 그림의 중심 − 캔버스 중심), cocos y-up → Godot 은 y 반전.
+		var off: Array = AtlasUI.manifest(OLD_CLOUD).get(OLD_CLOUD_KEY, {}).get("off", [0, 0])
+		cloud.position = Vector2(float(off[0]), -float(off[1]))
+		stage.add_child(cloud)
+		var drift := create_tween().set_loops()
+		drift.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		drift.tween_property(cloud, "position:y",
+			cloud.position.y + CLOUD_DRIFT, CLOUD_PERIOD)
+		drift.tween_property(cloud, "position:y",
+			cloud.position.y, CLOUD_PERIOD)
+
+	# 로고 — 원작 addLogo 리터럴. 프레임 크기 ×(0.75 × ASSET_SCALE) 를 우하단에서 들여 놓는다.
+	var logo := AtlasUI.spr(UI, "intro_intro_logo_kr", LOGO_SCALE * Design.ASSET_SCALE)
+	if logo != null:
+		var sz := AtlasUI.size_pt(UI, "intro_intro_logo_kr") * LOGO_SCALE
+		var logo_bottom := LOGO_INSET.y * (vis.y / Design.DESIGN_HEIGHT)      # cocos y
+		logo.position = Vector2(
+			vis.x - LOGO_INSET.x * (vis.x / Design.REF_WIDTH) - sz.x * 0.5,
+			Design.flip_y(logo_bottom, vis.y) - sz.y * 0.5)
+		add_child(logo)
+		# 원작 addLogo 는 상태 라벨을 **로고 밑**에 붙인다:
+		#   x = 로고 boundingBox 의 midX(=우리 스프라이트 중심 x) · y = 로고 y − 35.
+		# 시작 문구 플레이트가 이 자리로 올라오므로 로고와 겹치지 않는다.
+		_status_anchor = Vector2(logo.position.x, logo_bottom - 35.0)
 
 
 ## 원작 `drawCopyright` 그대로 — 하단 반투명 바 + 버전 + 저작권 + 전체이용가 마크.
@@ -147,7 +243,12 @@ func _build_start_prompt(vis: Vector2) -> void:
 	if plate == null:
 		return
 	# 원작: 상태 라벨 위치 기준. x = 라벨x + 20, y 는 0(화면 바닥)에서 라벨y 만큼 올라온다.
-	var end_pos := Vector2(vis.x * STATUS_AX + 20.0, Design.flip_y(STATUS_Y, vis.y))
+	# 구판 배치에서는 상태 라벨 자리가 다르다 — `addLogo` 가 **로고 밑**에 놓기 때문
+	# (x = 로고 boundingBox 의 midX, y = 로고 y − 35). `_status_anchor`(cocos)에 담아 온다.
+	var anchor := _status_anchor
+	if anchor == Vector2.INF:
+		anchor = Vector2(vis.x * STATUS_AX, STATUS_Y)
+	var end_pos := Vector2(anchor.x + 20.0, Design.flip_y(anchor.y, vis.y))
 	plate.position = Vector2(end_pos.x, vis.y)          # cocos y=0 = 화면 바닥
 	plate.modulate.a = 0.0
 	add_child(plate)

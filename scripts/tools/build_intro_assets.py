@@ -48,10 +48,20 @@ PLAIN = [
     "intro.img_plist",
     "intro/intro2020_3_spine.spine_json",
     "intro/intro_spine2020_3_spine9.img_plist",
+    # ── 구판 타이틀(사용자 확정 2026-07-31: 설정에서 고를 수 있게 한다) ──
+    # 배치 코드는 구 libgame.so 와 함께 유실됐지만(5.1.1 문자열 전수에 이 이름들이 없다)
+    # **트림 메타에 캔버스 안 위치가 박혀 있어** 정지 배치는 원본 근거로 복원된다:
+    #   intro_dragon: sourceSize {768,519} 트림 없음 = 리소스 전체 화면
+    #   intro_cloud : sourceSize {768,519} · offset {0,38} = 캔버스 중앙에서 38pt 위
+    "intro/intro_dragon.img_plist",
+    "intro/intro_cloud.img_plist",
+    "intro/intro_logo_kr.png",
 ]
 ENCRYPTED = [
     ("intro.pvr.ccz", "intro.png"),
     ("intro/intro_spine2020_3_spine9.pvr.ccz", "intro/intro_spine2020_3_spine9.png"),
+    ("intro/intro_dragon.pvr.ccz", "intro/intro_dragon.png"),
+    ("intro/intro_cloud.pvr.ccz", "intro/intro_cloud.png"),
 ]
 
 
@@ -72,6 +82,19 @@ def main() -> int:
         if not dry:
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_bytes(read(rel))
+
+    # 구판 타이틀 맨 아래 하늘 배경(사용자 지시 2026-07-31). ⚠️ 원본 파일명이 **오타**다 —
+    # `load_main_bg` 가 아니라 `loag_main_bg.jpg`. APK 가 아니라 이미 가진 `DV2/480/` 에 있고,
+    # libgame.so 문자열 전수에 `loag` 가 없어 **원작 코드가 부르지 않는 자산**이다(=구판 잔재).
+    sky_src = REPO / "DV2" / "480" / "scene" / "adventure" / "load_bg" / "loag_main_bg.jpg"
+    sky_dst = REPO / "assets" / "converted" / "intro_old_bg" / "loag_main_bg.jpg"
+    if sky_src.exists():
+        print(f"  copy   {sky_src.name} -> {sky_dst.parent.name}/")
+        if not dry:
+            sky_dst.parent.mkdir(parents=True, exist_ok=True)
+            sky_dst.write_bytes(sky_src.read_bytes())
+    else:
+        print(f"[warn] 하늘 배경 없음: {sky_src}")
 
     from ccz_to_png import decrypt_ccz, pvr_to_image
 
@@ -95,6 +118,10 @@ def main() -> int:
     tools = Path(__file__).resolve().parent
     runs = [
         [sys.executable, str(tools / "cocos_export.py"), str(DV2 / "intro.img_plist"), "intro_ui"],
+        [sys.executable, str(tools / "cocos_export.py"),
+         str(DV2 / "intro/intro_dragon.img_plist"), "intro_old_bg"],
+        [sys.executable, str(tools / "cocos_export.py"),
+         str(DV2 / "intro/intro_cloud.img_plist"), "intro_old_cloud"],
         [sys.executable, str(tools / "spine_export.py"),
          "--scene", str(DV2 / "intro/intro2020_3_spine.spine_json"),
          "--atlas", str(DV2 / "intro/intro_spine2020_3_spine9.img_plist")],
