@@ -57,6 +57,8 @@ const TITLE_FONT := "res://assets/converted/font_ui/font_subtitle.fnt"
 ## 타자기 속도(문자/초). 원작 `ScenarioTextBox::setTextSpeed` 값은 코스메틱 클라 설정이라
 ## 정확값 미확정 → ASSUMPTION 40cps (BattleTextBox 이식과 같은 값).
 const CPS := 40.0
+## 대사를 소비하는 op — 원작 대사 함수 네 갈래(§ScenarioWiring.md §11).
+const TALK_OPS := ["setNpcTalk", "setUserTalk", "setTalker", "setTalk"]
 
 var _params: Dictionary = {}
 var _lines: Array = []            # [{k, text}]
@@ -115,6 +117,16 @@ func _rebuild() -> void:
 	_build_backdrop(sc)
 	_build_textbox()
 	_build_skip()
+	# 전투에서 돌아온 경우 — 그 스텝 **다음부터** 잇는다. 이미 지나간 대사는 다시 세어
+	# 화자·줄이 어긋나지 않게 `_idx` 도 같이 맞춘다.
+	var resume := int(_params.get("resume_flow", 0))
+	if resume > 0 and resume <= _flow.size():
+		_flow_i = resume
+		_idx = 0
+		for i in resume:
+			if String((_flow[i] as Dictionary).get("op", "")) in TALK_OPS:
+				_idx += 1
+		_idx = mini(_idx, _lines.size())
 	if not _flow.is_empty():
 		_play_flow()
 	elif _lines.is_empty():
@@ -329,6 +341,12 @@ func _play_flow() -> void:
 			"sound_CryMonster":
 				# 원작 @0165df7c — 몬스터 울음. 두 분기(param 1·2) 모두 `music/voice1.mp3`.
 				Bgm.sfx("voice1")
+			"scenarioBattle":
+				# 원작 `ScenarioSupport::scenarioBattle(field, battleNo)` @0165c7d4 —
+				# `AdventureScene::scene(…)` 을 **푸시**하고, 전투가 끝나면 그 스텝 다음부터 잇는다.
+				# 우리는 씬 스택이 없으므로 battle 씬에 복귀 지점(`story_return`)을 들려 보낸다.
+				if _start_battle(int(o.get("battle", 0))):
+					return          # 씬이 바뀐다 — 나머지 스텝은 복귀 후에 잇는다
 			"walkAction":
 				# 원작 @0165bd24 — 텍스트박스를 치우고 `mScenarioManager+0x188` 에 필드 번호를
 				# 박은 뒤 이동 연출(`InfoEventData`)을 돌린다. 우리는 **필드 이동 = 배경 전환**
@@ -351,6 +369,29 @@ func _play_flow() -> void:
 			_:
 				pass          # 아직 이식 안 한 연출(전투·미니게임·NPC 워크)은 건너뛴다
 	_finish()
+
+## 스토리 전투로 넘어간다. 편성을 못 찾으면 **건너뛴다**(지어내지 않는다) — false 반환.
+##
+## 복귀: `battle` 씬이 `story_return` 을 그대로 들고 있다가 끝나면
+##       `Scenes.goto("story", {... , "resume_flow": <다음 스텝>})` 로 되돌린다.
+func _start_battle(battle_no: int) -> bool:
+	var spec: Dictionary = Data.story_battle(battle_no)
+	if spec.is_empty():
+		push_warning("[story] 전투번호 %d 의 편성을 못 찾았다 — 건너뛴다" % battle_no)
+		return false
+	var p := {
+		"enemy": spec["enemy"],
+		"story_return": {
+			"no": _no, "part": _part, "resume_flow": _flow_i,
+			"back": _params.get("back", "worldmap"),
+			"back_params": _params.get("back_params", {}),
+		},
+	}
+	var fld := int(spec.get("field", 0))
+	if fld > 0:
+		p["bg"] = fld           # 이벤트 전투는 원작이 필드를 지정한다(602·24·601)
+	Scenes.goto("battle", p)
+	return true
 
 # ── 연출 헬퍼(원작 ScenarioSupport / ScenarioLayer) ────────────────────────────
 ## 탐험 필드 번호 → 그 필드 배경. `changeBackGround` 가 쓰는 것과 같은 변환본을 쓴다.

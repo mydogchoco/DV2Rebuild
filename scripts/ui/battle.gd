@@ -3390,6 +3390,27 @@ func _finish() -> void:
 	#   원작 프레임 `scene/adventure/btn1|btn2` + `choice_stop_KR`/`choice_continue_KR` 이
 	#   전부 보유분이라 자작할 이유가 없었다.
 	var btn_y := (vis.y * 0.5 + 200.0) if (win and not more) else (vis.y * 0.38)
+	# ── 스토리 전투 복귀 ────────────────────────────────────────────────────
+	# 원작은 `AdventureScene` 을 **push** 해서 끝나면 시나리오로 pop 한다
+	# (`ScenarioSupport::scenarioBattle` → `CCDirector::pushScene`). 우리는 씬 스택이 없어
+	# story.gd 가 복귀 지점을 들려 보내고 여기서 그대로 되돌린다.
+	if _params.has("story_return"):
+		var sr: Dictionary = _params["story_return"]
+		var back_to_story := func() -> void:
+			Scenes.goto("story", {"no": int(sr.get("no", 1)), "part": int(sr.get("part", 0)),
+				"resume_flow": int(sr.get("resume_flow", 0)),
+				"back": sr.get("back", "worldmap"),
+				"back_params": sr.get("back_params", {})})
+		_big_button("이야기 계속", "9patch_btn2",
+			Vector2(vis.x * 0.5 - 140.0, btn_y), back_to_story)
+		if not win:
+			# 스토리 전투는 져도 이야기가 멈추지 않는다(원작 `battle_retry_scenarios` 는
+			# 103화 이상만 재도전 대상으로 적는다 — 우리 회차엔 그 데이터가 없다).
+			# 그래도 다시 붙을 수 있게 재도전을 남긴다.
+			_big_button("재도전", "9patch_btn3", Vector2(vis.x * 0.5 - 300.0, btn_y), func():
+				_undo_defeat_incapacitation()
+				Scenes.goto("battle", _params.duplicate(true)))
+		return
 	if more:
 		_log("탐험을 계속 이어가시겠습니까?")
 		var hp_state := _party_hp_state()   # 잔여 HP 이월

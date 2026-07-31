@@ -22,6 +22,10 @@ var scenario: Dictionary = {}
 ## `_Kadeath` 로 가르고 그 클래스들이 연출을 **하드코딩**한다(102화 이상만 `ScenarioCommon`
 ## = 서버 script 라 진짜 유실). 추출 = extract_scenario_flow.py → parse_scenario_flow.py.
 var scenario_flow: Dictionary = {}
+## 스토리 전투 — 원작 AdventureScene 의 두 표(switch · initEventBattle) + 직접 호출 목록.
+var story_battles: Dictionary = {}
+## 스토리 전용 몬스터 3종(사용자 확정 스탯 + 회차·전투번호).
+var story_monsters: Dictionary = {}
 ## 스토리 **목차**(회차 제목·챕터·서브미션·해금레벨). 원작은 로컬 SQLite `info_scenario_v2`
 ## (`min_lv`·`title`·`daynight`)에서 읽었는데 그 .db 가 우리 덤프에 없어 나무위키에서 뽑았다
 ## — scripts/tools/build_story_index.py. (종전 주석의 "서버 유실"은 오진, 2026-07-30 정정)
@@ -112,6 +116,8 @@ func _ready() -> void:
 	scenario_flow = _load_json("res://data/scenario_flow.json")
 	story = _load_json("res://data/story.json")
 	story_subquest = _load_json("res://data/story_subquest.json")
+	story_battles = _load_json("res://data/story_battles.json")
+	story_monsters = _load_json("res://data/story_monsters.json")
 	shop = _load_json("res://data/shop.json")
 	npc_face = _load_json("res://data/npc_face.json")
 	promote = _load_json("res://data/promote.json")
@@ -449,6 +455,67 @@ func scenario_bg_paths(bg_no: int) -> Array:
 ## 없는 번호(17)는 원작도 무음이다 — 빈 문자열을 돌려준다.
 func scenario_bgm(field: int) -> String:
 	return String(scenario_flow.get("bgm", {}).get(str(field), ""))
+
+## 스토리 전투 한 건 → `{enemy, field}` (없으면 빈 Dictionary).
+##
+## 원작은 전투번호(`battleNo`)로 몬스터를 고르는데 **경로가 셋**이라 우선순위가 있다:
+##   ① `ScenarioSubQuestData::getEventBattleData` — 26·27·29 (스탯·필드까지 리터럴)
+##   ② `AdventureScene::initEventBattle` switch — 4 · 5~14 · 19~24 (몬스터만)
+##   ③ `AdventureScene` 의 `switch(battleNo)` — 15·16·17~27·28 (몬스터 + 레벨)
+## ②③ 은 스탯을 몬스터 DB 에서 읽는데 그 DB 가 없다 → 우리 `story_monsters`(사용자 확정) →
+## `stages.json` 의 같은 id 적 레코드 순으로 찾는다. 어디에도 없으면 빈 값을 돌려주고
+## 호출부가 전투를 건너뛴다(지어내지 않는다).
+func story_battle(battle_no: int) -> Dictionary:
+	var key := str(battle_no)
+	var ev: Dictionary = story_subquest.get("event_battle", {}).get(key, {})
+	if not ev.is_empty():
+		var e0 := _story_enemy(int(ev.get("monster_no", 0)), int(ev.get("lv", 1)))
+		if e0.is_empty():
+			return {}
+		e0["hp_max"] = int(ev.get("hp", e0.get("hp_max", 1)))
+		e0["att"] = int(ev.get("att", e0.get("att", 1)))
+		e0["def"] = int(ev.get("def", e0.get("def", 1)))
+		return {"enemy": e0, "field": int(ev.get("field_no", 0))}
+	for tbl in ["monster_by_battle_event", "monster_by_battle"]:
+		var rec: Dictionary = story_battles.get(tbl, {}).get(key, {})
+		if rec.is_empty():
+			continue
+		var e1 := _story_enemy(int(rec.get("monster_no", 0)), int(rec.get("level", 0)))
+		if not e1.is_empty():
+			return {"enemy": e1, "field": 0}
+	return {}
+
+## 몬스터 번호 → 전투용 적 레코드. `story_monsters`(사용자 확정) 우선, 없으면 stages 의 적.
+func _story_enemy(no: int, level: int) -> Dictionary:
+	if no <= 0:
+		return {}
+	for m in story_monsters.get("monsters", []):
+		var d: Dictionary = m
+		if int(d.get("id", -1)) != no:
+			continue
+		var out := {"id": no, "name": String(d.get("name", "")),
+			"level": level if level > 0 else int(d.get("level", 50)),
+			"element": "none", "boss": true,
+			"hp_max": int(d.get("hp_max", 1)), "att": int(d.get("att", 1)),
+			"def": int(d.get("def", 1))}
+		if int(d.get("pure", 0)) > 0:
+			out["pure"] = int(d.get("pure", 0))   # "공격 시 고정 데미지" = 방어 무시 flat
+		return out
+	for sid in stages.get("stages", {}).keys():
+		var st: Dictionary = stages["stages"][sid]
+		for blk in [st, st.get("night"), st.get("kades")]:
+			if typeof(blk) != TYPE_DICTIONARY:
+				continue
+			for e in (blk as Dictionary).get("enemies", []):
+				var er: Dictionary = e
+				if int(er.get("id", -1)) != no:
+					continue
+				var cp := er.duplicate(true)
+				if level > 0:
+					cp["level"] = level
+				cp["boss"] = true
+				return cp
+	return {}
 
 ## 시나리오 소품 번호 → 원작 프레임 경로 (`ScenarioSupport::showScenarioItem` 0~11).
 func scenario_item_path(no: int) -> String:

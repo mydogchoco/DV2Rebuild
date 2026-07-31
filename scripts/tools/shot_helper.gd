@@ -21,11 +21,13 @@ func _ready() -> void:
 	var out := "user://shot.png"
 	var wait := 3.0
 	var stage := "1"
+	var extra := "0"          # 모드별 두 번째 인자(--extra=)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="): shot = a.substr(7)
 		elif a.begins_with("--out="): out = a.substr(6)
 		elif a.begins_with("--wait="): wait = float(a.substr(7))
 		elif a.begins_with("--stage="): stage = a.substr(8)
+		elif a.begins_with("--extra="): extra = a.substr(8)
 
 	# ⚠️ 오토로드 _ready 는 main.gd 보다 먼저 돈다 — 닉네임을 여기서 미리 넣어야
 	#    main.gd 의 "최초 1회 강제 입력" 팝업이 뜨지 않는다. begin_batch = 디스크 미기록.
@@ -170,6 +172,11 @@ func _ready() -> void:
 						"is_max": {"hp": true, "att": true, "def": false},
 						"tmax": {}}],
 					"max_stats": lr_ms}]})
+		"storybattle":
+			# 스토리 전투 배선 검수 — 전투 스텝 직전부터 재생시킨다.
+			#   --stage=<회차> --enc=<전투 스텝 index>
+			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap",
+				"resume_flow": int(extra)})
 		"story":
 			# 스토리 재생 검수. --stage=<시나리오번호> 로 고른다(삽화 있는 편: 12·19·20·21·101).
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
