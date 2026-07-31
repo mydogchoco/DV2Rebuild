@@ -3138,7 +3138,10 @@ func _finish() -> void:
 		UserDB.set_dragon_field(uid, "food", fd)
 	var vis := _vis()
 	var win := _winner == "ally"
-	if not win and _winner == "enemy":
+	# 🟦 스토리 전투는 **져야 하는 연출**이다(사용자 확정 2026-07-31) — 이벤트 26·27 은 원작
+	#    스탯이 lv99 · hp/공/방 90000 이라 이길 수 없게 짜여 있다. 패배 페널티(행동불능)를
+	#    걸면 연출 한 번에 출전 드래곤이 1시간 묶인다 ⇒ 스토리 전투에서는 적용하지 않는다.
+	if not win and _winner == "enemy" and not _params.has("story_return"):
 		_apply_defeat_incapacitation()
 	if win: Bgm.sfx("bg_ad_win_short")   # 원작 승리 팡파레
 	# 🔴 결과 오버레이는 전투원 위에. 패배하면 몬스터 스파인(z 8~100)이 살아남아 어둠막·문구·
@@ -3357,6 +3360,9 @@ func _finish() -> void:
 		# (레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png). 그만하기/계속하기 버튼과 겹치던 줄을 없앤다.
 		sub.text = ""
 		if reward_txt != "": _log("전리품%s 을(를) 얻었습니다." % reward_txt)
+	elif _params.has("story_return"):
+		# 스토리 전투는 재도전이 없다(져야 진행되는 연출) — "다시 도전해보세요" 는 맞지 않는다.
+		sub.text = ""
 	else:
 		sub.text = "다시 도전해보세요"
 	sub.add_theme_font_size_override("font_size", 18)
@@ -3395,21 +3401,17 @@ func _finish() -> void:
 	# (`ScenarioSupport::scenarioBattle` → `CCDirector::pushScene`). 우리는 씬 스택이 없어
 	# story.gd 가 복귀 지점을 들려 보내고 여기서 그대로 되돌린다.
 	if _params.has("story_return"):
+		# 🟦 사용자 확정 2026-07-31: 스토리 전투는 **승패와 무관하게** 전투가 끝나면 이야기가
+		#    이어진다(이벤트 26·27 은 애초에 이길 수 없는 연출 전투다).
+		#    ⇒ 재도전·월드맵 같은 갈림길을 두지 않는다. 버튼 하나로만 나간다.
 		var sr: Dictionary = _params["story_return"]
-		var back_to_story := func() -> void:
-			Scenes.goto("story", {"no": int(sr.get("no", 1)), "part": int(sr.get("part", 0)),
-				"resume_flow": int(sr.get("resume_flow", 0)),
-				"back": sr.get("back", "worldmap"),
-				"back_params": sr.get("back_params", {})})
-		_big_button("이야기 계속", "9patch_btn2",
-			Vector2(vis.x * 0.5 - 140.0, btn_y), back_to_story)
-		if not win:
-			# 스토리 전투는 져도 이야기가 멈추지 않는다(원작 `battle_retry_scenarios` 는
-			# 103화 이상만 재도전 대상으로 적는다 — 우리 회차엔 그 데이터가 없다).
-			# 그래도 다시 붙을 수 있게 재도전을 남긴다.
-			_big_button("재도전", "9patch_btn3", Vector2(vis.x * 0.5 - 300.0, btn_y), func():
-				_undo_defeat_incapacitation()
-				Scenes.goto("battle", _params.duplicate(true)))
+		# 결과 문구(승리/패배) 아래에 놓는다 — 기본 `btn_y`(패배 시 y*0.38)는 문구와 겹친다.
+		_big_button("이야기 계속", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, vis.y * 0.5 + 120.0),
+			func() -> void:
+				Scenes.goto("story", {"no": int(sr.get("no", 1)), "part": int(sr.get("part", 0)),
+					"resume_flow": int(sr.get("resume_flow", 0)),
+					"back": sr.get("back", "worldmap"),
+					"back_params": sr.get("back_params", {})}))
 		return
 	if more:
 		_log("탐험을 계속 이어가시겠습니까?")
