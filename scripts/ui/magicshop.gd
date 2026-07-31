@@ -1631,7 +1631,7 @@ func _body_disassemble(pop: OrigPopup) -> void:
 		if bg:
 			bg.position = hex * 0.5
 			root.add_child(bg)
-		var ik := String(_dis_slots[i])
+		var ik := _dis_key(i)
 		if ik == "":
 			var l := Label.new()
 			l.text = "젬"
@@ -1650,8 +1650,10 @@ func _body_disassemble(pop: OrigPopup) -> void:
 			if gi:
 				gi.position = (hex - gi.size) * 0.5
 				root.add_child(gi)
+			# 원작 `UpgradeGemLayer` 슬롯 라벨(tag 0x2510) = `"x%d"` × **그 칸에 투입한 수량**.
+			# 보유량 전체가 아니다 — `requestDisassemble` 이 칸마다 `"<itemNo>_<cnt>"` 를 보낸다.
 			var n := Label.new()
-			n.text = "x%d" % UserDB.item_count(ik)
+			n.text = "x%d" % _dis_cnt(i)
 			n.add_theme_font_size_override("font_size", 15)
 			n.add_theme_color_override("font_color", Color(1, 1, 1))
 			n.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
@@ -1725,56 +1727,83 @@ func _body_disassemble(pop: OrigPopup) -> void:
 		btn.add_child(coin)
 
 
-## 고른 젬들이 낼 가루(계열별 합). 개수는 **가진 만큼 전부**(참조 영상도 스택째 넣는다).
+## 한 칸의 인벤 키 / 투입 수량. 칸은 `{"key": String, "cnt": int}` 이고 빈 칸은 `""` 다
+## (예전 세이브·이전 판 코드가 문자열만 넣어 두는 경우도 받아 준다).
+func _dis_key(i: int) -> String:
+	var s = _dis_slots[i]
+	if s is Dictionary:
+		return String((s as Dictionary).get("key", ""))
+	return String(s)
+
+
+func _dis_cnt(i: int) -> int:
+	var key := _dis_key(i)
+	if key == "":
+		return 0
+	var s = _dis_slots[i]
+	var n := int((s as Dictionary).get("cnt", 1)) if s is Dictionary else UserDB.item_count(key)
+	return clampi(n, 0, UserDB.item_count(key))
+
+
+## 이미 다른 칸이 쓰고 있는 수량(같은 스택을 두 칸에 나눠 담을 수 있으므로 합이 보유량을
+## 넘지 않도록 막는다 — 원작도 칸마다 따로 `Item::getCount()` 를 싣는다).
+func _dis_used_elsewhere(key: String, except_slot: int) -> int:
+	var n := 0
+	for i in _dis_slots.size():
+		if i != except_slot and _dis_key(i) == key:
+			n += _dis_cnt(i)
+	return n
+
+
+## 고른 젬들이 낼 가루(계열별 합) — 칸마다 **투입 수량만큼**.
 func _dis_yields() -> Dictionary:
 	var out := {"att_powder": 0, "def_powder": 0, "hp_powder": 0}
-	for ik in _dis_slots:
-		var key := String(ik)
+	for i in _dis_slots.size():
+		var key := _dis_key(i)
 		if key == "":
 			continue
 		var g := Gem.parse_item_key(key)
 		if g.is_empty():
 			continue
-		var dk := _dust_key_for(String(g["name"]))
-		out[dk] = int(out[dk]) + _dust_yield(int(g["tier"])) * UserDB.item_count(key)
+		var dk := Gem.dust_key_for(String(g["name"]))
+		out[dk] = int(out[dk]) + Gem.disassemble_dust(int(g["tier"]), Data.gems) * _dis_cnt(i)
 	return out
 
 
 func _dis_special() -> int:
 	var sp := 0
-	for ik in _dis_slots:
-		var key := String(ik)
+	for i in _dis_slots.size():
+		var key := _dis_key(i)
 		if key == "":
 			continue
 		var g := Gem.parse_item_key(key)
 		if g.is_empty():
 			continue
-		sp += _special_yield(int(g["tier"])) * UserDB.item_count(key)
+		sp += Gem.disassemble_special(int(g["tier"]), Data.gems) * _dis_cnt(i)
 	return sp
 
 
 func _dis_count() -> int:
 	var n := 0
-	for ik in _dis_slots:
-		if String(ik) != "":
-			n += UserDB.item_count(String(ik))
+	for i in _dis_slots.size():
+		n += _dis_cnt(i)
 	return n
 
 
 func _dis_cost() -> int:
-	return _dis_count() * _dis_gold_per_gem()
+	return Gem.disassemble_gold(_dis_count(), Data.gems)
 
 
+## 빈 칸을 누르면 젬 고르기(원작 `MagicSelectLayer`) — 거기서 **수량까지** 정한다.
+## 찬 칸을 누르면 비운다.
 func _dis_click_slot(i: int) -> void:
-	if String(_dis_slots[i]) != "":
+	if _dis_key(i) != "":
 		_dis_slots[i] = ""
 		_refresh_feature()
 		return
-	_open_gem_picker("", func(key: String):
-		if key in _dis_slots:
-			return                          # 같은 스택을 두 칸에 못 넣는다
-		_dis_slots[i] = key
-		_refresh_feature())
+	_open_gem_picker("", func(key: String, cnt: int):
+		_dis_slots[i] = {"key": key, "cnt": maxi(1, cnt)}
+		_refresh_feature(), i)
 
 
 ## 원작 `<AlchemyMsg2>` 확인창 → `requestDisassemble` → `responseDisassemble` 결과창.
@@ -1795,10 +1824,10 @@ func _dis_run() -> void:
 		return
 	var yields := _dis_yields()
 	var sp := _dis_special()
-	for ik in _dis_slots:
-		var key := String(ik)
+	for i in _dis_slots.size():
+		var key := _dis_key(i)
 		if key != "":
-			UserDB.use_item(key, UserDB.item_count(key))
+			UserDB.use_item(key, _dis_cnt(i))
 	var got: Array = []
 	for k in yields.keys():
 		var n := int(yields[k])
@@ -1819,46 +1848,19 @@ func _dis_run() -> void:
 	_toast("젬 분해를 완료 하였습니다.")            # <AlchemyMsg25>
 
 
-## 분해 산출 가루 수. 위키에 등급별 표는 없고 "원형젬 = 2,666개"라는 상한 관측만 있다
-## → 티어 비례 곡선(자작)으로 그 상한에 수렴시킨다.
-func _dust_yield(tier: int) -> int:
-	var dc: Dictionary = Data.gems.get("disassemble", {})
-	var cap := int(dc.get("prototype_dust", 2666))
-	var t := clampi(tier + 1, 1, 18)
-	return maxi(1, int(round(float(cap) * pow(float(t) / 18.0, 3.0))))
-
-## 초월의 용액 산출. 13강 미만은 0, 13강부터 1개 → 18강(원형젬 수준)에서 36개.
-func _special_yield(tier: int) -> int:
-	var dc: Dictionary = Data.gems.get("disassemble", {})
-	var minT := int(dc.get("special_min_tier", 13))
-	var lvl := tier + 1                       # 강 번호
-	if lvl < minT:
-		return 0
-	var lo := int(dc.get("special_min", 1))
-	var hi := int(dc.get("special_max", 36))
-	var span := maxi(1, 18 - minT)
-	return clampi(lo + int(round(float(hi - lo) * float(lvl - minT) / float(span))), lo, hi)
-
 ## 분해 실행 — 가루는 그 젬 계열(공/방/체)의 가루로 준다.
+## 산출 공식은 전부 `Gem`(logic) 으로 옮겼다 — 원작 `UpgradeGemLayer` 디컴프 그대로다.
 func _disassemble(item_key: String, gem_name: String, tier: int) -> void:
 	if UserDB.item_count(item_key) <= 0:
 		return
 	UserDB.use_item(item_key, 1)
-	var dust := _dust_yield(tier)
-	var sp := _special_yield(tier)
-	UserDB.add_item(_dust_key_for(gem_name), dust)
+	var dust := Gem.disassemble_dust(tier, Data.gems)
+	var sp := Gem.disassemble_special(tier, Data.gems)
+	UserDB.add_item(Gem.dust_key_for(gem_name), dust)
 	if sp > 0:
 		UserDB.add_item("alchemy_special", sp)
 	_toast("분해했습니다 — 가루 %d개%s" % [dust, ("" if sp <= 0 else " · 초월의 용액 %d개" % sp)])
 	_refresh_feature()
-
-## 젬 이름 → 마법가루 종류. 공격=붉은 / 방어=푸른 / 체력=노란(위키 gems.pdf §2.2).
-func _dust_key_for(gem_name: String) -> String:
-	if "방어" in gem_name:
-		return "def_powder"
-	if "체력" in gem_name:
-		return "hp_powder"
-	return "att_powder"
 
 ## 원작 `AlchemyLayer` = 용액 상점(<MagicAlchemy_menu5>).
 ## 품목은 docs/ref/orig_image/shop/점술집_젬강화.pdf 가 확정한다 —
@@ -3050,7 +3052,7 @@ func _soul_plan() -> Dictionary:
 func _soul_mats(step: Dictionary, gem_name: String) -> Array:
 	var order: Array = []
 	var need: Dictionary = {}
-	for row in [[_dust_key_for(gem_name), int(step.get("dust", 0))],
+	for row in [[Gem.dust_key_for(gem_name), int(step.get("dust", 0))],
 			[_soul_mat_item("mat"), int(step.get("mat", 0))],
 			[_soul_mat_item("core"), int(step.get("core", 0))]]:
 		var k := String((row as Array)[0])
@@ -3098,12 +3100,23 @@ func _soul_run() -> void:
 	_toast("%s!" % String(plan["result_name"]), 4)
 
 
-# ── 젬 고르기(원작 UpgradeGemLayer::setSelectedItem / GemsPopup) ───────────
-## 가방의 젬을 격자로 보여 주고 하나를 고른다. 원작도 같은 그릇
-## (`9patch/popup4` + `9patch/scroll_box` 격자 + 우측 상세 + `선택`)이다 —
+# ── 젬 고르기(원작 `MagicSelectLayer`) ─────────────────────────────────────
+## 원작 클래스 확정(2026-07-31): `UpgradeGemLayer::onClickItemMenu` 가 여는 것은
+## **`MagicSelectLayer`** 다(`GemsPopup` 은 `CaveScene` 전용 — `::create` 호출자 전수 확인).
+## 그릇 = `9patch/popup4` + `9patch/scroll_box` 격자(셀 라벨 `"x %d"`) + 우측 상세
+## (`common/shadow` + `9patch/text_box`) + `선택`, 수량은 `common/btn_up`·`btn_down`.
 ## 참조 `docs/ref/gem/젬분해2~3.png`.
-## `mode` = "soul" 이면 **승급 가능한 최대티어 혼성젬 + 소울젬**만 보인다.
-func _open_gem_picker(mode: String, on_pick: Callable) -> void:
+##
+## 수량 규칙 = 원작 `MagicSelectLayer::onClickCount` 그대로 **1 ↔ max 순환**:
+##   ▼(tag 1): cnt == 1 이면 max 로, 아니면 cnt-1
+##   ▲(tag 2): cnt == max 이면 1 로, 아니면 cnt+1
+## `max` 는 보유량이다(원작이 `"cnt"/"max"/"label"` 3키를 셀 딕셔너리에 들고 다닌다).
+##
+## `mode` = "soul" 이면 **승급 가능한 최대티어 혼성젬 + 소울젬**만 보이고 수량칸이 없다
+## (원작 `UpgradeSoulGemPopup` 은 1개만 고른다). 그 외에는 수량을 함께 고르고
+## `on_pick.call(key, cnt)` 로 돌려준다.
+func _open_gem_picker(mode: String, on_pick: Callable, dis_slot := -1) -> void:
+	var pick_qty := mode != "soul"
 	var vis := _vis()
 	var layer := Control.new()
 	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -3142,7 +3155,9 @@ func _open_gem_picker(mode: String, on_pick: Callable) -> void:
 	cb.pressed.connect(func(): layer.queue_free())
 	win.add_child(cb)
 
-	var box_sz := Vector2(sz.x - 90.0, sz.y - 160.0)
+	# 원작 비율: 격자는 `창너비 - 430`(우측 상세 350 + 여백), 상세는 350 폭.
+	var det_w := 330.0
+	var box_sz := Vector2(sz.x - 90.0 - (det_w + 20.0 if pick_qty else 0.0), sz.y - 160.0)
 	var np := AtlasUI.nine("ninepatch_ui", "9patch_scroll_box", box_sz, Rect2(65, 65, 6, 6))
 	if np:
 		np.position = Vector2(45.0, 80.0)
@@ -3158,6 +3173,15 @@ func _open_gem_picker(mode: String, on_pick: Callable) -> void:
 	grid.add_theme_constant_override("v_separation", 6)
 	sc.add_child(grid)
 
+	# 우측 상세 — 고른 젬 하나를 크게 + 수량 ▲▼ + 설명 + [선택].
+	var det: Control = null
+	var state := {"key": "", "cnt": 1, "max": 1}
+	if pick_qty:
+		det = Control.new()
+		det.size = Vector2(det_w, box_sz.y)
+		det.position = Vector2(sz.x - 45.0 - det_w, 80.0)
+		win.add_child(det)
+
 	var rows := 0
 	for k in UserDB.inventory().keys():
 		var key := String(k)
@@ -3167,13 +3191,20 @@ func _open_gem_picker(mode: String, on_pick: Callable) -> void:
 		var nm := String(g["name"])
 		var gd: Dictionary = Gem.gem_def(nm, Data.gems)
 		if mode == "soul":
+			# 원작 `UpgradeSoulGemPopup::ableGemCheck` — 최대티어 혼성젬(샌즈 포함) 또는
+			# 아직 최대가 아닌 소울젬만 목록에 들어간다.
 			var is_soul := String(gd.get("category", "")) == "soul"
+			var soul_ok := is_soul and int(g["tier"]) + 1 < Gem.max_tier(nm, Data.gems) + 1
 			var promotable := String(gd.get("promote_to", "")) != "" \
 				and int(g["tier"]) >= Gem.max_tier(nm, Data.gems)
-			if not (is_soul or promotable):
+			if not (soul_ok or promotable):
 				continue
+		# 같은 스택을 이미 다른 칸이 다 쓰고 있으면 고를 게 없다.
+		if pick_qty and dis_slot >= 0 \
+				and UserDB.item_count(key) - _dis_used_elsewhere(key, dis_slot) <= 0:
+			continue
 		rows += 1
-		grid.add_child(_gem_pick_cell(key, g, layer, on_pick))
+		grid.add_child(_gem_pick_cell(key, g, layer, on_pick, det, state, dis_slot))
 	if rows == 0:
 		var e := Label.new()
 		e.text = "고를 수 있는 젬이 가방에 없습니다."
@@ -3185,7 +3216,8 @@ func _open_gem_picker(mode: String, on_pick: Callable) -> void:
 		win.add_child(e)
 
 
-func _gem_pick_cell(key: String, g: Dictionary, layer: Control, on_pick: Callable) -> Control:
+func _gem_pick_cell(key: String, g: Dictionary, layer: Control, on_pick: Callable,
+		det: Control = null, state: Dictionary = {}, dis_slot := -1) -> Control:
 	var cell := Panel.new()
 	cell.custom_minimum_size = Vector2(98.0, 104.0)
 	var sbf := StyleBoxFlat.new()
@@ -3213,11 +3245,130 @@ func _gem_pick_cell(key: String, g: Dictionary, layer: Control, on_pick: Callabl
 	var b := Button.new()
 	b.flat = true
 	b.size = Vector2(98.0, 104.0)
-	b.pressed.connect(func():
-		layer.queue_free()
-		on_pick.call(key))
+	if det == null:
+		# 수량 없는 모드(소울젬) — 원작도 셀을 누르면 바로 확정한다.
+		b.pressed.connect(func():
+			layer.queue_free()
+			on_pick.call(key))
+	else:
+		# 원작 `onClickItem`: 셀을 누르면 **우측 상세만** 갱신되고, 확정은 [선택] 이다.
+		b.pressed.connect(func():
+			var cap := UserDB.item_count(key)
+			if dis_slot >= 0:
+				cap -= _dis_used_elsewhere(key, dis_slot)
+			state["key"] = key
+			state["max"] = maxi(1, cap)
+			state["cnt"] = 1
+			_gem_pick_detail(det, layer, state, on_pick))
 	cell.add_child(b)
 	return cell
+
+
+## 우측 상세 패널 — 원작 `MagicSelectLayer::initWidget` 의 오른쪽 CCLayer(350×420).
+## 이름 라벨 · `common/shadow` 위의 큰 젬 · `9patch/text_box` 설명 · [선택],
+## 그리고 그 왼쪽에 `common/btn_up`/`btn_down` 수량 ▲▼(참조 `docs/ref/gem/젬분해3.png`).
+func _gem_pick_detail(det: Control, layer: Control, state: Dictionary, on_pick: Callable) -> void:
+	for c in det.get_children():
+		c.queue_free()
+	var key := String(state.get("key", ""))
+	if key == "":
+		return
+	var g := Gem.parse_item_key(key)
+	if g.is_empty():
+		return
+	var nm := String(g["name"])
+	var tier := int(g["tier"])
+	var S := Design.ASSET_SCALE
+	var W := det.size.x
+	var cnt := clampi(int(state.get("cnt", 1)), 1, int(state.get("max", 1)))
+	state["cnt"] = cnt
+
+	# 제목 — "공격력의 젬+28"
+	var t := Label.new()
+	t.text = Gem.display_name(nm, tier, Data.gems)
+	t.add_theme_font_size_override("font_size", 24)
+	t.add_theme_color_override("font_color", Color.WHITE)
+	t.add_theme_color_override("font_outline_color", Color(0.35, 0.14, 0.03, 0.95))
+	t.add_theme_constant_override("outline_size", 5)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.position = Vector2(0, 6.0)
+	t.size = Vector2(W, 34.0)
+	det.add_child(t)
+
+	# 큰 젬 + 그림자
+	var cx := W * 0.62
+	var cy := 130.0
+	var sh := AtlasUI.spr("common_ui", "common_shadow", S)
+	if sh:
+		sh.position = Vector2(cx, cy + 58.0)
+		det.add_child(sh)
+	var big := Icons.rect(Icons.gem_texture(
+		String(Gem.gem_def(nm, Data.gems).get("code", "")), tier), 132.0)
+	if big:
+		big.position = Vector2(cx, cy) - big.size * 0.5
+		det.add_child(big)
+
+	# 수량 ▲ / 숫자 / ▼ — 원작 tag 2 = btn_up, tag 1 = btn_down, 1↔max 순환.
+	var mx := int(state.get("max", 1))
+	var ax := W * 0.16
+	var up := _pick_arrow(det, "common_btn_up", Vector2(ax, cy - 62.0), func():
+		state["cnt"] = 1 if cnt == mx else cnt + 1
+		_gem_pick_detail(det, layer, state, on_pick))
+	var dn := _pick_arrow(det, "common_btn_down", Vector2(ax, cy + 62.0), func():
+		state["cnt"] = mx if cnt == 1 else cnt - 1
+		_gem_pick_detail(det, layer, state, on_pick))
+	up.disabled = mx <= 1
+	dn.disabled = mx <= 1
+	var num := Label.new()
+	num.text = str(cnt)
+	num.add_theme_font_size_override("font_size", 26)
+	num.add_theme_color_override("font_color", Color(1.0, 0.83, 0.20))
+	num.add_theme_color_override("font_outline_color", Color(0.25, 0.10, 0.02, 0.95))
+	num.add_theme_constant_override("outline_size", 5)
+	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	num.position = Vector2(ax - 50.0, cy - 18.0)
+	num.size = Vector2(100.0, 36.0)
+	det.add_child(num)
+
+	# 설명 — 원작은 `Item::getComment()` 를 `9patch/text_box` 스크롤에 넣는다.
+	var tb := AtlasUI.nine("ninepatch_ui", "9patch_text_box",
+		Vector2(W - 10.0, 118.0), Rect2(25, 25, 3, 3))
+	if tb:
+		tb.position = Vector2(5.0, cy + 108.0)
+		det.add_child(tb)
+	# ⚠️ 원작은 여기에 `Item::getComment()`(서버 `info_item` 의 설명문)를 넣는다 — 그 문구는
+	#   유실이라 지어내지 않고 효과 문구 + 단계 표기만 낸다(HARD RULE 6).
+	var cm := Label.new()
+	cm.text = "%s\n%s" % [Gem.effect_text(nm, tier, Data.gems),
+		Gem.shape_label(nm, tier, Data.gems)]
+	cm.add_theme_font_size_override("font_size", 15)
+	cm.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+	cm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cm.position = Vector2(20.0, cy + 120.0)
+	cm.size = Vector2(W - 40.0, 96.0)
+	det.add_child(cm)
+
+	# [선택] — 원작 `onClickOk`.
+	_frame_button(det, "선택", Vector2(W * 0.5 - 92.0, det.size.y - 74.0),
+		Vector2(184.0, 54.0), func():
+			layer.queue_free()
+			on_pick.call(key, int(state["cnt"])), 0, false)
+
+
+## `common/btn_up`·`btn_down` 스프라이트 버튼 한 개(중심 좌표로 놓는다).
+func _pick_arrow(parent: Control, frame: String, center: Vector2, cb: Callable) -> TextureButton:
+	var b := TextureButton.new()
+	var tx := AtlasUI.tex("common_ui", frame)
+	if tx:
+		b.texture_normal = tx
+		b.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
+		b.position = center - tx.get_size() * Design.ASSET_SCALE * 0.5
+	else:
+		b.position = center - Vector2(20, 14)
+	b.pressed.connect(cb)
+	parent.add_child(b)
+	return b
 
 
 # ── 공용 위젯 ──────────────────────────────────────────────────────────────

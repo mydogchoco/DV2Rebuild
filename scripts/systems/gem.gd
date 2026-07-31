@@ -278,7 +278,18 @@ static func upgrade_cost(tier: int, table: Dictionary) -> int:
 		return int(tbl[str(tier + 1)])
 	return 3000 + 600 * maxi(0, tier)
 
-## 실제 성공률(%) = 기본 + 연금포인트, 100 상한.
+## 연금술 포인트 → 성공률 가산분(%).
+##
+## 원작 `AlchemyLayer` 는 서버표 `gem_rate_data` 의 `{default_rate, point_rate, gold}` 로
+## `성공률 = default_rate + points × point_rate` 를 계산한다(디컴프 AlchemyLayer.c :3396/:3445).
+## 표 자체는 서버 소유라 유실 — `default_rate` 는 위키 실측표(`base_success`), `point_rate` 는
+## 참조 영상 실측(`docs/ref/gem/혼성젬강화3.png` 2pt→60% · `혼성젬강화5(용액사용연출).png` 6pt→62%
+## ⇒ 0.5 %/point)로 채웠다. 종전 1:1 가산은 그 관측과 맞지 않았다.
+static func point_bonus(points: int, table: Dictionary) -> int:
+	var cfg: Dictionary = (table.get("upgrade", {}) as Dictionary).get("success", {})
+	return int(floor(float(maxi(0, points)) * float(cfg.get("point_rate", 0.5))))
+
+## 실제 성공률(%) = 기본 + 연금포인트×배율, 100 상한.
 ## 포인트가 `alchemy_point_overflow`(100)를 **넘으면 0으로 초기화**된다(사용자 확정) —
 ## 그 판정은 포인트를 넣는 `add_potion()` 에서 하므로 여기서는 그냥 더한다.
 static func success_chance(gems_field: Dictionary, slot: int, table: Dictionary) -> int:
@@ -286,7 +297,8 @@ static func success_chance(gems_field: Dictionary, slot: int, table: Dictionary)
 	if slot < 0 or slot >= SLOTS or en[slot] == null:
 		return 0
 	var e: Dictionary = en[slot]
-	return clampi(base_success(String(e["name"]), int(e["tier"]), table) + int(e.get("points", 0)), 0, 100)
+	return clampi(base_success(String(e["name"]), int(e["tier"]), table)
+		+ point_bonus(int(e.get("points", 0)), table), 0, 100)
 
 ## 용액 투입 — 1~max 포인트 증가. 반환 {field, gained, points, reset, uses_left} / 실패 시 {}.
 ## `potion` = data/gems.json `upgrade.potions` 의 한 항목.
@@ -397,6 +409,50 @@ static func craft_hybrid(table: Dictionary, bonus_pct: int = 0,
 	if rest.is_empty():
 		return sands
 	return String(rest[(rng.randi() if rng != null else randi()) % rest.size()])
+
+
+## ── 젬 분해 ────────────────────────────────────────────────────────────────
+## 원작 `UpgradeGemLayer::onClickDisassembleCntMenu` 이 화면에서 직접 계산하던 값들.
+## 서버로는 `"<itemNo>_<cnt>"` 목록만 보냈으므로(`requestDisassemble`), 산출량 공식은
+## **클라에 남아 있었다** — 디컴프 그대로 옮긴다:
+##
+##     dVar11 = pow(1.55, typeLevel - 1);
+##     iVar3  = (int)dVar11 / 10;
+##     if (iVar3 < 2) iVar3 = 1;
+##
+## `tier` 는 우리 규약대로 0-base(1강 = 0)라 지수는 그대로 `tier` 다.
+static func disassemble_dust(tier: int, table: Dictionary) -> int:
+	var dc: Dictionary = table.get("disassemble", {})
+	var base := float(dc.get("dust_pow_base", 1.55))
+	var div := int(dc.get("dust_div", 10))
+	return maxi(1, int(pow(base, float(maxi(0, tier)))) / maxi(1, div))
+
+## 분해 골드 = 500 × 총 개수. 원작 `confirmBtIconTextSort(this, cnt * 500)`.
+## 교차검증: `docs/ref/gem/젬분해4.png` 의 1,454,000 = 500 × 2,908(슬롯 6칸 수량 합).
+static func disassemble_gold(count: int, table: Dictionary) -> int:
+	var dc: Dictionary = table.get("disassemble", {})
+	return maxi(0, count) * int(dc.get("gold_per_gem", 500))
+
+## 초월의 용액 산출. 13강 미만은 0, 13강부터 1개 → 18강(원형젬 수준)에서 36개.
+## ⚠️ 이 곡선만은 원작 코드에 없다 — 위키 §2.2 의 양 끝값(1↔36)을 선형 보간한 자작이다.
+static func disassemble_special(tier: int, table: Dictionary) -> int:
+	var dc: Dictionary = table.get("disassemble", {})
+	var min_t := int(dc.get("special_min_tier", 13))
+	var lvl := tier + 1                              # 강 번호(1-base)
+	if lvl < min_t:
+		return 0
+	var lo := int(dc.get("special_min", 1))
+	var hi := int(dc.get("special_max", 36))
+	var span := maxi(1, 18 - min_t)
+	return clampi(lo + int(round(float(hi - lo) * float(lvl - min_t) / float(span))), lo, hi)
+
+## 젬 이름 → 마법가루 종류. 공격=붉은 / 방어=푸른 / 체력=노란(위키 gems.pdf §2.2).
+static func dust_key_for(gem_name: String) -> String:
+	if "방어" in gem_name:
+		return "def_powder"
+	if "체력" in gem_name:
+		return "hp_powder"
+	return "att_powder"
 
 
 ## 파손 복구 다이아 — 위키 §2.2 표(18단계, 값이 정확히 단계+1). 이름이 우리 `shapes` 와

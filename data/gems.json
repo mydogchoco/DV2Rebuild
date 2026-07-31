@@ -1330,7 +1330,9 @@
     "success": {
       "_source": "docs/ref/orig_image/shop/점술집_젬강화.pdf 표 — **용액 미투입 기준** 등급별 성공률(실측).",
       "_supersedes": "이전 값은 ASSUMPTION 공식(start 100 - step 5×티어)이었다. 위키 실측표가 확보돼 폐기한다.",
-      "_formula": "성공률(%) = by_tier_pct[티어] + 연금술 포인트(용액 투입 합, 100 초과 시 0으로 초기화), 100 상한",
+      "_formula": "성공률(%) = by_tier_pct[티어] + 연금술 포인트 × point_rate(용액 투입 합, 100 초과 시 0으로 초기화), 100 상한",
+      "point_rate": 0.5,
+      "_point_rate_source": "docs/ref/gem/혼성젬강화3·5.png 실측(2pt→60%, 6pt→62%) + 원작 gem_rate_data 의 point_rate 필드.",
       "by_tier_pct": {
         "1": 60,
         "2": 57,
@@ -1537,13 +1539,17 @@
     "_potions_source": "docs/ref/orig_image/shop/점술집_젬강화.pdf — [용액 제작] 절제 1~5 / 지혜 1~10 / 용기 1~25 / 정의 1~50, **제작 비용은 모두 1,000G**. [용액 상점] 영광 +10(고정) / 전설 +25(고정) / 샌즈의 눈물 10%·20%. 초월의 용액은 강화 확률 +15%."
   },
   "disassemble": {
-    "_source": "docs/ref/orig_image/shop/점술집_젬강화.pdf — [젬 분해].",
+    "_source": "원작 `UpgradeGemLayer::onClickDisassembleCntMenu` 디컴프 + docs/ref/orig_image/shop/점술집_젬강화.pdf — [젬 분해].",
     "_rule": "일반 젬을 분해하면 마법가루가 나온다. **13강 이상**(공/방의 젬 +25, 체력의 젬 +100) 젬을 분해하면 초월의 용액이 같이 나온다 — 1개당 강화 등급에 따라 최소 1 ~ 최대 36개.",
+    "_dust_formula": "가루/개 = max(1, floor(1.55^(티어-1) / 10)) — 원작 코드 그대로. 골드 = 500 × 총 개수.",
+    "dust_pow_base": 1.55,
+    "dust_div": 10,
+    "gold_per_gem": 500,
     "special_min_tier": 13,
     "special_min": 1,
     "special_max": 36,
-    "_prototype_note": "원형젬 1개 분해 = 마법가루 2,666개 + 초월의 용액 36개(글쓴이 실측).",
-    "prototype_dust": 2666,
+    "_prototype_note": "원형젬 1개 분해 = 마법가루 2,666개 + 초월의 용액 36개(글쓴이 실측). 원작 공식으로는 266개 — 10배 불일치. 사용자 확정으로 공식을 따른다.",
+    "prototype_dust_wiki": 2666,
     "prototype_special": 36
   },
   "potion_shop": {
