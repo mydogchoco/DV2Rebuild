@@ -501,6 +501,10 @@ func story_battle(battle_no: int) -> Dictionary:
 			return {"enemy": e1, "field": fld}
 	return {}
 
+## `_story_enemy` 의 공개 창구 — 튜토리얼 전투처럼 회차 표를 거치지 않는 호출자용.
+func story_enemy_of(no: int, level: int) -> Dictionary:
+	return _story_enemy(no, level)
+
 ## 몬스터 번호 → 전투용 적 레코드. `story_monsters`(사용자 확정) 우선, 없으면 stages 의 적.
 func _story_enemy(no: int, level: int) -> Dictionary:
 	if no <= 0:

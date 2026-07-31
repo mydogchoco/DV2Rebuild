@@ -228,11 +228,51 @@ func _dispatch(action: String) -> void:
 			await get_tree().process_frame
 			_blocked = false
 			_advance()
+		"adventure":
+			_start_tutorial_battle()
 		"finish":
 			_finish()
 		_:
 			push_warning("[tutorial] 미이식 스텝 동작 '%s' (%s) — 건너뛴다"
 				% [action, String(_order[_i])])
+
+
+## 원작 `SN_0_26` = `AdventureScene::scene(1, 4)` — 시나리오 모드(FieldType 1)로 전투 4 진입.
+##
+## ⚠️ **상대는 복원 불가**다. `data/story_battles.json` 의 `monster_by_battle` 는 원작
+## `AdventureScene` 의 `switch(battleNo)` 를 그대로 뽑은 것인데 **15번부터** 있고, 1~14 는
+## default 분기라 런타임(서버) 값이다(그 파일 `_monster_basis`). 같은 파일의
+## `monster_by_battle_event` 는 **이벤트 번호** 표라 battleNo 4 에 갖다 붙이면 근거 없는 교차매핑이다.
+## ⇒ 상대는 `data/tutorial_flow.json` 의 `battle` 블록(사용자가 채우는 자리)에서 읽고,
+##    비어 있으면 **전투를 건너뛴다**(지어내지 않는다 — HARD RULE 6).
+func _start_tutorial_battle() -> void:
+	var spec: Dictionary = Data.tutorial_flow.get("battle", {})
+	var mid := int(spec.get("monster_id", 0))
+	if mid <= 0:
+		push_warning("[tutorial] 튜토리얼 전투 상대 미정 — data/tutorial_flow.json 의 `battle.monster_id` "
+			+ "를 채우면 이 스텝에서 전투가 붙는다(원작 battleNo 4 는 서버 런타임 값이라 복원 불가)")
+		return
+	var enemy := Data.story_enemy_of(mid, int(spec.get("level", 1)))
+	if enemy.is_empty():
+		push_warning("[tutorial] 몬스터 %d 정의를 못 찾았다 — 전투를 건너뛴다" % mid)
+		return
+	_blocked = true
+	_box.visible = false
+	_clear_arrows()
+	# 전투가 끝나면 우리가 다시 이어받는다. `Main` 소유라 씬이 바뀌어도 이 노드는 산다.
+	if not Scenes.state_changed.is_connected(_on_scene_changed):
+		Scenes.state_changed.connect(_on_scene_changed)
+	Scenes.goto("battle", {"enemy": enemy, "back": "worldmap",
+		"back_params": {"region": "yutakan"}})
+
+
+## 전투 씬에서 나오면 다음 스텝으로. (원작도 전투가 끝나면 그 스텝 다음부터 잇는다.)
+func _on_scene_changed(from_s: String, _to_s: String) -> void:
+	if from_s != "battle":
+		return
+	Scenes.state_changed.disconnect(_on_scene_changed)
+	_blocked = false
+	_advance()
 
 
 func _advance() -> void:

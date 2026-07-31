@@ -179,7 +179,36 @@ func _show_line(i: int) -> void:
 	_idx = i
 	if _monster != null:
 		_monster.visible = i >= MONSTER_FROM
+	_show_speaker(i)
 	_show_text(_lines[i])
+
+
+## 화자 NPC 초상(원작 `ScenarioLayer::setTalker` 자리).
+##
+## ⚠️ **시나리오 0 의 줄별 화자는 우리 디컴프에 없다** — 1~78화는 회차 클래스가 대사 앞에
+## 화자를 멤버에 써 두지만(그래서 `scenario_flow.json` 에 `npc_name` 이 있다), 프롤로그 대사
+## 목록을 만드는 코드는 덤프 범위 밖이다(`grep PrologueTalk decomp/*.c` → 0건).
+## ⇒ **대사 원문이 스스로 밝히는 줄만** 띄운다(`tutorial_flow.json` 의 `speakers`, 근거 문장 포함).
+## 나머지는 초상 없이 지나간다 — 화자를 지어내지 않는다. 사용자가 채우면 그만큼 늘어난다.
+var _npc_node: Node = null
+func _show_speaker(i: int) -> void:
+	var sp: Dictionary = Data.tutorial_flow.get("speakers", {}).get(str(i), {})
+	var npc := String(sp.get("npc", ""))
+	if is_instance_valid(_npc_node):
+		_npc_node.queue_free()
+		_npc_node = null
+	if npc == "":
+		return
+	var p := NpcPortrait.create(npc, 1, 1)
+	if p == null:
+		return
+	_npc_node = p
+	# 원작 대화 초상은 하단 대화상자 위에 발밑을 붙인다(몸통 앵커 (0.5,0)) — story.gd 와 같은 규약.
+	p.position = Vector2(_vis().x * 0.5, _vis().y - BOX_H)
+	p.z_index = 4
+	add_child(p)
+	p.modulate.a = 0.0
+	p.create_tween().tween_property(p, "modulate:a", 1.0, 0.2)
 
 
 func _show_text(text: String) -> void:

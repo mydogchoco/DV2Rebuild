@@ -1,4 +1,24 @@
 {
+ "battle": {
+  "_basis": "원작 battleNo 4 의 몬스터는 AdventureScene switch 의 default 분기라 클라에 없다(서버 런타임 값). 원작을 아는 사용자가 채울 자리.",
+  "monster_id": 0,
+  "level": 1
+ },
+ "_speaker_basis": "시나리오 0 의 화자 배정은 우리 디컴프에 없다(`grep PrologueTalk decomp/*.c` → 0건). 대사 원문이 스스로 밝히는 줄만 적었다. 나머지는 원작을 아는 사용자가 채울 자리 — docs/input/sheets/prologue_speakers.csv",
+ "speakers": {
+  "1": {
+   "npc": "nuri",
+   "basis": "'반가워, 난 누리야!' — 자기소개"
+  },
+  "2": {
+   "npc": "jimon",
+   "basis": "'내 이름은 즈믄! 네 이름을 알려주겠어?' — 자기소개"
+  },
+  "4": {
+   "npc": "jimon",
+   "basis": "'내 이름은 즈믄! 저 녀석의 이름은 누리야!' — 자기소개 + 상대 지칭"
+  }
+ },
  "_re_basis": "원작 ScenarioLayer::setNextSelecteMode @016caaac 의 SN_0_* 분기를 그대로 뽑은 표. SN 번호 = 시나리오 0 대사 인덱스(0~34=PrologueTalk, 37~=Tutorial_(N-36)). 추출 = scripts/tools/extract_tutorial_flow.py. 화살표 인자 의미와 오프셋 근거는 그 파일 주석.",
  "talk_offset": {
   "prologue_max": 34,

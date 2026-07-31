@@ -70,6 +70,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / "data" / "tutorial_flow.json"
+SHEET = REPO / "docs" / "input" / "sheets" / "prologue_speakers.csv"
 STRINGS = REPO / "DV2" / "string" / "stringsData_KR.xml"
 
 ## 대사 인덱스 → 문자열 키. 위 §🔑 참조.
@@ -93,6 +94,17 @@ TALK_TARGET = {
     "SN_0_60": ("slot_gem", "Tutorial_24 '이곳은 장착 젬 슬롯 입니다.'"),
     "SN_0_63": ("slot_skill", "Tutorial_27 '이곳은 스킬 슬롯입니다.'"),
     "SN_0_69": ("slot_gem", "Tutorial_33 '젬과 전투 아이템을 모두 장착했어요!'"),
+}
+
+## 화자(NPC 초상). ⚠️ **시나리오 0 의 화자 배정은 우리 디컴프에 없다** — 1~78화는 회차 클래스가
+## `setTalk` 앞에 화자를 멤버에 써 두지만(그래서 scenario_flow.json 에 npc_name 이 있다),
+## 프롤로그 대사 목록을 만드는 코드는 덤프 범위 밖이다(`grep PrologueTalk decomp/*.c` → 0건).
+## 그래서 **대사 원문이 스스로 밝히는 줄만** 배정하고 나머지는 비운다(초상 미표시).
+## 지어내지 않는다 — 근거 문장을 함께 남긴다.
+TALK_SPEAKER = {
+    1:  ("nuri",  "'반가워, 난 누리야!' — 자기소개"),
+    2:  ("jimon", "'내 이름은 즈믄! 네 이름을 알려주겠어?' — 자기소개"),
+    4:  ("jimon", "'내 이름은 즈믄! 저 녀석의 이름은 누리야!' — 자기소개 + 상대 지칭"),
 }
 
 BRANCH = re.compile(r'memcmp\(\w+,"(SN_0_[0-9A-Za-z_]+)"')
@@ -123,6 +135,37 @@ def load_strings() -> dict[str, str]:
     for k, v in re.findall(r"<(PrologueTalk\d+|Tutorial_\d+)>(.*?)</\1>", text, re.S):
         out[k] = v.replace("&#10;", "\n").strip()
     return out
+
+
+## 사용자가 채우는 화자 시트(CSV, BOM). 빈 칸은 초상 미표시.
+##   idx,talk_key,speaker,text   — speaker 열에 npc 폴더명(nuri/jimon/…)을 적는다.
+def read_speaker_sheet() -> dict:
+    if not SHEET.exists():
+        return {}
+    import csv
+    out = {}
+    with SHEET.open(encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            npc = (row.get("speaker") or "").strip()
+            if npc:
+                out[str(int(row["idx"]))] = {"npc": npc, "basis": "사용자 확정(prologue_speakers.csv)"}
+    return out
+
+
+def write_speaker_sheet(strings: dict, speakers: dict) -> None:
+    """시트를 **없으면 만들고 있으면 그대로 둔다**(사용자가 채운 걸 덮지 않는다)."""
+    if SHEET.exists():
+        return
+    import csv
+    SHEET.parent.mkdir(parents=True, exist_ok=True)
+    with SHEET.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["idx", "talk_key", "speaker", "text"])
+        for i in range(0, PROLOGUE_MAX + 1):
+            k = talk_key(i)
+            w.writerow([i, k, speakers.get(str(i), {}).get("npc", ""),
+                        (strings.get(k, "") or "").replace(chr(10), " / ")])
+    print("→ %s (화자 열을 채우면 다음 실행에 반영된다)" % SHEET.relative_to(REPO))
 
 
 def main() -> int:
@@ -159,6 +202,7 @@ def main() -> int:
         # 보장이 없어(다음 분기의 리터럴이 딸려 오는 일이 있다) 프레임만 믿으면 어긋난다.
         # 실측: `SN_0_48` 은 프레임으로는 book 이 잡히는데 대사는 Tutorial_12(스킨/단상)이고,
         # 바로 다음 `SN_0_51` 의 대사가 Tutorial_15 '드래곤 도감입니다!' 다 ⇒ book 은 흘러든 것.
+        idx = int(key.split("_")[2])
         if key in TALK_TARGET:
             st["target"], st["target_basis"] = TALK_TARGET[key]
         else:
@@ -183,7 +227,6 @@ def main() -> int:
         elif "ScenarioDialogLayer::create" in blk and "action" not in st:
             st["action"] = "dialog"
         # 대사 인덱스 = 키의 첫 숫자
-        idx = int(key.split("_")[2])
         st["talk_index"] = idx
         tk = talk_key(idx)
         if tk:
@@ -197,7 +240,23 @@ def main() -> int:
         t = strings.get(st.get("talk", ""))
         if t:
             st["text"] = t
+    # 화자 표 — 스텝이 아니라 **대사 인덱스**에 붙는다(프롤로그 대사는 prologue.gd 가 보여 준다).
+    speakers = {str(i): {"npc": n, "basis": b} for i, (n, b) in TALK_SPEAKER.items()}
+    speakers.update(read_speaker_sheet())      # 사용자가 채운 시트가 있으면 덮어쓴다
+    write_speaker_sheet(strings, speakers)
+    # 튜토리얼 전투(SN_0_26 = AdventureScene::scene(1,4))의 상대. **복원 불가 → 사용자가 채운다.**
+    # 근거: data/story_battles.json `monster_by_battle` 는 원작 switch(battleNo) 전량인데 15번부터다
+    # (1~14 는 default 분기 = 런타임/서버 값). `monster_by_battle_event` 는 이벤트 번호 표라
+    # battleNo 4 에 갖다 붙이면 근거 없는 교차매핑이다. 비어 있으면 런타임이 전투를 건너뛴다.
+    battle = {"_basis": ("원작 battleNo 4 의 몬스터는 AdventureScene switch 의 default 분기라 "
+                         "클라에 없다(서버 런타임 값). 원작을 아는 사용자가 채울 자리."),
+              "monster_id": 0, "level": 1}
     doc = {
+        "battle": battle,
+        "_speaker_basis": ("시나리오 0 의 화자 배정은 우리 디컴프에 없다(`grep PrologueTalk decomp/*.c` → 0건). "
+                           "대사 원문이 스스로 밝히는 줄만 적었다. 나머지는 원작을 아는 사용자가 채울 자리 — "
+                           "docs/input/sheets/prologue_speakers.csv"),
+        "speakers": speakers,
         "_re_basis": ("원작 ScenarioLayer::setNextSelecteMode @016caaac 의 SN_0_* 분기를 그대로 뽑은 표. "
                       "SN 번호 = 시나리오 0 대사 인덱스(0~34=PrologueTalk, 37~=Tutorial_(N-36)). "
                       "추출 = scripts/tools/extract_tutorial_flow.py. 화살표 인자 의미와 오프셋 근거는 그 파일 주석."),
@@ -217,6 +276,14 @@ def main() -> int:
         print("%-18s %-11s %-22s %s" % (k, s.get("action", "-"), arr or "-",
                                         "%s %s" % (s.get("talk", "-"), line)))
     if not dry:
+        # 사용자가 채운 `battle` 블록은 보존한다(재실행이 값을 지우면 안 된다).
+        if OUT.exists():
+            try:
+                prev = json.loads(OUT.read_text(encoding="utf-8")).get("battle", {})
+                if int(prev.get("monster_id", 0)) > 0:
+                    doc["battle"] = prev
+            except (OSError, ValueError):
+                pass
         OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
         print("\n→ %s (%d스텝)" % (OUT.relative_to(REPO), len(steps)))
     return 0
