@@ -76,7 +76,7 @@ static func open(parent: Node, title: String, msg: String, on_confirm: Callable,
 	ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ml.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	ml.position = Vector2(40, 84); ml.size = Vector2(BW - 80, 104)
+	ml.position = Vector2(34, 76); ml.size = Vector2(BW - 68, 132)   # 4줄 문구(용액 확인창)까지 들어가게
 	win.add_child(ml)
 	# 재화 줄(setCash) — 원작은 확인 버튼 옆 컨테이너(`this+0x3a0`)에 아이콘 anchor(0,0.5) +
 	# `"X %d"` 라벨을 넣는다. 컨테이너의 최종 좌표는 디컴프(@01201400~)에서 버튼 크기로

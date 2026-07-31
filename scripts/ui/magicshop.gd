@@ -125,6 +125,13 @@ var _alchemy_spine: Node2D = null
 const ALCHEMY_SPINE := "res://scenes/worldmap_fx/magicshop_alchemist.tscn"
 const ALCHEMY_SPINE_SCALE := 0.67        # 원작 setScale(0x3f2b851f)
 
+## 강화 결과 워드아트 스파인(원작 `showUpgradeResult`). 애니 `success_type`/`failed_type`.
+## 변환: `spine_export.py --scene DV2/480/scene/cave/buildup_result_spine.spine_json`
+## (아틀라스 이름이 같아 `--atlas` 불필요) → `build_worldmap_fx_scenes.gd`
+const RESULT_SPINE := "res://scenes/worldmap_fx/buildup_result_spine.tscn"
+const RESULT_SPINE_SCALE := 0.87         # 원작 setScale(0x3f5e9bd4)
+const RESULT_SPINE_TIMESCALE := 1.5      # 원작 timeScale(0x3fc00000)
+
 ## 용액 → 스파인 애니 이름. 스파인의 7개 애니 중 `normal` 을 뺀 6개가 **원작 용액 서버 키**와
 ## 정확히 같다(`AlchemyLayer.c` :4150~4176 `resection/wisdom/brave/justice/glory/legend`)
 ## ⇒ 용액마다 전용 붓는 연출이 있다(참조 `docs/ref/gem/혼성젬강화5(용액사용연출).png`).
@@ -1229,17 +1236,35 @@ func _show_upgrade_result(ok: bool, before: String, after: String, entry,
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	lay.add_child(bg)
 	var cx := vis.x * 0.5
-	var back := AtlasUI.spr("common_ui", "common_backlight3", Design.ASSET_SCALE * 1.1)
-	if back != null:
-		back.position = Vector2(cx, vis.y * 0.5)
-		back.modulate = Color(1, 0.92, 0.35, 0.9) if ok else Color(0.6, 0.6, 0.66, 0.8)
-		lay.add_child(back)
-		back.create_tween().set_loops().tween_property(back, "rotation", TAU, 18.0).as_relative()
-	var word := AtlasUI.spr("magicshop_ui",
-		"scene_magicshop_success_en" if ok else "scene_magicshop_fail_en", Design.ASSET_SCALE * 2.4)
-	if word != null:
-		word.position = Vector2(cx, vis.y * 0.26)
-		lay.add_child(word)
+	# ── SUCCESS / FAILED 워드아트 = **스파인**(원작 `AlchemyLayer::showUpgradeResult` @01275…) ──
+	#   spine = createWithFile("scene/cave/buildup_result_spine.spine_json", …, 1.0)
+	#   spine->setPosition(검은판 크기 / 2);  setScale(0x3f5e9bd4 = 0.87);
+	#   spine->setVisible(false);  timeScale = 1.5;
+	#   runAction(Sequence(DelayTime(0.2), Show(), CallFunc(사운드), CallFuncN(애니)))
+	#   애니 = success ? "success_type" : "failed_type"  ← 글자마다 슬롯이 있다
+	#   (`enchant_success_s/u/c/c-copy/e/s-copy/s-copy2` · `enchant_failed_f/a/i/l/e/d` + dot·light)
+	#   사운드 = success ? music/effect_equip_success : effect_equip_failed
+	# ⚠️ 종전엔 정지 프레임(`success_en`/`fail_en`) + 회전 `backlight3` 자작이었다 — 원작은
+	#   글자가 하나씩 튀어 오르는 스파인이고, 후광도 그 스켈레톤 안에 들어 있다.
+	var anim := "success_type" if ok else "failed_type"
+	if ResourceLoader.exists(RESULT_SPINE):
+		var sp := (load(RESULT_SPINE) as PackedScene).instantiate() as Node2D
+		if sp != null:
+			sp.position = Vector2(cx, vis.y * 0.5)
+			sp.scale = Vector2(RESULT_SPINE_SCALE, RESULT_SPINE_SCALE)
+			sp.visible = false
+			lay.add_child(sp)
+			var ap := sp.get_node_or_null("AnimationPlayer") as AnimationPlayer
+			# DelayTime(0.2) → Show() → 사운드 → setAnimation
+			get_tree().create_timer(0.2).timeout.connect(func():
+				if not is_instance_valid(sp):
+					return
+				sp.visible = true
+				Bgm.sfx("effect_equip_success" if ok else "effect_equip_failed")
+				if ap != null and ap.has_animation(anim):
+					ap.get_animation(anim).loop_mode = Animation.LOOP_NONE
+					ap.speed_scale = RESULT_SPINE_TIMESCALE
+					ap.play(anim))
 	if entry != null:
 		var e: Dictionary = entry
 		var gi := Icons.rect(Icons.gem_texture(
@@ -1586,7 +1611,7 @@ func _body_hybrid_upgrade(pop: OrigPopup) -> void:
 		b.disabled = not has or Gem.is_broken(inst)
 		var pp := p
 		var pk := ik
-		b.pressed.connect(func(): _pour_potion(pp, pk))
+		b.pressed.connect(func(): _confirm_potion(pp, pk))
 		row.add_child(b)
 	if owned.is_empty():
 		var nn := _note("보유한 용액이 없습니다.\n'용액 제작'에서 만드세요.")
@@ -1664,6 +1689,35 @@ func _rekey_gem(old_key: String, new_inst: Dictionary) -> String:
 	UserDB.use_item(old_key, 1)
 	UserDB.add_item(nk, 1)
 	return nk
+
+
+## 용액을 누르면 **바로 투입되지 않는다** — 원작 `AlchemyLayer::onClickPotion` 은
+## `PopupTypeLayer`(확인/취소)를 띄우고 `setConfirmListener(..., requestPotionUse, ...)` 로 잇는다.
+## 참조 `docs/ref/gem/혼성젬강화4(용액사용선택).png`.
+##
+## 문구는 원작 문자열 3종을 용액 성격에 따라 갈라 쓴다(`DV2/string/stringsData_KR.xml`):
+##   AlchemyMsg16  "[혼성젬 1~%d 연금포인트 증가]"      ← 범위형(절제·지혜·용기·정의)
+##   AlchemyMsg23  "[혼성젬 %d 연금포인트 증가]"        ← 고정 포인트형(영광 +10 · 전설 +25)
+##   AlchemyMsg22  "[혼성젬 %d 강화 성공확률 증가]"     ← 고정 확률형(초월 +15)
+## 16·23 에만 "*100포인트 초과시 확률이 초기화됩니다." 가 붙는다(22 에는 없다 — 원작 그대로).
+func _confirm_potion(potion: Dictionary, item_key: String) -> void:
+	if _hybrid_key == "":
+		_toast("먼저 혼성젬을 고르세요."); return
+	if UserDB.item_count(item_key) <= 0:
+		_toast("용액이 없습니다"); return
+	var nm := String(potion.get("name", ""))
+	var body := ""
+	var warn := "\n\n*100포인트 초과시 확률이 초기화됩니다."
+	if potion.has("points"):
+		var lo := int((potion["points"] as Array)[0])
+		var hi := int((potion["points"] as Array)[1])
+		body = ("[혼성젬 %d 연금포인트 증가]" % hi) if lo == hi \
+			else ("[혼성젬 1~%d 연금포인트 증가]" % hi)          # AlchemyMsg23 / AlchemyMsg16
+	else:
+		body = "[혼성젬 %d 강화 성공확률 증가]" % int(potion.get("success_pct", 0))  # AlchemyMsg22
+		warn = ""
+	PopupType.open(self, "알림", "%s을 사용하시겠습니까?\n%s%s" % [nm, body, warn],
+		func(): _pour_potion(potion, item_key), "확인", "취소")
 
 
 ## 용액 1개 투입 — 로직은 전부 `Gem`(§8.2). 화면은 결과 문구만 낸다.
