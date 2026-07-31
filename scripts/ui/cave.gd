@@ -1787,61 +1787,18 @@ func _skill_tex(sid: int) -> Texture2D:
 	var p := "res://assets/converted/skill/skill_%d.tres" % sid
 	return load(p) if ResourceLoader.exists(p) else null
 
-## 스킬 칸 클릭 — 원작 `onClickSkill` → `SkillsPopup::setSelectTag(slot)` → 닫힐 때
-## `setClosedSkillPopup` 이 `Dragon::setSkill(slot, skill)` 로 장착한다.
-## 원작 `SkillsPopup::setSKillsList`(SkillsPopup.c:2757)는 **그 드래곤의 학습 풀**
-## (`Dragon::getSkillList()`)을 목록으로 깔고, 선택 시 `equip_skill.hb`(dn/ns/level/slot),
-## 해제(`disarmament`)는 같은 엔드포인트에 ns=0 을 보낸다. 우리도 같은 구조다.
-## ⚠️ 종전엔 학습 풀이 없어서 "칸 간 교체"만 제공했다(2026-07-29 정정).
+## 스킬 칸 클릭 — 원작 `CaveScene::onClickSkill` → `SkillsPopup::create(dragon)` +
+## `setSelectTag(slot)`. 창 전체를 `scripts/ui/skills_popup.gd` 로 1:1 이식했다.
+## 좌표·동작 표 = `docs/ref/porting/SkillsPopup.md`, 참조 = `docs/ref/드래곤_스킬장착탭.png`.
+##
+## 🔀 2026-07-31: 종전 이 자리의 **자작 리스트 모달**(`_skill_modal_*` 재사용)을 걷어냈다.
+##   원작 창은 좌측 가로 스크롤 표(셀=세로 3칸) + 우측 350×420 상세 패널 + 장착/해제 버튼이고,
+##   "다른 칸에 장착 중인 스킬"은 **교환하지 않고 `<CaveSkillMsg>` 로 거절**한다.
 func _open_skill_select(slot: int) -> void:
 	var a := _active()
 	if a.is_empty(): return
-	var uid := int(a["uid"])
-	var pool: Array = UserDB.dragon_skills(uid)
-	var equipped := Loadout.equipped_ids(a)
-	var ty := String(Loadout.slot_types(a)[slot])
-	_close_skill_modal()
-	_skill_modal = CanvasLayer.new()
-	_skill_modal.layer = 20
-	add_child(_skill_modal)
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.55)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_skill_modal.add_child(dim)
-	var panel := _skill_modal_panel("%d번 스킬 칸 (%s)" % [slot + 1, String(_SKILL_SLOT_MARK.get(ty, "?"))])
-	var body := _skill_modal_list(panel)
-	if int(equipped[slot]) > 0:
-		body.add_child(_skill_list_button("이 칸 비우기 (해제)",
-			func(): _equip_skill(uid, slot, 0)))
-	if pool.is_empty():
-		body.add_child(_skill_list_button("(배운 스킬 없음 — 스킬 스크롤로 습득)", _close_skill_modal))
-		return
-	# 원작은 장착 제약이 없다(사용자 확인 2026-07-27) — 안 맞는 모양도 꽂히고 추가효과만 없다.
-	for e in pool:
-		var sid := int((e as Dictionary).get("id", 0))
-		var lv := int((e as Dictionary).get("level", 1))
-		var sdef: Dictionary = Data.skills.get(str(sid), {})
-		var nm := String(sdef.get("name", "스킬 %d" % sid))
-		var mark := String(_SKILL_SLOT_MARK.get(String(sdef.get("slot", "")), "?"))
-		var tag := ""
-		if sid == int(equipped[slot]):
-			tag = "   (장착 중)"
-		elif equipped.has(sid):
-			tag = "   (다른 칸 → 교환)"
-		elif Loadout.slot_matches(ty, sdef):
-			tag = "   (타입 일치)"
-		body.add_child(_skill_list_button("%s %s Lv.%d%s" % [mark, nm, lv, tag],
-			func(): _equip_skill(uid, slot, sid)))
-	body.add_child(_skill_list_button("스킬 목록 전체 보기", func(): _close_skill_modal(); _open_skills()))
-
-## 칸에 장착/해제(원작 equip_skill.hb). skill_id=0 = 해제.
-func _equip_skill(uid: int, slot: int, skill_id: int) -> void:
-	UserDB.set_dragon_skill_equip(uid, slot, skill_id)
-	_close_skill_modal(); _refresh(); _refresh_stats()
-	if skill_id <= 0:
-		_toast("스킬을 해제했습니다")
-	else:
-		_toast("%s 장착" % String(Data.skills.get(str(skill_id), {}).get("name", "스킬")))
+	var p := SkillsPopup.open(self, int(a["uid"]), slot, func(): _refresh(); _refresh_stats())
+	p.closed.connect(func(): _refresh(); _refresh_stats())
 
 ## 각성스킬 칸 클릭 — 표시정보는 `data/skill_awaken.json`(원작 info_skill_awaken).
 ## 행값이 서버 유실이라 비어 있을 수 있다 → 그때는 안내만 한다(docs/input/review/skill_awaken_sheet.md).
@@ -5601,27 +5558,15 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			UserDB.set_active(uid)
 			_close_skill_modal(); _close_overlay(); _refresh()
 			_open_rename()
-		"gemslot":
-			# 원작 `CaveBagMsg19`: "현재의 잼 슬롯이 랜덤으로 변경 됩니다." → 3칸 전부 재추첨.
-			# 장착 중인 젬은 먼저 인벤으로 돌려준다 — 새 타입에 안 맞을 수 있으므로.
-			var gf: Dictionary = d.get("gems", {})
-			var returned := _return_all_gems(uid, gf)
-			var nt: Array = Gem.random_types(Data.gems)
-			UserDB.set_dragon_field(uid, "gems", Gem.set_types({"types": nt, "slots": []}, nt))
-			UserDB.use_item(key, 1)
-			UserDB.set_active(uid)
-			_close_skill_modal(); _close_overlay(); _refresh_stats(); _refresh()
-			_toast("드래곤의 젬 슬롯이 변경되었습니다 — [%s]%s" % [
-				_gem_slot_type_line(UserDB.get_dragon(uid)),
-				("  (젬 %d개 반환)" % returned) if returned > 0 else ""])
-		"skillslot":
-			# 원작 `CaveBagMsg20`: "현재의 스킬 슬롯이 랜덤으로 변경 됩니다."
-			# 스킬은 칸 타입과 무관하게 장착되므로(일치 시 추가효과만) 빼지 않는다.
-			UserDB.set_dragon_field(uid, "skill_slots", Loadout.random_slot_types())
-			UserDB.use_item(key, 1)
-			UserDB.set_active(uid)
-			_close_skill_modal(); _close_overlay(); _refresh()
-			_toast("드래곤의 스킬 슬롯이 변경되었습니다 — [%s]" % _skill_slot_type_line(UserDB.get_dragon(uid)))
+		"gemslot", "skillslot":
+			# 원작 흐름(`BagPopup`): 아이템 선택 → **`ItemCommentPopup` 확인창**(현재 슬롯 미리보기
+			# + `CaveBagMsg19/20`) → 확인 → 적용 → **`ResetLayer` 전체화면 결과 연출**.
+			# 좌표·타임라인 = `docs/ref/porting/SlotResetScreens.md`.
+			# 가방 오버레이는 닫지 않는다 — 원작도 결과 화면이 가방 위에 얹힌다(참조 영상).
+			_close_skill_modal()
+			ItemCommentPopup.open_slot_reset(self,
+				"gem" if kind == "gemslot" else "skill", d, key,
+				func(): _apply_slot_reset(key, kind, uid))
 		"geminit":
 			# 원작 `CaveToastMsg8`: "드래곤의 젬 슬롯이 초기화되었습니다."
 			# ASSUMPTION: '초기화' = 장착 젬 전량 해제(칸 타입은 유지). 변경은 샌즈의 비약 담당이고
@@ -5634,6 +5579,39 @@ func _apply_consumable(key: String, kind: String, uid: int) -> void:
 			UserDB.set_active(uid)
 			_close_skill_modal(); _close_overlay(); _refresh_stats(); _refresh()
 			_toast("드래곤의 젬 슬롯이 초기화되었습니다 — 젬 %d개 반환" % n)
+
+## `ItemCommentPopup` 확인 후의 실제 적용 + 결과 연출(`ResetLayer`).
+## 원작 대응 = `BagPopup::onClickConfirm` 의 서버 응답 처리(`BagPopup.c:29735`/`:29816`) →
+## 꼬리에서 `ResetLayer::create(1=젬 / 0=스킬)` 을 러닝 씬 z=1000 에 얹는다.
+func _apply_slot_reset(key: String, kind: String, uid: int) -> void:
+	if UserDB.item_count(key) <= 0:
+		_toast("보유하지 않은 아이템입니다"); return
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty():
+		return
+	var returned := 0
+	if kind == "gemslot":
+		# 원작: `setGemType(i, 새 타입)` + **`setItemGem(i, 0)`** — 착용 젬 3칸을 전부 뗀다.
+		# 원작 문구(`CaveBagMsg21`)는 "파괴"라고 하지만 우리는 가방으로 돌려준다
+		# (🟦 오프라인 완화 — 되돌릴 수 없는 소실을 만들지 않는다. 종전 동작 유지).
+		returned = _return_all_gems(uid, d.get("gems", {}))
+		var nt: Array = Gem.random_types(Data.gems)
+		UserDB.set_dragon_field(uid, "gems", Gem.set_types({"types": nt, "slots": []}, nt))
+	else:
+		# 원작: `setSkillType(i, 새 타입)` + **`setSkill(i, "0")`** — 장착 스킬 2칸도 함께 비운다.
+		# 학습 풀(`skills`)은 그대로라 스킬을 잃지는 않는다(다시 꽂으면 된다).
+		UserDB.set_dragon_field(uid, "skill_slots", Loadout.random_slot_types())
+		UserDB.set_dragon_field(uid, "skill_equip", [0, 0])
+	UserDB.use_item(key, 1)
+	UserDB.set_active(uid)
+	_refresh_stats(); _refresh()
+	var back := func():
+		_refresh()
+		if is_instance_valid(_overlay):
+			_open_inventory()          # 결과창을 닫으면 가방으로 돌아간다(원작과 같은 자리)
+		if returned > 0:
+			_toast("젬 %d개를 가방으로 돌려받았습니다" % returned)
+	ResetLayer.open(self, uid, "gem" if kind == "gemslot" else "skill", back, _stage)
 
 ## 원작 부화: 인벤 '알' 탭에서 알을 골라 부화시키면 **둥지 슬롯에 알이 올라가고** 타이머가 돈다
 ## (Dragon::setHatchTime/setEggGrade). 초기 등급 3.0~7.0 랜덤 + 축복받은 둥지 +1.0(사용자 확정).

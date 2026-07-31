@@ -236,6 +236,35 @@ func _ready() -> void:
 			if int(UserDB.get_dragon(cs_uid).get("level", 1)) < 35:
 				UserDB.set_dragon_field(cs_uid, "level", 40)
 			Scenes.goto("cave", {})
+		"skillpop":
+			# 스킬 장착 창(원작 SkillsPopup 이식) 검수 — 학습 풀을 임시로 채우고 칸 0 을 연다.
+			# begin_batch = 디스크 미기록.
+			UserDB.begin_batch()
+			var sp_uid := UserDB.active_uid()
+			if int(UserDB.get_dragon(sp_uid).get("level", 1)) < 35:
+				UserDB.set_dragon_field(sp_uid, "level", 40)
+			var sp_pool: Array = UserDB.dragon_skills(sp_uid).duplicate(true)
+			var sp_have := {}
+			for sp_e in sp_pool: sp_have[int((sp_e as Dictionary).get("id", 0))] = true
+			for sp_k in Data.skills.keys():
+				if sp_pool.size() >= 7: break
+				var sp_d: Dictionary = Data.skills[sp_k]
+				if not bool(sp_d.get("usable", false)): continue
+				if sp_have.has(int(sp_d["id"])): continue
+				sp_pool.append({"id": int(sp_d["id"]), "level": 1 + (sp_pool.size() % 3)})
+			UserDB.set_dragon_field(sp_uid, "skills", sp_pool)
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var sp_n := _find_method_node(get_tree().root, "_open_skill_select")
+			if sp_n == null:
+				print("SHOT: _open_skill_select 노드 없음")
+			else:
+				sp_n.call("_open_skill_select", int(stage))
+				for i in 15: await get_tree().process_frame
+				# 선택 상태까지 보려고 두 번째 항목을 고른다.
+				var sp_pop := _find_node_of_class(get_tree().root, "SkillsPopup")
+				if sp_pop != null and int(sp_pop.get("_list").size()) > 1:
+					sp_pop.call("_on_click_skill", 1)
 		"npc":
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
