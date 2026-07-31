@@ -1,0 +1,174 @@
+{
+ "_re_basis": "1~78화의 스토리 전투는 ScenarioSupport::scenarioBattle 이 아니라 AdventureScene::scene(FieldType, BattleType, string) 직접 호출이다(xref 전수 16건). FieldType=1 은 던전 id 가 아니라 모드 enum(레이드 23 · 던전 6 · 월드맵 8 · 스토리 1).",
+ "_monster_basis": "battle_no → 몬스터·레벨 = AdventureScene 의 switch(battleNo). 표에 없는 번호(5~14)는 default 분기라 런타임 값이고, 그중 26·27·29 는 ScenarioSubQuestData::getEventBattleData 가 덮어쓴다(data/story_subquest.json event_battle).",
+ "_episode_basis": "회차 귀속 = '호출 주소 이하인 가장 큰 스텝 테이블 타깃' 이 감싸는 블록의 회차. 교차검증: battleNo 15→32화(<AdventureEvent33> 이 '다크프로스티'를 부른다) · 16→46화(<AdventureEvent46> '태초의 비밀') · 28→91화(<AdventureEvent91> 각성).",
+ "_tool": "scripts/tools/extract_story_battles.py",
+ "monster_by_battle": {
+  "15": {
+   "monster_no": 75,
+   "level": 50
+  },
+  "16": {
+   "monster_no": 72,
+   "level": 55
+  },
+  "17": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "18": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "19": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "20": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "21": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "22": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "23": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "24": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "25": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "26": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "27": {
+   "monster_no": 169,
+   "level": 50
+  },
+  "28": {
+   "monster_no": 181,
+   "level": 100
+  }
+ },
+ "scene_calls": [
+  {
+   "addr": 22537116,
+   "class": "Scenario2",
+   "field_type": 1,
+   "battle_no": 6
+  },
+  {
+   "addr": 22537224,
+   "class": "Scenario2",
+   "field_type": 1,
+   "battle_no": 5
+  },
+  {
+   "addr": 22537328,
+   "class": "Scenario2",
+   "field_type": 1,
+   "battle_no": 7
+  },
+  {
+   "addr": 22605076,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 8
+  },
+  {
+   "addr": 22614384,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 12
+  },
+  {
+   "addr": 22630960,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 13
+  },
+  {
+   "addr": 22633064,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 11
+  },
+  {
+   "addr": 22638852,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 9
+  },
+  {
+   "addr": 22638960,
+   "class": "Scenario3",
+   "field_type": 1,
+   "battle_no": 10
+  },
+  {
+   "addr": 22770192,
+   "class": "Scenario4",
+   "field_type": 1,
+   "battle_no": 15
+  },
+  {
+   "addr": 22810060,
+   "class": "Scenario4",
+   "field_type": 1,
+   "battle_no": 14
+  },
+  {
+   "addr": 22939916,
+   "class": "Scenario5",
+   "field_type": 1,
+   "battle_no": 21
+  },
+  {
+   "addr": 22968848,
+   "class": "Scenario5",
+   "field_type": 1,
+   "battle_no": 16
+  },
+  {
+   "addr": 23145176,
+   "class": "Scenario6",
+   "field_type": 1,
+   "battle_no": 22
+  },
+  {
+   "addr": 23316352,
+   "class": "Scenario7",
+   "field_type": 1,
+   "battle_no": 24
+  },
+  {
+   "addr": 23319260,
+   "class": "Scenario7",
+   "field_type": 1,
+   "battle_no": 25
+  },
+  {
+   "addr": 23447940,
+   "class": "ScenarioSupport",
+   "field_type": null,
+   "battle_no": null
+  },
+  {
+   "addr": 23901500,
+   "class": "ScenarioLayer",
+   "field_type": 1,
+   "battle_no": 4
+  }
+ ]
+}

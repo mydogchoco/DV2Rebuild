@@ -73,6 +73,8 @@ OPS: dict[str, list[str]] = {
     "miniGameSucEndAct": [],
     # 원형 `scenarioBattle(int fieldNo, int battleNo)` → `AdventureScene::scene(f, b)` 푸시.
     "scenarioBattle": ["field", "battle"],
+    # 1~78화는 AdventureScene::scene(field, battleNo) 를 직접 부른다(scenarioBattle 경유 아님).
+    "adventureBattle": ["battle"],
     "setChaosFearStart": [],
     "actionSmoke": [],
     "shakeAction": [],

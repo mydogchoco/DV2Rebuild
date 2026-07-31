@@ -145,16 +145,40 @@ SUCCESS_BY_TIER = {
 COST_GOLD_BY_TIER = {str(t): 3000 + 600 * (t - 1) for t in range(1, 19)}
 
 # [젬 분해] — 일반 젬을 분해하면 마법가루. 13강 이상은 초월의 용액도 함께.
+#
+# 🔵 2026-07-31 원작 코드에서 **공식 자체를 복원**했다(종전엔 위키 실측 2점을 보간했다).
+#   `UpgradeGemLayer::onClickDisassembleCntMenu` @0127e3f4:
+#       dVar11 = pow(1.55, typeLevel - 1);
+#       iVar3  = (int)dVar11 / 10;
+#       if (iVar3 < 2) iVar3 = 1;              // == max(1, ...)
+#       confirmBtIconTextSort(this, cnt * 500);          // 골드 = 500/개
+#       getStringWithParams("LabUpgradeMsg1", iVar3 * cnt);
+#   골드 500/개는 참조 영상으로 교차검증됐다 — `docs/ref/gem/젬분해4.png` 의
+#   `1,454,000` = 500 × (12+11+642+597+439+1207) 로 **정확히** 맞는다.
+DUST_POW_BASE = 1.55
+DUST_DIV = 10
+GOLD_PER_GEM = 500
+
 DISASSEMBLE = {
-    "_source": "docs/ref/orig_image/shop/점술집_젬강화.pdf — [젬 분해].",
+    "_source": ("원작 `UpgradeGemLayer::onClickDisassembleCntMenu` 디컴프 + "
+                "docs/ref/orig_image/shop/점술집_젬강화.pdf — [젬 분해]."),
     "_rule": ("일반 젬을 분해하면 마법가루가 나온다. **13강 이상**(공/방의 젬 +25, "
               "체력의 젬 +100) 젬을 분해하면 초월의 용액이 같이 나온다 — 1개당 강화 등급에 "
               "따라 최소 1 ~ 최대 36개."),
+    "_dust_formula": ("가루/개 = max(1, floor(1.55^(티어-1) / 10)) — 원작 코드 그대로. "
+                      "골드 = 500 × 총 개수."),
+    "dust_pow_base": DUST_POW_BASE,
+    "dust_div": DUST_DIV,
+    "gold_per_gem": GOLD_PER_GEM,
     "special_min_tier": 13,
     "special_min": 1,
     "special_max": 36,
-    "_prototype_note": "원형젬 1개 분해 = 마법가루 2,666개 + 초월의 용액 36개(글쓴이 실측).",
-    "prototype_dust": 2666,
+    # ⚠️ 위키 글쓴이 실측은 '원형젬 1개 = 마법가루 2,666개'인데 원작 공식은 같은 티어에서
+    #   266개다(정확히 10배 차이 — 위 `/10`). 사용자 확정(2026-07-31): **디컴프를 따른다.**
+    #   위키값은 불일치 기록으로만 남긴다.
+    "_prototype_note": ("원형젬 1개 분해 = 마법가루 2,666개 + 초월의 용액 36개(글쓴이 실측). "
+                        "원작 공식으로는 266개 — 10배 불일치. 사용자 확정으로 공식을 따른다."),
+    "prototype_dust_wiki": 2666,
     "prototype_special": 36,
 }
 
@@ -370,8 +394,18 @@ def build() -> dict:
                             "**용액 미투입 기준** 등급별 성공률(실측)."),
                 "_supersedes": ("이전 값은 ASSUMPTION 공식(start 100 - step 5×티어)이었다. "
                                 "위키 실측표가 확보돼 폐기한다."),
-                "_formula": ("성공률(%) = by_tier_pct[티어] + 연금술 포인트"
+                "_formula": ("성공률(%) = by_tier_pct[티어] + 연금술 포인트 × point_rate"
                              "(용액 투입 합, 100 초과 시 0으로 초기화), 100 상한"),
+                # 🔵 2026-07-31 — 원작 `AlchemyLayer` 가 서버표 `gem_rate_data` 에서
+                #   {default_rate, point_rate, gold} 를 꺼내 쓴다(디컴프 :3396/:3445).
+                #   즉 원작 식의 shape 는 `default_rate + points × point_rate` 다.
+                #   배율은 참조 영상에서 실측했다 — `docs/ref/gem/혼성젬강화3.png`(포인트 2 → 60%)
+                #   → `혼성젬강화5(용액사용연출).png`(포인트 6 → 62%), 같은 젬 연속 프레임이라
+                #   **기울기 0.5 %/point** 로 확정된다(종전 1:1 은 관측과 안 맞았다).
+                #   절편(by_tier_pct)은 위키 실측표를 그대로 둔다 — 사용자 확정 2026-07-31.
+                "point_rate": 0.5,
+                "_point_rate_source": ("docs/ref/gem/혼성젬강화3·5.png 실측(2pt→60%, 6pt→62%) "
+                                       "+ 원작 gem_rate_data 의 point_rate 필드."),
                 "by_tier_pct": SUCCESS_BY_TIER,
                 "floor_pct": 14,          # 표가 18강 14% 에서 끝난다 — 그 밖은 이 값으로 고정
                 "_soul_note": "소울젬은 위키 표에 없다 → 종전 ASSUMPTION 공식을 유지한다.",
