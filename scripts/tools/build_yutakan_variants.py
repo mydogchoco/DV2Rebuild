@@ -34,7 +34,8 @@ WIKI = "나무위키 dungeon_1 §1.2/§1.3/§2.1"
 
 # ── 밤: 지역 무관 랜덤 조우 (위키 §1.2 머리말 + §1.3) ──────────────────────────
 # "지역에 무관하게 랜덤으로 등장하는 몬스터들은 다음과 같다" (실버/골드 임프 · 검은 로브의 사도)
-# 칼리고마가는 §1.3 기타 — "전 지역에서 낮밤 관계없이 등장한다". 사용자는 #175 를 밤 랜덤으로 지정했다.
+# §1.3 기타의 4번째 랜덤은 **블랙 윗치**다(#175, 사용자 확정 2026-07-31).
+# 종전 주석의 '칼리고마가'는 위키 옮겨적기 오류였다 — 칼리고마가는 전투 그림자 몹이라 별개다.
 #
 # ⚠️ #160/#161 의 금·은 배정은 **스프라이트 색**으로 정했다(검수 시트 monsters_160_175.png:
 #    #160 금색 · #161 은청색). 위키 서술 순서(실버 → 골드)와 반대지만 두 몬스터는 스탯이 같아
@@ -45,7 +46,15 @@ NIGHT_RANDOM = [
     (161, "실버 임프 (Silver Imp)", "인간형", "소형", "none", 171, 66, 456, [], 1),
     (162, "검은 로브의 사도 (Black Robe)", "인간형", "중형", "chaos", 275, 66, 1680,
      ["야수의 본능", "피의 갈증"], 1),
-    (175, "칼리고마가 (Caligo Maga)", "무형", "소형", "none", 264, 180, 2400, [], 1),
+    # 🔴 2026-07-31 이름 정정 — 이 자리는 **블랙 윗치**다(사용자 확정).
+    #    위키 §1.3 을 옮기면서 '칼리고마가'로 잘못 적었고, 그 뒤 사용자가 채운
+    #    `docs/input/sheets/monster_drop_pool.csv:36` 과 우리 코드 4곳
+    #    (adventure_run.gd · battle.gd · test_drops.gd · adventure_events.json)은
+    #    이미 전부 **#175 = 블랙 윗치**로 쓰고 있었다 — 여기만 낡아 있었다.
+    #    ⚠️ 이 줄을 안 고치고 빌더를 돌리면 stages.json 의 옳은 이름이 **되돌아간다**.
+    #    칼리고마가는 별개다 — **전투 그림자 몹**(사용자 확정)이라 구현 대상이 아니다
+    #    (그림자 조우 = AdventureManager::setIsMonsterShadowMode, 미이식).
+    (175, "블랙 윗치 (Black Witch)", "무형", "소형", "none", 264, 180, 2400, [], 1),
 ]
 # 보스 가중치 — 위키 "보통은 처음부터 보스를 마주하지만 … 다른 몬스터가 나올 수도 있다".
 # 확률 수치는 위키에 없다 → 자작 노브. 7 : 1×4 = 보스 약 64%.  # ASSUMPTION
@@ -168,6 +177,19 @@ def build_monsters(check: bool = False) -> int:
         rows.append((aid, name, form, size, el, att, dfn, hp, skills, "yutakan_night"))
     for _f, aid, name, form, size, el, att, dfn, hp, skills in NIGHT_BOSS:
         rows.append((aid, name, form, size, el, att, dfn, hp, skills, "yutakan_night"))
+    # ⚠️ 이미 있는 항목도 **이름은 맞춘다.** 종전에는 `if aid in have: continue` 로 통째 건너뛰어서
+    #    이 표에서 이름을 고쳐도 monsters.json 이 낡은 채 남았다 —
+    #    #175 가 stages.json 에선 '블랙 윗치', monsters.json 에선 '칼리고마가' 로 갈렸던 원인이다.
+    by_id = {int(m.get("asset_id", -1)): m for m in lst}
+    renamed = 0
+    for aid, name, *_rest in rows:
+        cur = by_id.get(aid)
+        if cur is not None and str(cur.get("name", "")) != name:
+            cur["name"] = name
+            cur["_name_basis"] = "build_yutakan_variants.NIGHT_* 표가 이름의 단일 출처다."
+            renamed += 1
+    if renamed:
+        print(f"  이름 정정 {renamed}건")
     n = 0
     for aid, name, form, size, el, att, dfn, hp, skills, region in rows:
         if aid in have:

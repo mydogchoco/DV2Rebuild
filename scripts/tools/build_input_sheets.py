@@ -292,33 +292,73 @@ def sheet_artifact_by_dungeon() -> tuple[str, list[str], list[list]]:
 def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
     """시나리오 중 전투(`ScenarioSupport::scenarioBattle`) — **적 편성만** 유실.
 
-    ## 무엇이 남았고 무엇이 없나 (조회 근거 2026-07-31)
+    ## 🔴 유실이 아니었다 (2026-07-31 정정)
 
-    · 원작은 `scenarioBattle(fieldNo, battleNo)` → `AdventureScene::scene(FieldType, BattleType, …)`
-      를 **푸시**한다(@0165c7d4). 두 인자는 우리 추출로 **복원됐다**.
-    · `fieldNo = 24` = `stages.json` 의 `24` = **검은 섬**(uno · lv50). 배경·필드는 보유.
-    · 없는 건 `battleNo`(26~29)가 가리키는 **적 편성**이다 —
-      `AdventureScene::initJson(GenericDocument*, BattleType)` 이 **서버 JSON** 에서 읽는다.
-      ⇒ 클라에 값이 없다(원칙2의 전형적 유실). 여기서 지어내지 않는다.
+    처음엔 "적 편성은 `AdventureScene::initJson(…, BattleType)` 이 서버 JSON 에서 읽으므로
+    유실"이라고 적었다. **틀렸다.** 이 4건은 서버 경로가 아니라 **이벤트 전투 경로**다:
 
-    회차마다 슬롯 3줄을 비워 둔다(적이 더 많으면 같은 회차로 행을 추가하면 된다).
-    적을 일일이 적는 대신 **기존 던전 전투로 대체**해도 된다 — 그 칸만 채우면 나머지는 비워도 된다.
+        ScenarioSupport::scenarioBattle(fieldNo, battleNo)
+          → AdventureScene::scene(field, battleNo)      (battleNo 가 this+0x1fc 로 들어간다)
+          → ScenarioSubQuestData::isEventBattle(this+0x1fc)   ← {26, 27, 29, 100}
+          → getEventBattleData(eventNo) @01658250            ← **몬스터·스탯·필드가 클라에 박혀 있다**
+
+    ⇒ `extract_story_subquest.py` 가 이미 뽑고 있었고(`data/story_subquest.json` `event_battle`),
+      우리가 그걸 안 보고 있었을 뿐이다. 아래에서 그 값을 **미리 채워** 넣는다.
+
+    남는 빈칸은 **회차 91(전투번호 28) 하나뿐**이다 — 28 은 `isEventBattle` 목록에 없어
+    이벤트 전투가 아니고, 그 필드(24 검은 섬)의 일반 편성으로 들어간다.
     """
     flows = load("scenario_flow.json")["flows"]
     titles = load("scenario.json").get("titles", {})
     stages = load("stages.json")["stages"]
+    ev = load("story_subquest.json").get("event_battle", {})
+    mons = {m.get("asset_id"): m.get("name", "")
+            for m in load("monsters.json")["monsters"]}
+
+    def place(field: int) -> str:
+        """필드 번호 → 장소 이름. 500+ = 밤 변형 · 600+ = 카데스의 공간(기본필드 + 오프셋)."""
+        s = stages.get(str(field))
+        if s:
+            return str(s.get("name", ""))
+        for base, tag in ((600, "카데스의 공간"), (500, "밤")):
+            if field > base:
+                nm = stages.get(str(field - base), {}).get("name", "")
+                if nm:
+                    return f"{nm}({tag})"
+        return ""
+
     rows: list[list] = []
-    seen: list[tuple[int, int, int]] = []
     for sn in sorted(flows, key=int):
         for o in flows[sn]:
             if o.get("op") != "scenarioBattle":
                 continue
-            seen.append((int(sn), int(o.get("field") or 0), int(o.get("battle") or 0)))
-    for sn, field, battle in seen:
-        place = stages.get(str(field), {}).get("name", "")
-        for slot in (1, 2, 3):
-            rows.append([sn, titles.get(str(sn), ""), field, place, battle, slot,
-                         "", "", "", "", ""])
+            battle = int(o.get("battle") or 0)
+            e = ev.get(str(battle))
+            if e:                                   # 원작에서 복원된 이벤트 전투
+                field = int(e.get("field_no") or 0)
+                rows.append([sn, titles.get(str(sn), ""), field,
+                             place(field), battle, 1,
+                             "", mons.get(e.get("monster_no"), f"#{e.get('monster_no')}"),
+                             e.get("lv"), "O",
+                             f"원작복원(hp{e.get('hp')}/공{e.get('att')}/방{e.get('def')}) — 확인만"])
+                continue
+            field = int(o.get("field") or 0)        # 이벤트 아님 → 그 필드의 일반 편성
+            for slot in (1, 2, 3):
+                rows.append([sn, titles.get(str(sn), ""), field,
+                             place(field), battle, slot,
+                             "", "", "", "", "이벤트 전투 아님 — 편성 미상"])
+    # ── 1~78화의 스토리 전용 몹 ──────────────────────────────────────────────
+    # 🔴 이 구간은 원작 클라에 **전투 스텝이 없다**(`scenarioBattle` xref 전수 = Scenario1~8 에 0건)
+    #    그리고 서브퀘스트 표(subquest_field/mark_field/click_count)도 **79화부터** 시작한다.
+    #    1~78화 퀘스트 정의는 로컬 SQLite `info_quest_v2` 인데 그 .db 가 덤프에 없다
+    #    (`story_subquest.json` `_lost`) ⇒ **사용자 지식이 유일한 출처**다.
+    # 아래 배정 = 사용자 확정 2026-07-31. 몬스터만 알고 장소·레벨은 아직 모른다.
+    STORY_ONLY = [(27, "기계 만드라고낙"), (28, "정령 스파이크젤"),
+                  (32, "다크프로스티"), (33, "다크프로스티")]
+    for sn, mname in STORY_ONLY:
+        rows.append([sn, titles.get(str(sn), ""), "", "", "", 1, "", mname, "", "",
+                     "사용자 확정: 이 회차의 스토리 전용 몹. 장소·레벨 미상"])
+
     return ("scenario_battle.csv",
             ["회차", "제목", "필드번호", "장소", "원작전투번호", "슬롯",
              "기존던전으로대체(던전이름·채우면 아래 칸은 비워도 됨)",
