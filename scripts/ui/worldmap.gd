@@ -502,7 +502,7 @@ func _build_region_native(region: Dictionary) -> void:
 			_apply_kades_space(nat, coord, dir, man, bg_design, bg_tex, S, map_w)
 	# 낮/밤 · 카데스 토글(유타칸 전용 — 해당 프레임이 이 아틀라스에만 있다).
 	# 토글 자체는 MainHud 가 그린다(원작 아모르/카데스 tag 0x67·0x68 이 메인 메뉴 소속이라).
-	_variant_toggles = (dir == "worldmap_yutakan_new")
+	_variant_toggles = (dir == _YUTAKAN_DIR)
 	_max_scroll = maxf(0.0, map_w - _vis().x)
 	_setup_area_sounds(nat, bg_design, bg_tex, S)
 
@@ -681,13 +681,25 @@ func _layer_to_design(coord: Dictionary, bg_design: Vector2, bg_tex: Vector2, S:
 		-ls * pt.y + float(L.get("ty", 0.0)))
 	return [bg_design + (bgpx - bg_tex) * S, true]
 
+## 밤·카데스 변형을 가진 유일한 지역의 아틀라스 폴더(해당 프레임이 이 아틀라스에만 있다).
+const _YUTAKAN_DIR := "worldmap_yutakan_new"
+
 ## 유타칸의 시각 위상 — **"day" / "night" / "kades" 셋 중 하나**(사용자 확정 2026-07-29:
 ## "카데스의 공간은 낮/밤 구분이 없음. 유타칸은 (낮), (밤), (카데스) 세 개").
 ##
 ## 저장은 원작 구조 그대로 독립 플래그 두 개(`getDBYutakanNight` / `getDBYutakanKades`)를 쓰고,
 ## **카데스가 우선**한다 — 원작 `WorldMapPopupLayer::init` 의 필드 번호 분기와 같은 우선순위다
 ## (카데스면 600번대, 아니면 밤일 때 500번대).
+##
+## 🔴 2026-07-31: **유타칸 전용**임을 여기서 못 박는다. 밤·카데스 플래그는 `UserDB` 전역
+##   (`yutakan_night` / `kades_space`)이라 지역과 무관하게 참이 되는데, `_build_region_native`
+##   는 우노·엘리시움·메탈타워에서도 이 함수를 부른다 ⇒ 밤을 켠 채 다른 지역으로 가면
+##   `_apply_yutakan_night` 이 돌아 **임프상인이 따라다녔다**(사용자 지적). 밤하늘·발광점은
+##   유타칸 전용 프레임 키라 조용히 누락돼 증상이 임프 하나로만 보였다. 카데스도 같은 구멍
+##   (보라 착색이 남의 지역에 걸린다)이라 게이트를 이 한 곳에 둔다.
 func _yutakan_phase(nat: Dictionary) -> String:
+	if String(nat.get("atlas_dir", "")) != _YUTAKAN_DIR:
+		return "day"
 	if _is_kades_space(nat):
 		return "kades"
 	if _is_yutakan_night(nat):
@@ -1761,17 +1773,33 @@ func _mark_objective(battle_nodes: Array, S := 0.72) -> void:
 	mk.z_index = 20   # 조각·네임택(z40)보다는 아래, 지형보다는 위
 	_content.add_child(mk)
 	_mark_bounce(mk, d.y + by, ls)
-	# ② 원작 `WorldMapLayer::setScenarioNotification` 의 안내 화살표(`storyguide_arrow`, z=0x12).
-	#    ⚠️ 이 프레임은 **13×10px 짜리 작은 화살표**다(manifest 실측) — 배지가 아니다.
-	#    지역맵 축척(0.75×S)까지 곱하면 9px 로 사실상 안 보이므로 배지를 대신할 수 없다
-	#    (실제로 그렇게 짰다가 마커가 통째로 사라졌다). 배지 **바로 위**에 덧붙여 방향만 준다.
-	var ar := AtlasUI.spr("worldmap_ui", "scene_worldmap_storyguide_arrow",
-		Design.ASSET_SCALE * ls)
+	# ② 원작 `WorldMapLayer::setScenarioNotification`(:3494) 의 안내 화살표(z=0x12, tag 0x1d2).
+	#
+	# 🟦 프레임은 **황금색 `scene/worldmap/event_arrow`**(17×14, #EEBB22 — 사용자 확정 2026-07-31).
+	#    디컴프가 부르는 것은 빨간 `storyguide_arrow`(13×10, 순수 #FF0000)지만, `event_arrow` 도
+	#    같은 아틀라스에 실재하고 디컴프 397클래스 전수 grep 에 **호출자가 없다**(바이너리
+	#    문자열로만 존재) ⇒ 코드 근거로는 어느 쪽도 확정 불가라 사용자 원작 기억을 따른다.
+	#    ! 배지(`common/event.png`)도 금색이라 색이 맞는다. 근거가 생기면 이 키 한 줄만 되돌린다.
+	#
+	# 크기·안무는 원작 리터럴 그대로 — `setScale(2.0)` 뒤 무한반복:
+	#    Spawn(ScaleTo 0.7→1.8, MoveBy 0.7 (0,−20))  →  Spawn(ScaleTo 0.7→2.0, MoveBy 0.7 (0,+20))
+	# cocos y-up 의 −20 은 디자인(y-down)에서 +20 ⇒ **쉬는 자리가 궤적의 맨 위**다.
+	#
+	# ⚠️ 위치만 원작 리터럴(필드 좌표 +105)을 못 쓴다 — 우리 지역맵은 0.72 로 축소돼 있어
+	#    그대로 넣으면 배지 **안**으로 파고든다(2026-07-31 이전 판의 실제 증상: 배지에 겹쳐
+	#    자작 UI 처럼 보였다). 배지·화살표의 실측 높이와 **양쪽 바운스 진폭**에서 여유를 만든다.
+	var ar := AtlasUI.spr("worldmap_ui", "scene_worldmap_event_arrow",
+		_ARROW_SCALE * Design.ASSET_SCALE * ls)
 	if ar != null:
-		ar.position = d + Vector2(0, by - 30.0 * ls)
+		# 배지 윗변(제 바운스로 최대 40pt 더 올라간다) ↔ 화살표 아랫변(제 바운스로 20pt 내려간다).
+		var mk_h := AtlasUI.size_pt("common_ui", "common_event").y * _MARK_SCALE * ls
+		var ar_h := AtlasUI.size_pt("worldmap_ui", "scene_worldmap_event_arrow").y * _ARROW_SCALE * ls
+		var gap := (mk_h + ar_h) * 0.5 + (40.0 + 20.0 + 4.0) * ls   # 4pt = 눈으로 남기는 여백
+		var ay := d.y + by - gap
+		ar.position = Vector2(d.x, ay)
 		ar.z_index = 21
 		_content.add_child(ar)
-		_mark_bounce(ar, d.y + by - 30.0 * ls, ls)
+		_arrow_bounce(ar, ay, ls)
 
 ## 진행 회차의 서브퀘스트 던전에 해당하는 조각 — 원작
 ## `WorldMapLayer::setScenarioNotification`(:3164) 이 `getScenarioSubQuestFiled(sn_s, isNight)` 로
@@ -1811,6 +1839,24 @@ func _mark_bounce(spr: Sprite2D, base_y: float, ls := 0.54) -> void:
 		var sc := s0 * (1.0 + float(st[1]) / _MARK_SCALE)
 		tw.parallel().tween_property(spr, "scale", Vector2(sc, sc), 0.5)
 	tw.tween_interval(0.5)
+
+## 안내 화살표 안무 — 원작 `setScenarioNotification` :3496~3506 그대로.
+##   RepeatForever(Sequence(
+##     Spawn(ScaleTo(0.7, 1.8), MoveBy(0.7, (0,−20))),
+##     Spawn(ScaleTo(0.7, 2.0), MoveBy(0.7, (0,+20)))))
+## `setScale(2.0)` 이 기본이라 1.8 로 **줄면서 내려갔다가** 2.0 으로 돌아온다.
+## `_mark_bounce` 와 달리 이징 지정이 없다 = cocos 기본 선형.
+const _ARROW_SCALE := 2.0     # 원작 setScale(0x40000000)
+const _ARROW_DIP := 20.0      # MoveBy (0,−20) → 디자인 y-down 에서 +20
+const _ARROW_DIP_SCALE := 1.8
+func _arrow_bounce(spr: Sprite2D, base_y: float, ls := 0.54) -> void:
+	var s0 := _ARROW_SCALE * Design.ASSET_SCALE * ls
+	var s1 := _ARROW_DIP_SCALE * Design.ASSET_SCALE * ls
+	var tw := spr.create_tween().set_loops()
+	tw.tween_property(spr, "position:y", base_y + _ARROW_DIP * ls, 0.7)
+	tw.parallel().tween_property(spr, "scale", Vector2(s1, s1), 0.7)
+	tw.tween_property(spr, "position:y", base_y, 0.7)
+	tw.parallel().tween_property(spr, "scale", Vector2(s0, s0), 0.7)
 
 ## 원작 showImp: 맵을 배회하는 임프(golden imp). adventure_ui/imp_pack 스프라이트 재활용.
 ## 좌우로 걸으며 방향전환 시 좌우반전, 잔잔한 상하 바운스. amanta/aida는 전용 스프라이트 부재 → 임프만.
