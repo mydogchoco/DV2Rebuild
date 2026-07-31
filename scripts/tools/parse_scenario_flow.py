@@ -211,6 +211,32 @@ def item_table() -> dict[int, str]:
     return out
 
 
+def monster_npc_table() -> dict[int, str]:
+    """`showMonster(vector<int>, float, bool)` 의 몬스터 번호 → 프레임 경로 (원작 @0165dba4).
+
+    0~7 의 8종. 컷신용 **정지 스프라이트**(`scenario/monster_npc/*.png`)지 전투 몬스터가 아니다.
+    """
+    src = NPC_SRC.read_text(encoding="utf-8", errors="replace")
+    ms = list(re.finditer(r"/\* ==== showMonster @ [0-9a-f]+ \(size=(\d+)\)", src))
+    if not ms:
+        return {}
+    m = max(ms, key=lambda x: int(x.group(1)))
+    seg = src[m.start(): src.find("/* ==== ", m.start() + 10)]
+    out: dict[int, str] = {}
+    cur: list[int] = []
+    for line in seg.splitlines():
+        cm = re.search(r"^\s*case (0x[0-9a-f]+|\d+):", line)
+        if cm:
+            cur.append(int(cm.group(1), 0))
+            continue
+        pm = re.search(r'"(scenario/monster_npc/[^"]+\.png)"', line)
+        if pm and cur:
+            for c in cur:
+                out.setdefault(c, pm.group(1))
+            cur = []
+    return out
+
+
 def split_blocks(text: str):
     """람다 덤프를 (주소, 본문) 목록으로."""
     out = []
@@ -569,6 +595,7 @@ def main():
         classes = sorted(p.stem for p in LAMBDA.glob("*.c"))
     npcs, bgs, bgms = npc_table(), bg_table(), bgm_table()
     items = item_table()
+    mnpc = monster_npc_table()
     scen = json.loads((REPO / "data" / "scenario.json").read_text(encoding="utf-8"))
     scenarios = scen.get("scenarios", {})
     flows: dict[str, list[dict]] = {}
@@ -606,11 +633,12 @@ def main():
         "backgrounds": {str(k): v for k, v in sorted(bgs.items())},
         "bgm": {str(k): v for k, v in sorted(bgms.items())},
         "sc_items": {str(k): v for k, v in sorted(items.items())},
+        "monster_npc": {str(k): v for k, v in sorted(mnpc.items())},
         "flows": {k: sanitize_names(flows[k], scen) for k in sorted(flows, key=int)},
         "variants": variants,
     }
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)}")
+    print(f"-> {OUT}  회차 {len(flows)} · NPC {len(npcs)} · 배경 {len(bgs)} · BGM {len(bgms)} · 소품 {len(items)} · 컷신몹 {len(mnpc)}")
 
 
 if __name__ == "__main__":

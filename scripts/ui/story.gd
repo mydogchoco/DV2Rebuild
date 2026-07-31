@@ -85,6 +85,8 @@ var _box: NinePatchRect
 var _box_home := Vector2.ZERO
 var _fx_layer: CanvasLayer
 var _sc_item: Sprite2D            # showScenarioItem 이 띄우는 소품
+var _monster: Sprite2D            # showMonster 가 세우는 컷신 몬스터
+var _skip_btn: Button             # setHidePassButton 이 감추는 건너뛰기 버튼
 
 func enter(params: Dictionary = {}) -> void:
 	_params = params
@@ -221,6 +223,7 @@ func _build_skip() -> void:
 	b.flat = true
 	b.size = Vector2(117.0 * S, 39.0 * S)
 	b.position = Vector2(vis.x - b.size.x - 18.0, 16.0)
+	_skip_btn = b          # setHidePassButton 이 감춘다
 	if ResourceLoader.exists(SKIP):
 		var s := Sprite2D.new()
 		s.texture = load(SKIP)
@@ -361,6 +364,27 @@ func _play_flow() -> void:
 				# 걷기 비트**(각 사이 0.5초). 걷는 스프라이트가 없으므로 **박자만** 남긴다.
 				# ASSUMPTION: 첫 인자(지연)는 float 라 스택에 안 남아 미복원 → 0으로 둔다.
 				_walk_beats(int(o.get("n", 1)))
+			"showMonster":
+				# 원작 `ScenarioSupport::showMonster(vector<int>, float, bool)` @0165dba4 —
+				# `scenario/monster_npc/*.png` 정지 스프라이트를 배경 위에 세운다(전투 아님).
+				_show_monster(int(o.get("monsters", 0)))
+			"deleteMonster":
+				if is_instance_valid(_monster):
+					_monster.queue_free()
+			"setHidePassButton":
+				# 원작 `ScenarioLayer::setHidePassButton` — 건너뛰기 버튼을 감춘다
+				# (건너뛰면 안 되는 구간: 미니게임·전투 직전).
+				if is_instance_valid(_skip_btn):
+					_skip_btn.visible = false
+			"miniGameText":
+				# 원작 @0165c2a8 `miniGameText(bool, int)` — 미니게임 안내 문구.
+				# 대사 키를 멤버에 박고(`ScenarioTalk86_M` 등) 보여 준다.
+				_line_by_key("ScenarioTalk%d_M" % _no)
+				return
+			"passMiniGame":
+				# 원작 @0165d3f8 — 미니게임을 **건너뛴다**(스텝 번호를 통과 지점으로 옮긴다).
+				# 우리는 미니게임 자체가 없으므로 아무것도 하지 않고 다음 스텝으로 간다.
+				pass
 			"showScenarioItem":
 				_show_sc_item(int(o.get("item", -1)))
 			"removeScenarioItem":
@@ -410,6 +434,29 @@ func _walk_beats(n: int) -> void:
 	var t := create_tween()
 	t.tween_interval(0.5 * float(maxi(n, 1)))
 	t.tween_callback(_restore_box)
+
+## 컷신 몬스터 — 원작 `showMonster`. 전투 몬스터가 아니라 `scenario/monster_npc/` 정지 스프라이트다.
+## ⚠️ 좌표·크기 인자(float)는 스택에 안 남아 미복원 — 화면 중앙에 세운다(ASSUMPTION).
+func _show_monster(no: int) -> void:
+	var orig := Data.scenario_monster_path(no)
+	if orig == "":
+		return
+	var key := orig.trim_suffix(".png").replace("/", "_")
+	var p := "res://assets/converted/scenario_monster/%s.tres" % key
+	if not ResourceLoader.exists(p):
+		return
+	if is_instance_valid(_monster):
+		_monster.queue_free()
+	var vis := _vis()
+	var s := Sprite2D.new()
+	s.texture = load(p)
+	s.material = _pma
+	s.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
+	s.position = Vector2(vis.x * 0.5, vis.y * 0.5)
+	_monster = s
+	_fx().add_child(s)
+	s.modulate.a = 0.0
+	s.create_tween().tween_property(s, "modulate:a", 1.0, 0.3)
 
 ## 시나리오 소품 — 원작 `ScenarioSupport::showScenarioItem(ScenarioItem*, x, y, …)` @0165cb68.
 ## 번호→프레임 표(0~11)는 디컴프에서 그대로 뽑아 `scenario_flow.json` `sc_items` 에 있다.

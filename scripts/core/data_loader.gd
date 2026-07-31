@@ -517,6 +517,12 @@ func _story_enemy(no: int, level: int) -> Dictionary:
 				return cp
 	return {}
 
+## 컷신 몬스터 번호 → 원작 프레임 경로 (`ScenarioSupport::showMonster` 0~6, 그 밖은 goblin).
+## 전투 몬스터가 아니라 **정지 스프라이트**다.
+func scenario_monster_path(no: int) -> String:
+	var t: Dictionary = scenario_flow.get("monster_npc", {})
+	return String(t.get(str(no), "scenario/monster_npc/goblin.png" if not t.is_empty() else ""))
+
 ## 시나리오 소품 번호 → 원작 프레임 경로 (`ScenarioSupport::showScenarioItem` 0~11).
 func scenario_item_path(no: int) -> String:
 	return String(scenario_flow.get("sc_items", {}).get(str(no), ""))
