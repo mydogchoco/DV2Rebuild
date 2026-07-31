@@ -62,12 +62,17 @@ func close() -> void:
 
 # ═══════════════════════════════════════════════════════════════════════════ 껍데기
 func _build() -> void:
-	# ⚠️ `queue_free()` 는 **프레임 끝**에 지운다 — 같은 프레임에 재빌드하면 옛 창이 트리에
-	#    남아 새 창과 겹쳐 그려지고, 화면에는 옛 내용이 보인다(`--ep=` 지정이 무시되던 원인).
-	#    제자리 재빌드는 즉시 제거가 맞다.
+	# 옛 창이 새 창과 겹쳐 그려지면 안 된다(`--ep=` 지정이 무시되던 원인) → **트리에서 먼저 뺀다**.
+	#
+	# 🔴 2026-07-31 수정: 종전엔 `remove_child(c)` 뒤에 `c.free()`(즉시 해제)를 했는데,
+	#   재빌드를 부르는 쪽이 **버튼의 `pressed` 핸들러**다(`_rebuild(idx)` 람다, :166 · :339).
+	#   그래서 시그널을 방출하는 중인 그 버튼 자신을 즉시 해제해 버려 매번 이 에러가 났다:
+	#     "Object was freed or unreferenced while a signal is being emitted from it"
+	#   겹침을 막는 건 `remove_child`(트리에서 즉시 빠진다)이지 `free()` 가 아니므로,
+	#   해제만 프레임 끝으로 미루면 두 목적이 다 선다.
 	for c in get_children():
 		remove_child(c)
-		c.free()
+		c.queue_free()
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.55)
 	# 오프셋까지 함께 세우는 형태로 쓴다 — `orig_popup.gd` 가 기록한 함정(앵커만 바꾸면 rect 0×0
