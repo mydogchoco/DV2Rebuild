@@ -289,6 +289,43 @@ def sheet_artifact_by_dungeon() -> tuple[str, list[str], list[list]]:
             rows)
 
 
+def sheet_scenario_battle() -> tuple[str, list[str], list[list]]:
+    """시나리오 중 전투(`ScenarioSupport::scenarioBattle`) — **적 편성만** 유실.
+
+    ## 무엇이 남았고 무엇이 없나 (조회 근거 2026-07-31)
+
+    · 원작은 `scenarioBattle(fieldNo, battleNo)` → `AdventureScene::scene(FieldType, BattleType, …)`
+      를 **푸시**한다(@0165c7d4). 두 인자는 우리 추출로 **복원됐다**.
+    · `fieldNo = 24` = `stages.json` 의 `24` = **검은 섬**(uno · lv50). 배경·필드는 보유.
+    · 없는 건 `battleNo`(26~29)가 가리키는 **적 편성**이다 —
+      `AdventureScene::initJson(GenericDocument*, BattleType)` 이 **서버 JSON** 에서 읽는다.
+      ⇒ 클라에 값이 없다(원칙2의 전형적 유실). 여기서 지어내지 않는다.
+
+    회차마다 슬롯 3줄을 비워 둔다(적이 더 많으면 같은 회차로 행을 추가하면 된다).
+    적을 일일이 적는 대신 **기존 던전 전투로 대체**해도 된다 — 그 칸만 채우면 나머지는 비워도 된다.
+    """
+    flows = load("scenario_flow.json")["flows"]
+    titles = load("scenario.json").get("titles", {})
+    stages = load("stages.json")["stages"]
+    rows: list[list] = []
+    seen: list[tuple[int, int, int]] = []
+    for sn in sorted(flows, key=int):
+        for o in flows[sn]:
+            if o.get("op") != "scenarioBattle":
+                continue
+            seen.append((int(sn), int(o.get("field") or 0), int(o.get("battle") or 0)))
+    for sn, field, battle in seen:
+        place = stages.get(str(field), {}).get("name", "")
+        for slot in (1, 2, 3):
+            rows.append([sn, titles.get(str(sn), ""), field, place, battle, slot,
+                         "", "", "", "", ""])
+    return ("scenario_battle.csv",
+            ["회차", "제목", "필드번호", "장소", "원작전투번호", "슬롯",
+             "기존던전으로대체(던전이름·채우면 아래 칸은 비워도 됨)",
+             "몬스터이름", "레벨", "보스(O/X)", "비고"],
+            rows)
+
+
 def sheet_open_questions() -> tuple[str, list[str], list[list]]:
     """각 시트에 흩어져 있던 ⚠️ASSUMPTION·확인요청을 한 장으로."""
     q = [
@@ -324,6 +361,7 @@ BUILDERS = {
     "combine_item": sheet_combine_item,
     "skill_awaken": sheet_skill_awaken,
     "artifact_by_dungeon": sheet_artifact_by_dungeon,
+    "scenario_battle": sheet_scenario_battle,
     "open_questions": sheet_open_questions,
 }
 
