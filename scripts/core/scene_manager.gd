@@ -58,7 +58,8 @@ const TRANSITIONS := {
 		"prologue", "shop", "magicshop", "laboratory", "breeding", "promote", "imp_shop"],
 	# 프롤로그는 인트로라 끝나면 메인(월드맵)/동굴로만 나간다.
 	"prologue": ["worldmap", "cave"],
-	"adventure": ["battle", "worldmap", "story"],
+	# shop: 허기 먹이 팝업 `<CaveDragonFoodMsg_Ad_3>` "상점으로 이동하시겠습니까?" 확인 경로.
+	"adventure": ["battle", "worldmap", "story", "shop"],
 	"battle": ["worldmap", "cave", "adventure", "story"],
 	# 스토리는 어디서든 열리고(마을·동굴·던전 진입) 끝나면 부른 곳으로 돌아간다.
 	"story": ["worldmap", "cave", "town", "adventure", "battle"],

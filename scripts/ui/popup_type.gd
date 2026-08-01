@@ -31,7 +31,9 @@ const BH := 300.0
 static func open(parent: Node, title: String, msg: String, on_confirm: Callable,
 		confirm_text := "확인", cancel_text := "취소",
 		cash_type := -1, cash_n := 0, on_cancel := Callable()) -> CanvasLayer:
-	var vis: Vector2 = parent.get_viewport_rect().size
+	# 🔴 2026-08-01: `get_viewport_rect()` 는 CanvasItem 전용이라 **Node 인 호스트**(LevelUpScreen)가
+	#   넘어오면 크래시했다 — 리롤/AUTO 버튼이 "안 눌리는" 것처럼 보인 원인(확인창이 안 열림).
+	var vis: Vector2 = parent.get_viewport().get_visible_rect().size
 	var layer := CanvasLayer.new(); layer.layer = 70
 	parent.add_child(layer)
 	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.6)

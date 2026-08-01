@@ -30,10 +30,15 @@ func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_adv = _man("adventure_ui")
+	# ⚠️ `_rebuild()` 가 레벨업 큐를 소비(`_params.erase("levelups")`)하므로 **먼저** 기억해 둔다.
+	var had_levelups := _params.has("levelups")
 	_rebuild()
 	# 원작 BattleTextBox: 스테이지 진입 스토리 대사. 대사 텍스트=유실(서버/시나리오 데이터) → stages.json "intro"
 	# (사용자 작성)가 있을 때만 첫 진입에 표시. 없으면 미표시(지어내지 않음, 원칙2).
-	if int(_params.get("enc", 0)) == 0:
+	# ⚠️ 레벨업 결과창·3인 편성창이 대기 중이면 인트로 대사를 띄우지 않는다 — 대사 레이어(80)의
+	#   전면 탭 캐처가 그 창들(30/31) 위를 덮어 **버튼이 안 눌리게 된다**(2026-08-01 실측 2건).
+	var party_pending := _party_capacity() == 3 and not bool(_params.get("party_ready", false))
+	if int(_params.get("enc", 0)) == 0 and not had_levelups and not party_pending:
 		var intro := String(_stage.get("intro", ""))
 		if intro != "":
 			_open_dialogue(intro)
@@ -100,6 +105,9 @@ func _leader_party() -> Array:
 var _pending_levelup_after_party := false
 func _open_party_select() -> void:
 	_event_open = true                     # 편성 중 보행 정지
+	# 안내는 우리 텍스트박스로(원작 <AdventureAddDragonHardDungeon> — 편성창 자체 박스와
+	# 겹치면 글이 뒤섞인다 → show_msg=false).
+	_narrate("추가로 전투에 참가할 드래곤을 최대 3마리 선택할 수 있습니다.")
 	PartySelect.open_run(self, _run_party, func(picked: Array):
 		_run_party = picked
 		_params["party_ready"] = true
@@ -110,7 +118,8 @@ func _open_party_select() -> void:
 			_pending_levelup_after_party = false
 			if _open_levelup_result():
 				return
-		_advance_step())
+		_advance_step(),
+		false)   # show_msg=false — 안내는 위 _narrate 가 담당
 
 var _rboss_enc := -1   # 랜덤 보스 스테이지: 이번 진입에 선택된 보스 인덱스(-1=일반)
 ## 소환형(혼돈의 틈새)에서 **월드맵 소환 때 확정된** 보스 인덱스. -1=소환형 아님/미소환.
@@ -192,11 +201,21 @@ func _rebuild() -> void:
 	#   1인 탐험: 리더(동굴 선택 드래곤) 그대로 시작.
 	#   3인 단계: 편성창을 띄우고, 확정 전까지 보행을 멈춘다.
 	_run_party = _leader_party()
-	# 허기(FOOD) 소진 → **즉시 탐험 종료**(사용자 확정 2026-07-30). 전투마다 줄고, 이 씬은
-	# 전투가 끝날 때마다 다시 지어지므로(`battle.gd` → `Scenes.goto("adventure")`) 여기가
-	# 매 조우 뒤 통과하는 지점이다. 원작 `AdventureScene::checkNightHungry` → `onClickCantPlay` 대응.
+	# 허기(FOOD) 소진 게이트 — 전투마다 줄고, 이 씬은 전투가 끝날 때마다 다시 지어지므로
+	# (`battle.gd` → `Scenes.goto("adventure")`) 여기가 매 조우 뒤 통과하는 지점이다.
+	# 🟠 2026-08-01 정정(사용자 지적): 종전엔 **무조건 쫓아냈는데**, 원작은 가방에 먹을 수 있는
+	#   먹이가 있으면 **먹이기 확인 팝업**을 띄우고 탐험을 잇는다 —
+	#   `AdventureScene::checkNightHungry` → `WorldMapScene::setDragonFoodWithSelectedDragon`
+	#   (`<CaveDragonFoodMsg_Ad_1/2>` "…배고픔이 상당히/약간 채워집니다", 탐험 중에만 쓰는
+	#   드래곤 이름 판). 없을 때만 `<CaveDragonFoodMsg_Ad_3>` "…상점으로 이동하시겠습니까?".
+	#   골드로 사 먹이는 `AdventureFoodByGold` 경로는 비용이 서버 유실이라 이식하지 않는다.
 	if _check_starving_end():
 		return
+	_after_food_gate()
+
+## 허기 게이트 통과 후의 진입 연쇄(편성 → 레벨업 → 이벤트 큐). 먹이기 팝업이
+## 끼어들면 그 확인 콜백이 이 함수로 되돌아온다.
+func _after_food_gate() -> void:
 	if _party_capacity() == 3 and not bool(_params.get("party_ready", false)):
 		_pending_levelup_after_party = true   # 편성 → 레벨업창 순서로 하나씩(둘 다 배회를 멈춘다)
 		_open_party_select()
@@ -310,20 +329,51 @@ func _begin_walk() -> void:
 	_hide_party_cards()
 	_start_walk_cycle()
 
-## 출전 인원 중 굶은 드래곤이 있으면 안내 후 월드맵으로 돌려보낸다. 종료했으면 true.
-## 문구는 사용자 확정(2026-07-30). 판정은 `ItemEffect`(logic 층).
+## 출전 인원 중 굶은 드래곤이 있으면 원작대로 **먹이기 팝업**으로 잇는다. 흐름을 가로챘으면 true.
+## 원작 = `checkNightHungry` → `setDragonFoodWithSelectedDragon`(문구 `<CaveDragonFoodMsg_Ad_*>`)
+## — 월드맵의 `_popup_dragon_food` 와 같은 창의 탐험 판(드래곤 이름이 들어간다).
+## 판정·회복량은 전부 `ItemEffect`(logic 층).
 func _check_starving_end() -> bool:
 	var starved := ItemEffect.starving_uids(Data.item_effects, _run_party,
 		func(uid: int): return UserDB.get_dragon(uid))
 	if starved.is_empty():
 		return false
-	Toast.show(self, "드래곤이 배고파합니다. 상점에서 먹이를 구입하세요.", 2.0)
-	# 토스트를 읽을 시간을 준 뒤 나간다(즉시 전환하면 문구가 안 보인다).
-	var t := get_tree().create_timer(2.2)
-	t.timeout.connect(func():
-		if is_instance_valid(self):
-			Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")}))
+	_ask_feed_starving(int(starved[0]))
 	return true
+
+## 굶은 드래곤 1마리에 대한 먹이기 확인. 확인 → 먹이고 다음 굶은 드래곤(있으면) →
+## 전부 해결되면 `_after_food_gate` 로 복귀. 취소/먹이 없음 이탈 → 탐험 종료.
+func _ask_feed_starving(uid: int) -> void:
+	var d := UserDB.get_dragon(uid)
+	var nm := String(d.get("name", "드래곤"))
+	var el := String(Data.get_dragon(int(d.get("id", 0))).get("element", ""))
+	var key := ItemEffect.find_matching_feed(UserDB.inventory(), Data.items, el)
+	var leave := func():
+		Scenes.goto("worldmap", {"region": _params.get("region", "yutakan")})
+	if key == "":
+		# `<CaveDragonFoodMsg_Ad_3>` — 이 드래곤이 먹을 먹이가 가방에 없다.
+		PopupType.open(self, "먹이", "%s이(가) 먹을 수 있는 음식이 없습니다.\n\n상점으로 이동하시겠습니까?" % nm,
+			func(): Scenes.goto("shop", {"area": "elpis"}),
+			"확인", "취소", -1, 0, leave)
+		return
+	# `<CaveDragonFoodMsg_Ad_1/2>` — 상당히(전량) / 약간(절반)은 먹이 종류가 정한다.
+	var much := "상당히" if ItemEffect.feed_is_full(Data.item_effects, key) else "약간"
+	PopupType.open(self, "먹이",
+		"%s 아이템을 사용하면\n%s의 배고픔이 %s 채워집니다.\n사용하시겠습니까?"
+			% [Data.item_name(key), nm, much],
+		func():
+			# 원작 onClickFood — 1개 소모, 회복량 = ItemEffect.food_after_feed.
+			if int(UserDB.inventory().get(key, 0)) > 0:
+				UserDB.add_item(key, -1)
+				UserDB.set_dragon_field(uid, "food",
+					ItemEffect.food_after_feed(Data.item_effects, Data.get_item(key), key, el,
+						int(UserDB.get_dragon(uid).get("food", 0))))
+				Bgm.sfx("effect_button")
+				_narrate("%s이(가) 맛있게 먹이를 먹었습니다." % nm)
+			# 아직 굶은 드래곤이 남았으면 반복, 아니면 진입 연쇄로 복귀.
+			if not _check_starving_end():
+				_after_food_gate(),
+		"확인", "취소", -1, 0, leave)
 
 ## 직전 전투에서 넘어온 레벨업 결과창. 열려 있는 동안 `_event_open` 으로 배회를 멈춘다
 ## (사용자 지시 2026-07-27). 원작에는 이 창이 없었고 하단 텍스트박스 한 줄뿐이었다 —

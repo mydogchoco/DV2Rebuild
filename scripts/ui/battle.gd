@@ -2800,7 +2800,7 @@ func _super_attack_fx(caster: Dictionary) -> void:
 			t.tween_property(ci, "modulate", Color.WHITE, 0.3)
 
 ## 승리 보상 연출(원작 CoinEffectLayer/GoldImpLayer/ExpLayer): 코인 버스트 + EXP 아이콘 상승.
-func _reward_fx(gold: int, exp: int) -> void:
+func _reward_fx(gold: int, _exp: int) -> void:
 	Bgm.sfx("effect_coin")   # 원작 코인 효과음
 	var vis := _vis()
 	var origin := Vector2(vis.x * 0.5, vis.y * 0.46)
@@ -2820,56 +2820,11 @@ func _reward_fx(gold: int, exp: int) -> void:
 		t.tween_property(coin, "position", peak + Vector2(randf_range(-24, 24), 130.0), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		t.parallel().tween_property(coin, "modulate:a", 0.0, 0.42)
 		t.tween_callback(coin.queue_free)
-	# 원작 "골드 획득!" 배너 — 레퍼런스 docs/ref/orig_image/battle/전리품드랍예시.png:
-	#   화면 중앙 상단에 큰 주황 제목, 그 아래 코인 1개 + `X 111`(획득 수량), 좌하단 `EXP +N` + 게이지.
-	var title := Label.new()
-	title.text = "골드 획득!"
-	title.add_theme_font_size_override("font_size", 46)
-	title.add_theme_color_override("font_color", Color(1.0, 0.62, 0.10))
-	title.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.0, 0.95))
-	title.add_theme_constant_override("outline_size", 8)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size = Vector2(vis.x, 60); title.position = Vector2(0, vis.y * 0.20)
-	title.z_index = 122
-	add_child(title)
-	title.pivot_offset = Vector2(vis.x * 0.5, 30); title.scale = Vector2(0.6, 0.6)
-	var tt := title.create_tween()
-	tt.tween_property(title, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK)
-	tt.tween_interval(1.1)
-	tt.tween_property(title, "modulate:a", 0.0, 0.3)
-	tt.tween_callback(title.queue_free)
-	# 대표 코인 1개 + 수량 텍스트(원작 `X 111`).
-	# 레퍼런스 실측: 코인 지름 약 55px / 1.062 = 52 디자인px → common_coin(92px) × 0.57.
-	var big := _spr("common_ui", "common_coin", cman, 0.57 * Design.ASSET_SCALE)
-	var cpos := Vector2(vis.x * 0.44, vis.y * 0.345)
-	if big:
-		big.position = cpos; big.z_index = 122; add_child(big)
-		var bt := big.create_tween()
-		bt.tween_interval(1.35)
-		bt.tween_property(big, "modulate:a", 0.0, 0.3)
-		bt.tween_callback(big.queue_free)
-	var amt := _bmf_label("subtitle", 1.0 * Design.ASSET_SCALE)
-	amt.text = "X %d" % gold
-	amt.z_index = 122
-	amt.position = cpos + Vector2(48, -22); amt.size = Vector2(240, 44)
-	amt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	add_child(amt)
-	var at := amt.create_tween()
-	at.tween_interval(1.35)
-	at.tween_property(amt, "modulate:a", 0.0, 0.3)
-	at.tween_callback(amt.queue_free)
-	# EXP 아이콘 + 수치 상승(원작 ExpLayer/bonus_exp).
-	var ei := _spr("adventure_ui", "scene_adventure_icon_exp", _adv, 0.8)
-	var ex_pos := Vector2(vis.x * 0.5, vis.y * 0.62)
-	if ei:
-		ei.position = ex_pos; ei.z_index = 121; add_child(ei)
-		var te := ei.create_tween()
-		te.tween_property(ei, "position:y", ex_pos.y - 40.0, 0.7)
-		te.parallel().tween_property(ei, "modulate:a", 0.0, 0.7).from(1.0)
-		te.tween_callback(ei.queue_free)
-	_float(ex_pos + Vector2(26, 0), "+%d EXP" % exp, Color(0.6, 1.0, 0.7), 22)
-	# 원작 하단 서술: "92(+19) 골드를 얻었습니다." (레퍼런스 전리품드랍예시.png)
-	_log("%d 골드를 얻었습니다." % gold)
+	# 🟠 2026-08-01 걷어냄(사용자 지적 — 자작 텍스트가 보상 페이즈와 **이중으로** 나왔다):
+	#   종전 여기 있던 "골드 획득!" TTF 배너 · 대표 코인+`X %d` · `+N EXP` 초록 플로트 ·
+	#   골드 텍스트박스 줄은 전부 `_play_reward_phases`(원작 setEventReward 이식)가 담당한다.
+	#   이 함수에는 승리 순간의 **코인 산개**(보스승리1 의 전리품 산개 근사)만 남긴다.
+	#   (원작 EXP 표기는 SmallExpLayer + 보상 페이즈 텍스트박스 몫)
 
 ## 경험치 지급 + 레벨업 처리 코디네이터(render→logic→data). UserDB 상태를 읽어 LevelSystem에 넘기고
 ## 결과(새 레벨/잔여 exp)를 다시 UserDB에 영속화한다. 반환=레벨업 이벤트(연출용). 규칙은 LevelSystem이 소유.
@@ -3060,6 +3015,51 @@ func _levelup_particle(name: String, x: float, y: float) -> void:
 		0.9 if name.begins_with("pt_3max") else 0.5)
 
 ## 전투 후 파티 잔여 HP(uid→hp) — 어드벤처 조우 간 이월용.
+# ---------- 계속/그만 화면 회복 물약(레퍼런스 승리9/10 카드 위 버튼) ----------
+## 원작 setRetryButton 화면에도 InterFace 의 물약 버튼이 남아 있다(승리9/10 캡처).
+## 회복은 카드 HP(_views["A%d"].hp)에 얹혀 '계속하기'의 `_party_hp_state()` 로 이월된다.
+## 물약 선택·회복량 규칙은 adventure.gd `_attach_cure_button`/`_use_heal_potion` 과 동일
+## (`ItemEffect` logic 층 + `PartyCardView`(공유 렌더러)).
+func _attach_retry_cure_buttons() -> void:
+	for i in _party.size():
+		var v: Dictionary = _views.get("A%d" % i, {})
+		var card = v.get("node")
+		if card == null or not is_instance_valid(card):
+			continue
+		for c in card.get_children():   # 갱신 호출 대비 — 기존 버튼 제거
+			if c is Control and c.has_meta("cure_button"):
+				c.queue_free()
+		var lv := int(_party[i].get("level", 1))
+		var key := ""
+		for t in (Data.item_effects.get("heal_potion", {}).get("tiers", []) as Array):
+			var k := String((t as Dictionary).get("key", ""))
+			if ItemEffect.heal_usable(Data.item_effects, k, lv):
+				key = k
+				break
+		if key == "" or UserDB.item_count(key) <= 0:
+			continue
+		var dead := int(v.get("hp", 1)) <= 0
+		PartyCardView.build_cure_button(card, key, UserDB.item_count(key), dead, _pma,
+			_retry_use_potion.bind(i, key))
+
+## 물약 1개 소모 → 카드 HP 회복(원작 setRecoverItemHeal — skill_29 파티클 + 효과음).
+## ⚫ 사망 개체의 다이아 부활 갈래는 §2-1 CUT — 산 드래곤만 회복한다.
+func _retry_use_potion(idx: int, key: String) -> void:
+	var v: Dictionary = _views.get("A%d" % idx, {})
+	if v.is_empty() or int(v.get("hp", 0)) <= 0:
+		return
+	if not UserDB.use_item(key, 1):
+		return
+	var hp := int(v.get("hp", 0))
+	var hp_max := int(v.get("hp_max", 1))
+	v["hp"] = clampi(hp + ItemEffect.heal_amount(Data.item_effects, hp, hp_max), 0, hp_max)
+	_views["A%d" % idx] = v
+	_refresh_bar(v)
+	if v.has("center"):
+		CocosParticle.spawn(self, "skill_29", v["center"], 132, 0.9)
+	Bgm.sfx("effect_skill_29")            # 원작 music/effect_skill_29.mp3
+	_attach_retry_cure_buttons()           # 수량/사망 표시 갱신
+
 func _party_hp_state() -> Dictionary:
 	var out := {}
 	for i in _party.size():
@@ -3365,15 +3365,19 @@ func _finish() -> void:
 		#   레퍼런스 승리9/10 과 일치(붉은 그만하기 좌 · 초록 계속하기 우).
 		if more:
 			_log("탐험을 계속 이어가시겠습니까?")   # 원작 <AdventureBattleRetry>
-			var hp_state := _party_hp_state()   # 잔여 HP 이월
 			# 레벨업 결과창은 **다음 탐험 구간으로 이월**한다 — 탐험이 이어지는 동안 창이 뜨고,
 			# 닫기 전까지 배회가 멈춘다(adventure.gd `_open_levelup_result`). 사용자 지시 2026-07-27.
 			var lvq := _levelup_queue.duplicate()
 			_levelup_queue.clear()
+			# 회복 물약 버튼(레퍼런스 승리9/10 — 카드 위 십자+물약+x수량). 2026-08-01 배선.
+			_attach_retry_cure_buttons()
 			_retry_buttons(
 				func(): Scenes.goto("worldmap", {"region": region}),
 				func(): Scenes.goto("adventure",
-					{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1, "hp_state": hp_state,
+					# ⚠️ hp_state 는 **클릭 시점**에 계산한다 — 이 화면에서 물약을 쓰면 카드 HP
+					#   (_views)가 회복되고, 그 값이 다음 조우로 이월돼야 한다.
+					{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1,
+					"hp_state": _party_hp_state(),
 					# 🔴 난이도 플래그를 이월하지 않으면 '계속하기' 이후 조우가 **일반 난이도로 되돌아간다**
 					#   (영웅 5배 스탯도, 영웅/밤 드랍 풀도 사라진다). 2026-07-31 발견.
 					"hero": bool(_params.get("hero", false)), "night": bool(_params.get("night", false)),

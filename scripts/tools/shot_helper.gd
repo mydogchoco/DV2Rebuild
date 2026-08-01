@@ -569,6 +569,12 @@ func _ready() -> void:
 				av.call("_narrate_npc", "누리", "탐색을 마쳤어요. 다시 길을 나서죠!")
 			else:
 				print("SHOT: _show_npc 노드 없음")
+		"partysel":
+			# 파티 편성창(원작 setAddDragonPopupLayer + AddDragonCell) — 영웅 난이도로 진입.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 10: await get_tree().process_frame
+			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0, "hero": true})
 		"loot":
 			# 2026-08-01: 자작 _show_loot 삭제 → 원작 setEventReward 이식(_play_reward_phases)을 찍는다.
 			Scenes.goto("worldmap", {"region": "yutakan"})
