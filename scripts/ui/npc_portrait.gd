@@ -211,8 +211,9 @@ func _attach_part(slot: String, slot_pos) -> Sprite2D:
 	var frames: Array = _eye_fr if slot == "eye" else _mouth_fr
 	if frames.is_empty():
 		return null
-	# 추출 실패 기본값. (0,0) = 몸통 좌상단 모서리라 얼굴 파츠 좌표일 수 없다
-	# (현재 해당: blackrobe/1/eye — extract_npc_face.py 가 분기를 못 읽은 자리).
+	# 추출 실패 기본값. (0,0) = 몸통 좌상단 모서리라 얼굴 파츠 좌표일 수 없다.
+	# (2026-08-01 현재 해당 없음 — 종전 6종은 원작이 파츠를 **화면 밖으로 치우는** 자리였고
+	#  추출기가 그 형태를 `fVar` 변수형까지 읽게 되면서 전부 null(미표시)로 바뀌었다.)
 	if is_zero_approx(float(slot_pos[0])) and is_zero_approx(float(slot_pos[1])):
 		push_warning("[NpcPortrait] %s/%s 좌표 미추출(0,0) — 미표시" % [npc_name, slot])
 		return null

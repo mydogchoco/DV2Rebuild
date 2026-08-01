@@ -185,11 +185,16 @@ func _show_line(i: int) -> void:
 
 ## 화자 NPC 초상(원작 `ScenarioLayer::setTalker` 자리).
 ##
-## ⚠️ **시나리오 0 의 줄별 화자는 우리 디컴프에 없다** — 1~78화는 회차 클래스가 대사 앞에
-## 화자를 멤버에 써 두지만(그래서 `scenario_flow.json` 에 `npc_name` 이 있다), 프롤로그 대사
-## 목록을 만드는 코드는 덤프 범위 밖이다(`grep PrologueTalk decomp/*.c` → 0건).
-## ⇒ **대사 원문이 스스로 밝히는 줄만** 띄운다(`tutorial_flow.json` 의 `speakers`, 근거 문장 포함).
-## 나머지는 초상 없이 지나간다 — 화자를 지어내지 않는다. 사용자가 채우면 그만큼 늘어난다.
+## 줄별 화자는 `tutorial_flow.json` 의 `speakers` 에서 온다. 디컴프엔 없지만(1~78화와 달리
+## 프롤로그를 만드는 `Scenario1::setNext` 를 Ghidra 가 312B 로 잘못 끊는다) **바이너리에는
+## 있어서** `extract_prologue_speakers.py` 가 `this+0x1d8`(화자)/`+0x1f0`(대사키) 쌍으로
+## 32/35 줄을 채굴했다. 못 잡은 3줄(18·18_1·28)은 지문이라 원작에도 화자가 없어 보인다 —
+## **지어내지 않고 초상 없이** 지나간다.
+##
+## 화자는 있는데 초상이 없는 둘(`NO_PORTRAIT`)도 마찬가지로 조용히 넘어간다.
+##  - `hero`  : 주인공. 원작도 얼굴을 안 띄운다(추후 오리지널 캐릭터 초상 예정 — 사용자 확정)
+##  - `prologuemonster` : 추출 에셋에 `npc/prologuemonster` 폴더가 없다
+const NO_PORTRAIT := ["hero", "prologuemonster"]
 var _npc_node: Node = null
 func _show_speaker(i: int) -> void:
 	var sp: Dictionary = Data.tutorial_flow.get("speakers", {}).get(str(i), {})
@@ -197,7 +202,7 @@ func _show_speaker(i: int) -> void:
 	if is_instance_valid(_npc_node):
 		_npc_node.queue_free()
 		_npc_node = null
-	if npc == "":
+	if npc == "" or npc in NO_PORTRAIT:
 		return
 	var p := NpcPortrait.create(npc, 1, 1)
 	if p == null:

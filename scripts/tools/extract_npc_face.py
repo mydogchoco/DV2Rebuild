@@ -62,7 +62,20 @@ RE_NAME_LONG_NE = re.compile(r"\*\(long \*\)pbVar\d+ != (0x[0-9a-f]+)")
 #    10글자 이상 NPC 들의 좌표를 전부 흡수**했다. 실제 사고: mamorudic(9자)이 ghostpirate·
 #    nuri_hanbok·ghostcaptain … 의 좌표까지 자기 표정 1·3 으로 물고 있었다
 #    (얼굴 파츠가 어깨에 붙어 보이던 원인). 2026-07-29 수정.
-RE_NAME_MEM = re.compile(r'memcmp\(pbVar\d+,"([a-z_0-9]+)",(?:\d+|0x[0-9a-fA-F]+)\)')
+RE_NAME_MEM = re.compile(r'(\w+) = memcmp\(pbVar\d+,"([a-z_0-9]+)",(?:\d+|0x[0-9a-fA-F]+)\)')
+# ⚠️ memcmp 도 **뒤집혀** 나온다. 게다가 int/long 형태와 달리 `else` 가 아니라
+#    **블록이 닫힌 뒤 그냥 이어지는**(fall-through) 모양이라 `else` 만 보던 종전 코드는 못 잡았다:
+#
+#       iVar5 = memcmp(pbVar16,"jimon",5);
+#       if (iVar5 != 0) { …dilis·aidra·mirba·annie·garon… }   ← 다른 NPC 들
+#       pVVar11 = (VisibleRect *)0x0;
+#       switch(*(uint *)pNVar19) { case 1: … }                 ← **여기가 jimon**
+#
+#    그래서 jimon(즈믄)·worldcup_dealer 가 npc_face.json 에서 통째로 빠져 있었고, 그 좌표는
+#    직전 이름(garon 등)이 물고 있었다. ⇒ `if (VAR != 0) {` 의 블록이 **닫히는 순간**
+#    그 이름으로 전환한다(else 형태도 같은 지점이라 둘 다 걸린다). 2026-08-01 수정.
+RE_MEM_NE = re.compile(r"^\s*if \((\w+) != 0\) \{")
+RE_MEM_EQ = re.compile(r"^\s*if \((\w+) == 0\) \{")
 # 표정 index — `switch(*(uint *)pNVar19)` + `case N:` 또는 직접 비교.
 # ⚠️ Ghidra 가 `if (1 < uVar6 - 3)` 같은 범위 비교로 접어 놓은 분기는 복원되지 않는다 →
 #    그런 블록은 표정을 "?" 로 남기고, 아래에서 표정 미상 풀에 넣는다.
@@ -84,7 +97,10 @@ RE_EMO_VAR_EQ = re.compile(r"\((uVar\d+) == (\d+)\)")
 # 좌표 대입
 RE_X_HEX = re.compile(r"^\s*(local_[0-9a-f]+) = (0x[0-9a-f]+|0);\s*$")
 RE_Y_OFF = re.compile(r"^\s*(local_[0-9a-f]+) = \*\(float \*\)\(lVar\d+ \+ 4\) \+ (-?[\d.]+);\s*$")
-RE_Y_HIDE = re.compile(r"^\s*(local_[0-9a-f]+) = local_[0-9a-f]+ \* [\d.]+ \+ \*\(float \*\)\(lVar\d+ \+ 4\);\s*$")
+# ⚠️ 배수를 담는 변수는 `local_134` 만이 아니다 — Ghidra 가 한 번 `fVar29 = local_134;` 로
+#    옮겨 담고 `fVar29 * 5.0` 을 쓰는 갈래가 있다(ghostpiratehead 표정 1 = 눈·입 **둘 다** 치움).
+#    `local_` 만 받던 종전 패턴은 그 눈을 "치움(null)" 이 아니라 y=0 좌표로 읽었다.
+RE_Y_HIDE = re.compile(r"^\s*(local_[0-9a-f]+) = (?:local_[0-9a-f]+|fVar\d+) \* [\d.]+ \+ \*\(float \*\)\(lVar\d+ \+ 4\);\s*$")
 # ⚠️ 줄바꿈을 합치고 나면 닫는 괄호 앞에 공백이 남는다(`&local_488 );`) → `\s*` 필수.
 RE_ASSIGN = re.compile(r"CCPoint::operator=\(\(CCPoint \*\)\(lVar\d+ \+ (0x1[0-9a-f]{2})\),\(CCPoint \*\)&(local_[0-9a-f]+)\s*\)")
 
@@ -181,6 +197,10 @@ def main() -> int:
     # `!= 이름` 으로 열린 if 를 추적한다 — 그 if 가 닫히고 나오는 `else` 블록이 그 NPC 것이다.
     #   pending[(depth)] = 이름
     pending_ne: dict[int, str] = {}
+    # `iVarN = memcmp(…,"name",…)` 의 결과 변수 → 이름. 바로 다음 줄의 `if (iVarN != 0) {` 를
+    # 만나면 (블록 안 깊이, 이름) 으로 옮겨 담았다가 **그 블록이 닫힐 때** 그 이름으로 전환한다.
+    mem_var: tuple[str, str] | None = None
+    ne_after: list[tuple[int, str]] = []
     depth = 0
     for ln in lines:
         for rx, width in ((RE_NAME_INT_NE, 4), (RE_NAME_LONG_NE, 8)):
@@ -194,6 +214,10 @@ def main() -> int:
             cur_name, cur_emo, in_switch = pending_ne.pop(depth), None, False
             emo_var, emo_depth = None, None
         depth += ln.count("{") - ln.count("}")
+        # 뒤집힌 memcmp 블록이 닫혔다 → 이제부터가 그 NPC 다.
+        while ne_after and depth < ne_after[-1][0]:
+            cur_name, cur_emo, in_switch = ne_after.pop()[1], None, False
+            emo_var, emo_depth = None, None
         for rx, width in ((RE_NAME_INT, 4), (RE_NAME_LONG, 8)):
             m = rx.search(ln)
             if m:
@@ -203,8 +227,16 @@ def main() -> int:
                     emo_var, emo_depth = None, None
         m = RE_NAME_MEM.search(ln)
         if m:
-            cur_name, cur_emo, in_switch = m.group(1), None, False
+            mem_var = (m.group(1), m.group(2))
+            cur_name, cur_emo, in_switch = m.group(2), None, False
             emo_var, emo_depth = None, None
+        elif mem_var is not None:
+            m = RE_MEM_NE.match(ln)
+            if m and m.group(1) == mem_var[0]:
+                ne_after.append((depth, mem_var[1]))   # depth = 이 블록 **안**
+                mem_var = None
+            elif RE_MEM_EQ.match(ln):
+                mem_var = None                          # 정상 형태 — 이미 cur_name 에 들어갔다
         if RE_EMO_SWITCH.search(ln):
             in_switch = True
         m = RE_EMO_CASE.match(ln)
