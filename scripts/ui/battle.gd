@@ -3095,22 +3095,27 @@ func _finish() -> void:
 	if not win and _winner == "enemy" and not _params.has("story_return"):
 		_apply_defeat_incapacitation()
 	if win: Bgm.sfx("bg_ad_win_short")   # 원작 승리 팡파레
-	# 🔴 결과 오버레이는 전투원 위에. 패배하면 몬스터 스파인(z 8~100)이 살아남아 어둠막·문구·
-	#    버튼을 전부 가렸다(사용자 신고 2026-07-27). 버튼 z 는 `_big_button` 참조.
-	var panel := ColorRect.new()
-	panel.color = Color(0, 0, 0, 0.6)
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.z_index = 120
-	add_child(panel)
-	var res := Label.new()
-	res.text = "승리!" if win else ("패배..." if _winner == "enemy" else "무승부")
-	res.add_theme_font_size_override("font_size", 56)
-	res.add_theme_color_override("font_color", Color(1, 0.9, 0.4) if win else Color(0.9, 0.5, 0.5))
-	res.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	res.size = Vector2(vis.x, 70); res.position = Vector2(0, vis.y * 0.32)
-	res.z_index = 123
-	add_child(res)
+	# 🟠 2026-08-01 걷어냄 — 승리 시의 "승리!" 배너 + 즉석 어둠막은 **자작**이었다.
+	#   원작 승리 흐름(레퍼런스 승리2~10)에는 결과 배너가 없다: 몬스터가 도망친 뒤 곧장
+	#   보상 페이즈(검은 막 FadeTo(0.5,200) + 워드아트)로 이어진다 → `_play_reward_phases`.
+	#   패배/무승부 오버레이는 레퍼런스 밖이라 현행 유지.
+	if not win:
+		# 🔴 결과 오버레이는 전투원 위에. 패배하면 몬스터 스파인(z 8~100)이 살아남아 어둠막·문구·
+		#    버튼을 전부 가렸다(사용자 신고 2026-07-27). 버튼 z 는 `_big_button` 참조.
+		var panel := ColorRect.new()
+		panel.color = Color(0, 0, 0, 0.6)
+		panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+		panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		panel.z_index = 120
+		add_child(panel)
+		var res := Label.new()
+		res.text = "패배..." if _winner == "enemy" else "무승부"
+		res.add_theme_font_size_override("font_size", 56)
+		res.add_theme_color_override("font_color", Color(0.9, 0.5, 0.5))
+		res.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		res.size = Vector2(vis.x, 70); res.position = Vector2(0, vis.y * 0.32)
+		res.z_index = 123
+		add_child(res)
 	# 패배로 행동불능이 된 드래곤을 알린다(부적이 막으면 목록에서 빠진다).
 	if not _downed_uids.is_empty():
 		var names: PackedStringArray = []
@@ -3166,7 +3171,10 @@ func _finish() -> void:
 	var dk_pending := false
 	var dk_kill := win and dk_live
 	# 보상: 스테이지 rewards가 유실(null)이라 처치 몹 레벨 기반 파생(ASSUMPTION). 보스=보너스.
+	# 표시(연출)는 원작 `setEventReward` 이식인 `_play_reward_phases` 가 담당한다 —
+	# 여기서는 지급하면서 페이즈 목록만 쌓는다(render 분리).
 	var reward_txt := ""
+	var phases: Array = []
 	if win:
 		UserDB.bump_quest("battles")   # 마을 퀘스트: 전투 승리 카운트
 		var rlv := maxi(1, int(_enemy.get("level", 1)))
@@ -3175,9 +3183,14 @@ func _finish() -> void:
 		var gold_r := rlv * 12 + 30
 		if boss: exp_r *= 3; gold_r *= 3
 		if bool(_params.get("elite", false)): exp_r *= 2; gold_r *= 2   # 정예 몬스터 보상 2배
+		# 원작 텍스트박스 `<AdventureResultGoldBonus>` "%d(+%d) 골드…" 의 괄호가 **보너스 몫**이다
+		# (레퍼런스 승리4 "163(+38)"). 연승·각성 가산분을 그 괄호로 낸다.
+		var gold_base := gold_r
 		exp_r = int(exp_r * sbonus); gold_r = int(gold_r * sbonus)   # 연승 보너스
 		# 각성 스킬 '부유한 기운'(42) — 탐험시 골드 획득량 50% 증가. 판정=AwakenSkill(logic).
 		gold_r = int(round(float(gold_r) * AwakenSkill.mult_of(_awaken_explore(), "gold_pct")))
+		phases.append({"kind": "gold", "total": gold_r, "base": gold_base,
+			"bonus": gold_r - gold_base})
 		# 전투 미션 달성 EXP 보너스(원작 QuestAndBattleLabel "+40%/+20%"). 판정=BattleMission(logic).
 		var names: Array = []
 		for p in _party: names.append(String(p.get("name", "")))
@@ -3204,6 +3217,9 @@ func _finish() -> void:
 					"gains": lev.get("gains", []), "max_stats": lev.get("max_stats", {})})
 				# 원작 동작 유지 — 하단 텍스트박스 한 줄(stringsData_KR `AdventureResultExpLevelup`).
 				_log("%s이(가) 경험치를 %d 얻고 레벨업 했습니다." % [String(pv["name"]), exp_r])
+			else:
+				# 원작 `setEventExpText` — 레벨업이 없어도 드래곤마다 한 줄(`AdventureResultExp`).
+				_log("%s이(가) 경험치를 %d 얻었습니다." % [String(pv["name"]), exp_r])
 		_reward_fx(gold_r, exp_r)   # 코인 버스트 + EXP 아이콘(원작 CoinEffectLayer/ExpLayer)
 		# ⚠️ 예전의 자동 소멸 배지(_levelup_fx)는 더 이상 부르지 않는다 — 같은 정보를
 		#    `LevelUpResult` 모달이 담당하고(사용자 지시: 닫기 전까지 탐험 정지), 둘을 같이 띄우면 중복이다.
@@ -3236,6 +3252,7 @@ func _finish() -> void:
 			UserDB.add_item(skey, sqty)
 			reward_txt += " / %s x%d" % [_drop_display_name(skey), sqty]
 			run_items.append(skey)
+			phases.append({"key": skey, "count": sqty})
 		# 2) 먹이 — **그 지역 속성에 맞는 것만**(사용자 확정 2026-07-30).
 		#    지역 속성이 비어 있으면(우노 24·25 = element null) 아무것도 안 나온다.
 		if frng.randf() < float((Data.drops.get("food", {}).get("chance", {}) as Dictionary).get(fsrc, 0.0)):
@@ -3246,6 +3263,7 @@ func _finish() -> void:
 				UserDB.add_item(fkey, fqty)
 				reward_txt += " / %s x%d" % [Data.item_name(fkey), fqty]
 				run_items.append(fkey)
+				phases.append({"key": fkey, "count": fqty})
 		# 2b) **몬스터별 고유 드랍** — 장소가 아니라 그 몬스터에 붙는 것.
 		#     밤 공용 조우 4종(#160 골드 임프·#161 실버 임프·#162 검은 로브의 사도·#175 블랙 윗치)과
 		#     혼돈의 틈새 랜덤 보스 3종(#36·#138·#139). 원작 근거 = `<NightTutorial_talk11>`
@@ -3260,21 +3278,24 @@ func _finish() -> void:
 				# 재화는 아이템이 아니다(블랙 윗치의 다이아).
 				UserDB.add_currency(String(mrow["currency"]), mqty)
 				reward_txt += " / 다이아 x%d" % mqty
+				phases.append({"kind": "dia", "count": mqty})
 				continue
 			var mkey := String(mrow["key"])
 			UserDB.add_item(mkey, mqty)
 			reward_txt += " / %s x%d" % [_drop_display_name(mkey), mqty]
 			run_items.append(mkey)
+			phases.append({"key": mkey, "count": mqty})
 		# 소환형 보스 처치 확정 — 원작은 1·2차 어느 쪽도 전리품을 안 주다가 **2차 승리**
 		# (state 10)에서만 준다. 위 두 표를 여기서 한 번에 굴리고 월드맵에서 보스를 지운다.
 		if dk_kill:
-			reward_txt += _darknix_kill(st, run_items)
+			reward_txt += _darknix_kill(st, run_items, phases)
 		# 3) 속성 정기 — 그 지역 속성의 `ele_*`(items.json currency/essence 9종).
 		var ess := Drops.roll_essence(Data.drops, Data.items, st.get("element", ""), fsrc, frng)
 		if not ess.is_empty():
 			UserDB.add_item(String(ess["key"]), int(ess["count"]))
 			reward_txt += " / %s x%d" % [Data.item_name(String(ess["key"])), int(ess["count"])]
 			run_items.append(String(ess["key"]))
+			phases.append({"key": String(ess["key"]), "count": int(ess["count"])})
 		# 4) 드래곤 알 — **그 탐험지 팝업에 등재된 드래곤만**, H 는 영웅 난이도 희귀 드롭
 		#    (사용자 확정 2026-07-30). 원작 근거 = <AdventureResultEgg> "%1$s의 알" +
 		#    AdventureRewardLayer 의 EGG 셀(포팅 카드 AdventureEventFlow.md §5).
@@ -3284,6 +3305,7 @@ func _finish() -> void:
 			UserDB.add_item(ekey, 1)
 			reward_txt += " / %s x1" % String(EggGacha.item_def(ekey, Data.dragons).get("name", "알"))
 			run_items.append(ekey)
+			phases.append({"key": ekey, "count": 1})
 		# 젬·장비 드롭(사용자 확정 2026-07-27): **탐험이 기본 획득처**다. 고레벨 지역일수록,
 		# 일반몹 < 보스 일수록 더 좋은 것이 나온다(보물상자는 adventure.gd 담당).
 		# 판정=Drops(logic) · 표=data/drops.json.
@@ -3299,54 +3321,78 @@ func _finish() -> void:
 			UserDB.add_item(gkey, 1)
 			reward_txt += " / %s x1" % Drops.display_name(gkey, Data.gems, Data.equipment)
 			run_items.append(gkey)
-	var sub := Label.new()
+			phases.append({"key": gkey, "count": 1})
+	# 🟠 2026-08-01: 종전의 흰 자막(`sub` — "클리어!" / 전리품 로그 한 줄)은 걷어냈다.
+	#   원작은 클리어 자막 없이 결산 팝업(AdventureRewardLayer)으로, 전리품은 페이즈별
+	#   텍스트박스 줄(`AdventureItemName`)로 알린다 — `_play_reward_phases` 가 담당.
 	if win and not more:
 		var sid := str(_params.get("stage", ""))
 		if sid != "":
 			UserDB.set_progress("cleared_" + sid, true)   # 원작 setScenarioMark용 진행도 기록(던전 클리어)
-		sub.text = "%s 클리어!" % String(st.get("name", "던전"))
 		_note_story_quest(st)
-	elif win:
-		# 조우 계속 중일 때 원작은 별도 자막 없이 **하단 텍스트박스**로만 알린다
-		# (레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png). 그만하기/계속하기 버튼과 겹치던 줄을 없앤다.
-		sub.text = ""
-		if reward_txt != "": _log("전리품%s 을(를) 얻었습니다." % reward_txt)
-	elif _params.has("story_return"):
-		# 스토리 전투는 재도전이 없다(져야 진행되는 연출) — "다시 도전해보세요" 는 맞지 않는다.
-		sub.text = ""
-	else:
+	elif not win and not _params.has("story_return"):
+		var sub := Label.new()
 		sub.text = "다시 도전해보세요"
-	sub.add_theme_font_size_override("font_size", 18)
-	sub.add_theme_color_override("font_color", Color.WHITE)
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.size = Vector2(vis.x, 24); sub.position = Vector2(0, vis.y * 0.32 + 76)
-	sub.z_index = 123
-	add_child(sub)
-	# 원작 DungeonFinishLayer/AdventureRewardLayer: 던전 클리어 시 런 전체 결산 요약.
-	if win and not more:
-		_dungeon_finish_summary(run_exp, run_gold, run_items, best_streak, enc + 1)
-	# 원작 showWinningStreak: 2연승 이상이면 연승 배지(팝 애니 + 보너스 표기).
-	if win and streak >= 2:
-		var stk := Label.new()
-		stk.text = "%d 연승!  (보상 +%d%%)" % [streak, int(round((sbonus - 1.0) * 100.0))]
-		stk.add_theme_font_size_override("font_size", 30)
-		stk.add_theme_color_override("font_color", Color(1, 0.55, 0.2))
-		stk.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0, 0.9))
-		stk.add_theme_constant_override("outline_size", 5)
-		stk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stk.size = Vector2(vis.x, 40); stk.position = Vector2(0, vis.y * 0.32 - 56)
-		stk.pivot_offset = Vector2(vis.x * 0.5, 20); stk.scale = Vector2(0.5, 0.5)
-		stk.z_index = 123
-		add_child(stk)
-		stk.create_tween().tween_property(stk, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK)
-	# 원작 계속/중단 선택 = `AdventureScene::setRetryButton`(포팅 카드 AdventureEventFlow.md §3).
-	#   좌 = `btn1.png`(붉은) + `choice_stop_KR`   tag 0xbbc → onClickStop
-	#   우 = `btn2.png`(초록) + `choice_continue_KR` tag 0xbbb → onClickRetry
-	#   레퍼런스 docs/ref/orig_image/battle/전리품드랍후.png 와 일치(붉은 그만하기 좌 · 초록 계속하기 우).
-	# 🟠 2026-07-30 교체: 종전엔 `9patch/btn`/`btn2` + **텍스트 라벨**을 썼다(자작).
-	#   원작 프레임 `scene/adventure/btn1|btn2` + `choice_stop_KR`/`choice_continue_KR` 이
-	#   전부 보유분이라 자작할 이유가 없었다.
-	var btn_y := (vis.y * 0.5 + 200.0) if (win and not more) else (vis.y * 0.38)
+		sub.add_theme_font_size_override("font_size", 18)
+		sub.add_theme_color_override("font_color", Color.WHITE)
+		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub.size = Vector2(vis.x, 24); sub.position = Vector2(0, vis.y * 0.32 + 76)
+		sub.z_index = 123
+		add_child(sub)
+	# 보상 페이즈 **뒤에** 이어질 것들(결산 팝업·연승 배지·계속/그만 버튼) — 원작도
+	# setEventReward 슬롯을 전부 소진한 다음에야 setRetryButton 으로 넘어간다.
+	var after_rewards := func() -> void:
+		# 원작 AdventureRewardLayer: 던전 클리어 시 런 전체 결산 요약.
+		if win and not more:
+			_dungeon_finish_summary(run_exp, run_gold, run_items, best_streak, enc + 1)
+		# 원작 showWinningStreak: 2연승 이상이면 연승 배지(팝 애니 + 보너스 표기).
+		if win and streak >= 2:
+			var stk := Label.new()
+			stk.text = "%d 연승!  (보상 +%d%%)" % [streak, int(round((sbonus - 1.0) * 100.0))]
+			stk.add_theme_font_size_override("font_size", 30)
+			stk.add_theme_color_override("font_color", Color(1, 0.55, 0.2))
+			stk.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0, 0.9))
+			stk.add_theme_constant_override("outline_size", 5)
+			stk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			stk.size = Vector2(vis.x, 40); stk.position = Vector2(0, vis.y * 0.32 - 56)
+			stk.pivot_offset = Vector2(vis.x * 0.5, 20); stk.scale = Vector2(0.5, 0.5)
+			stk.z_index = 123
+			add_child(stk)
+			stk.create_tween().tween_property(stk, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK)
+		# 원작 계속/중단 선택 = `AdventureScene::setRetryButton`(포팅 카드 AdventureEventFlow.md §3).
+		#   좌 = `btn1.png`(붉은) + `choice_stop_KR`   tag 0xbbc → onClickStop
+		#   우 = `btn2.png`(초록) + `choice_continue_KR` tag 0xbbb → onClickRetry
+		#   레퍼런스 승리9/10 과 일치(붉은 그만하기 좌 · 초록 계속하기 우).
+		if more:
+			_log("탐험을 계속 이어가시겠습니까?")   # 원작 <AdventureBattleRetry>
+			var hp_state := _party_hp_state()   # 잔여 HP 이월
+			# 레벨업 결과창은 **다음 탐험 구간으로 이월**한다 — 탐험이 이어지는 동안 창이 뜨고,
+			# 닫기 전까지 배회가 멈춘다(adventure.gd `_open_levelup_result`). 사용자 지시 2026-07-27.
+			var lvq := _levelup_queue.duplicate()
+			_levelup_queue.clear()
+			_retry_buttons(
+				func(): Scenes.goto("worldmap", {"region": region}),
+				func(): Scenes.goto("adventure",
+					{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1, "hp_state": hp_state,
+					# 🔴 난이도 플래그를 이월하지 않으면 '계속하기' 이후 조우가 **일반 난이도로 되돌아간다**
+					#   (영웅 5배 스탯도, 영웅/밤 드랍 풀도 사라진다). 2026-07-31 발견.
+					"hero": bool(_params.get("hero", false)), "night": bool(_params.get("night", false)),
+					"run_seed": int(_params.get("run_seed", 0)),
+					"streak": streak, "run_exp": run_exp, "run_gold": run_gold,
+					"run_items": run_items, "best_streak": best_streak, "levelups": lvq}))
+		else:
+			# 던전이 끝나 이어질 탐험이 없다 → 결과 화면에서 바로 띄운다(이월할 곳이 없으므로).
+			if win:
+				_log("더 이상 탐험할 곳이 없어 이 지역을 벗어납니다.")   # 원작 <AdventureEventEnd>(탐험끝.png)
+			if not _levelup_queue.is_empty():
+				var q := _levelup_queue.duplicate()
+				_levelup_queue.clear()
+				# 🔀 2026-07-31: 동굴 축복 아이템과 **같은 화면**을 공유한다(LevelUpScreen).
+				LevelUpScreen.open_queue(self, q)
+			_big_button("월드맵으로", "9patch_btn2",
+				Vector2(vis.x * 0.5 - 140.0,
+					(vis.y * 0.5 + 200.0) if (win and not more) else (vis.y * 0.38)),
+				func(): Scenes.goto("worldmap", {"region": region}))
 	# ── 스토리 전투 복귀 ────────────────────────────────────────────────────
 	# 원작은 `AdventureScene` 을 **push** 해서 끝나면 시나리오로 pop 한다
 	# (`ScenarioSupport::scenarioBattle` → `CCDirector::pushScene`). 우리는 씬 스택이 없어
@@ -3356,7 +3402,7 @@ func _finish() -> void:
 		#    이어진다(이벤트 26·27 은 애초에 이길 수 없는 연출 전투다).
 		#    ⇒ 재도전·월드맵 같은 갈림길을 두지 않는다. 버튼 하나로만 나간다.
 		var sr: Dictionary = _params["story_return"]
-		# 결과 문구(승리/패배) 아래에 놓는다 — 기본 `btn_y`(패배 시 y*0.38)는 문구와 겹친다.
+		# 결과 문구(승리/패배) 아래에 놓는다 — 패배 시 y*0.38 은 문구와 겹친다.
 		_big_button("이야기 계속", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, vis.y * 0.5 + 120.0),
 			func() -> void:
 				Scenes.goto("story", {"no": int(sr.get("no", 1)), "part": int(sr.get("part", 0)),
@@ -3364,33 +3410,13 @@ func _finish() -> void:
 					"back": sr.get("back", "worldmap"),
 					"back_params": sr.get("back_params", {})}))
 		return
-	if more:
-		_log("탐험을 계속 이어가시겠습니까?")
-		var hp_state := _party_hp_state()   # 잔여 HP 이월
-		# 레벨업 결과창은 **다음 탐험 구간으로 이월**한다 — 탐험이 이어지는 동안 창이 뜨고,
-		# 닫기 전까지 배회가 멈춘다(adventure.gd `_open_levelup_result`). 사용자 지시 2026-07-27.
-		var lvq := _levelup_queue.duplicate()
-		_levelup_queue.clear()
-		_retry_buttons(
-			func(): Scenes.goto("worldmap", {"region": region}),
-			func(): Scenes.goto("adventure",
-				{"stage": _params.get("stage", ""), "region": region, "enc": enc + 1, "hp_state": hp_state,
-				# 🔴 난이도 플래그를 이월하지 않으면 '계속하기' 이후 조우가 **일반 난이도로 되돌아간다**
-				#   (영웅 5배 스탯도, 영웅/밤 드랍 풀도 사라진다). 2026-07-31 발견.
-				"hero": bool(_params.get("hero", false)), "night": bool(_params.get("night", false)),
-				"run_seed": int(_params.get("run_seed", 0)),
-				"streak": streak, "run_exp": run_exp, "run_gold": run_gold,
-				"run_items": run_items, "best_streak": best_streak, "levelups": lvq}))
+	# 승리면 보상 페이즈(원작 setEventReward 연쇄)를 먼저 돌리고, 끝난 뒤 버튼을 낸다.
+	if win and not phases.is_empty():
+		_play_reward_phases(phases, after_rewards)
 	else:
-		# 던전이 끝나 이어질 탐험이 없다 → 결과 화면에서 바로 띄운다(이월할 곳이 없으므로).
-		if not _levelup_queue.is_empty():
-			var q := _levelup_queue.duplicate()
-			_levelup_queue.clear()
-			# 🔀 2026-07-31: 동굴 축복 아이템과 **같은 화면**을 공유한다(LevelUpScreen).
-			LevelUpScreen.open_queue(self, q)
-		_big_button("월드맵으로", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, btn_y),
-			func(): Scenes.goto("worldmap", {"region": region}))
+		after_rewards.call()
 	# 원작 onClickRetry/setRetryButton: 패배 시 재도전(부활+현 조우 재시작, 골드 비용).
+	var btn_y := vis.y * 0.38
 	if not win and _winner == "enemy":
 		const RETRY_COST := 100
 		_big_button("재도전 (%dG)" % RETRY_COST, "9patch_btn3",
@@ -3484,6 +3510,250 @@ func _retry_button(bg_key: String, label_key: String, man: Dictionary,
 	var tw := holder.create_tween()
 	tw.tween_property(holder, "position", to, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
 
+# ---------- 승리 보상 페이즈(원작 AdventureScene::setEventReward @00c7f11c 이식) ----------
+## 원작은 보상 슬롯(골드→아이템→…)마다 setEventReward 를 재진입하며 한 페이즈씩 낸다.
+## 페이즈 공통(디컴프 리터럴):
+##   · 검은 막 CCLayerColor {0,0,0} FadeTo(0.5, 200) — tag 0x75, 페이즈 연쇄 동안 유지
+##   · 워드아트 = `WordArt.burst`(font_title, 제목은 stringsData 키 `AdventureReward*`)
+##   · 효과음 `music/effect_holy_wing.mp3` · 파티클 `pt_monster_income_1`(top, scale 1.4)
+## 골드 페이즈(:65642-65691): `common/coin_big`(scale 1.5) @ (cx−110, cy) +
+##   NumberingLabel "x%d"(scale 1.2) @ (cx+100, cy), 슬라이드 인 0.5s EaseBackInOut,
+##   텍스트박스 `<AdventureResultGold(Bonus)>` "%d(+%d) 골드를 얻었습니다."(승리4/5).
+## 아이템 페이즈(:64650-64990 + setRewardItemDesc/`setRewardBackLight`):
+##   · 아이콘 팝인 Delay(0.8) → FadeTo∥ScaleTo(1.6)∥RotateTo(720°) 0.2s → ScaleTo(1.4)
+##     → 왼쪽으로 이동(레퍼런스 승리7/8: 최종 x≈38%) → 우측에 상세 블록
+##   · 백라이트 = `common/backlight3` RotateBy(3s, 20°) 반복 + 페이드 인(setRewardBackLight)
+##   · 상세 = font_common: 이름 `<AdventureItemCount>` "%s  -  {#4374D9:%d개}" /
+##     설명(items.json desc — 없으면 생략, 문장 생성 금지) /
+##     `<AdventureItemTotalCount>` "{#BDBDBD:(보유 수량 : %d개)}"
+##   · 텍스트박스 `<AdventureItemName>` "%s을(를) 획득하였습니다."
+## 진행: 원작 NumberingLabel confirm/터치 = 우리 전면 탭 버튼(즉시 다음), 자동 진행 3.4s.
+var _phase_dim: ColorRect
+var _phase_box: Node2D          # 현재 페이즈의 연출 묶음(중복 실행 시 정리용)
+var _phase_run := 0             # 실행 세대 — 새 실행이 시작되면 이전 연쇄는 스스로 멈춘다
+func _play_reward_phases(phases: Array, done: Callable) -> void:
+	# 이중 실행 가드 — 이전 연쇄의 막·박스를 걷고 세대를 올린다(테스트 주입 + 실제 승리가
+	# 겹쳐도 마지막 호출만 살아남는다).
+	_phase_run += 1
+	if is_instance_valid(_phase_dim):
+		_phase_dim.queue_free()
+	if is_instance_valid(_phase_box):
+		_phase_box.queue_free()
+	var vis := _vis()
+	_phase_dim = ColorRect.new()
+	_phase_dim.color = Color(0, 0, 0, 0)
+	_phase_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_phase_dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_phase_dim.z_index = 120
+	add_child(_phase_dim)
+	_phase_dim.create_tween().tween_property(_phase_dim, "color:a", 200.0 / 255.0, 0.5)
+	Bgm.sfx("effect_holy_wing")
+	_run_reward_phase(phases, 0, done, _phase_run)
+
+func _run_reward_phase(phases: Array, i: int, done: Callable, run_id: int) -> void:
+	if run_id != _phase_run:
+		return   # 더 새로운 실행이 시작됐다 — 이 연쇄는 여기서 끝
+	if i >= phases.size():
+		# 페이즈 소진 → 막을 걷고 다음(계속/그만 버튼 등)으로. 레퍼런스 승리9: 버튼 화면은 밝다.
+		if is_instance_valid(_phase_dim):
+			var d := _phase_dim
+			_phase_dim = null
+			var t := d.create_tween()
+			t.tween_property(d, "color:a", 0.0, 0.3)
+			t.tween_callback(d.queue_free)
+		done.call()
+		return
+	var ph: Dictionary = phases[i]
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var box := Node2D.new()
+	box.z_index = 122
+	add_child(box)
+	_phase_box = box
+	CocosParticle.spawn(box, "pt_monster_income_1", Vector2(vis.x * 0.5, 40.0), 123, 1.4)
+	var kind := String(ph.get("kind", "item"))
+	match kind:
+		"gold":
+			WordArt.burst(box, "골드 획득!", vis, 125, 60.0)   # <AdventureRewardGold>, 골드는 +60
+			var man := _man("common_ui")
+			var coin := _spr("common_ui", "common_coin_big", man, 1.5 * S)
+			if coin:
+				coin.position = Vector2(vis.x * 0.5 - 110.0 + 80.0, vis.y * 0.5)
+				coin.modulate.a = 0.0
+				box.add_child(coin)
+				var ct := coin.create_tween()
+				ct.tween_interval(0.5)
+				ct.tween_property(coin, "modulate:a", 1.0, 0.15)
+				ct.parallel().tween_property(coin, "position:x", vis.x * 0.5 - 110.0, 0.5) \
+					.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN_OUT)
+			var cnt := _bmfont_label("", "font_common", 30)
+			cnt.position = Vector2(vis.x * 0.5 + 20.0, vis.y * 0.5 - 20.0)
+			cnt.size = Vector2(260, 40)
+			cnt.scale = Vector2(1.2, 1.2)
+			cnt.modulate.a = 0.0
+			box.add_child(cnt)
+			# 원작 NumberingLabel — 수치가 0→N 으로 구른다.
+			var total := int(ph.get("total", 0))
+			var nt := cnt.create_tween()
+			nt.tween_interval(0.5)
+			nt.tween_property(cnt, "modulate:a", 1.0, 0.15)
+			nt.tween_method(func(v: float): cnt.text = "X %d" % int(round(v)),
+				0.0, float(total), 0.8)
+			var bonus := int(ph.get("bonus", 0))
+			_log(("%d(+%d) 골드를 얻었습니다." % [int(ph.get("base", total)), bonus]) if bonus > 0
+				else "%d 골드를 얻었습니다." % total)
+		"dia":
+			WordArt.burst(box, "다이아 획득!", vis, 125, 60.0)   # <AdventureRewardDia>
+			var man := _man("common_ui")
+			var dia := _spr("common_ui", "common_diamond_small1", man, 1.5 * S)
+			if dia:
+				dia.position = Vector2(vis.x * 0.5 - 110.0, vis.y * 0.5)
+				box.add_child(dia)
+			var cnt := _bmfont_label("X %d" % int(ph.get("count", 0)), "font_common", 30)
+			cnt.position = Vector2(vis.x * 0.5 + 20.0, vis.y * 0.5 - 20.0)
+			cnt.size = Vector2(260, 40)
+			cnt.scale = Vector2(1.2, 1.2)
+			box.add_child(cnt)
+			_log("다이아를 %d개 얻었습니다." % int(ph.get("count", 0)))   # <AdventureResultDia>
+		_:
+			var key := String(ph.get("key", ""))
+			var count := int(ph.get("count", 1))
+			WordArt.burst(box, _reward_title_for(key), vis, 125, 100.0)
+			var icon_end := Vector2(vis.x * 0.38, vis.y * 0.47)
+			# 백라이트(setRewardBackLight): 아이콘과 함께 페이드 인, RotateBy(3.0, 20°) 반복.
+			var bl := _spr("common_ui", "common_backlight3", _man("common_ui"), 1.3 * S)
+			if bl:
+				bl.position = icon_end
+				bl.modulate = Color(1, 0.95, 0.65, 0.0)
+				box.add_child(bl)
+				var brot := bl.create_tween().set_loops()
+				brot.tween_property(bl, "rotation_degrees", 360.0, 54.0).from(0.0)   # 20°/3s
+				var bt := bl.create_tween()
+				bt.tween_interval(0.8)
+				bt.tween_property(bl, "modulate:a", 0.9, 0.2)
+				bt.parallel().tween_property(bl, "scale", Vector2(1.1 * S, 1.1 * S), 0.2) \
+					.from(Vector2(1.3 * S, 1.3 * S))
+			var tex := _reward_icon_texture(key)
+			if tex:
+				var icon := Sprite2D.new()
+				icon.texture = tex
+				icon.material = _pma
+				icon.position = Vector2(vis.x * 0.5, vis.y * 0.47)
+				icon.modulate.a = 0.0
+				icon.scale = Vector2.ZERO
+				box.add_child(icon)
+				var it := icon.create_tween()
+				it.tween_interval(0.8)
+				it.tween_property(icon, "modulate:a", 1.0, 0.2)
+				it.parallel().tween_property(icon, "scale", Vector2(1.6 * S, 1.6 * S), 0.2)
+				it.parallel().tween_property(icon, "rotation_degrees", 720.0, 0.2).from(0.0)
+				it.tween_property(icon, "scale", Vector2(1.4 * S, 1.4 * S), 0.2)
+				it.tween_property(icon, "position", icon_end, 0.2) \
+					.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+			var nm := _drop_display_name(key)
+			# 우측 상세 블록(setRewardItemDesc, font_common) — 아이콘이 자리 잡은 뒤 페이드 인.
+			var blk := Control.new()
+			blk.position = Vector2(vis.x * 0.55, vis.y * 0.3)
+			blk.modulate.a = 0.0
+			box.add_child(blk)
+			var name_l := _bmfont_rich("%s  -  [color=#4374d9]%d개[/color]" % [nm, count], 24)
+			name_l.position = Vector2(0, 0); name_l.size = Vector2(vis.x * 0.42, 36)
+			blk.add_child(name_l)
+			var desc := String(Data.get_item(key).get("desc", ""))
+			var dy := 48.0
+			if desc != "":
+				var desc_l := _bmfont_rich(desc, 20)
+				desc_l.position = Vector2(0, dy); desc_l.size = Vector2(vis.x * 0.36, 130)
+				blk.add_child(desc_l)
+				dy += minf(130.0, 30.0 * ceilf(desc.length() / 18.0)) + 12.0
+			# 보유 수량 — 방금 지급분이 이미 들어간 값(원작도 지급 후 조회).
+			var owned := UserDB.item_count(key)
+			if owned > 0:
+				var own_l := _bmfont_rich("[color=#bdbdbd](보유 수량 : %d개)[/color]" % owned, 18)
+				own_l.position = Vector2(0, dy); own_l.size = Vector2(vis.x * 0.36, 30)
+				blk.add_child(own_l)
+			var kt := blk.create_tween()
+			kt.tween_interval(1.2)
+			kt.tween_property(blk, "modulate:a", 1.0, 0.25)
+			_log("%s%s 획득하였습니다." % [nm, "을" if _has_batchim(nm) else "를"])
+	# 진행 — 탭 즉시 / 자동 3.4s(전투 배속 반영).
+	var adv_done := [false]
+	var advance := func() -> void:
+		if adv_done[0] or not is_instance_valid(box):
+			return
+		adv_done[0] = true
+		var ft := box.create_tween()
+		ft.tween_property(box, "modulate:a", 0.0, 0.15)
+		ft.tween_callback(box.queue_free)
+		ft.tween_callback(func(): _run_reward_phase(phases, i + 1, done, run_id))
+	var tap := Button.new()
+	tap.flat = true
+	tap.position = Vector2.ZERO
+	tap.size = vis
+	tap.pressed.connect(advance)
+	box.add_child(tap)
+	get_tree().create_timer(3.4 / maxf(_speed, 1.0)).timeout.connect(advance)
+
+## 워드아트 제목 — stringsData_KR `AdventureReward*` 키(원작 setEventReward 가 슬롯별로 고른다).
+func _reward_title_for(key: String) -> String:
+	if Gem.parse_item_key(key).size() > 0 or Equipment.parse_item_key(key) != "":
+		return "장착 아이템 획득!"                       # <AdventureRewardEquip>
+	if key.begins_with(EggGacha.KEY_PREFIX):
+		return "드래곤 알 획득!"                         # <AdventureRewardEgg>
+	if not Loadout.parse_item_key(key).is_empty():
+		return "스킬 스크롤 획득!"                       # <AdventureRewardSkill>
+	return "아이템 획득!"                                # <AdventureRewardItem>
+
+## 보상 아이콘 — 가상 인벤 키(gem:/equip:/egg:)는 Icons(카탈로그 계층), 그 외 items.json icon.
+func _reward_icon_texture(key: String) -> Texture2D:
+	var g := Gem.parse_item_key(key)
+	if not g.is_empty():
+		return Icons.gem_texture(
+			String(Gem.gem_def(String(g["name"]), Data.gems).get("code", "")), int(g["tier"]))
+	var ck := Equipment.parse_item_key(key)
+	if ck != "":
+		return Icons.equip_texture(Equipment.catalog(Data.equipment).get(ck, {}))
+	if key.begins_with(EggGacha.KEY_PREFIX):
+		var did := int(key.get_slice(":", 1))
+		return Icons.dragon_egg_texture(did)
+	var path := String(Data.item_icon_path(key))
+	if path != "" and ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+## font_common BMFont 라벨(수량/카운트용). 비트맵이라 fixed_size_scale_mode 필요(§10 표).
+func _bmfont_label(text: String, fnt_name: String, size: int) -> Label:
+	var lb := Label.new()
+	lb.text = text
+	var fp := "res://assets/converted/font_ui/%s.fnt" % fnt_name
+	if ResourceLoader.exists(fp):
+		lb.add_theme_font_override("font", load(fp))
+	lb.add_theme_font_size_override("font_size", size)
+	return lb
+
+## font_common RichTextLabel — `<AdventureItemCount>` 의 {#4374D9:…} 색 마크업을 BBCode 로 낸다.
+func _bmfont_rich(bb: String, size: int) -> RichTextLabel:
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = true
+	rt.text = bb
+	rt.fit_content = true
+	rt.scroll_active = false
+	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fp := "res://assets/converted/font_ui/font_common.fnt"
+	if ResourceLoader.exists(fp):
+		rt.add_theme_font_override("normal_font", load(fp))
+		rt.add_theme_font_size_override("normal_font_size", size)
+	else:
+		rt.add_theme_font_size_override("normal_font_size", size)
+	return rt
+
+## 받침 유무(을/를) — 원작 문자열 키는 "%s을(를)" 이지만 실화면(승리8)은 조사가 정리돼 있다.
+func _has_batchim(word: String) -> bool:
+	if word.is_empty(): return false
+	var c := word.unicode_at(word.length() - 1)
+	if c < 0xAC00 or c > 0xD7A3: return false
+	return ((c - 0xAC00) % 28) != 0
+
 ## 원작 대형 버튼 — `9patch/btn*` 프레임 위에 라벨. 레퍼런스의 그만하기/계속하기 크기(약 280×86)를 따른다.
 ## (계속/그만은 위 `_retry_buttons` 가 원작 프레임으로 그린다 — 여기 남은 호출처는
 ##  '월드맵으로'·'재도전' 처럼 원작에 대응 프레임이 없는 버튼뿐이다.)
@@ -3512,7 +3782,7 @@ func _apply_boss_phase(eb: Dictionary) -> void:
 ##   `setWinSound` + 승리 대사 + state 10(보상) + **`setLimitTime_darknix(0)`**
 ##   = 월드맵에서 보스 소멸. 전리품은 `initEvent` case 10(:22194)이 준다 —
 ##   원작은 인벤 여유와 무관하게 우편함이었으나 오프라인엔 우편함이 없어(§2-1) 인벤 직행.
-func _darknix_kill(st: Dictionary, run_items: Array) -> String:
+func _darknix_kill(st: Dictionary, run_items: Array, phases: Array) -> String:
 	var frng := RandomNumberGenerator.new(); frng.randomize()
 	var dmode := Drops.mode_of(bool(_params.get("hero", false)),
 		bool(_params.get("night", false)), _is_kades())
@@ -3523,17 +3793,20 @@ func _darknix_kill(st: Dictionary, run_items: Array) -> String:
 		UserDB.add_item(skey, sqty)
 		txt += " / %s x%d" % [_drop_display_name(skey), sqty]
 		run_items.append(skey)
+		phases.append({"key": skey, "count": sqty})
 	for md in Drops.roll_monster(Data.monster_drops, int(_enemy.get("id", 0)), frng):
 		var mrow: Dictionary = md
 		var mqty := int(mrow["count"])
 		if String(mrow.get("kind", "item")) == "currency":
 			UserDB.add_currency(String(mrow["currency"]), mqty)
 			txt += " / 다이아 x%d" % mqty
+			phases.append({"kind": "dia", "count": mqty})
 			continue
 		var mkey := String(mrow["key"])
 		UserDB.add_item(mkey, mqty)
 		txt += " / %s x%d" % [_drop_display_name(mkey), mqty]
 		run_items.append(mkey)
+		phases.append({"key": mkey, "count": mqty})
 	UserDB.darknix_clear()   # 원작 setLimitTime_darknix(0) — 월드맵에서 사라진다
 	return txt
 

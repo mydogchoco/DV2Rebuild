@@ -719,59 +719,40 @@ func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: Canva
 ## 곁들이는 것: 전체화면 `CCLayerColor` FadeTo(0.5, **200**) 플래시 +
 ##   파티클 `particle/scene/adventure/pt_monster_income_1.plist`.
 ##
-## 폰트는 원작 그대로 `font_title`(assets/converted/font_ui/font_title.fnt) — 비트맵이라
-## `fixed_size_scale_mode` 를 켜야 `font_size` 가 먹는다(§10 표).
-## 워드아트 안무 총 길이(초) — 호출측이 다음 연출을 이 뒤로 미룰 때 쓴다.
-## 0.4 + 0.13333×3 + 0.1 + 0.7 + 0.2 = 1.8999…
-const _WORDART_SECS := 1.9
+## 안무 자체는 `WordArt.burst`(scripts/ui/word_art.gd)로 추출 — 전투 보상 페이즈(battle.gd)와
+## 같은 리터럴을 쓰기 위해서다. 총 길이 상수도 거기 것을 쓴다.
+## 🟠 2026-08-01 걷어냄: 종전엔 여기서 **흰색 플래시**를 만들었는데 원작은 **검은 막**
+##   (CCLayerColor {0,0,0} FadeTo(0.5, 200), tag 0x75)이고 수명도 이벤트 전체다 →
+##   `_event_dim_show/_clear` 로 분리(setEventHealArea 디컴프 :62410-62414).
+const _WORDART_SECS := WordArt.SECS
 
 func _wordart_burst(text: String) -> void:
 	var vis := _vis()
-	# 화면 플래시 — 원작 CCLayerColor + FadeTo(0.5, 200).
-	var flash := ColorRect.new()
-	flash.color = Color(1, 1, 1, 0)
-	flash.size = vis
-	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash.z_index = 190
-	add_child(flash)
-	var ft := flash.create_tween()
-	ft.tween_property(flash, "color:a", 200.0 / 255.0, 0.5)
-	ft.tween_property(flash, "color:a", 0.0, 0.5)
-	ft.tween_callback(flash.queue_free)
-	# 워드아트.
-	var lb := Label.new()
-	lb.text = text
-	var fp := "res://assets/converted/font_ui/font_title.fnt"
-	if ResourceLoader.exists(fp):
-		var fnt: FontFile = load(fp)
-		lb.add_theme_font_override("font", fnt)
-		lb.add_theme_font_size_override("font_size",
-			int(fnt.fixed_size) if fnt.fixed_size > 0 else 39)
-	else:
-		lb.add_theme_font_size_override("font_size", 34)
-		lb.add_theme_color_override("font_color", Color(1, 0.9, 0.45))
-	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lb.size = Vector2(vis.x, 60)
-	# 원작 @(w*0.5, h*0.7) — Cocos y-up 이므로 Godot y = vis.y*(1−0.7).
-	lb.position = Vector2(0, vis.y * 0.3 - 30.0)
-	lb.pivot_offset = Vector2(vis.x * 0.5, 30.0)
-	lb.z_index = 195
-	lb.scale = Vector2.ZERO
-	add_child(lb)
-	var t := lb.create_tween()
-	t.tween_property(lb, "scale", Vector2(1.7, 1.7), 0.4)
-	t.parallel().tween_property(lb, "rotation_degrees", 380.0, 0.2)
-	t.tween_property(lb, "rotation_degrees", -30.0, 0.13333334)
-	t.tween_property(lb, "rotation_degrees", 15.0, 0.13333334)
-	t.tween_property(lb, "rotation_degrees", -5.0, 0.13333334)
-	t.tween_property(lb, "scale", Vector2(1.2, 1.2), 0.1)
-	t.parallel().tween_property(lb, "rotation_degrees", 0.0, 0.1)
-	t.tween_interval(0.7)
-	t.tween_property(lb, "position", lb.position - Vector2(0, 140.0), 0.2)
-	t.parallel().tween_property(lb, "modulate:a", 0.0, 0.2)
-	t.tween_callback(lb.queue_free)
+	WordArt.burst(self, text, vis, 195, 100.0, true)
 	CocosParticle.spawn(self, "pt_monster_income_1", Vector2(vis.x * 0.5, vis.y * 0.3), 194, 0.8)
+
+## 이벤트 검은 막 — 원작 tag 0x75 레이어(CCLayerColor {0,0,0,0} → FadeTo(0.5, 200)).
+## 이벤트 연출(회복샘 등)이 도는 동안 화면을 어둡게 하고, 끝나면 `_event_dim_clear` 로 걷는다.
+var _event_dim: ColorRect
+func _event_dim_show() -> void:
+	if is_instance_valid(_event_dim):
+		return
+	_event_dim = ColorRect.new()
+	_event_dim.color = Color(0, 0, 0, 0)
+	_event_dim.size = _vis()
+	_event_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_event_dim.z_index = 188
+	add_child(_event_dim)
+	_event_dim.create_tween().tween_property(_event_dim, "color:a", 200.0 / 255.0, 0.5)
+
+func _event_dim_clear() -> void:
+	if not is_instance_valid(_event_dim):
+		return
+	var d := _event_dim
+	_event_dim = null
+	var t := d.create_tween()
+	t.tween_property(d, "color:a", 0.0, 0.3)
+	t.tween_callback(d.queue_free)
 
 
 ## 회복샘 — 원작 `setEventHealArea(bool)` (0x13 = 성스러운 / 0x14 = 평범한).
@@ -794,53 +775,69 @@ func _show_fountain(holy: bool) -> void:
 	_healed = true    # 이 조우 전투는 풀피로 시작(hp_state 초기화)
 	Bgm.sfx("effect_holy_well_2" if holy else "effect_water_in")
 	var vis := _vis()
-	# 회복샘 그래픽 — 원작 `scene/adventure/fountain` 아틀라스(base + 01~05).
-	# 🟠 2026-07-31 수정: 이 아틀라스가 **변환돼 있지 않아** 키가 없었고(`adventure_ui` 매니페스트에
-	#   `fountain` 0건) `_spr` 이 null 을 돌려줘 **샘이 아예 안 그려지고 있었다**(초록 발광만 보였다).
-	#   `cocos_export.py DV2/480/scene/adventure/fountain.img_plist adventure_fountain` 로 변환하고
-	#   전용 디렉터리 키로 바꾼다. 원작이 부르는 6프레임이 전부 여기 있다.
+	# 검은 이벤트 막 — 원작 setEventHealArea :62410 CCLayerColor {0,0,0} FadeTo(0.5, 200), tag 0x75.
+	_event_dim_show()
+	# 회복샘 그래픽 — 원작 `scene/adventure/fountain` 아틀라스(base + 01~05, 천사상 분수).
+	# 원작 안무(:62510-62579 리터럴):
+	#   · setScale(배율×0.7) · 시작 위치 = 화면 중앙 + (0, 높이+10) → Delay(0.5) 후
+	#     MoveBy(0.25, (0, −높이)) + EaseExponentialOut — **위에서 떨어져 내려온다**
+	#   · 물결 5프레임은 base 의 **자식**으로 (w*0.5, h*0.38) 에 놓고 0.1s 간격 순환
+	# 🟦 틴트(사용자 확정 2026-08-01): 원작은 평범한 쪽(0x14)에 보라 틴트(0xbf,0x80,0xf2)를
+	#   먹이지만, 그 색이 해골요새 '저주받은 샘'처럼 보인다는 지적으로 **틴트를 걷고 원본
+	#   fountain.png 그대로** 낸다(성/평범의 차이는 효과음만 남긴다).
+	var S := Design.ASSET_SCALE
 	var fman := _man("adventure_fountain")
-	var f := _spr("adventure_fountain", "scene_adventure_fountain_dv2_fountain_base", fman, 0.7)
+	var f := _spr("adventure_fountain", "scene_adventure_fountain_dv2_fountain_base", fman, S * 0.7)
 	if f:
-		f.position = Vector2(vis.x * 0.5, FLOOR * 0.5); add_child(f)
-		# 원작 setEventHealArea: 평범한 쪽(0x14)만 청록 틴트를 먹인다(ccColor3B 0x80bf/0xf2).
-		if not holy:
-			f.modulate = Color8(0xbf, 0x80, 0xf2)
-		# 물결 애니 — 원작이 같은 함수에서 부르는 `dv2_fountain_01~05` 5프레임.
-		# 프레임 간격은 우리 앰비언트 규약과 같은 0.2s([[dv2-worldmap-ambient]]).
-		var wave := _spr("adventure_fountain", "scene_adventure_fountain_dv2_fountain_01", fman, 0.7)
-		if wave:
-			wave.position = f.position
-			if not holy:
-				wave.modulate = Color8(0xbf, 0x80, 0xf2)
-			add_child(wave)
-			var frames: Array[Texture2D] = []
-			for i in range(1, 6):
-				var tp := "res://assets/converted/adventure_fountain/scene_adventure_fountain_dv2_fountain_%02d.tres" % i
-				if ResourceLoader.exists(tp):
-					frames.append(load(tp))
+		var fh := float(fman.get("scene_adventure_fountain_dv2_fountain_base", {}).get("h", 400)) * S * 0.7
+		var end_y := vis.y * 0.5 - 10.0            # cocos 중앙+(0,+10) → godot 중앙−10
+		f.position = Vector2(vis.x * 0.5, end_y - fh)
+		f.z_index = 189                            # 검은 막(188) 위, 워드아트(195) 아래
+		add_child(f)
+		_fountain_node = f
+		var dt := f.create_tween()
+		dt.tween_interval(0.5)
+		dt.tween_property(f, "position:y", end_y, 0.25) \
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		# 물결 애니 — base 자식 @ (w*0.5, h*0.38) → 중심 기준 (0, +0.12h). 0.1s 순환(원작
+		# CCCallFuncN + CCDelayTime(0.1) RepeatForever).
+		var frames: Array = []
+		for i in range(1, 6):
+			var tp := "res://assets/converted/adventure_fountain/scene_adventure_fountain_dv2_fountain_%02d.tres" % i
+			if ResourceLoader.exists(tp):
+				frames.append(load(tp))
+		if not frames.is_empty():
+			var wave := Sprite2D.new()
+			wave.texture = frames[0]
+			wave.material = f.material
+			var bh := float(fman.get("scene_adventure_fountain_dv2_fountain_base", {}).get("h", 400))
+			wave.position = Vector2(0, bh * 0.12)   # 부모 스케일을 그대로 물려받는다(원작 자식 구조)
+			f.add_child(wave)
 			if frames.size() > 1:
 				var wt := wave.create_tween().set_loops()
 				for tex in frames:
 					wt.tween_callback(func(): wave.texture = tex)
-					wt.tween_interval(0.2)
-	# 🟠 2026-07-31 걷어냄 — 종전엔 여기 **자작 초록 발광(그라디언트 가산) + 자작 상승 파티클**이
-	#   있었다(주석에 "원작 회복 연출 **강화**"라고 적혀 있던 그것). 원본 샘 아틀라스를 변환해
-	#   붙이고 나니 그 발광이 원작 그림을 통째로 덮었다.
-	#   원작 `setEventHealArea` 가 쓰는 파티클은 **`pt_monster_income_1.plist` 하나뿐**이다
-	#   (보물·조우 연출과 공유하는 그 파티클 — 디컴프 리터럴 확인). 그대로 쓴다.
+					wt.tween_interval(0.1)
+	# 원작 `setEventHealArea` 가 쓰는 파티클은 **`pt_monster_income_1.plist` 하나뿐**이다.
 	CocosParticle.spawn(self, "pt_monster_income_1",
-		Vector2(vis.x * 0.5, FLOOR * 0.5), 60, 0.7)
-	# 제목 — 원작도 `setEventTreasure` 와 **같은 워드아트 안무**를 쓰므로 공용 헬퍼로 낸다
-	# (`font_title` BMFont + ScaleTo(0.4,1.7)+RotateTo(0.2,380°)+흔들림+MoveBy(0,140)).
-	# 🟠 2026-07-31 정정 — 종전 문구 "성스러운 회복의 샘! 파티가 회복되었습니다"는 **자작**이었다.
-	#   원작 문자열이 둘 다 있다: 워드아트 `<AdventureQuestCount_heal>` = "회복의 샘 발견",
-	#   텍스트박스 `<AdventureHealArea>` = "회복의 샘을 발견하여 체력이 조금 회복되었습니다."
-	#   (원작은 성/평범 갈래로 문구를 나누지 않는다 — 갈리는 건 효과음과 틴트뿐이다.)
+		Vector2(vis.x * 0.5, FLOOR * 0.5), 194, 0.7)
+	# 워드아트 `<AdventureQuestCount_heal>` + 텍스트박스 `<AdventureHealArea>` (원작 문자열 그대로).
 	_wordart_burst("회복의 샘 발견")
 	_narrate("회복의 샘을 발견하여 체력이 조금 회복되었습니다.")
-	# 회복샘은 원작에서 **선택지 없이** 흘러가는 스텝이다 → 연출이 끝나면 다음 스텝으로.
-	get_tree().create_timer(_WORDART_SECS / maxf(_speed, 1.0)).timeout.connect(_step_done)
+	# 회복샘은 원작에서 **선택지 없이** 흘러가는 스텝이다 → 연출이 끝나면 정리하고 다음 스텝으로.
+	# 🔴 2026-08-01: 종전엔 샘·막을 **아무도 지우지 않아** 탐험 내내 화면에 남았다(사용자 신고).
+	get_tree().create_timer((_WORDART_SECS + 0.6) / maxf(_speed, 1.0)).timeout.connect(_end_fountain)
+
+var _fountain_node: Sprite2D
+func _end_fountain() -> void:
+	_event_dim_clear()
+	if is_instance_valid(_fountain_node):
+		var f := _fountain_node
+		_fountain_node = null
+		var t := f.create_tween()
+		t.tween_property(f, "modulate:a", 0.0, 0.3)
+		t.tween_callback(f.queue_free)
+	_step_done()
 
 ## 혼돈의 틈새 화염 — 원작 `AdventureScene::init`(:20929)이 **다크닉스 모드일 때만**
 ## `particle/scene/adventure/pt_monster_fire_back.plist` 를 새 CCLayer(z=999999 / tag=0x9c)에
@@ -1034,30 +1031,16 @@ func _start_walk_cycle() -> void:
 #   그리고 `bar.png`/`bar_deco_*_move`의 원작 용처는 진행바가 아니라 **몬스터 조우 경고 스윕**이다:
 #   `AdventureScene::setAlertMonster`(AdventureScene.c:34291-34470)가 VisibleRect::center 기준
 #   화면 밖(±w)에서 중앙으로 밀고 들어오는 가로 띠로 쓴다. → _alert_mark 로 옮겼다.
+## 🟠 2026-08-01 걷어냄 2건(사용자 지적 — 레퍼런스 배회1~5·승리 전장면에 상단 중앙은 비어 있다):
+##   ① 스테이지 이름 + "(n/N)" 흰 라벨 — 원작 탐험 화면에 없는 자작 UI.
+##   ② 상단 로드맵(양피지 지도 + 토글 아이콘) — `AdventureMapLayer` 는 **`setEventTreasure`
+##      안에서만 생성**된다(AdventureScene.c:67180, tag 0x84). 즉 보물지도를 주웠을 때만
+##      뜨는 보물찾기 전용 UI 다. 보물지도 조우는 ⚫컷(포팅 카드 §5)이므로 상시 표시는 오배치.
+##      (레퍼런스 승리9/10 에 양피지가 보이는 건 그 영상 런이 보물지도를 주웠기 때문이다.)
+## 조우 수(enc/total)는 하단 텍스트박스 서사와 보스 게이지(_build_adventure_navi)가 이미 낸다.
+## 보스 경고는 조우 순간의 `setAlertMonster` 컷인이 담당한다(_alert_monster).
 func _build_topinfo() -> void:
-	var vis := _vis()
-	# 던전 이름 + 조우 진행(N/전체)
-	var total := int((_stage.get("enemies", []) as Array).size())
-	var enc := int(_params.get("enc", 0))
-	var is_boss := (total > 0 and enc + 1 >= total) or _rboss_enc >= 0   # 랜덤보스=보스취급
-	var nm := Label.new()
-	nm.text = String(_stage.get("name", "던전"))
-	var vlab := String(_stage.get("variant_label", ""))   # 밤 / 카데스의 공간
-	if vlab != "": nm.text += " — %s" % vlab
-	# 조우 카운터는 **여러 번 싸우는 던전에서만** 뜻이 있다. 밤·소환형(혼돈의 틈새)은
-	# 조우가 1회뿐인데 `enemies` 배열 길이(=후보 수)를 그대로 써서 "(1/3)" 이 떴다
-	# — 페이즈가 3개인 것처럼 보인다(2026-07-31 사용자 지적). 단일 조우면 숨긴다.
-	if total > 0 and _rboss_enc < 0: nm.text += "   (%d/%d)" % [enc + 1, total]
-	nm.add_theme_font_size_override("font_size", 22)
-	nm.add_theme_color_override("font_color", Color.WHITE)
-	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nm.size = Vector2(400, 28); nm.position = Vector2(vis.x * 0.5 - 200, 24)
-	add_child(nm)
-	# 원작 AdventureMapLayer(road_map): 조우 진행을 스팟 점으로 표시(setMapItem/setKing/setSpotToMove).
-	if total > 1 and _rboss_enc < 0:
-		_build_roadmap(total, enc)
-	# 보스 경고는 조우 순간의 `setAlertMonster` 컷인이 담당한다(_alert_monster).
-	# 상단에 txt_danger 를 미리 띄우던 자작 배지는 제거 — 원작에 없고 컷인과 중복이다.
+	pass
 
 # ---------- 하단 서사 텍스트박스(원작 BattleTextBox) + EXP 게이지 ----------
 ## 원작 탐험 화면의 하단은 **전폭 텍스트박스 하나**다. 레퍼런스 4장 모두 동일:
@@ -1174,172 +1157,9 @@ func _hide_npc() -> void:
 		_npc_node.queue_free()
 	_npc_node = null
 
-## 전리품 획득 오버레이 — 원작 레퍼런스 docs/ref/orig_image/battle/화면 캡처 2026-07-26 024723.png 구성:
-##   · 상단 중앙: 큰 주황 제목("장착 아이템 획득!")
-##   · 중앙 좌: 아이템 아이콘 + 방사형 백라이트(`common/backlight3`, AdventureScene 리터럴 프레임)
-##   · 중앙 우: 이름(흰) / 효과(연두, 대괄호) / 설명(흰 다단)
-##   · 좌하단: `EXP +N` 아트 + 게이지(`scene/laboratory/upgrade_gauge_bg` + `upgrade_gauge_bar`,
-##            둘 다 AdventureScene 리터럴 프레임)
-##   · 하단 텍스트박스: "<이름>을(를) 획득하였습니다."
-## ⚠️ 아이템 효과·설명 문자열은 서버데이터 유실분이 많다 → data/items.json 에 있는 것만 쓰고
-##    없으면 그 줄을 생략한다(문장 생성 금지).
-func _show_loot(item_key: String, exp_gain := 0) -> void:
-	var vis := _vis()
-	var S := Design.ASSET_SCALE
-	var lay := CanvasLayer.new(); lay.layer = 22
-	add_child(lay)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.55)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT); lay.add_child(dim)
-	var item: Dictionary = Data.get_item(item_key)
-	# 젬/장비 드롭은 가상 인벤 키다(items.json 에 없다) → 이름은 Drops.display_name 이 만든다.
-	var gear_name := ""
-	if Gem.parse_item_key(item_key).size() > 0 or Equipment.parse_item_key(item_key) != "":
-		gear_name = Drops.display_name(item_key, Data.gems, Data.equipment)
-	# 제목 — 장비면 "장착 아이템 획득!", 그 외 "아이템 획득!" (레퍼런스 문구)
-	var is_equip := String(item.get("category", "")) in ["accessory", "equip", "equipment"] \
-		or Equipment.parse_item_key(item_key) != "" or Gem.parse_item_key(item_key).size() > 0
-	var title := Label.new()
-	title.text = "장착 아이템 획득!" if is_equip else "아이템 획득!"
-	title.add_theme_font_size_override("font_size", 46)
-	title.add_theme_color_override("font_color", Color(1.0, 0.55, 0.10))
-	title.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.0, 0.95))
-	title.add_theme_constant_override("outline_size", 8)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size = Vector2(vis.x, 60); title.position = Vector2(0, vis.y * 0.07)
-	lay.add_child(title)
-	# 아이콘 + 백라이트
-	var ix := vis.x * 0.36
-	var iy := vis.y * 0.42
-	var bl := _spr("common_ui", "common_backlight3", _man("common_ui"), S)
-	if bl:
-		bl.position = Vector2(ix, iy); bl.modulate = Color(1, 0.95, 0.6, 0.9)
-		lay.add_child(bl)
-		var rt := bl.create_tween().set_loops()
-		rt.tween_property(bl, "rotation", TAU, 6.0).from(0.0)
-	var icon := _item_icon_sprite(item_key, 1.6 * S)
-	if icon:
-		icon.position = Vector2(ix, iy); lay.add_child(icon)
-	# 이름 / 효과 / 설명
-	var tx := vis.x * 0.52
-	var nm := Label.new()
-	nm.text = gear_name if gear_name != "" else Data.item_name(item_key)
-	nm.add_theme_font_size_override("font_size", 30)
-	nm.add_theme_color_override("font_color", Color.WHITE)
-	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	nm.add_theme_constant_override("outline_size", 5)
-	nm.position = Vector2(tx, iy - 90); nm.size = Vector2(vis.x - tx - 40, 40)
-	lay.add_child(nm)
-	var eff := String(item.get("effect_text", ""))
-	if eff != "":
-		var el := Label.new()
-		el.text = "[%s]" % eff
-		el.add_theme_font_size_override("font_size", 22)
-		el.add_theme_color_override("font_color", Color(0.55, 1.0, 0.45))
-		el.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		el.add_theme_constant_override("outline_size", 4)
-		el.position = Vector2(tx, iy - 46); el.size = Vector2(vis.x - tx - 40, 32)
-		lay.add_child(el)
-	var desc := String(item.get("desc", ""))
-	if desc != "":
-		var dl := Label.new()
-		dl.text = desc
-		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		dl.add_theme_font_size_override("font_size", 20)
-		dl.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
-		dl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		dl.add_theme_constant_override("outline_size", 4)
-		dl.position = Vector2(tx, iy - 4); dl.size = Vector2(vis.x - tx - 40, 130)
-		lay.add_child(dl)
-	# EXP 게이지(좌하단) — 원작 자산 그대로.
-	if exp_gain > 0:
-		var ey := vis.y - _NARR_H - 60.0
-		var wing := _spr("adventure_ui", "scene_adventure_bonus_exp_mini", _adv, S)
-		if wing: wing.position = Vector2(70, ey); lay.add_child(wing)
-		var ge := Label.new()
-		ge.text = "+%d" % exp_gain
-		ge.add_theme_font_size_override("font_size", 26)
-		ge.add_theme_color_override("font_color", Color.WHITE)
-		ge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		ge.add_theme_constant_override("outline_size", 4)
-		ge.position = Vector2(124, ey - 18); ge.size = Vector2(160, 34)
-		lay.add_child(ge)
-		var gbg := _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bg", _man("laboratory_ui"), S)
-		if gbg: gbg.position = Vector2(160, ey + 40); lay.add_child(gbg)
-		# 게이지 채움 비율 = 활성 드래곤의 현재 레벨 경험치 진행도(레퍼런스의 "487 / 729").
-		var frac := 0.0
-		var cur_exp := 0
-		var need_exp := 0
-		var act := UserDB.get_dragon(UserDB.active_uid())
-		if not act.is_empty():
-			cur_exp = int(act.get("exp", 0))
-			need_exp = LevelSystem.exp_to_next(Data.level_curve, int(act.get("level", 1)))
-			if need_exp > 0: frac = clampf(float(cur_exp) / float(need_exp), 0.0, 1.0)
-		var gbar := _spr("laboratory_ui", "scene_laboratory_upgrade_gauge_bar", _man("laboratory_ui"), S)
-		if gbar:
-			# 왼쪽 정렬로 잘라 채운다(중앙앵커 → 좌단 고정 후 폭만 축소).
-			var gw := float(_man("laboratory_ui").get("scene_laboratory_upgrade_gauge_bar", {}).get("w", 200))
-			gbar.centered = false
-			gbar.position = Vector2(160.0 - gw * S * 0.5, ey + 40.0 - 6.0 * S)
-			gbar.region_enabled = true
-			gbar.region_rect = Rect2(Vector2.ZERO, Vector2(gw * frac, 12))
-			var at2: AtlasTexture = gbar.texture as AtlasTexture
-			if at2:
-				gbar.region_enabled = false
-				gbar.scale.x = S * frac      # 아틀라스 텍스처는 region 재지정 대신 가로 축소
-			lay.add_child(gbar)
-		if need_exp > 0:
-			var gt := Label.new()
-			gt.text = "%d / %d" % [cur_exp, need_exp]
-			gt.add_theme_font_size_override("font_size", 16)
-			gt.add_theme_color_override("font_color", Color.WHITE)
-			gt.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-			gt.add_theme_constant_override("outline_size", 3)
-			gt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			gt.size = Vector2(200, 22); gt.position = Vector2(60, ey + 52)
-			lay.add_child(gt)
-	var loot_nm := gear_name if gear_name != "" else Data.item_name(item_key)
-	_narrate("%s%s 획득하였습니다." % [loot_nm, _josa(loot_nm, "을", "를")])
-	# 탭하면 닫힘(원작 텍스트박스 진행과 동일). 안전상 자동 닫힘도 건다.
-	var close := Button.new(); close.flat = true
-	close.set_anchors_preset(Control.PRESET_FULL_RECT)
-	close.pressed.connect(func(): if is_instance_valid(lay): lay.queue_free())
-	lay.add_child(close)
-	var at := create_tween()
-	at.tween_interval(3.5)
-	at.tween_callback(func(): if is_instance_valid(lay): lay.queue_free())
-
-## 아이템 아이콘 스프라이트(data/items.json 의 icon 경로 → 변환 아틀라스 키).
-## 젬/장비 가상 인벤 키 → 아이콘 텍스처. 젬/장비가 아니면 null.
-func _gear_texture(key: String) -> Texture2D:
-	var g := Gem.parse_item_key(key)
-	if not g.is_empty():
-		return Icons.gem_texture(
-			String(Gem.gem_def(String(g["name"]), Data.gems).get("code", "")), int(g["tier"]))
-	var ck := Equipment.parse_item_key(key)
-	if ck != "":
-		return Icons.equip_texture(Equipment.catalog(Data.equipment).get(ck, {}))
-	return null
-
-func _item_icon_sprite(key: String, scale: float) -> Sprite2D:
-	# 젬/장비 드롭은 items.json 이 아니라 논리키로 아이콘을 찾는다(Icons = 에셋 카탈로그 계층 §8.4).
-	var vt := _gear_texture(key)
-	if vt != null:
-		var vs := Sprite2D.new()
-		vs.texture = vt
-		vs.material = _pma
-		vs.scale = Vector2(scale, scale)
-		return vs
-	var path := String(Data.item_icon_path(key))   # 이미 "res://assets/converted/<dir>/<name>.tres"
-	if path == "" or not ResourceLoader.exists(path): return null
-	var sp := Sprite2D.new()
-	sp.texture = load(path)
-	sp.material = _pma
-	# 회전 아틀라스 보정을 위해 dir/name 을 다시 뽑아 매니페스트 조회.
-	var rel := path.trim_prefix("res://assets/converted/").trim_suffix(".tres")
-	var parts := rel.split("/")
-	# 회전 보정 불필요 — 변환 단계가 흡수(scripts/tools/fix_rotated_frames.py)
-	sp.scale = Vector2(scale, scale)
-	return sp
+## ⚫ 2026-08-01 삭제 — 자작 전리품 오버레이(`_show_loot`/`_item_icon_sprite`/`_gear_texture`).
+## 보상 표시는 원작 `setEventReward` 이식(battle.gd `_play_reward_phases`)이 담당한다 —
+## 이 오버레이는 보물상자 컷 이후 호출처가 없었고, 배치도 레퍼런스(승리4~8)와 달랐다.
 
 ## 한글 조사 선택: 받침 없음/ㄹ 받침 → "로", 그 외 → "으로". (원작 문장 "수중동굴로 모험을 떠났습니다")
 func _josa_ro(word: String) -> String:
@@ -1705,122 +1525,12 @@ func _build_story_objective(h: float) -> void:
 	cnt.position = Vector2(bw - 70, 4); cnt.size = Vector2(58, h - 8)
 	cnt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; panel.add_child(cnt)
 
-## 원작 AdventureMapLayer road_map: 조우 수 N에 맞는 경로 지도 `roadmap_spot{N}`(450×315) 한 장 +
-## 지나간 스팟에 `roadmap_x_icon`(53×53). 스팟 좌표는 아트에서 추출(build_roadmap_spots.py →
-## data/roadmap_spots.json) — 이전 구현은 "에셋 부재" 오판으로 색 점을 자작했었다.
-## 등장 애니는 원작 setMapItem 그대로: delay (i%6+1)*0.1 → fade255+rot10°+scale1.05+moveBy(0,+25)
-## 0.5s → rot-5°+scale1.0+moveBy(0,-25) 0.25s → rot-2°+(0,+15) → rot3°+(0,-15) → rot0.
-## (Cocos y-up → Godot y-down: moveBy y 부호 반전)
-## ASSUMPTION: 스팟의 **진행 순서**는 원작에서 서버 데이터였다(유실) → 최근접 이웃 경로 순서.
-func _build_roadmap(total: int, cur: int) -> void:
-	var spots_db: Dictionary = {}
-	var f := FileAccess.open("res://data/roadmap_spots.json", FileAccess.READ)
-	if f: spots_db = JSON.parse_string(f.get_as_text())
-	var entry: Dictionary = spots_db.get(str(total), {})
-	if entry.is_empty():
-		return   # 해당 조우 수의 원작 지도 프레임 없음 → 자작 대체 금지(그리지 않음)
-
-	var vis := _vis()
-	var rman := _man("roadmap_ui")
-	var art := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_spot%d" % total, rman, 1.0)
-	if art == null:
-		return
-	var tw_: float = float(entry.get("w", 332))
-	var th_: float = float(entry.get("h", 215))
-	var scl := 0.46                                   # 탐험 HUD에 얹는 축소 배율
-	var road := Node2D.new(); road.position = Vector2(vis.x * 0.5, 124.0); add_child(road)
-	# 🟠 2026-07-31 보강 — **양피지 배경이 빠져 있었다.** 원작 `AdventureMapLayer::setMap`
-	# (@00cf43ac)은 경로(`roadmap_spot<N>.png`) **아래에** 지도 판을 먼저 깐다:
-	#   난이도 보통 → `scene/adventure/road_map/roadmap_normal.png`(450×315)
-	#   난이도 어려움(영웅) → `roadmap_hard.png`
-	# 종전엔 경로 오버레이만 그려서 점선이 허공에 떠 있었다(레퍼런스 `승리9/10.png` 는
-	# 나침반이 박힌 양피지 판이 분명히 보인다).
-	var board_key := "scene_adventure_road_map_roadmap_%s" % ("hard" if bool(_params.get("hero", false)) else "normal")
-	# ⚠️ `z_index = -1` 을 주면 안 된다 — 던전 배경보다 뒤로 밀려 아예 안 보인다.
-	#   경로보다 먼저 add_child 하는 것만으로 아래에 깔린다(그리기 순서 = 자식 순서).
-	var board := _spr("roadmap_ui", board_key, rman, scl)
-	if board:
-		road.add_child(board)
-	art.scale = Vector2(scl, scl)
-	art.modulate = Color(1, 1, 1, 0.85)
-	road.add_child(art)
-	_road_node = road
-	_road_scale = scl
-
-	# 스팟 로컬좌표(텍스처 좌상단 기준) → road 로컬(스프라이트 중앙 기준)
-	var spots: Array = entry.get("spots", [])
-	for i in mini(total, spots.size()):
-		var sp: Array = spots[i]
-		var local := (Vector2(float(sp[0]), float(sp[1])) - Vector2(tw_, th_) * 0.5) * scl
-		if i < cur:
-			var x := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_x_icon", _man("roadmap_ui"), scl * 1.1)
-			if x:
-				x.position = local; road.add_child(x)
-				_anim_map_item(x, i)                  # 원작 setMapItem 등장 애니
-		elif i == cur:
-			var mk := _spr("roadmap_ui", "scene_adventure_road_map_roadmap_q_icon", _man("roadmap_ui"), scl * 1.1)
-			if mk:
-				mk.position = local; road.add_child(mk)
-				_anim_map_item(mk, i)
-				var pulse := mk.create_tween().set_loops()
-				pulse.tween_property(mk, "scale", Vector2(scl * 1.35, scl * 1.35), 0.6)
-				pulse.tween_property(mk, "scale", Vector2(scl * 1.1, scl * 1.1), 0.6)
-	road.modulate.a = 0.0
-	road.create_tween().tween_property(road, "modulate:a", 1.0, 0.4)
-	# 지도를 눌러 접었다 폈다 — 원작 `setMapTouch` + `setMapSizeControl`.
-	var hit := Button.new()
-	hit.flat = true
-	hit.size = Vector2(tw_, th_) * scl
-	hit.position = -hit.size * 0.5
-	hit.pressed.connect(_toggle_roadmap)
-	road.add_child(hit)
-
-
-## 원작 `AdventureMapLayer::setMapSizeControl(bool)` @00cf53e8 — 지도 접기/펴기.
-## 리터럴 그대로:
-##   접기(small) = ScaleTo(0.5, **0.3**) + MoveTo(0.5, **(100, 170)**)
-##   펴기(big)   = ScaleTo(0.5, **1.0**) + MoveTo(0.5, **(0, 30)**)
-##                 + 되돌아올 때 ScaleTo(0.1667, s+0.03) → ScaleTo(0.1667, s) 바운스
-## 우리 지도는 HUD 위에 0.46 로 얹혀 있으므로 원작 배율을 **그 위에 곱한다**.
-## 좌표는 Cocos(y-up) 리터럴이라 y 를 뒤집어 화면 위쪽으로 간다.
-var _road_node: Node2D
-var _road_scale := 0.46
-var _road_small := false
-
-func _toggle_roadmap() -> void:
-	if not is_instance_valid(_road_node):
-		return
-	_road_small = not _road_small
-	# road 의 자식들은 이미 `_road_scale`(0.46)로 그려져 있으므로 여기선 **상대 배율**만 준다.
-	var vis := _vis()
-	var t := _road_node.create_tween()
-	if _road_small:
-		t.tween_property(_road_node, "scale", Vector2(0.3, 0.3), 0.5)
-		t.parallel().tween_property(_road_node, "position",
-			Vector2(vis.x - 100.0, 170.0), 0.5)
-	else:
-		t.tween_property(_road_node, "scale", Vector2.ONE, 0.5)
-		t.parallel().tween_property(_road_node, "position", Vector2(vis.x * 0.5, 124.0), 0.5)
-		# 원작 바운스 — 펼 때만 붙는다.
-		t.tween_property(_road_node, "scale", Vector2(1.03, 1.03), 0.16666667)
-		t.tween_property(_road_node, "scale", Vector2.ONE, 0.16666667)
-
-## 원작 AdventureMapLayer::setMapItem 등장 연출(디컴파일 축자 복원).
-func _anim_map_item(n: Node2D, i: int) -> void:
-	n.modulate.a = 0.0
-	var base := n.position
-	var t := n.create_tween()
-	t.tween_interval(float(i % 6 + 1) * 0.1)
-	t.tween_property(n, "modulate:a", 1.0, 0.25)
-	t.parallel().tween_property(n, "rotation_degrees", 10.0, 0.5)
-	t.parallel().tween_property(n, "position", base + Vector2(0, -25) * 0.46, 0.5)
-	t.tween_property(n, "rotation_degrees", -5.0, 0.25)
-	t.parallel().tween_property(n, "position", base, 0.25)
-	t.tween_property(n, "rotation_degrees", -2.0, 0.25)
-	t.parallel().tween_property(n, "position", base + Vector2(0, -15) * 0.46, 0.25)
-	t.tween_property(n, "rotation_degrees", 3.0, 0.25)
-	t.parallel().tween_property(n, "position", base, 0.25)
-	t.tween_property(n, "rotation_degrees", 0.0, 0.2)
+## ⚫ 2026-08-01 삭제 — 상단 로드맵(`_build_roadmap`/`_toggle_roadmap`/`_anim_map_item`).
+## `AdventureMapLayer` 는 조우 진행 표시가 아니라 **보물찾기(setEventTreasure) 전용 UI** 였다
+## (AdventureScene.c:67180 — 그 함수 안에서만 create, tag 0x84). 보물지도 조우를 컷했으므로
+## 이 UI 가 뜰 상황 자체가 없다(사용자 지적: 원작에서 보물지도 이벤트 외에는 안 나온다).
+## 복원 근거가 생기면 git 이력(2026-07-31 커밋)과 포팅 카드 §5 에서 시작한다.
+## 변환 자산(assets/converted/roadmap_ui) · data/roadmap_spots.json 은 그대로 둔다.
 
 func _cycle_speed() -> void:
 	_speed = 2.0 if _speed == 1.0 else (3.0 if _speed == 2.0 else 1.0)

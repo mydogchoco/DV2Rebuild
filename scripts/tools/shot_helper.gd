@@ -570,16 +570,20 @@ func _ready() -> void:
 			else:
 				print("SHOT: _show_npc 노드 없음")
 		"loot":
+			# 2026-08-01: 자작 _show_loot 삭제 → 원작 setEventReward 이식(_play_reward_phases)을 찍는다.
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
-			Scenes.goto("adventure", {"stage": stage, "region": "yutakan", "enc": 0,
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
 				"hp_state": {}, "streak": 0})
-			for i in 30: await get_tree().process_frame
-			var lv := _find_method_node(get_tree().root, "_show_loot")
+			for i in 40: await get_tree().process_frame
+			var lv := _find_method_node(get_tree().root, "_play_reward_phases")
 			if lv != null:
-				lv.call("_show_loot", "att_drink2", 181)
+				lv.call("_play_reward_phases",
+					[{"kind": "gold", "total": 290, "base": 163, "bonus": 38},
+					 {"key": "att_drink2", "count": 5}],
+					func() -> void: print("SHOT: reward phases done"))
 			else:
-				print("SHOT: _show_loot 노드 없음")
+				print("SHOT: _play_reward_phases 노드 없음")
 		"cutin":
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
