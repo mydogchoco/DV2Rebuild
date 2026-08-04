@@ -144,6 +144,30 @@ func _ready() -> void:
 			Scenes.goto("fight", {"mode": extra if extra != "0" else "team",
 				"opponent": foe, "party": fparty})
 			for i in 20: await get_tree().process_frame
+		"fightfx":
+			# 대전 중 **간헐 연출** 검수 — 스킬 이름 배너(createIcon 상단)와 상태이상 아이콘은
+			# 실제 전투에서 언제 뜰지 알 수 없어 타이밍 캡처가 안 된다. 직접 세워 놓고 찍는다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 10: await get_tree().process_frame
+			var xrng := RandomNumberGenerator.new()
+			xrng.seed = 20260805
+			var xfoe := Colosseum.roll_match("team", xrng)
+			var xparty: Array = Colosseum.eligible_uids()
+			if xparty.is_empty():
+				xparty = UserDB.party()
+			Scenes.goto("fight", {"mode": "team", "opponent": xfoe, "party": xparty})
+			for i in 30: await get_tree().process_frame
+			var fs := Scenes.current_scene()
+			if fs != null and fs.has_method("_skill_banner"):
+				fs.call("_skill_banner", "철갑 방패", 11)
+				var vws: Dictionary = fs.get("_views")
+				var kk := 0
+				for tag in vws:
+					fs.call("_status_icon", vws[tag], [11, 30, 56][kk % 3], kk % 2 == 0, 2 + kk)
+					kk += 1
+			for i in 12: await get_tree().process_frame
 		"getitem":
 			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
 			Scenes.goto("shop", {"area": "elpis"})

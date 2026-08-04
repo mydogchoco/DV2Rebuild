@@ -91,6 +91,10 @@ func _rebuild() -> void:
 	for c in get_children():
 		c.queue_free()
 	_views.clear()
+	_log_lines.clear()
+	_skipped = false
+	_folded = true
+	_speed = 1
 
 	_mode = String(_params.get("mode", "team"))
 	_foe = _params.get("opponent", {})
@@ -159,7 +163,12 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 			sh.z_index = -1
 			holder.add_child(sh)
 
-		var sp := PartySelect._spine_node(int(p.get("id", 0)), "adult", DRAGON_H)
+		# 🔴 2026-08-05 — **정규화를 뺐다.** `PartySelect._spine_node(…, DRAGON_H)` 는 모든 종을
+		#   같은 높이(170pt)로 눌러 담는 **우리 장치**다(편성 카드용). 원작 `makeDragonLayer` 는
+		#   스파인을 **native 크기 그대로** 놓고 3v3=0.75 / 1v1=1.0 만 곱한다 ⇒ 종마다 크기가 다르다.
+		#   실측(2026-08-05): 성체 native 높이 288~296pt → 3v3 이면 ~217pt.
+		#   종전 값(170×0.75=127pt)은 레퍼런스(`docs/ref/pvp/`, 드래곤 210~250pt)의 절반이었다.
+		var sp := _dragon_spine(int(p.get("id", 0)))
 		var ap: AnimationPlayer = null
 		if sp != null:
 			# 원작 makeDragonLayer 의 최종 setScale — 3v3 은 0.75 로 줄인다.
@@ -172,14 +181,24 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 			holder.add_child(sp)
 			ap = _find_anim_player(sp)
 
-		var hud := _make_hud(p, Vector2(x, y), 1.0 if _mode != "team" else DRAGON_SCALE_TEAM)
+		# HUD 는 드래곤 **머리 위**다 — 종마다 키가 다르므로 실측 높이를 넘긴다.
+		var dh := DRAGON_H
+		if sp != null:
+			var rb := PartySelect._bounds(sp, Transform2D.IDENTITY)
+			if rb.size.y > 1.0:
+				dh = rb.size.y
+		var hud := _make_hud(p, Vector2(x, y), dh)
 		add_child(hud["root"])
 
 		_views[tag] = {
 			"node": holder, "bar": hud["fill"], "barh": hud["root"],
-			"name": hud["name_label"], "hp_label": hud["hp_label"], "anim": ap,
+			# 🔴 HUD 의 라벨은 원작대로 낱말 "레벨" 이라 **이름 출처가 될 수 없다**
+			#   (2026-08-05). 로그 문구용 표시 이름은 여기 따로 들고 있는다.
+			"dname": String(p.get("name", "")), "icons": hud["icons"],
+			"hp_label": hud["hp_label"], "anim": ap, "id": int(p.get("id", 0)),
+			"element": String(p.get("element", "")),
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
-			"dead": false, "pos": Vector2(x, y), "mine": mine,
+			"dead": false, "pos": Vector2(x, y), "mine": mine, "slot": i,
 		}
 
 
@@ -204,10 +223,11 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 
 const DRAGON_H := 170.0             # `_spine_node` 정규화 높이
 const HUD_LIFT := 18.0              # 원작은 100(원작 레이어 크기 기준) — 위 주석 참조
+const HUD_TOP_MIN := 155.0          # 상단 프로필 판 아래로만 — 아래 ⚠️
 const HUD_ELEM_POS := Vector2(17.5, 19.75)
 const HUD_ELEM_W := 28.5
 
-func _make_hud(p: Dictionary, at: Vector2, dragon_scale := 1.0) -> Dictionary:
+func _make_hud(p: Dictionary, at: Vector2, dragon_h := DRAGON_H) -> Dictionary:
 	var S := Design.ASSET_SCALE
 	var root := Node2D.new()
 	# 원작 pos = 레이어중심 + (0, h*0.5 + 100) = **레이어 꼭대기에서 100pt 위**.
@@ -215,7 +235,12 @@ func _make_hud(p: Dictionary, at: Vector2, dragon_scale := 1.0) -> Dictionary:
 	#   HUD 가 위 슬롯까지 올라간다. 구조·프레임·내부 오프셋은 원작 그대로 두고
 	#   **머리 위 여백만** 우리 배치에 맞춘다(= 레이어 꼭대기 + HUD_LIFT).
 	# `PartySelect._spine_node` 규약상 holder 원점 = 스프라이트 **바닥 중앙**이다.
-	root.position = at + Vector2(0.0, -(DRAGON_H * dragon_scale + HUD_LIFT))
+	# ⚠️ 위 클램프는 원작에 없다 — 우리 사정이다. 원작 드래곤 레이어는 화면 위쪽 여백을 알고
+	#   배치됐지만, 우리는 스파인을 native 크기로 놓기 시작하면서(2026-08-05) 앞줄 드래곤의
+	#   HUD 가 상단 프로필 판(높이 ~103pt) 밑으로 파고들었다. 판 아래로만 밀어 준다.
+	#   # ASSUMPTION: 원작이 이 충돌을 어떻게 피했는지(레이어 크기? 슬롯 y?)는 미확인.
+	root.position = at + Vector2(0.0, -(dragon_h + HUD_LIFT))
+	root.position.y = maxf(root.position.y, HUD_TOP_MIN)
 
 	var cover_bg := _spr(CO, "scene_colosseum_bar_cover_bg", S)
 	if cover_bg != null:
@@ -256,22 +281,33 @@ func _make_hud(p: Dictionary, at: Vector2, dragon_scale := 1.0) -> Dictionary:
 		fill.region_rect = Rect2(0, 0, 119, 17)
 		root.add_child(fill)                           # 원작 z=9, tag=3
 
-	# 이름 — 원작 anchor(0,0), pos = cover + (-coverW*0.5, coverH*0.5) = **cover 좌상단**, scale 0.5.
+	# ⑤ — 🔴 2026-08-05 정정: **여기 들어가는 건 드래곤 이름이 아니라 낱말 "레벨"** 이다.
+	#   원작은 `StringManager::getString(...)` 결과를 BMFont 로 찍는데, 그 키가
+	#   `<ColosseumLevel>레벨</ColosseumLevel>`(stringsData_KR.xml)이고 곧바로 ⑥ 에서
+	#   `FightDragon::getLevel()` 을 "%d" 로 붙인다 — 레퍼런스 스크린샷(`docs/ref/pvp/`)의
+	#   "레벨 35" 가 그것이다. 종전엔 드래곤 이름을 찍어 원작에 없는 정보를 내고 있었다.
+	#   cover 좌상단, anchor(0,0).
 	var nm := Label.new()
-	nm.text = String(p.get("name", ""))
+	nm.text = String(Data.colosseum.get("log", {}).get("level", "레벨"))
 	nm.position = Vector2(-cover_w * 0.5, -cover_h * 0.5 - 21.0)
 	_bm_style(nm, 16, Color.WHITE)
 	root.add_child(nm)
 
-	# 레벨 — 원작은 이름 오른쪽(anchor 0.65,0.85). 우리는 이름 폭을 런타임에 못 재므로
-	#   cover 오른쪽 끝에 맞춘다(같은 줄·오른쪽이라는 성질은 같다).
+	# ⑥ 레벨 숫자 — 원작 anchor(0.65,0.85), 이름 오른쪽. 폭을 런타임에 못 재므로 낱말 폭만큼
+	#   띄운다(같은 줄·이름 바로 오른쪽이라는 성질은 같다).
 	var lv := Label.new()
-	lv.text = "Lv.%d" % int(p.get("level", 1))
-	lv.size = Vector2(cover_w, 20.0)
-	lv.position = Vector2(-cover_w * 0.5, -cover_h * 0.5 - 21.0)
-	lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_bm_style(lv, 14, Color(1.0, 0.92, 0.6))
+	lv.text = "%d" % int(p.get("level", 1))
+	lv.size = Vector2(cover_w, 22.0)
+	lv.position = Vector2(-cover_w * 0.5 + 42.0, -cover_h * 0.5 - 24.0)
+	_bm_style(lv, 21, Color.WHITE)
 	root.add_child(lv)
+
+	# 상태이상 아이콘 줄 — 원작 `createIcon` 이 드래곤 레이어에 태그로 붙인다(아래 §상태이상).
+	# 레퍼런스에서는 "레벨" 줄 **위** 왼쪽부터 오른쪽으로 늘어선다.
+	# 아이콘 중심 기준이므로 반 칸(≈21pt) 만큼 안쪽으로 들여 "레벨" 줄 **위**에 얹는다.
+	var icons := Node2D.new()
+	icons.position = Vector2(-cover_w * 0.5 + 22.0, -cover_h * 0.5 - 48.0)
+	root.add_child(icons)
 
 	# "현재 / 최대" — 원작 pos = cover + (17.5, 1.5), scale 0.75, anchor 중앙.
 	var hp := Label.new()
@@ -284,7 +320,7 @@ func _make_hud(p: Dictionary, at: Vector2, dragon_scale := 1.0) -> Dictionary:
 	_bm_style(hp, 13, Color.WHITE)
 	root.add_child(hp)
 
-	return {"root": root, "fill": fill, "hp_label": hp, "name_label": nm}
+	return {"root": root, "fill": fill, "hp_label": hp, "name_label": nm, "icons": icons}
 
 
 ## 속성 아이콘 — 원작 `FightDragon::getElementSprite()`.
@@ -322,22 +358,52 @@ func _bm_style(l: Label, size: int, col: Color, font := "font_subtitle") -> void
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-# ---------- 상단 정보(원작 ColosseumFightInitWidget) ----------
+# ---------- 상단 정보 — 원작 `MakeInterface::ColosseumFightInitWidget` @010519b0 ----------
+#
+# 🔴 2026-08-05 재이식(사용자 레퍼런스 `docs/ref/pvp/*.png` 대조). 종전엔 `profilebox` 를
+#   9patch 로 **330×80 으로 늘려** 놓고 "닉네임\n점수" 를 한 줄 라벨로 찍었다 — 원작은
+#   9patch 가 아니라 **스프라이트 원본 크기 그대로**이고, 안에 초상·티어·칭호·닉네임이 들어간다.
+#
+# 원작 조립(리터럴·좌표 그대로. §9 규칙 2 — 이 수치들은 이미 포인트다):
+#   ① `scene/colosseum/profilebox.png`(338×77) 스프라이트, anchor(0,1)
+#      pos = leftTop − (20, 0)  / 반대편은 rightTop 기준 대칭. z=15
+#      등장 = MoveBy(0,+h) → Delay(3.85) → MoveBy(0.1,−h) → MoveBy(0.05,+10) → MoveBy(0.05,−10)
+#   ② `common/box1.png`(50×50) = 초상 받침.
+#      pos = (box1.w·0.5 + 35, plateH − box1.h·0.5 − 7.5)
+#      └ 등급 테두리 `common/dragon_frame_<tier>.png`(FightManager::getScrambleBorderName) 를
+#        받침 중앙에, 그 위에 초상(`getUserProfileImagePath`)을 받침에 맞춰 축소해 얹는다.
+#   ③ 랭크 아이콘  pos = box1.pos + (box1.w + 5, 0), 폭이 60 을 넘으면 60/w 로 축소
+#   ④ 닉네임 `CCLabelTTF(nick, "Thonburi", 20)` anchor(0,1) pos(195, 62)
+#   ⑤ 칭호 이미지(`getUserTitleImagePath`) anchor(0,0) pos(195, 62), 폭 220 초과 시 축소
+#   ⑥ 가운데 `scene/colosseum/vs_bg.png` + `vs.png`
+#
+# ⚠️ ③의 프레임은 원작에서 **서버가 준 경로**(`FightManager::getUserRankImagePath` 는 멤버
+#   문자열을 그대로 돌려주는 게터다) — 레퍼런스의 ◇◇ / ★★ 이 그 자리다. 그 아트는 유실이라
+#   같은 슬롯의 다른 분기(랭크시드전)가 쓰는 **`common/tier_icon_<tier>.png` 5종**을 쓴다.
+#   우리 티어 사다리와 같은 축이라 의미도 맞는다(§Colosseum 티어 = 5단).
+const PLATE_EDGE := 20.0            # 원작 leftTop − (20, 0)
+const PLATE_AVATAR_X := 35.0
+const PLATE_AVATAR_DY := 7.5
+const PLATE_RANK_GAP := 5.0
+const PLATE_RANK_MAX := 60.0
+const PLATE_TEXT := Vector2(195.0, 62.0)
+const PLATE_TITLE_MAX := 220.0
+const PLATE_DROP_DELAY := 3.85      # 원작 CCDelayTime(0x40766666)
 
 func _build_top(vis: Vector2) -> void:
-	var rating := Colosseum.rating_of(_mode)
-	_side_plate(UserDB.user_nickname(), rating, 20.0, vis)
-	_side_plate(String(_foe.get("nick", "")), int(_foe.get("rating", 0)),
-		vis.x - 20.0 - 330.0, vis)
+	_side_plate(true, UserDB.user_nickname(), Colosseum.rating_of(_mode), vis)
+	_side_plate(false, String(_foe.get("nick", "")), int(_foe.get("rating", 0)), vis)
 
-	# 상단 가운데 VS 표식(상시). 개시 연출은 `_vs_intro()` 가 따로 낸다.
+	# 상단 가운데 VS 표식 — 원작이 부르는 건 `vs_bg`(101×90) + `vs`(79×68) 두 장이다.
+	# 종전엔 `mini_vs`(30×18)를 얹어 좁쌀만 하게 나왔다(레퍼런스 대조).
+	var cx := vis.x * 0.5
 	var vb := _spr(CO, "scene_colosseum_vs_bg", Design.ASSET_SCALE)
 	if vb != null:
-		vb.position = Vector2(vis.x * 0.5, 56.0)
+		vb.position = Vector2(cx, 56.0)
 		add_child(vb)
-	var v := _spr(CO, "scene_colosseum_mini_vs", Design.ASSET_SCALE)
+	var v := _spr(CO, "scene_colosseum_vs", Design.ASSET_SCALE)
 	if v != null:
-		v.position = Vector2(vis.x * 0.5, 56.0)
+		v.position = Vector2(cx, 56.0)
 		add_child(v)
 
 
@@ -385,48 +451,269 @@ func _vs_intro() -> void:
 		tw2.tween_callback(v.queue_free)
 
 
-## 한쪽 진영의 프로필 판 — 원작 `profilebox` + `common/tier_icon_*`.
-func _side_plate(nick: String, rating: int, x: float, _vis: Vector2) -> void:
-	var h := Control.new()
-	h.position = Vector2(x, 16.0)
-	h.size = Vector2(330.0, 80.0)
-	add_child(h)
-	var bg := _nine9("scene_colosseum_profilebox", h.size, Rect2(40, 30, 4, 4), CO)
+## 한쪽 진영의 프로필 판. `mine` = 왼쪽(내 쪽) / false = 오른쪽(상대) 대칭 배치.
+##
+## 판 안의 좌표는 **원작 그대로 cocos(좌하단 원점)** 로 적고 마지막에만 y 를 뒤집는다.
+## 오른쪽 판은 x 를 판 폭 기준으로 되접는다(원작도 rightTop 기준 대칭이다).
+func _side_plate(mine: bool, nick: String, rating: int, vis: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var pw := 338.0 * S
+	var ph := 77.0 * S
+	var plate := Node2D.new()
+	plate.position = Vector2(-PLATE_EDGE if mine else vis.x + PLATE_EDGE - pw, 0.0)
+	add_child(plate)
+
+	# 오른쪽 판은 **좌우 반전**이다 — 원작도 rightTop 기준 대칭이고, 레퍼런스에서 상대 쪽은
+	# 초상이 바깥(오른쪽)·글자 칸이 안쪽이다. 뒤집지 않으면 글자가 판 밖으로 밀린다.
+	var bg := _spr(CO, "scene_colosseum_profilebox", S)
 	if bg != null:
-		h.add_child(bg)
+		bg.centered = false
+		if not mine:
+			bg.scale.x = -bg.scale.x
+			bg.position.x = pw
+		plate.add_child(bg)
+
+	# 판 안의 한 점(cocos 좌하단 원점, 포인트) → plate 로컬 Godot 좌표.
+	var P := func(x: float, y: float) -> Vector2:
+		return Vector2(x if mine else pw - x, ph - y)
+
+	# ② 초상 받침 + 등급 테두리 + 초상
+	var bw := 50.0 * S
+	var av: Vector2 = P.call(bw * 0.5 + PLATE_AVATAR_X, ph - bw * 0.5 - PLATE_AVATAR_DY)
+	var box := _spr(CM, "common_box1", S)
+	if box != null:
+		box.position = av
+		plate.add_child(box)
+	var por := _plate_portrait(mine)
+	if por != null:
+		# 원작: 받침에 들어가도록 가로/세로 비 중 작은 쪽으로 축소한다.
+		var tw := maxf(1.0, float(por.texture.get_width()))
+		var th := maxf(1.0, float(por.texture.get_height()))
+		por.scale = Vector2.ONE * minf(bw / tw, bw / th)
+		por.position = av
+		plate.add_child(por)
+	# 등급 테두리 = 원작 `getScrambleBorderName` → `common/dragon_frame_<tier>.png`.
+	var bf := Colosseum.tier_frame(rating, "dragon")
+	if bf != "":
+		var bs := _spr(CM, _frame_key(bf), S)
+		if bs != null:
+			bs.position = av
+			plate.add_child(bs)
+
+	# ③ 랭크 아이콘(우리는 티어 아이콘 — 위 ⚠️)
 	var tf := Colosseum.tier_frame(rating, "icon")
 	if tf != "":
-		var ts := _spr(CM, "common_" + tf.get_slice("/", 1).replace(".png", ""),
-			Design.ASSET_SCALE * 0.7)
+		var ts := _spr(CM, _frame_key(tf), S)
 		if ts != null:
-			ts.position = Vector2(44.0, 40.0)
-			h.add_child(ts)
+			var iw := float(ts.texture.get_width()) * S
+			if iw > PLATE_RANK_MAX:
+				ts.scale *= PLATE_RANK_MAX / iw
+			ts.position = av + Vector2((bw + PLATE_RANK_GAP + iw * 0.5) * (1.0 if mine else -1.0),
+				0.0)
+			plate.add_child(ts)
+
+	# ⑤ 칭호 이미지 — 원작 `getUserTitleImagePath`. 우리 칭호 아트는 `title_<no>_kr`.
+	var anchor: Vector2 = P.call(PLATE_TEXT.x, PLATE_TEXT.y)
+	var tno := UserDB.user_title_no() if mine else 0
+	var tpath := "res://assets/converted/%s/title_%d_kr.tres" % [
+		String(Data.titles.get("atlas_dir", "title_ui")), tno]
+	if tno > 0 and ResourceLoader.exists(tpath):
+		var tt: Texture2D = load(tpath)
+		var tr := Sprite2D.new()
+		tr.texture = tt
+		tr.centered = false
+		tr.material = _pma
+		var tws := float(tt.get_width()) * S
+		var tsc := S * (PLATE_TITLE_MAX / tws if tws > PLATE_TITLE_MAX else 1.0)
+		tr.scale = Vector2(tsc, tsc)
+		var thh := float(tt.get_height()) * tsc
+		tr.position = Vector2(anchor.x if mine else anchor.x - float(tt.get_width()) * tsc,
+			anchor.y - thh)
+		plate.add_child(tr)
+
+	# ④ 닉네임 — 원작 CCLabelTTF("Thonburi", 20). 한글이라 우리 TTF 로 낸다.
 	var l := Label.new()
-	l.text = "%s\n%d점" % [nick, rating]
-	l.position = Vector2(84.0, 16.0)
-	l.add_theme_font_size_override("font_size", 19)
-	h.add_child(l)
+	l.text = nick
+	l.size = Vector2(pw - PLATE_TEXT.x - 24.0, 28.0)
+	l.position = Vector2(anchor.x if mine else anchor.x - l.size.x, anchor.y)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if mine else HORIZONTAL_ALIGNMENT_RIGHT
+	l.add_theme_font_size_override("font_size", 20)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_child(l)
+
+	# 등장 — 원작 MoveBy(0,+h) → Delay(3.85) → MoveBy(0.1,−h) → MoveBy(0.05,+10) → (0.05,−10).
+	# Cocos +y 는 위, Godot 은 아래이므로 부호를 뒤집는다.
+	var home := plate.position
+	plate.position = home - Vector2(0.0, ph)
+	var tw2 := plate.create_tween()
+	tw2.tween_interval(PLATE_DROP_DELAY)
+	tw2.tween_property(plate, "position", home, 0.1)
+	tw2.tween_property(plate, "position", home - Vector2(0.0, 10.0), 0.05)
+	tw2.tween_property(plate, "position", home, 0.05)
 
 
-# ---------- 하단 로그(원작 ColosseumTextBox) ----------
+## `Colosseum.tier_frame` 는 원작 경로("common/tier_icon_gold.png")를 돌려준다 → 매니페스트 키로.
+func _frame_key(path: String) -> String:
+	return path.replace("/", "_").replace(".png", "")
+
+
+## 프로필 초상 — 원작 `getUserProfileImagePath`(유저가 지정한 사진/드래곤).
+## 우리는 메인 HUD 와 같은 규약을 쓴다: 내 쪽 = 활성 드래곤, 상대 = 선두 드래곤.
+func _plate_portrait(mine: bool) -> Sprite2D:
+	var did := 0
+	if mine:
+		var a := UserDB.active_dragon()
+		did = int(a.get("id", 0))
+	elif not _fo.is_empty():
+		did = int((_fo[0] as Dictionary).get("id", 0))
+	if did <= 0:
+		return null
+	var dir := "portrait_%d" % did
+	var man := _man(dir)
+	for stage in ["evolution", "adult"]:
+		var k := "dragon_dragon_%d_box_%s" % [did, stage]
+		if man.has(k):
+			return _spr(dir, k, 1.0)
+	return null
+
+
+# ---------- 하단 로그 — 원작 `ColosseumTextBox::init` @010327c0 이식 ----------
+#
+# 🔴 2026-08-05 재이식(레퍼런스 `docs/ref/pvp/*.png` 대조). 종전엔 높이 66 짜리 상자에
+#   한 줄 라벨만 있었고 **배속·SKIP·접기 버튼이 통째로 빠져 있었다**.
+#
+# 원작 조립(리터럴·좌표 그대로):
+#   레이어 anchor(0.5,0), pos = VisibleRect::bottom + (0, 10)
+#   ① `9patch/dialogue_box.png` 스케일9, contentSize = (visW − 20, 90)
+#   ② `common/btn_up.png` 접기/펼치기 — pos = (boxW − 50, boxH·0.5)
+#      (`foldTextBox`/`spreadTextBox` 가 짝. 우리는 줄 수만 바꾼다)
+#   ③ SKIP `scene/adventure/bt_skip_%s.png` — pos = boxSize + (−skipW·0.5, 30) = 상자 위 오른쪽
+#   ④ 배속 `scene/colosseum/btn_forward.png` — pos = (btnW·0.5, boxH + 30) = 상자 위 왼쪽
+#      └ `CCString("x%d", getFightTimeScale())` BMFont(subtitle) at 버튼중심 + (−15, 12.5), scale 1.25
+#   ⑤ 본문 CCScrollView size = (boxW − 125, boxH − 22.5) at (25, 20)
+#   등장 = Delay(param) → Delay(0.6) → 메뉴 켜기
+const LOG_H := 90.0
+const LOG_MARGIN := 20.0
+const LOG_BOTTOM := 10.0
+const LOG_BTN_LIFT := 30.0
+const LOG_FOLD_INSET := 50.0
+const LOG_TEXT_PAD := Vector2(25.0, 20.0)
+const LOG_TEXT_TRIM := Vector2(125.0, 22.5)
+const SPEEDS := [1, 2, 3]           # 원작 FightManager::getFightTimeScale
+const LOG_LINES := 2                # 접힌 상태(레퍼런스 2줄) ↔ 펼치면 더 보인다
+
+var _log_host: Control
+var _log_box: NinePatchRect
+var _log_lines: Array[String] = []
+var _speed_label: Label
+var _speed := 1
+var _folded := true
+var _skipped := false
 
 func _build_log(vis: Vector2) -> void:
-	var box := _nine("9patch_dialogue_box", Vector2(vis.x - 40.0, 66.0), Rect2(10, 10, 4, 4))
+	var bw := vis.x - LOG_MARGIN
 	var host := Control.new()
-	host.position = Vector2(20.0, vis.y - 82.0)
-	host.size = Vector2(vis.x - 40.0, 66.0)
+	host.position = Vector2(LOG_MARGIN * 0.5, vis.y - LOG_BOTTOM - LOG_H)
+	host.size = Vector2(bw, LOG_H)
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(host)
-	if box != null:
-		host.add_child(box)
+	_log_host = host
+
+	_log_box = _nine("9patch_dialogue_box", host.size, Rect2(10, 10, 4, 4))
+	if _log_box != null:
+		host.add_child(_log_box)
+
 	_log = Label.new()
-	_log.position = Vector2(22.0, 18.0)
+	_log.position = LOG_TEXT_PAD
+	_log.size = host.size - LOG_TEXT_TRIM
+	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log.add_theme_font_size_override("font_size", 19)
+	_log.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(_log)
+
+	# ② 접기/펼치기 ▲
+	var up := _btn(CM, "common_btn_up", host,
+		Vector2(bw - LOG_FOLD_INSET, LOG_H * 0.5), _toggle_fold)
+	if up != null:
+		up.rotation = 0.0
+
+	# ③ SKIP — 남은 이벤트를 즉시 소화하고 결과로 간다(원작 onClickSkipBattle 과 같은 역할).
+	var sk: Dictionary = _man("adventure_ui").get("scene_adventure_bt_skip_kr", {})
+	var skw := float(sk.get("w", 71)) * Design.ASSET_SCALE
+	_btn("adventure_ui", "scene_adventure_bt_skip_kr", host,
+		Vector2(bw - skw * 0.5, -LOG_BTN_LIFT), _on_skip)
+
+	# ④ 배속
+	var fw := float((_man(CO).get("scene_colosseum_btn_forward", {}) as Dictionary).get("w", 81))
+	var fwp := fw * Design.ASSET_SCALE
+	var fb := _btn(CO, "scene_colosseum_btn_forward", host,
+		Vector2(fwp * 0.5, -LOG_BTN_LIFT), _cycle_speed)
+	_speed_label = Label.new()
+	_speed_label.text = "x%d" % _speed
+	_speed_label.size = Vector2(60.0, 24.0)
+	# 원작 라벨 offset (−15, +12.5) — cocos y-up 이라 Godot 은 위로 12.5.
+	_speed_label.position = Vector2(fwp * 0.5 - 15.0 - 30.0, -LOG_BTN_LIFT - 12.5 - 12.0)
+	_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bm_style(_speed_label, 17, Color(0.25, 0.2, 0.15))
+	_speed_label.scale = Vector2.ONE * 1.25           # 원작 setScale(1.25)
+	if fb != null:
+		host.add_child(_speed_label)
+
+
+## 상자 위/안의 원작 버튼 하나. 프레임 원본 크기 그대로 쓰고 클릭만 우리가 붙인다.
+func _btn(dir: String, key: String, host: Control, at: Vector2, cb: Callable) -> TextureButton:
+	var t := _tex(dir, key)
+	if t == null:
+		return null
+	var b := TextureButton.new()
+	b.texture_normal = t
+	b.ignore_texture_size = true
+	b.stretch_mode = TextureButton.STRETCH_SCALE
+	b.size = Vector2(t.get_width(), t.get_height()) * Design.ASSET_SCALE
+	b.position = at - b.size * 0.5
+	b.material = _pma
+	b.pressed.connect(cb)
+	host.add_child(b)
+	return b
+
+
+func _toggle_fold() -> void:
+	# 원작 `foldTextBox`/`spreadTextBox` — 접힘(2줄) ↔ 펼침(상자를 키워 더 많이 보여 준다).
+	_folded = not _folded
+	var vis := _vis()
+	var h := LOG_H if _folded else LOG_H * 2.2
+	_log_host.position.y = vis.y - LOG_BOTTOM - h
+	_log_host.size.y = h
+	if _log_box != null:
+		_log_box.size.y = h
+	if _log != null:
+		_log.size.y = h - LOG_TEXT_TRIM.y
+	_render_log()
+
+
+func _cycle_speed() -> void:
+	_speed = SPEEDS[(SPEEDS.find(_speed) + 1) % SPEEDS.size()]
+	if _speed_label != null:
+		_speed_label.text = "x%d" % _speed
+
+
+func _on_skip() -> void:
+	_skipped = true
 
 
 func _say(t: String) -> void:
-	if _log != null:
-		_log.text = t
+	_log_lines.append(t)
+	if _log_lines.size() > 12:
+		_log_lines = _log_lines.slice(_log_lines.size() - 12)
+	_render_log()
+
+
+func _render_log() -> void:
+	if _log == null:
+		return
+	var n := LOG_LINES if _folded else 6
+	var take: Array = _log_lines.slice(maxi(0, _log_lines.size() - n))
+	_log.text = "\n".join(PackedStringArray(take))
 
 
 # ---------- 전투 재생 ----------
@@ -463,6 +750,8 @@ func _play() -> void:
 	var lines: Array = _foe.get("lines", [])
 	if not lines.is_empty():
 		for ln in lines:
+			if _skipped:
+				break
 			_say("%s: %s" % [String(_foe.get("nick", "")), String(ln).replace("\n", " ")])
 			await _wait(1.9)
 			if gen != _gen: return
@@ -471,6 +760,11 @@ func _play() -> void:
 	await _wait(1.8)
 	if gen != _gen: return
 	for ev in _events:
+		# SKIP — 원작 `MakeInterface::onClickSkipBattle`. 남은 이벤트는 **결과만** 반영하고
+		# 연출을 건너뛴다(로직 결과는 이미 정해져 있으므로 승패는 바뀌지 않는다).
+		if _skipped:
+			_apply_silent(ev)
+			continue
 		_apply(ev)
 		# 원작 간격 = 애니 길이 + 0.5(복귀) + 0.5(다음까지). 애니 길이를 모르는 이벤트는 짧게.
 		await _wait(_evt_delay(ev))
@@ -496,14 +790,19 @@ func _evt_delay(ev: Dictionary) -> float:
 ## 이벤트 1건을 화면에 반영 — HP 감소 · 데미지 숫자 · 사망 처리.
 func _apply(ev: Dictionary) -> void:
 	var t := String(ev.get("type", ""))
+	# 🔴 2026-08-05 — `confused`/`status_skip` 은 **피격자 칸이 없고 `actor` 만** 있다.
+	#   종전엔 여기서 곧장 return 해 버려 혼란·기절이 화면에 전혀 안 나왔다.
 	var dfn := String(ev.get("defender", ev.get("target", "")))
+	if dfn == "" and t in ["confused", "status_skip"]:
+		dfn = String(ev.get("actor", ""))
 	var dmg := int(ev.get("damage", 0))
 	if dfn == "" or not _views.has(dfn):
 		return
 	var v: Dictionary = _views[dfn]
 	_motion(ev, t, String(ev.get("attacker", "")), dfn)   # 스파인 공격/피격 모션
 	if bool(ev.get("miss", false)):
-		_float_text(v["pos"], "MISS", Color(0.85, 0.9, 1.0))
+		# 회피 워드아트는 `_evade_effect`(원작 evadeEffect)가 낸다 — 여기서 또 찍지 않는다.
+		_log_line(ev, t, dfn, 0, 0)
 		return
 	if dmg > 0:
 		v["hp"] = maxi(0, int(v["hp"]) - dmg)
@@ -534,6 +833,28 @@ func _apply(ev: Dictionary) -> void:
 				tw.tween_interval(1.4)
 				tw.tween_property(n, "modulate:a", 0.0, 0.45)
 	_log_line(ev, t, dfn, dmg, heal)
+
+
+## SKIP 중 — 연출 없이 **상태만** 굴린다(HP·사망·로그). 원작 `onClickSkipBattle` 과 같은 자리.
+func _apply_silent(ev: Dictionary) -> void:
+	var dfn := String(ev.get("defender", ev.get("target", "")))
+	if dfn == "" or not _views.has(dfn):
+		return
+	var v: Dictionary = _views[dfn]
+	if not bool(ev.get("miss", false)):
+		var dmg := int(ev.get("damage", 0))
+		if dmg > 0:
+			v["hp"] = maxi(0, int(v["hp"]) - dmg)
+		var heal := int(ev.get("heal", 0))
+		if heal > 0:
+			v["hp"] = mini(int(v["hp_max"]), int(v["hp"]) + heal)
+		_set_bar(v)
+	if bool(ev.get("dead", false)) and not bool(v["dead"]):
+		v["dead"] = true
+		for k in ["node", "barh"]:
+			var n = v.get(k)
+			if n != null and is_instance_valid(n):
+				(n as CanvasItem).modulate.a = 0.0
 
 
 ## 하단 로그 문구 — **원작 `ColosseumTextBox` 가 쓰던 문장 그대로**.
@@ -573,8 +894,7 @@ func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> v
 func _who(tag: String) -> String:
 	if tag == "" or not _views.has(tag):
 		return ""
-	var l = (_views[tag] as Dictionary).get("name")
-	return (l as Label).text.split("  ")[0] if l is Label else tag
+	return String((_views[tag] as Dictionary).get("dname", tag))
 
 
 ## HP 게이지 갱신 — 원작 `MakeInterface::decreaseHP`/`increaseHP` 와 같은 자리.
@@ -652,6 +972,27 @@ const MOVE_SEC := 0.18
 ##   wait · attack · critical · damaged · down · love · ultimate1 · ultimate2
 ## 즉 **연출에 필요한 건 전부 이미 변환돼 있었다** — 지금까지 wait 만 틀고 있었을 뿐이다.
 const ANIM_IDLE := "wait"
+
+
+## 콜로세움 드래곤 스파인 — **native 크기 그대로**, 원점 = 발밑 중앙(우리 배치 규약).
+## 원작 `makeDragonLayer` 와 같다: 크기를 건드리지 않고 3v3/1v1 배율만 밖에서 곱한다.
+## ⚠️ 콜로세움은 항상 성체다(입장 레벨 25 + 공격 모션이 성체에만 있다 — 위 `_build_team` 주석).
+func _dragon_spine(id: int) -> Node2D:
+	var path := "res://scenes/dragons/dragon_%d_adult.tscn" % id
+	if id <= 0 or not ResourceLoader.exists(path):
+		return null
+	var holder := Node2D.new()
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	if ap != null and ap.has_animation(ANIM_IDLE):
+		ap.get_animation(ANIM_IDLE).loop_mode = Animation.LOOP_LINEAR
+		ap.play(ANIM_IDLE)
+	# 바닥 중앙 정렬만 한다(스케일은 건드리지 않는다).
+	var r := PartySelect._bounds(inst, Transform2D.IDENTITY)
+	if r.size.y > 1.0:
+		inst.position -= Vector2(r.get_center().x, r.position.y + r.size.y)
+	return holder
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:
@@ -778,10 +1119,71 @@ func _base_scale(v: Dictionary) -> Vector2:
 	return v["base_scale"]
 
 
+# ---------- 액션 코드 배선 (2026-08-05) ----------
+#
+# `MakeInterface::action` @01062fd4 의 점프테이블 53핸들러를 전수 특정한 결과
+# (`docs/ref/porting/Colosseum.md` §7.5)를 **우리 이벤트에 실제로 연결한다.**
+# 종전엔 지도만 만들어 두고 `_motion` 은 여전히 우리 자체 타입 3가지로만 갈렸다.
+#
+# 원작은 서버가 액션 코드를 보내 줬다 → 우리는 `Battle.simulate()` 이벤트에서 **역으로 판정**한다.
+# 이 판정은 render 층 일이다(§8): logic 은 "무슨 일이 있었나"만 말하고,
+# "그 일을 원작이 어느 코드로 연출했나"는 화면의 어휘다.
+const AC_HIT := 0          # 기본 피격
+const AC_CONFUSE := 1      # 혼란 — 자기 자신을 때린다
+const AC_DOUBLE := 2       # 연속 공격
+const AC_EVADE := 3        # 회피
+const AC_CUTIN := 4        # 컷인(크리티컬)
+const AC_SWAP := 42        # 위치 교대
+const AC_STUN := -15       # 기절(행동 불가)
+const AC_POISON := -32     # 중독
+const AC_BIGHIT := -54     # 대형 타격
+
+## 이벤트 1건 → 원작 액션 코드. 양수 스킬 코드는 `skill_id` 가 그대로 코드다(§7.5 결론 ①).
+func _action_code(ev: Dictionary, t: String) -> int:
+	if bool(ev.get("miss", false)):
+		return AC_EVADE
+	match t:
+		"confused":
+			return AC_CONFUSE
+		"double":
+			return AC_DOUBLE
+		"status_skip":
+			return AC_STUN
+		"dot":
+			return AC_POISON
+		"skill":
+			return int(ev.get("skill_id", 0))
+		"awaken":
+			return AC_CUTIN
+	if bool(ev.get("crit", false)):
+		return AC_CUTIN
+	return AC_HIT
+
+
 ## 한 이벤트의 스파인 연출 — 공격자/피격자를 함께 움직인다.
 func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> void:
 	var atk: Dictionary = _views.get(atk_tag, {})
 	var dfn: Dictionary = _views.get(dfn_tag, {})
+	var code := _action_code(ev, t)
+
+	# code −15 기절 — 원작은 공격 자체가 없다(턴만 소모). 문자열 `ColosseumStuned`.
+	if code == AC_STUN:
+		var st: Dictionary = _views.get(String(ev.get("actor", "")), {})
+		if not st.is_empty():
+			_shake_horizontal(st, 1.0 if bool(st.get("mine", false)) else -1.0)
+			_status_icon(st, int(ev.get("source", 0)), false, int(ev.get("turns", 0)))
+		return
+
+	# code 1 혼란 — 원작은 `swapPosition` 으로 자리를 흔든 뒤 자기 스파인으로 자기를 친다.
+	if code == AC_CONFUSE:
+		var me: Dictionary = _views.get(String(ev.get("actor", "")), {})
+		if not me.is_empty():
+			var d0 := _play_anim(me, "attack")
+			_attack_pulse(me, me, d0)
+			_damaged_color(me)
+			_shake_horizontal(me, 1.0 if bool(me.get("mine", false)) else -1.0)
+		return
+
 	if not atk.is_empty() and not bool(atk.get("dead", false)):
 		# 원작 `castSkill` 은 종류를 가리지 않고 **"attack" 하나만** 튼다
 		# (크리티컬·각성기용 별도 애니를 콜로세움 경로에서 부르지 않는다).
@@ -789,27 +1191,55 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
 			_attack_pulse(atk, dfn, dur)
+		# code 2 연속 공격 — 원작 `isDoubleAttack` 분기는 타격 시점을 **두 번** 잡는다
+		# (`activeIcon` 이 `getAttackFrame()/30/1.5` 와 그 2배를 쓴다) ⇒ 펄스를 한 번 더.
+		if code == AC_DOUBLE:
+			var gen2 := _gen
+			get_tree().create_timer(maxf(0.1, dur * 0.5)).timeout.connect(func() -> void:
+				if gen2 == _gen and not bool(atk.get("dead", false)):
+					_attack_pulse(atk, dfn, dur * 0.6))
+
+	# code 3 회피 — 원작 `evadeEffect` + `setInvisibleSpine`/`setVisibleSpine`.
+	if code == AC_EVADE:
+		if not dfn.is_empty():
+			_evade_effect(dfn)
+		return
+
 	# 피격 반응 — **애니는 없지만 반응은 있다**(2026-08-05 `action` 코드지도로 확정).
 	#   code 0(기본 피격) → `damagedColor` = 깜빡임
-	#   code -32(중독)    → `damagedColor` + `shakeLayerToHorizontal`
+	#   code −32(중독)    → `damagedColor` + `shakeLayerToHorizontal`
+	#   code −54(대형 타격) → `shakeLayerAllDirection`(화면 전체 흔들림)
 	# 종전엔 "모션이 없다"를 "아무것도 안 한다"로 잘못 옮겨 피격이 전혀 안 보였다.
-	if not dfn.is_empty() and not bool(dfn.get("dead", false)) 			and not bool(ev.get("miss", false)) and int(ev.get("damage", 0)) > 0:
+	if not dfn.is_empty() and not bool(dfn.get("dead", false)) \
+			and int(ev.get("damage", 0)) > 0:
 		_damaged_color(dfn)
-		if t == "poison" or bool(ev.get("crit", false)):
+		if code == AC_POISON or code == AC_CUTIN:
 			# 흔들림 방향 = 맞은 쪽이 밀리는 방향(공격자 반대편).
 			_shake_horizontal(dfn, 1.0 if bool(dfn.get("mine", false)) else -1.0)
+		if code == AC_BIGHIT:
+			_shake_screen(0.4, 1.0)
+
+	# 상태이상 부여 — 원작 code −14 가 `activeIcon`/`getSkillIndex` 로 아이콘을 세운다.
+	var buff := String(ev.get("buff", ""))
+	var debuff := String(ev.get("debuff", ""))
+	if buff != "" and not atk.is_empty():
+		_status_icon(atk, int(ev.get("skill_id", 0)), true, int(ev.get("turns", 0)))
+	if debuff != "" and not dfn.is_empty():
+		_status_icon(dfn, int(ev.get("skill_id", 0)), false, int(ev.get("turns", 0)))
 
 	# 이펙트 스파인은 **드래곤 모션과 별개**로 얹힌다(원작 castSkill 이 그렇게 만든다).
 	var at: Vector2 = dfn.get("pos", _vis() * 0.5) if not dfn.is_empty() else _vis() * 0.5
 	match t:
 		"skill":
+			# 원작 `createIcon` 은 이펙트와 함께 **화면 상단 스킬 이름 배너**도 낸다.
+			_skill_banner(String(ev.get("skill_name", "")), int(ev.get("skill_id", 0)))
 			_skill_spine(int(ev.get("skill_id", 0)), at)
 		"awaken":
 			_awaken_fx(atk, at)
 		_:
 			if atk.is_empty():
 				pass
-			elif bool(ev.get("crit", false)):
+			elif code == AC_CUTIN:
 				# 원작 크리티컬 연출(공용 포신 스파인)은 그대로 두고, 드빌1에서 온 종만
 				# **자기 크리티컬 이펙트**를 위에 얹는다(800 로키 = `col_action2`).
 				_critical_spine(atk, dfn)
@@ -818,6 +1248,152 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 				# 평타 — 드빌1에서 온 종만 전용 평타 이펙트를 갖는다(`col_action1`).
 				# 없으면 아무것도 안 뜬다(원작 콜로세움 평타에도 이펙트가 없다).
 				_dragon_fx_seq(int(atk.get("id", 0)), "col_action1", at)
+
+
+## 회피 — 원작 `MakeInterface::evadeEffect` @0108f078.
+##   `battle.img_plist` 의 `battle/miss_%s.png` 를 피격 지점에 놓고
+##   Delay(0.25) → ScaleTo(0, 2.0) → ScaleTo(0.25, 1.0) → Delay(0.25)
+##   → MoveBy(0.5, (0, 75)) → FadeTo(0.5, 0) → 제거.
+## (프레임 이름은 SSO 바이트 복원: 길이 0x24>>1=18 · "battle" + "/m" + "iss_%s.p" + "ng")
+const EVADE_LIFT := 75.0
+const EVADE_POP := 2.0
+
+func _evade_effect(dfn: Dictionary) -> void:
+	var at: Vector2 = dfn.get("pos", _vis() * 0.5)
+	var s := _spr("battle_ui", "battle_miss_kr", Design.ASSET_SCALE)
+	if s == null:
+		return
+	s.position = at - Vector2(0.0, DMG_LIFT)
+	s.z_index = 100
+	s.scale *= EVADE_POP
+	add_child(s)
+	var base := Design.ASSET_SCALE
+	var tw := s.create_tween()
+	tw.tween_interval(0.25)
+	tw.tween_property(s, "scale", Vector2(base, base), 0.25)
+	tw.tween_interval(0.25)
+	tw.tween_property(s, "position", s.position - Vector2(0.0, EVADE_LIFT), 0.5)
+	tw.parallel().tween_property(s, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(s.queue_free)
+
+
+# ---------- 상태이상 아이콘 — 원작 `MakeInterface::createIcon` @0109272c ----------
+#
+# 원작 자산(리터럴 전수): `skill/%d.png`(스킬 아이콘 75×75) · `skill/buff.png` ·
+#   `skill/debuff.png`(85×85 테두리) · `font/font_normal.fnt`(남은 턴) ·
+#   `skill/skill_zzing_spine`(부여 순간의 반짝임) · `scene/colosseum/skill_txt_bg.png`(이름 배너)
+# 지속 아이콘의 기본 크기는 `MakeInterface::activeIcon` @01092044 의 마지막
+#   `ScaleTo(t, 0.375)` 에서 읽는다 — 발동할 때마다
+#   `ScaleTo(t, 0.5, 0.3) → (0.3, 0.5) → (0.375)` 로 튄다.
+const ICON_BASE := 0.375
+const ICON_PULSE := 0.1
+const ICON_STEP := 40.0
+const ICON_MAX := 4
+
+func _status_icon(v: Dictionary, skill_id: int, is_buff: bool, turns: int) -> void:
+	var host = v.get("icons")
+	if not (host is Node2D) or not is_instance_valid(host):
+		return
+	var box := host as Node2D
+	# 같은 스킬이 이미 붙어 있으면 원작 `activeIcon` 처럼 **다시 튀게만** 한다.
+	var name_key := "ic%d" % skill_id
+	var old := box.get_node_or_null(NodePath(name_key))
+	if old != null:
+		_icon_pulse(old as Node2D)
+		var lb := old.get_node_or_null("t")
+		if lb is Label:
+			(lb as Label).text = str(maxi(0, turns))
+		return
+	if box.get_child_count() >= ICON_MAX:
+		return
+
+	var holder := Node2D.new()
+	holder.name = name_key
+	holder.position = Vector2(box.get_child_count() * ICON_STEP, 0.0)
+	holder.scale = Vector2.ONE * ICON_BASE
+	box.add_child(holder)
+
+	var ring := _spr("skill_ui", "skill_buff" if is_buff else "skill_debuff", Design.ASSET_SCALE)
+	if ring != null:
+		holder.add_child(ring)
+	var ic := _spr("skill_ui", "skill_%d" % skill_id, Design.ASSET_SCALE)
+	if ic != null:
+		holder.add_child(ic)
+	if turns > 0:
+		var l := Label.new()
+		l.name = "t"
+		l.text = str(turns)
+		l.size = Vector2(80.0, 40.0)
+		l.position = Vector2(-4.0, -66.0)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_bm_style(l, 36, Color.WHITE, "font_normal")
+		holder.add_child(l)
+	_icon_pulse(holder)
+
+
+## 원작 `activeIcon` 의 발동 펄스. 기본 0.375 로 돌아온다.
+func _icon_pulse(n: Node2D) -> void:
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(0.5, 0.3), ICON_PULSE)
+	tw.tween_property(n, "scale", Vector2(0.3, 0.5), ICON_PULSE)
+	tw.tween_property(n, "scale", Vector2.ONE * ICON_BASE, ICON_PULSE)
+
+
+# ---------- 스킬 이름 배너 — 같은 `createIcon` 의 상단 표시 ----------
+#
+# 원작: `scene/colosseum/skill_txt_bg.png`(530×47) 를 `VisibleRect::top + (0, −150)` 에 두고
+#   opacity 0 → Delay → FadeTo(0.15, 255) → Delay(1.15) → FadeTo(0.1, 0) → 제거.
+#   그 위에 `getSkillName()` BMFont(subtitle), 아래 `Skill::getShort()` 짧은 설명이
+#   `top + (0, −200)` 자리에서 배너로 올라온다(ScaleTo 1.65/1.35 + MoveTo 0.25).
+# ⚠️ 우리는 **최종 배치**(레퍼런스 `docs/ref/pvp/화면 캡처 …202630.png` 의 "철갑 방패 / 적 피해 감소")
+#   와 페이드 타이밍까지 옮기고, 설명 라벨이 이름 자리에서 배너로 **날아오르는 중간 안무**는
+#   생략했다 — 원작 시퀀스의 인자 순서를 디컴프에서 확신할 수 없어서다(HARD RULE 6).
+const BANNER_Y := 150.0
+const BANNER_SUB_Y := 200.0
+const BANNER_IN := 0.15
+const BANNER_HOLD := 1.15
+const BANNER_OUT := 0.1
+
+func _skill_banner(sname: String, skill_id: int) -> void:
+	if sname == "":
+		return
+	var vis := _vis()
+	var root := Node2D.new()
+	root.z_index = 120
+	root.modulate.a = 0.0
+	add_child(root)
+
+	var bg := _spr(CO, "scene_colosseum_skill_txt_bg", Design.ASSET_SCALE)
+	if bg != null:
+		bg.position = Vector2(vis.x * 0.5, BANNER_Y)
+		root.add_child(bg)
+
+	var nm := Label.new()
+	nm.text = sname
+	nm.size = Vector2(vis.x, 40.0)
+	nm.position = Vector2(0.0, BANNER_Y - 20.0)
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bm_style(nm, 30, Color.WHITE)
+	root.add_child(nm)
+
+	# 짧은 설명 — 원작 `Skill::getShort()` @01523868 은 `info_skill` 의 별도 열을 그대로 돌려주는
+	# 게터인데(멤버 +0x130), **그 열은 서버 DB 와 함께 유실**됐다. 우리가 가진 가장 가까운 것이
+	# `skills.json` 의 `effect_text` 라 그걸 쓴다(레퍼런스의 "적 피해 감소" 자리).
+	var short := String((Data.skills.get(str(skill_id), {}) as Dictionary).get("effect_text", ""))
+	if short != "":
+		var sl := Label.new()
+		sl.text = short
+		sl.size = Vector2(vis.x, 32.0)
+		sl.position = Vector2(0.0, BANNER_SUB_Y - 16.0)
+		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_bm_style(sl, 21, Color.WHITE)
+		root.add_child(sl)
+
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, BANNER_IN)
+	tw.tween_interval(BANNER_HOLD)
+	tw.tween_property(root, "modulate:a", 0.0, BANNER_OUT)
+	tw.tween_callback(root.queue_free)
 
 
 # ---------- 스킬/크리티컬 이펙트 스파인 ----------
@@ -1164,8 +1740,9 @@ func _finish() -> void:
 
 # ---------- 헬퍼 ----------
 
+## 원작 `FightManager::getFightTimeScale()` — 배속 버튼이 정하는 재생 속도로 대기를 줄인다.
 func _wait(sec: float) -> void:
-	await get_tree().create_timer(sec).timeout
+	await get_tree().create_timer(maxf(0.01, sec / float(maxi(1, _speed)))).timeout
 
 func _vis() -> Vector2:
 	return get_viewport_rect().size

@@ -69,6 +69,21 @@ GUARD_NPCS = [
     {"key": "sundaegun", "name": "선대군", "talk_prefix": None, "orig": False},
 ]
 
+# 🟦 사용자 확정 2026-08-04 — 연승방지봇은 **이벤트성 매치**라 일반 매칭과 규칙이 다르다.
+#   봇이 끌고 나오는 드래곤의 능력치는 도감·성장곡선과 무관한 **임의 부여 수치**다.
+#   ⇒ 시트에 마리별 스탯 칸을 둔다. 적힌 칸만 **최종 능력치를 덮어쓴다**
+#     (젬·장비·팀버프·성장 계산을 다 끝낸 뒤 마지막에 대입 — `PartyStats.resolve`).
+#   빈 칸은 평소대로 계산한다 ⇒ **선대군은 전 칸을 비워 두면 기존 드래곤 스탯·등급 그대로**다.
+GUARD_STAT_COLS = {           # CSV 열 이름 → 스탯 키(전투가 쓰는 이름)
+    "HP": "hp", "공격": "att", "방어": "def",
+    "크리": "cri", "회피": "evd", "블록": "blk",
+}
+GUARD_GRADE_COL = "등급"      # 카드에 뜨는 등급 표시(비우면 스탯에서 계산)
+
+GUARD_HEADER = (["키", "이름", "등장연승", "레이팅", "드래곤id", "레벨", "각성"]
+                + list(GUARD_STAT_COLS) + [GUARD_GRADE_COL]
+                + ["젬", "스킬", "장비", "대사", "비고"])
+
 GUARD_SCHEDULE = [
     {"streak_at": 25,  "key": "nuri",      "talk_stage": "A"},
     {"streak_at": 50,  "key": "raon",      "talk_stage": "A"},
@@ -267,6 +282,16 @@ def read_orig_talks(prefix: str) -> dict:
     return {k: [s for _, s in sorted(v)] for k, v in out.items()}
 
 
+def read_stat_override(row: dict) -> dict:
+    """연승방지봇 시트 1행의 임의 스탯 칸 → {스탯키: 값}. 빈 칸은 넣지 않는다."""
+    out: dict[str, int] = {}
+    for col, key in GUARD_STAT_COLS.items():
+        v = (row.get(col) or "").strip().replace(",", "")
+        if v.lstrip("-").isdigit():
+            out[key] = int(v)
+    return out
+
+
 def build_guards() -> list[dict]:
     """연승방지봇 3단계(라온/누리/선대군).
 
@@ -285,14 +310,25 @@ def build_guards() -> list[dict]:
             g["talk_csv"].append(line)
         did = (r.get("드래곤id") or "").strip()
         if did.isdigit():
-            g["dragons"].append({
+            d = {
                 "id": int(did),
                 "level": int(r.get("레벨") or 50),
                 "awakened": (r.get("각성") or "").strip().upper() in ("O", "Y", "TRUE", "1"),
                 "gems": [x.strip() for x in (r.get("젬") or "").split("|") if x.strip()],
                 "skills": [x.strip() for x in (r.get("스킬") or "").split("|") if x.strip()],
                 "equip": [x.strip() for x in (r.get("장비") or "").split("|") if x.strip()],
-            })
+            }
+            # 이벤트성 매치 — 적힌 스탯만 최종값을 덮어쓴다(빈 칸은 계산대로).
+            stats = read_stat_override(r)
+            if stats:
+                d["stats"] = stats
+            grade = (r.get(GUARD_GRADE_COL) or "").strip()
+            if grade:
+                try:
+                    d["grade"] = float(grade)
+                except ValueError:
+                    pass
+            g["dragons"].append(d)
         if (r.get("레이팅") or "").strip().isdigit():
             g["rating"] = int(r["레이팅"])
 
@@ -355,6 +391,45 @@ def build_rankers() -> list[dict]:
     return [by_nick[n] for n in order]
 
 
+def migrate_guard_sheet() -> bool:
+    """시트를 **기입한 내용 그대로** 최신 열 구성에 맞춘다.
+
+    사용자가 채우는 시트라 재생성으로 날리면 안 된다 — 없는 열은 빈 칸으로 추가하고
+    순서를 GUARD_HEADER 에 맞춰 다시 쓴다(모르는 열은 뒤에 붙여 보존).
+    `등장연승` 은 GUARD_SCHEDULE 에서 나오는 파생 표시값이라(빌더가 읽지 않는다)
+    스케줄이 바뀌면 여기서 다시 적는다. 그 밖의 칸은 손대지 않는다.
+    """
+    if not GUARD_CSV.exists():
+        return False
+    with GUARD_CSV.open(encoding="utf-8-sig", newline="") as f:
+        rd = csv.DictReader(f)
+        old = list(rd.fieldnames or [])
+        rows = list(rd)
+    extra = [c for c in old if c and c not in GUARD_HEADER]
+    header = GUARD_HEADER + extra
+    seen: set[str] = set()
+    was = [[(r.get(c) or "") for c in header] for r in rows]     # 손대기 전 스냅샷
+    out: list[list[str]] = []
+    for r in rows:
+        key = (r.get("키") or "").strip()
+        if key:
+            first = key not in seen
+            seen.add(key)
+            r["등장연승"] = ",".join(str(s["streak_at"]) for s in GUARD_SCHEDULE
+                                   if s["key"] == key) if first else ""
+        out.append([(r.get(c) or "") for c in header])
+    if old == header and was == out:
+        return False
+    with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        w.writerows(out)
+    added = [c for c in GUARD_HEADER if c not in old]
+    print(f"  ~ {GUARD_CSV.relative_to(REPO)} — "
+          + (f"열 추가(기입 내용 보존): {', '.join(added)}" if added else "등장연승 갱신"))
+    return True
+
+
 def init_sheets(force: bool = False) -> None:
     SHEETS.mkdir(parents=True, exist_ok=True)
     if force or not RANKER_CSV.exists():
@@ -367,16 +442,19 @@ def init_sheets(force: bool = False) -> None:
     if force or not GUARD_CSV.exists():
         with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
-            w.writerow(["키", "이름", "등장연승", "레이팅", "드래곤id", "레벨", "각성",
-                        "젬", "스킬", "장비", "대사", "비고"])
+            w.writerow(GUARD_HEADER)
             for npc in GUARD_NPCS:
                 at = ",".join(str(s["streak_at"]) for s in GUARD_SCHEDULE
                               if s["key"] == npc["key"])
-                note = ("원작 대사 자동 반영 — 대사 칸은 비워 두세요"
-                        if npc["talk_prefix"] else "오리지널 캐릭터 — 대사도 채워 주세요")
+                note = ("원작 대사 자동 반영 — 대사 칸은 비워 두세요. "
+                        "스탯 칸에 적은 값이 최종 능력치가 됩니다(빈 칸은 도감 계산대로)"
+                        if npc["talk_prefix"] else
+                        "오리지널 캐릭터 — 대사도 채워 주세요. "
+                        "스탯 칸은 비워 두면 기존 드래곤 스탯·등급 그대로")
                 for i in range(3):          # 드래곤 3마리(3vs3) 자리
                     w.writerow([npc["key"], npc["name"] if i == 0 else "",
                                 at if i == 0 else "", "", "", "50", "O",
+                                "", "", "", "", "", "", "",   # HP·공격·방어·크리·회피·블록·등급
                                 "", "", "", "", note if i == 0 else ""])
         print(f"  + {GUARD_CSV.relative_to(REPO)}")
     if force or not NICK_CSV.exists():
@@ -473,6 +551,10 @@ def build() -> dict:
             "atk_normal": "일반 공격",
             "atk_double": "연속 공격",
             "atk_critical": "강력한 공격",
+            # 드래곤 HUD 의 낱말 — 원작 `MakeInterface::setHUD` @01050ffc 가 이 문자열을
+            # BMFont 로 찍고 바로 오른쪽에 `FightDragon::getLevel()` 을 "%d" 로 붙인다
+            # (`<ColosseumLevel>레벨</ColosseumLevel>`). 이름이 아니다 — 2026-08-05 정정.
+            "level": "레벨",
             # 그 밖의 확정 문구
             "no_stamina": "피로도가 부족하여 전투에 참여가 불가능합니다.",
             "no_dragon": "전투에 참여가 가능한 드래곤이 없습니다.",
@@ -500,11 +582,16 @@ def main(argv: list[str]) -> int:
     if "--init" in argv:
         print("[colosseum] 시트 스켈레톤")
         init_sheets(force="--force" in argv)
+        migrate_guard_sheet()
         return 0
+    migrate_guard_sheet()       # 열이 늘었으면 기입 내용을 지키며 헤더만 맞춘다
     data = build()
     n_rank = len(data["rankers"])
     n_nick = sum(len(v) for v in data["nick"].values())
+    n_gd = sum(len(g["dragons"]) for g in data["guards"])
+    n_ov = sum(1 for g in data["guards"] for d in g["dragons"] if d.get("stats"))
     print(f"[colosseum] 티어 {len(TIERS)} · 봇분류 {len(BOT_GRADES)} · 랭커 {n_rank} · 닉조각 {n_nick}")
+    print(f"  연승방지봇 {len(data['guards'])}회 등장 · 드래곤 {n_gd}칸 · 임의스탯 지정 {n_ov}칸")
     if n_rank == 0:
         print(f"  ⚠️ 랭커 0명 — {RANKER_CSV.relative_to(REPO)} 를 채우면 반영된다(--init 로 생성).")
     if "--dry" in argv:
