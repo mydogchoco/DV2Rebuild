@@ -263,8 +263,16 @@ func _build_list(host: Control) -> void:
 				cell.add_child(th)
 			dx -= 66.0
 
-		# 연승방지봇 표식 — 원작 연승 배너와 같은 개념(FightScene::showWinningStreak).
-		if String(o.get("grade", "")) == "ranker":
+		# 연승방지봇(라온/누리/선대군) 표식 — 원작 연승 배너와 같은 개념
+		# (FightScene::showWinningStreak). 일반 랭커는 ★ 만.
+		if bool(o.get("guard", false)):
+			var gt := Label.new()
+			gt.text = "연승 저지"
+			gt.position = Vector2(w - 130.0, 8.0)
+			gt.add_theme_font_size_override("font_size", 17)
+			gt.modulate = Color(1.0, 0.5, 0.4)
+			cell.add_child(gt)
+		elif String(o.get("grade", "")) == "ranker":
 			var tag := Label.new()
 			tag.text = "★"
 			tag.position = Vector2(w - 30.0, 10.0)

@@ -38,7 +38,7 @@
     python scripts/tools/build_colosseum.py --dry      # 쓰지 않고 요약만
 """
 from __future__ import annotations
-import csv, json, sys
+import csv, json, sys, re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -46,6 +46,37 @@ OUT = REPO / "data" / "colosseum.json"
 SHEETS = REPO / "docs" / "input" / "sheets"
 RANKER_CSV = SHEETS / "colosseum_ranker.csv"
 NICK_CSV = SHEETS / "colosseum_nick.csv"
+GUARD_CSV = SHEETS / "colosseum_guard.csv"
+STRINGS_KR = REPO / "DV2" / "string" / "stringsData_KR.xml"
+
+# 연승방지봇 3단계 — 🟦 사용자 확정 2026-08-04.
+#
+# 라온·누리는 **원작 캐릭터**이고 콜로세움 대사까지 실재한다
+# (ColosseumRaonTalkA/B/C · ColosseumNuriTalkA/B — 유실 아님, stringsData_KR.xml).
+# 원작이 A/B/C 로 단계를 나눠 둔 것 자체가 "올라올수록 다른 말을 한다"는 구조다.
+#
+# 🟦 **선대군은 원작에 없는 오리지널 캐릭터**(사용자 확정) — 원작 문자열 0건.
+#   등장 조건 = **999연승**. 대사·드래곤 구성 전부 사용자 CSV.
+#
+# 🟦 등장 조건 = 사용자 확정 2026-08-04. **연승 기준**이고 둘이 교차한다:
+#     25 누리A · 50 라온A · 75 누리B · 100 라온B · 150 라온C · 999 선대군
+# 이게 원작 대사 단계 수와 정확히 맞는다 — 누리는 A/B **2단계**, 라온은 A/B/C **3단계**.
+# ⇒ `schedule` 한 줄 = (등장 연승, 누가, 어느 대사 단계) 다. 현재 연승에서 **도달한 가장 높은
+#   문턱**이 곧 이번 상대이자 그 대사 단계가 된다.
+GUARD_NPCS = [
+    {"key": "nuri", "name": "누리", "talk_prefix": "ColosseumNuriTalk", "orig": True},
+    {"key": "raon", "name": "라온", "talk_prefix": "ColosseumRaonTalk", "orig": True},
+    {"key": "sundaegun", "name": "선대군", "talk_prefix": None, "orig": False},
+]
+
+GUARD_SCHEDULE = [
+    {"streak_at": 25,  "key": "nuri",      "talk_stage": "A"},
+    {"streak_at": 50,  "key": "raon",      "talk_stage": "A"},
+    {"streak_at": 75,  "key": "nuri",      "talk_stage": "B"},
+    {"streak_at": 100, "key": "raon",      "talk_stage": "B"},
+    {"streak_at": 150, "key": "raon",      "talk_stage": "C"},
+    {"streak_at": 999, "key": "sundaegun", "talk_stage": ""},   # 대사는 CSV
+]
 
 # ── 원작 채굴값 ────────────────────────────────────────────────────────────
 #
@@ -132,9 +163,10 @@ TICKET = {
 }
 
 STREAK = {
-    "_note": "🟦 사용자 확정 — 연승방지봇. 연승이 guard_at 에 닿으면 그 다음 상대는 "
-             "한 단계 위 분류에서 나오고, guard_repeat 회 연속 유지된다.",
-    "guard_at": 5,
+    "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 "
+             "50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). guard_repeat 은 그 문턱을 "
+             "넘은 뒤 방지봇이 목록에 유지되는 판 수.",
+    "guard_at": 25,
     "guard_repeat": 3,
 }
 
@@ -218,6 +250,84 @@ def build_nick() -> dict:
     return out
 
 
+def read_orig_talks(prefix: str) -> dict:
+    """원작 대사 추출 — `<{prefix}{A|B|C}_{n}>` 를 단계별로 모은다.
+
+    유실이 아니다: 라온·누리의 콜로세움 대사가 `stringsData_KR.xml` 에 그대로 있다.
+    단계 문자(A/B/C)가 곧 **등급 구간**이다(A=첫 조우 · B=올라온 뒤 · C=고등급).
+    """
+    if not prefix or not STRINGS_KR.exists():
+        return {}
+    t = STRINGS_KR.read_text(encoding="utf-8", errors="replace")
+    out: dict[str, list[tuple[int, str]]] = {}
+    for m in re.finditer(r"<%s([A-C])_(\d+)>(.*?)</%s\1_\2>" % (prefix, prefix), t, re.S):
+        stage, no, txt = m.group(1), int(m.group(2)), m.group(3)
+        txt = txt.replace("&#10;", "\n").strip()
+        out.setdefault(stage, []).append((no, txt))
+    return {k: [s for _, s in sorted(v)] for k, v in out.items()}
+
+
+def build_guards() -> list[dict]:
+    """연승방지봇 3단계(라온/누리/선대군).
+
+    대사 = 원작에 있으면 원작(라온·누리), 없으면 CSV(선대군).
+    드래곤 구성 = 전부 CSV(사용자 작성) — 랭커 시트와 같은 방식.
+    """
+    rows = read_csv(GUARD_CSV)
+    by_key: dict[str, dict] = {}
+    for r in rows:
+        key = (r.get("키") or "").strip()
+        if not key:
+            continue
+        g = by_key.setdefault(key, {"dragons": [], "talk_csv": []})
+        line = (r.get("대사") or "").strip()
+        if line:
+            g["talk_csv"].append(line)
+        did = (r.get("드래곤id") or "").strip()
+        if did.isdigit():
+            g["dragons"].append({
+                "id": int(did),
+                "level": int(r.get("레벨") or 50),
+                "awakened": (r.get("각성") or "").strip().upper() in ("O", "Y", "TRUE", "1"),
+                "gems": [x.strip() for x in (r.get("젬") or "").split("|") if x.strip()],
+                "skills": [x.strip() for x in (r.get("스킬") or "").split("|") if x.strip()],
+                "equip": [x.strip() for x in (r.get("장비") or "").split("|") if x.strip()],
+            })
+        if (r.get("레이팅") or "").strip().isdigit():
+            g["rating"] = int(r["레이팅"])
+
+    npcs = {}
+    for npc in GUARD_NPCS:
+        csvg = by_key.get(npc["key"], {})
+        talks = read_orig_talks(npc["talk_prefix"])
+        npcs[npc["key"]] = {
+            "key": npc["key"], "name": npc["name"], "orig": npc["orig"],
+            "talk": talks,                          # 원작 단계별 대사(A/B/C). 없으면 {}
+            "talk_csv": csvg.get("talk_csv", []),   # 사용자 대사(선대군 등)
+            "rating": csvg.get("rating", 0),
+            "dragons": csvg.get("dragons", []),
+            "_talk_source": "원작 %s*" % npc["talk_prefix"] if npc["talk_prefix"] else "사용자 CSV",
+        }
+
+    # 스케줄 한 줄 = 한 번의 등장. 대사 단계까지 여기서 확정한다.
+    out = []
+    for i, sch in enumerate(GUARD_SCHEDULE):
+        npc = npcs[sch["key"]]
+        stage = sch["talk_stage"]
+        lines = npc["talk"].get(stage, []) if stage else list(npc["talk_csv"])
+        out.append({
+            "order": i + 1,
+            "streak_at": sch["streak_at"],
+            "key": npc["key"], "name": npc["name"], "orig": npc["orig"],
+            "talk_stage": stage,
+            "lines": lines,                     # 이번 등장에 쓸 대사(확정본)
+            "rating": npc["rating"],
+            "dragons": npc["dragons"],
+            "_talk_source": npc["_talk_source"],
+        })
+    return out
+
+
 def build_rankers() -> list[dict]:
     """랭커 풀 — 사용자 CSV. 한 랭커가 여러 줄(드래곤 3마리)일 수 있다."""
     rows = read_csv(RANKER_CSV)
@@ -254,6 +364,21 @@ def init_sheets(force: bool = False) -> None:
             for _ in range(3):
                 w.writerow(["", "master", "", "", "50", "O", "", "", "", ""])
         print(f"  + {RANKER_CSV.relative_to(REPO)}")
+    if force or not GUARD_CSV.exists():
+        with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["키", "이름", "등장연승", "레이팅", "드래곤id", "레벨", "각성",
+                        "젬", "스킬", "장비", "대사", "비고"])
+            for npc in GUARD_NPCS:
+                at = ",".join(str(s["streak_at"]) for s in GUARD_SCHEDULE
+                              if s["key"] == npc["key"])
+                note = ("원작 대사 자동 반영 — 대사 칸은 비워 두세요"
+                        if npc["talk_prefix"] else "오리지널 캐릭터 — 대사도 채워 주세요")
+                for i in range(3):          # 드래곤 3마리(3vs3) 자리
+                    w.writerow([npc["key"], npc["name"] if i == 0 else "",
+                                at if i == 0 else "", "", "", "50", "O",
+                                "", "", "", "", note if i == 0 else ""])
+        print(f"  + {GUARD_CSV.relative_to(REPO)}")
     if force or not NICK_CSV.exists():
         with NICK_CSV.open("w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
@@ -360,6 +485,7 @@ def build() -> dict:
         "coin": COIN,
         "streak": STREAK,
         "bots": {"grades": BOT_GRADES, "tier_mix": TIER_BOT_MIX, "list_size": LIST_SIZE},
+        "guards": build_guards(),
         "nick": build_nick(),
         "rankers": rankers,
     }

@@ -193,8 +193,8 @@
   }
  },
  "streak": {
-  "_note": "🟦 사용자 확정 — 연승방지봇. 연승이 guard_at 에 닿으면 그 다음 상대는 한 단계 위 분류에서 나오고, guard_repeat 회 연속 유지된다.",
-  "guard_at": 5,
+  "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). guard_repeat 은 그 문턱을 넘은 뒤 방지봇이 목록에 유지되는 판 수.",
+  "guard_at": 25,
   "guard_repeat": 3
  },
  "bots": {
@@ -305,6 +305,116 @@
   },
   "list_size": 5
  },
+ "guards": [
+  {
+   "order": 1,
+   "streak_at": 25,
+   "key": "nuri",
+   "name": "누리",
+   "orig": true,
+   "talk_stage": "A",
+   "lines": [
+    "어라! 오랜만이야!",
+    "설~마 너도 콜로세움에 온 거야?",
+    "어때? 강한 드래곤 테이머들과의 대전은?",
+    "무언가 승부욕이 팍팍~ 샘솟지 않아?",
+    "맞아! 나처럼 강한 대선배님이 많지.\n하지만 너무 겁먹지는 말라고, 헤헷!",
+    "맞아.... 너처럼 무식한 애들도 꽤 보이더라!",
+    "뭐얏!",
+    "하, 하여튼! 이것도 인연이니 승부야!",
+    "물론~ 나의 드래곤은 즈믄!",
+    "왜 맨날! 나만 싸우는 건데!"
+   ],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "원작 ColosseumNuriTalk*"
+  },
+  {
+   "order": 2,
+   "streak_at": 50,
+   "key": "raon",
+   "name": "라온",
+   "orig": true,
+   "talk_stage": "A",
+   "lines": [
+    "어라... 오랜만인걸? 흐음... 좋아!",
+    "뭐~ 넓은 아량으로 이 몸이 네 녀석의 상대가 되어주지~!",
+    "어디, 네 녀석의 볼품없는 실력을 평가해주지!"
+   ],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "원작 ColosseumRaonTalk*"
+  },
+  {
+   "order": 3,
+   "streak_at": 75,
+   "key": "nuri",
+   "name": "누리",
+   "orig": true,
+   "talk_stage": "B",
+   "lines": [
+    "어라라라? 설마 여기까지 올라온 거야?",
+    "대단한 실력인걸! 흥~흥흥~ 칭찬할만해!",
+    "하지만 이 무시무시한 실력의 누리님은\n넘어설 수 없을 것이야! 오호호호호홋!!!",
+    "정확히는 내가 싸우는 거지만....",
+    "뭐 누이 좋고 매부 좋은 거지~!",
+    "하여튼! 덤벼보라고! 선배님의 실력을 보여주지!!",
+    "살살 해달라고!",
+    "물론 난 최선을 다할 테지만! 우히히힛!"
+   ],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "원작 ColosseumNuriTalk*"
+  },
+  {
+   "order": 4,
+   "streak_at": 100,
+   "key": "raon",
+   "name": "라온",
+   "orig": true,
+   "talk_stage": "B",
+   "lines": [
+    "오호! 여기까지 올라온 건가?",
+    "우습게 봤는데 제법 하는걸?!",
+    "물론 나를 넘어서면 인정해주겠지만\n네 녀석이 그럴 리 없을 테니!!",
+    "덤비라고!! 어설픈 녀석!"
+   ],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "원작 ColosseumRaonTalk*"
+  },
+  {
+   "order": 5,
+   "streak_at": 150,
+   "key": "raon",
+   "name": "라온",
+   "orig": true,
+   "talk_stage": "C",
+   "lines": [
+    "꽤 강한 드래곤을 육성했는걸?",
+    "탐이 날 정도야. 네 녀석치곤 정말 제법이야!",
+    "하지만 궁금한걸?",
+    "그 강함이 어느 정도인지 말이야!",
+    "자! 긴 말은 필요 없겠지!",
+    "덤비라고 애송이!"
+   ],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "원작 ColosseumRaonTalk*"
+  },
+  {
+   "order": 6,
+   "streak_at": 999,
+   "key": "sundaegun",
+   "name": "선대군",
+   "orig": false,
+   "talk_stage": "",
+   "lines": [],
+   "rating": 0,
+   "dragons": [],
+   "_talk_source": "사용자 CSV"
+  }
+ ],
  "nick": {
   "prefix": [
    "붉은",

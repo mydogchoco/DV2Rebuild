@@ -121,6 +121,22 @@ func _run() -> void:
 			nicks[String(o["nick"])] = true
 		fails += _eq("닉 중복 없음", nicks.size(), list.size())
 
+	# ── 8. 연승방지봇 스케줄 (🟦 사용자 확정: 25 누리A·50 라온A·75 누리B·100 라온B·150 라온C·999 선대군)
+	var sched := [[0, ""], [24, ""], [25, "누리"], [49, "누리"], [50, "라온"], [74, "라온"],
+				  [75, "누리"], [99, "누리"], [100, "라온"], [149, "라온"], [150, "라온"],
+				  [998, "라온"], [999, "선대군"]]
+	for c in sched:
+		var g := Colosseum.guard_for(int(c[0]))
+		fails += _eq("guard(%d연승)" % int(c[0]), String(g.get("name", "")), String(c[1]))
+	# 대사 단계가 스케줄과 함께 확정되는가(원작 대사 단계 수와 일치해야 한다).
+	fails += _eq("25연승 대사단계", String(Colosseum.guard_for(25).get("talk_stage", "")), "A")
+	fails += _eq("75연승 대사단계", String(Colosseum.guard_for(75).get("talk_stage", "")), "B")
+	fails += _eq("150연승 대사단계", String(Colosseum.guard_for(150).get("talk_stage", "")), "C")
+	fails += _b("누리A 원작 대사 실림", (Colosseum.guard_for(25).get("lines", []) as Array).size() > 0)
+	fails += _b("라온C 원작 대사 실림", (Colosseum.guard_for(150).get("lines", []) as Array).size() > 0)
+	fails += _eq("다음 방지봇까지(0연승)", Colosseum.next_guard_in(0), 25)
+	fails += _eq("다음 방지봇까지(150연승)", Colosseum.next_guard_in(150), 849)
+
 	print("\n[test_colosseum] %s" % ("ALL PASS" if fails == 0 else "FAIL %d" % fails))
 	get_tree().quit(1 if fails > 0 else 0)
 

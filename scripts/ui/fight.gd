@@ -303,6 +303,15 @@ func _combatants(team: Array, side: String) -> Array:
 
 func _play() -> void:
 	var gen := _gen
+	# 연승방지봇(라온/누리/선대군)은 붙기 전에 **대사를 한다**.
+	# 라온·누리 대사는 원작 그대로(ColosseumRaonTalk*/ColosseumNuriTalk*), 단계는 연승 스케줄이
+	# 정한다(25 누리A · 50 라온A · 75 누리B · 100 라온B · 150 라온C). 선대군은 사용자 CSV.
+	var lines: Array = _foe.get("lines", [])
+	if not lines.is_empty():
+		for ln in lines:
+			_say("%s: %s" % [String(_foe.get("nick", "")), String(ln).replace("\n", " ")])
+			await _wait(1.9)
+			if gen != _gen: return
 	_say("%s 와(과)의 대전!" % String(_foe.get("nick", "")))
 	_vs_intro()                 # 원작 fight_spine("FIGHT!") 개시 연출
 	await _wait(1.8)

@@ -597,9 +597,17 @@ static func roll_opponents(mode: String, rng: RandomNumberGenerator = null) -> A
 	var rankers: Array = _cfg().get("rankers", [])
 	var nicks := gen_nicks(count, rng)
 	var out: Array = []
-	for i in count:
+	# 연승방지가 걸려 있으면 **이름 있는 방지봇 1기**를 목록 맨 위에 넣는다.
+	# (나머지 자리는 평소대로 굴린다 — 원작 목록도 여러 상대 중에서 고르는 형태다.)
+	var guard_slot := -1
+	if guard_on:
+		var gnpc := guard_for(streak_of(mode))
+		if not gnpc.is_empty():
+			out.append(make_guard(gnpc, mode, rng))
+			guard_slot = 0
+	for i in count - out.size():
 		var g := _pick_grade(mix, rng)
-		if guard_on:
+		if guard_on and guard_slot < 0:
 			g = _grade_up(g)
 		if g == "ranker" and not rankers.is_empty():
 			out.append(_make_ranker(rankers[rng.randi() % rankers.size()], mode, rng))
@@ -627,6 +635,54 @@ static func _pick_grade(mix: Dictionary, rng: RandomNumberGenerator) -> String:
 		if r < acc:
 			return last
 	return last
+
+
+# --- 연승방지봇(라온 / 누리 / 선대군) ----------------------------------------
+#
+# 🟦 사용자 확정 2026-08-04 — 연승을 끊으러 오는 상대는 **이름 있는 3단계**다.
+#   라온(5연승~) · 누리(15연승~) — **원작 캐릭터**이고 콜로세움 대사까지 실재한다
+#     (`ColosseumRaonTalkA/B/C` · `ColosseumNuriTalkA/B`, stringsData_KR.xml — 유실 아님).
+#   선대군(999연승) — **원작에 없는 오리지널 캐릭터**. 대사·구성 전부 사용자 CSV.
+# 드래곤 구성은 셋 다 `docs/input/sheets/colosseum_guard.csv`(사용자 작성).
+
+## 지금 연승에서 **도달한 가장 높은 문턱**의 등장 항목. 없으면 {}.
+##
+## 🟦 스케줄(사용자 확정): 25 누리A · 50 라온A · 75 누리B · 100 라온B · 150 라온C · 999 선대군.
+## 한 항목이 "누가 + 어느 대사 단계"를 함께 정한다 — 원작 대사 단계 수와 정확히 맞는다
+## (누리 A/B 2단계 · 라온 A/B/C 3단계).
+static func guard_for(streak: int) -> Dictionary:
+	var best: Dictionary = {}
+	for g: Dictionary in (_cfg().get("guards", []) as Array):
+		var at := int(g.get("streak_at", 0))
+		if streak >= at and (best.is_empty() or at >= int(best.get("streak_at", 0))):
+			best = g
+	return best
+
+
+## 다음 연승방지봇까지 남은 연승(없으면 0) — 로비 안내용.
+static func next_guard_in(streak: int) -> int:
+	var nxt := -1
+	for g: Dictionary in (_cfg().get("guards", []) as Array):
+		var at := int(g.get("streak_at", 0))
+		if at > streak and (nxt < 0 or at < nxt):
+			nxt = at
+	return 0 if nxt < 0 else nxt - streak
+
+
+## 연승방지봇 1기를 상대로 만든다. CSV 에 드래곤이 없으면 랭커 규칙으로 채운다.
+static func make_guard(g: Dictionary, mode: String, rng: RandomNumberGenerator) -> Dictionary:
+	var rec := {
+		"nick": String(g.get("name", "")),
+		"tier": "master",
+		"rating": int(g.get("rating", 0)),
+		"dragons": g.get("dragons", []),
+	}
+	var bot := _make_ranker(rec, mode, rng)
+	bot["guard"] = true
+	bot["guard_key"] = String(g.get("key", ""))
+	bot["talk_stage"] = String(g.get("talk_stage", ""))
+	bot["lines"] = g.get("lines", [])       # 대사 단계는 스케줄이 이미 확정해 뒀다
+	return bot
 
 
 static func _grade_up(g: String) -> String:
