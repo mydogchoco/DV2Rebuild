@@ -2741,11 +2741,12 @@ func _ultimate_position(atk: Dictionary) -> float:
 	var bar = atk.get("barh")
 	if bar is Node2D and is_instance_valid(bar):
 		var bh: Vector2 = (bar as Node2D).position
+		var bmove := stage - home            # 레이어와 **같은 변위**로 태운다
 		var bt := (bar as Node2D).create_tween()
-		_tween_jump(bt, bar as Node2D, bh, bh + Vector2(dx, 0.0),
+		_tween_jump(bt, bar as Node2D, bh, bh + bmove,
 			ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
 		bt.tween_interval(hold)
-		_tween_jump(bt, bar as Node2D, bh + Vector2(dx, 0.0), bh,
+		_tween_jump(bt, bar as Node2D, bh + bmove, bh,
 			ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
 	# 각성기가 도는 동안은 무대 자리가 원점이다(공격 복귀가 슬롯으로 튀지 않게).
 	atk["home"] = stage
