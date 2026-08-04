@@ -281,8 +281,21 @@ func _on_pick(i: int) -> void:
 		_notice("입장권이 부족합니다.")
 		_rebuild()
 		return
-	# 덱 선택(Select1vs1Layer / Select3vs3Layer)은 다음 증분에서 붙인다.
-	# 지금은 고른 상대만 표시해 로비 동작을 눈으로 확인할 수 있게 한다.
+	var foe: Dictionary = _opponents[i]
+	var n := Colosseum.party_size(_mode)
+	# 🟠 덱 선택 = 우리 `PartySelect`(원작 `AddDragonCell` 이식본) 재사용.
+	#   원작 콜로세움 전용 선택창은 `Select3vs3Layer`/`Select1vs1Layer` 로 따로 있고
+	#   (CCMenuOnScrollView + `makeMagneticDummy` 드래그 재정렬 + `dragon_select_deco`),
+	#   형태가 다르다. 그쪽 이식은 별건으로 남긴다 — 지금은 **같은 일을 하는 원작 유래
+	#   위젯**을 쓴다(자작 창을 새로 만드는 것보다 낫다). docs/ref/porting/Colosseum.md §1.
+	PartySelect.open_run(self, UserDB.party().slice(0, n), func(picked: Array) -> void:
+		if picked.is_empty():
+			return
+		if not Colosseum.spend_ticket():
+			_notice("입장권이 부족합니다.")
+			return
+		Colosseum.consume_guard()
+		Scenes.goto("fight", {"mode": _mode, "opponent": foe, "party": picked.slice(0, n)}))
 	_rebuild()
 
 

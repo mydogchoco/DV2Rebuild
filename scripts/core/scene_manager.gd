@@ -30,6 +30,8 @@ const REGISTRY := {
 	# 원작 진입 = WorldMapScene::onClickMenu tag 0x1c84 → ColosseumScene::scene()
 	#   (WorldMapScene.c:12511 — 점술집 0x1c24·우편함 0x1ce8 과 같은 메인 메뉴 switch).
 	"colosseum": "res://scenes/colosseum.tscn",
+	# 콜로세움 대전 — 원작 FightScene(≠ BattleScene=탐험 조우전투). 양쪽 다 드래곤 스파인.
+	"fight": "res://scenes/fight.tscn",
 	"promote": "res://scenes/promote.tscn",       # 육성(훈련·교배·하늘둥지) — PromoteScene
 	# 스토리(시나리오) 재생 — 원작 ScenarioLayer + ScenarioTextBox
 	"story": "res://scenes/story.tscn",
@@ -56,7 +58,8 @@ const TRANSITIONS := {
 	"imp_shop": ["worldmap"],
 	"laboratory": ["town", "worldmap"],
 	"mamorudiclab": ["worldmap"],
-	"colosseum": ["worldmap", "battle"],
+	"colosseum": ["worldmap", "fight"],
+	"fight": ["colosseum"],
 	"promote": ["worldmap", "town", "cave"],
 	# worldmap→worldmap = 지역 갈아타기(원작 `WorldMapScene::moveMap(int)`). 자기 자신도 허용.
 	"worldmap": ["worldmap", "town", "cave", "battle", "adventure", "mamorudiclab", "story",

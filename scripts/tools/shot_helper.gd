@@ -127,6 +127,18 @@ func _ready() -> void:
 			for i in 20: await get_tree().process_frame
 			Scenes.goto("colosseum", {})
 			for i in 20: await get_tree().process_frame
+		"fight":
+			# 콜로세움 대전 씬(원작 FightScene) 검수 — 봇 상대를 하나 굴려 바로 붙인다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 10: await get_tree().process_frame
+			var frng := RandomNumberGenerator.new()
+			frng.seed = 20260804
+			var foes := Colosseum.roll_opponents(extra if extra != "0" else "team", frng)
+			Scenes.goto("fight", {"mode": extra if extra != "0" else "team",
+				"opponent": foes[0], "party": UserDB.party()})
+			for i in 20: await get_tree().process_frame
 		"getitem":
 			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
 			Scenes.goto("shop", {"area": "elpis"})
