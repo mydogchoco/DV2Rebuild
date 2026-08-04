@@ -251,6 +251,86 @@ static func spend_ticket() -> bool:
 	return true
 
 
+# --- 상대 목록 새로고침 ------------------------------------------------------
+#
+# 원작은 **골드**를 받는다(`Colosseum_Refresh_Msg` "새로고침에는 %1$d 골드가 필요합니다").
+# `Colosseum_Error_2` 가 "무료 갱신 제공"을 말하므로 하루 몇 회는 무료로 둔다.
+# 금액·무료 횟수는 서버 유실 → data/colosseum.json `refresh` 노브.
+
+static func _today() -> int:
+	return int(Time.get_unix_time_from_system() / 86400)
+
+
+## 이번 새로고침이 무료인가(하루 free_per_day 회).
+static func refresh_is_free() -> bool:
+	var s := state()
+	var cfg: Dictionary = _cfg().get("refresh", {})
+	if int(s.get("refresh_day", -1)) != _today():
+		return true
+	return int(s.get("refresh_used", 0)) < int(cfg.get("free_per_day", 0))
+
+
+static func refresh_cost() -> int:
+	return 0 if refresh_is_free() else int(_cfg().get("refresh", {}).get("gold", 0))
+
+
+## 새로고침 1회 지불. 골드가 모자라면 false(호출측이 `Colosseum_Refresh_Error` 를 낸다).
+static func pay_refresh() -> bool:
+	var s := state()
+	if int(s.get("refresh_day", -1)) != _today():
+		s["refresh_day"] = _today()
+		s["refresh_used"] = 0
+	var cost := 0
+	if int(s.get("refresh_used", 0)) >= int(_cfg().get("refresh", {}).get("free_per_day", 0)):
+		cost = int(_cfg().get("refresh", {}).get("gold", 0))
+	if cost > 0:
+		if not UserDB.spend("gold", cost):
+			return false
+	s["refresh_used"] = int(s.get("refresh_used", 0)) + 1
+	save_state(s)
+	return true
+
+
+# --- 일일/주간 보상 ----------------------------------------------------------
+#
+# 원작: 일일·주간 보상이 **다이아 + 콜로세움 주화**를 우편함으로 지급한다
+# (`Colosseum_Daily_Result_1/2` · `Colosseum_Weekly_Result_1/2` · 재화명 `Colosseum_Coin`).
+# ⚫ 우편함은 온라인이라 CUT → 즉시 지급한다. 지급량은 서버 유실 → `coin.daily/weekly` 노브.
+
+## 아직 안 받은 일일/주간 보상을 지급한다. 반환 = [{kind, dia, coin}] (연출용, 없으면 빈 배열).
+static func claim_rewards() -> Array:
+	var s := state()
+	var cfg: Dictionary = _cfg().get("coin", {})
+	if cfg.is_empty():
+		return []
+	var out: Array = []
+	var day := _today()
+	var week := int(day / 7)
+	# 티어는 3vs3 레이팅 기준(원작 주간결과도 모드별이지만 우리는 대표 하나로 준다).
+	var tier := tier_of(rating_of("team"))
+	var tk := str(int(tier.get("id", 0)))
+	for pair in [["daily", "reward_day", day], ["weekly", "reward_week", week]]:
+		var kind := String(pair[0])
+		var key := String(pair[1])
+		var now := int(pair[2])
+		if int(s.get(key, -1)) == now:
+			continue
+		var r: Dictionary = (cfg.get(kind, {}) as Dictionary).get(tk, {})
+		if r.is_empty():
+			continue
+		var dia := int(r.get("dia", 0))
+		var coin := int(r.get("coin", 0))
+		if dia > 0:
+			UserDB.add_currency("diamond", dia)
+		if coin > 0:
+			UserDB.add_item(String(cfg.get("key", "colosseum_coin")), coin)
+		s[key] = now
+		out.append({"kind": kind, "dia": dia, "coin": coin})
+	if not out.is_empty():
+		save_state(s)
+	return out
+
+
 # --- 닉네임 생성 -------------------------------------------------------------
 #
 # 원작엔 생성기가 없다 — 상대가 실유저라 닉이 서버 소유였다(심볼 전수: Bot/RandomName 0건,

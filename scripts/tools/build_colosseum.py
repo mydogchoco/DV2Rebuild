@@ -97,6 +97,33 @@ RATING = {
     "lose_mult_by_tier": {"0": 0.5, "1": 0.8, "2": 1.0, "3": 1.1, "4": 1.3, "5": 1.5},
 }
 
+# 상대 목록 새로고침 — 원작은 **골드**를 받는다
+# (`Colosseum_Refresh_Msg` "새로고침에는 %1$d 골드가 필요합니다." · 부족하면 Colosseum_Refresh_Error).
+# 금액은 서버가 내려주던 값이라 유실 → 자작 노브. `Colosseum_Error_2` 가 "무료 갱신 제공"을
+# 말하므로 **하루 free_per_day 회는 공짜**로 둔다(원작도 무료 갱신 개념이 있었다).
+REFRESH = {
+    "_source": "stringsData_KR.xml Colosseum_Refresh_Msg / Colosseum_Refresh_Error / Colosseum_Error_2",
+    "gold": 1000,
+    "free_per_day": 3,
+}
+
+# 콜로세움 전용 재화 — 원작 `Colosseum_Coin` = "콜로세움 주화".
+# 일일/주간 보상이 **다이아 + 주화**를 우편함으로 준다
+# (Colosseum_Daily_Result_1/2 · Colosseum_Weekly_Result_1/2).
+# ⚫ 우편함은 온라인이라 CUT → 우리는 즉시 지급한다. 지급량은 서버 유실 → 자작 노브.
+COIN = {
+    "_source": "stringsData_KR.xml Colosseum_Coin · Colosseum_Daily_Result_* · Colosseum_Weekly_Result_*",
+    "key": "colosseum_coin",
+    "name": "콜로세움 주화",
+    # 티어(0 BRONZE … 5 MASTER) → {다이아, 주화}. 일일·주간 각각.
+    "daily": {"0": {"dia": 1, "coin": 10}, "1": {"dia": 2, "coin": 20},
+              "2": {"dia": 3, "coin": 35}, "3": {"dia": 5, "coin": 55},
+              "4": {"dia": 7, "coin": 80}, "5": {"dia": 10, "coin": 120}},
+    "weekly": {"0": {"dia": 5, "coin": 50}, "1": {"dia": 10, "coin": 100},
+               "2": {"dia": 18, "coin": 180}, "3": {"dia": 30, "coin": 300},
+               "4": {"dia": 45, "coin": 450}, "5": {"dia": 70, "coin": 700}},
+}
+
 TICKET = {
     "_note": "# ASSUMPTION — 원작 `energy` + ColosseumBattleInfo::updateStamina 회복 타이머 구조만 차용.",
     "max": 10,
@@ -280,8 +307,15 @@ def build() -> dict:
             "rewards": "일일/주간 보상 = **다이아 + 콜로세움 주화**를 우편함 지급 "
                        "(Colosseum_Daily_Result_1/2 · Colosseum_Weekly_Result_1/2). "
                        "재화 이름 = Colosseum_Coin '콜로세움 주화'.",
-            "modes": "탭은 **일반전(ColosseumNormalTitle) / 등급전(ColosseumSeasonTitle)** 이고, "
-                     "1vs1·3vs3 는 그와 **별개 축**이다(Colosseum1vs1SelectError 등).",
+            # 🔴 2026-08-04 재정정 — 종전에 "탭은 일반전/등급전이고 1vs1·3vs3 는 별개 축"이라
+            #   적었는데 **과잉 해석이었다.** ColosseumScene::initWidget 이 만드는 탭은
+            #   TabImage::create ×4 → TitleLayer::setTabImageMenus 이고 프레임이
+            #     txt_1vs1_per · txt_3vs3_per · txt_dual_%s · custom_tournament/txt_tournament_%s
+            #   ⇒ 로비 탭 = **1vs1 / 3vs3 / 듀얼 / 토너먼트**. 우리 2탭(1vs1·3vs3)이 맞고,
+            #   나머지 둘은 우리가 컷한 모드다. 일반전/등급전 문자열은 다른 화면 소유.
+            "modes": "로비 탭 = 1vs1 / 3vs3 / 듀얼(⚫CUT) / 토너먼트(⚫CUT). "
+                     "근거 = initWidget 의 TabImage 프레임 4종(txt_1vs1_per · txt_3vs3_per · "
+                     "txt_dual_%s · addimg/custom_tournament/txt_tournament_%s).",
             "npc": "콜로세움에서 **라온·누리가 말을 건다** — ColosseumRaonTalkA/B/C · "
                    "ColosseumNuriTalkA/B (등급 구간별 A/B/C 3단계).",
             "cut": "일일매치·토너먼트·리플레이·방어팀·시즌 공지는 온라인 → ⚫CUT 유지.",
@@ -316,6 +350,8 @@ def build() -> dict:
         },
         "rating": RATING,
         "ticket": TICKET,
+        "refresh": REFRESH,
+        "coin": COIN,
         "streak": STREAK,
         "bots": {"grades": BOT_GRADES, "tier_mix": TIER_BOT_MIX, "list_size": LIST_SIZE},
         "nick": build_nick(),

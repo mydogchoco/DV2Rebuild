@@ -80,6 +80,12 @@ func _ready() -> void:
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_rng.randomize()
 	Bgm.play("bg_colosseum")        # 원작 콜로세움 BGM(music/bg_colosseum.mp3 실재)
+	# 일일/주간 보상 — 원작은 우편함 지급(⚫온라인 CUT)이라 진입 시 즉시 준다.
+	# 문구도 원작 그대로(Colosseum_Daily_Result_1 / Colosseum_Weekly_Result_1).
+	for r: Dictionary in Colosseum.claim_rewards():
+		var kind := "일일" if String(r.get("kind", "")) == "daily" else "이번 시즌"
+		_notice("%s 보상 다이아 %d개와 콜로세움 주화 %d개를 지급했어!"
+			% [kind, int(r.get("dia", 0)), int(r.get("coin", 0))])
 	_reroll()
 
 
@@ -392,8 +398,14 @@ func _build_right_column(vis: Vector2) -> void:
 
 	# ── 하단 버튼 ─────────────────────────────────────────────────────────────
 	var bw := cw - 40.0
-	AtlasUI.frame_button(col, "새로고침", Vector2(20.0, vis.y - 116.0),
-		Vector2(bw, 44.0), func() -> void: _reroll())
+	# 원작 새로고침은 **골드**를 받는다(Colosseum_Refresh_Msg). 무료 횟수가 남으면 공짜.
+	var rc := Colosseum.refresh_cost()
+	AtlasUI.frame_button(col, "새로고침" if rc <= 0 else "새로고침 %s G" % AtlasUI.comma(rc),
+		Vector2(20.0, vis.y - 116.0), Vector2(bw, 44.0), func() -> void:
+			if not Colosseum.pay_refresh():
+				_notice("새로고침 비용이 부족합니다.")   # 원작 Colosseum_Refresh_Error
+				return
+			_reroll())
 	AtlasUI.frame_button(col, "나가기", Vector2(20.0, vis.y - 64.0),
 		Vector2(bw, 44.0), func() -> void: Scenes.goto("worldmap", {"from": "colosseum"}))
 
