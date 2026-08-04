@@ -26,7 +26,7 @@ func _ready() -> void:
 	var wait := 3.0
 	var stage := "1"
 	var extra := "0"          # 모드별 두 번째 인자(--extra=)
-	var guard := 0            # --guard=<연승> : 그 문턱의 연승방지봇을 상대로(fight 전용)
+	var guard := 0            # --guard=<연승> : 그 문턱의 연승방지봇을 상대로(fight/guardtalk)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="): shot = a.substr(7)
 		elif a.begins_with("--out="): out = a.substr(6)
@@ -199,6 +199,35 @@ func _ready() -> void:
 				fp["stage_element"] = stage
 			Scenes.goto("fight", fp)
 			for i in 20: await get_tree().process_frame
+			# 방지봇은 붙기 전에 **대사창**을 띄우고 탭을 기다린다(fight.gd::_guard_talk).
+			# 전투를 찍으러 온 것이므로 여기서는 넘겨 준다 — 대사 자체는 `--shot=guardtalk`.
+			await _advance_talk(999)
+		"guardtalk":
+			# 연승방지봇 등장 대사 검수 — `--guard=<연승>` 의 상대를 세우고 `--extra=<창번호>`
+			# 번째 대화창에서 멈춘다(기본 1). 최초/반복 대사는 세이브의 조우 기록이 가른다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 10: await get_tree().process_frame
+			var trng := RandomNumberGenerator.new()
+			trng.seed = 20260805
+			var tmode := "team"
+			# `--stage=repeat` = 이미 만나 본 상태(반복 대사)로 찍는다. begin_batch = 디스크 미기록.
+			if stage == "repeat":
+				UserDB.begin_batch()
+				var ts := Colosseum.state()
+				ts["guard_met"] = {"sundaegun": 1, "nuri": 1, "raon": 1}
+				Colosseum.save_state(ts)
+			var tg := Colosseum.guard_for(guard if guard > 0 else 999)
+			if tg.is_empty():
+				push_warning("[shot] --guard=%d 에 해당하는 방지봇이 없다" % guard)
+			var tfoe := Colosseum.make_guard(tg, tmode, trng)
+			var tparty: Array = Colosseum.eligible_uids()
+			if tparty.is_empty():
+				tparty = UserDB.party()
+			Scenes.goto("fight", {"mode": tmode, "opponent": tfoe, "party": tparty})
+			for i in 30: await get_tree().process_frame
+			await _advance_talk(maxi(0, int(extra) - 1))
 		"fightinfo":
 			# 전투 중 드래곤 터치 상태창(원작 showDragonInfo) 검수 — 클릭을 직접 흉내 낸다.
 			Scenes.goto("worldmap", {"region": "yutakan"})
@@ -438,6 +467,12 @@ func _ready() -> void:
 			var sw := get_tree().current_scene
 			var sl := StatusLayer.open(sw)
 			sl.action_requested.connect(func(a, arg): print("SHOT status action: ", a, " ", arg))
+			# `--extra=drink` = 드링크 칸을 눌러 `DrinkPopup` 까지 연다(2026-08-05 배선 검수).
+			if extra == "drink":
+				UserDB.add_item("att_drink1", 3)
+				UserDB.add_item("hp_drink3", 1)
+				for i in 8: await get_tree().process_frame
+				DrinkPopup.open(sw, su, func() -> void: print("SHOT drink used"))
 		"statuscave":
 			Scenes.goto("cave", {"open": "status"})
 		"dex":
@@ -2952,6 +2987,23 @@ func _ready() -> void:
 
 ## 라벨 텍스트로 버튼 찾기(_popup_button 은 NinePatchRect + Label + 투명 Button 구조).
 ## 화면 좌표에 실제 마우스 클릭을 주입한다(히트테스트까지 태워 검증).
+## NPC 대사창을 n번 넘긴다(사람이 탭하는 자리). 창이 없어지면 그때 멈춘다.
+## ⚠️ 대사창은 **개시 연출(무대 룰렛)이 끝난 뒤**에 뜬다 — 먼저 뜰 때까지 기다려야 한다.
+func _advance_talk(n: int) -> void:
+	var tl: Node = null
+	for w in 600:
+		tl = _find_node_of_class(get_tree().root, "NpcTalkLayer")
+		if tl != null:
+			break
+		await get_tree().process_frame
+	for i in n:
+		tl = _find_node_of_class(get_tree().root, "NpcTalkLayer")
+		if tl == null:
+			return
+		tl.emit_signal("advanced")
+		for f in 3: await get_tree().process_frame
+
+
 func _click_at(p: Vector2) -> void:
 	for pressed in [true, false]:
 		var e := InputEventMouseButton.new()

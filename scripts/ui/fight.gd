@@ -26,6 +26,7 @@ extends Control
 const CO := "colosseum_ui"
 const NP := "ninepatch_ui"
 const CM := "common_ui"
+const ST := "stand_ui"
 const BG_DIR := "res://assets/converted/colosseum_bg"
 
 # 원작 3v3 배치 — **화면 비율이 아니라 좌·우 바닥 모서리 기준 절대 오프셋**이다.
@@ -136,7 +137,8 @@ func _rebuild() -> void:
 	_build_top(vis)
 	_build_log(vis)
 	# 무대 룰렛이 끝나야 전투가 시작된다(원작 initInterface 의 지연 누적과 같은 자리).
-	_start(_build_stage_roulette(vis))
+	# 등장 연출(단상→착지)도 같은 자리에서 병렬로 돌고, 둘 중 **늦게 끝나는 쪽**을 기다린다.
+	_start(maxf(_build_stage_roulette(vis), _appear_intro(vis)))
 
 
 # ---------- 배경 ----------
@@ -145,17 +147,37 @@ func _build_bg(vis: Vector2) -> void:
 	# 🔴 2026-08-05 정정 — 종전엔 배경을 **독립적으로** 랜덤 뽑았다(무대 속성과 무관).
 	#   원작은 `DualManager::getAttributeBgImage` @00f88b28 가 **무대 속성 → stage_N.jpg** 로
 	#   가른다. 룰렛이 고른 속성과 배경이 반드시 같아야 한다.
-	var n := int(_stage.get("bg", 3))
-	var p := "%s/stage_%d.jpg" % [BG_DIR, n]
-	if not ResourceLoader.exists(p):
-		p = "%s/stage_3.jpg" % BG_DIR
-	if not ResourceLoader.exists(p):
-		return
+	#
+	# ## 속성 → 배경 번호 (2026-08-05 재확인, 사용자 요청 "배선이 어떻게 되어 있는지 확인")
+	#   같은 표가 **두 곳**에서 확인된다:
+	#     · `MakeInterface::DuelFightInitWidget` @01056218 — `getStageElement()` 가 8 미만이면
+	#       그대로 `"scene/colosseum/stage_%d.jpg"`, 8(그림자)이면 `stage_ballok_n.jpg`.
+	#     · `DualManager::getAttributeBgImage` @00f88b28 — 0→3 · 1→0 · 2→4 · 3→7 · 4→6 ·
+	#       5→2 · 6→5 · 7→1 (방어덱 화면용. **순서 배열이 다를 뿐 같은 8장**을 쓴다.)
+	#   우리 표 = `data/colosseum.json` `stage.bg` 이고 휠 순서(aqua·chaos·dark·earth·fire·
+	#   holy·light·wind·shadow) 그대로 0~7 + shadow 는 `stage_ballok_n` 미보유라 3 으로 폴백.
 	var tr := TextureRect.new()
-	tr.texture = load(p)
+	tr.texture = _stage_bg_tex(String(_stage.get("element", "")))
 	tr.size = vis
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	add_child(tr)
+	_bg = tr
+
+
+## 속성 → 배경 텍스처(없으면 기본 stage_3). 룰렛이 매 스텝 이 함수로 배경을 갈아 끼운다.
+var _bg: TextureRect
+var _bg_cache: Dictionary = {}
+func _stage_bg_tex(element: String) -> Texture2D:
+	var map: Dictionary = Colosseum.stage_cfg().get("bg", {})
+	var n := int(map.get(element, 3))
+	if _bg_cache.has(n):
+		return _bg_cache[n]
+	var p := "%s/stage_%d.jpg" % [BG_DIR, n]
+	if not ResourceLoader.exists(p):
+		p = "%s/stage_3.jpg" % BG_DIR
+	var t: Texture2D = load(p) if ResourceLoader.exists(p) else null
+	_bg_cache[n] = t
+	return t
 
 
 # ---------- 무대 속성 룰렛 — 원작 `MakeInterface::addBottomPropertyUI` @01055d28 ----------
@@ -268,6 +290,26 @@ func _build_stage_roulette(vis: Vector2) -> float:
 			out.tween_property(ic, "modulate:a", 0.0, fade)
 			out.parallel().tween_property(ic, "scale", Vector2.ZERO, fade)
 			out.tween_callback(ic.queue_free)
+
+	# ②-b 배경도 룰렛과 **같이 돈다** — 🟦 사용자 확정 2026-08-05
+	#   ("각 원소에 할당된 배경화면으로 배경도 같이 바뀌다가 확정 원소 배경으로 고정된다").
+	#   ⚠️ 원작 근거는 여기까지다: 스텝마다 도는 콜백(`CCCallFunc`, 람다 @010c7668)을 ASM 으로
+	#     풀어 보면 하는 일이 **효과음 `music/effect_element_match.mp3`(vol 1.0) 뿐**이고,
+	#     배경은 `DuelFightInitWidget` 이 무대 속성 한 장을 `Show → FadeIn(1.0)` 으로 띄운다.
+	#     즉 "스텝마다 배경 교체"는 원작 코드에서 확인되지 않는다 — 사용자 기억에 따른 확장이다.
+	#   기준점에 서는 칸이 곧 그 순간의 배경이므로 스텝 t 의 속성 = `wheel[(t − phase) mod 9]`.
+	if _bg != null:
+		_bg.texture = _stage_bg_tex(String(wheel[posmod(-phase, wheel.size())]))
+		for t in range(1, total + 1):
+			var bel := String(wheel[posmod(t - phase, wheel.size())])
+			var at := lead + float(t) * step_sec
+			get_tree().create_timer(at).timeout.connect(func() -> void:
+				if gen != _gen:
+					return
+				# 스텝 효과음 — 원작 람다가 내는 유일한 것(위 주석).
+				Bgm.sfx("effect_element_match")
+				if is_instance_valid(_bg):
+					_bg.texture = _stage_bg_tex(bel))
 
 	# ③ 큰 도장 — 당첨 아이콘이 확대 상태에서 내려앉는다.
 	var stamp := _spr("item_etc",
@@ -423,11 +465,147 @@ func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> voi
 			"stage_buff": bool(p.get("stage_buff", false)),
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
 			"dead": false, "pos": Vector2(x, y), "mine": mine, "slot": i,
+			# 이동 연출의 **원점**. 평소엔 슬롯이고, 자리 교대 중에만 `_swap_position` 이 옮긴다.
+			# 이게 없으면 공격 복귀가 "지금 자리"로 돌아가 턴마다 앞으로 밀린다(2026-08-05).
+			"home": Vector2(x, y),
 			"dragon_h": dh,        # 실측 스파인 높이 — 무대 버프 스파인을 몸통 중앙에 올릴 때 쓴다
 			"dragon_w": dw,        # 히트테스트용(원작 boundingBox × 0.75)
 			# 드래곤 터치 상태창이 읽을 **원본 레코드**(봇은 세이브에 없어 그대로 들고 온다).
 			"rec": (recs[i] as Dictionary) if i < recs.size() else {},
+			# 등장 연출(`_appear_intro`)이 따로 만지는 부분들.
+			"spine": sp, "shadow": sh,
 		}
+
+
+# ---------- 등장 연출 — 원작 `MakeInterface::duelDragonAppear` @010c2464 이식 ----------
+#
+# 사용자 지적 2026-08-05: "전투 시작 시 드래곤이 단상 위에 올라가 있다가 단상이 사라지며
+# 땅에 착지하는 연출이 원작에 있었다." — 채굴해 보니 **그 함수가 통째로 남아 있었다.**
+#
+# 원작이 하는 일(리터럴 그대로, `i` = 슬롯 0~5 · `dir` = 홀수 태그(내 팀) +1 / 짝수(상대) −1):
+#   단상 = `Stand::create(FightManager::getStandNumber())` → `Stand::getImagePath()`,
+#     드래곤 레이어 위치 −(0, 레이어높이×0.5 − **27.5**) 에 setScale(**1.0**) · z=1 로 깐다.
+#   ① 단상 : Delay(1.5 + i×0.05) → MoveBy(0.1, dir×centerX) → MoveBy(0.05, −dir×10)
+#            → MoveBy(0.05, +dir×10) → Delay(**2.6** − i×0.05) → FadeTo(0.25, 0) → remove
+#   ② 그림자: 같은 진입 + (0, **−35**) → Delay(0.1) → FadeTo(0, 0)  [착지 전엔 안 보인다]
+#            → Delay(**2.85** − i×0.05) → ScaleTo(0,0) → Spawn(FadeTo(0.25,255), ScaleTo(0.25, s+1))
+#   ③ 레이어: 같은 진입 → Delay(**2.85** − i×0.05) → MoveTo(0.1, 최종 슬롯좌표)   [= 착지]
+#   ④ 스파인: Delay(**4.65**) → ScaleTo(0.1, dir×−1.1, 0.9) → CallFunc → ScaleTo(0.05, dir×−0.9, 1.1)
+#            → ScaleTo(0.05, −dir, 1.0)                                   [= 착지 스쿼시]
+#   반환값 0x40533333 = **3.3초**(이 연출이 잡아먹는 지연).
+#
+# ⚠️ 스태거가 상쇄된다 — `1.5 + i×0.05` 와 `2.6/2.85 − i×0.05` 가 짝이라 **등장만 어긋나고
+#   착지는 전원 동시**(단상 4.30 페이드 시작 · 레이어 4.55 낙하 · 4.65 착지)다.
+#
+# ⚠️ 호출부는 원작에서 `BattleScene`(Dual 계열)이다. `FightScene` 자신의 등장 연출은
+#   `DragonAppearAni` 인데 그건 **혼돈의 공포(9012)/라지드(9013·9014) 보스 전용 분기**라
+#   보통 드래곤에겐 아무것도 안 한다. 단상 스킨(`AccountManager::getStandSelected`)이 PvP
+#   재화 상품인 것까지 보면 이 연출의 자리는 대전 화면이 맞다 ⇒ 콜로세움에 붙인다.
+const APPEAR_LEAD := 1.5
+const APPEAR_STAGGER := 0.05
+const APPEAR_SLIDE := 0.1
+const APPEAR_BOUNCE := 0.05
+const APPEAR_BOUNCE_PX := 10.0
+const STAND_HOLD := 2.6
+const STAND_FADE := 0.25
+const DROP_HOLD := 2.85
+const DROP_SEC := 0.1
+const LAND_AT := 4.65             # 원작 스파인 스쿼시의 절대 지연
+const SQUASH := [Vector2(1.1, 0.9), Vector2(0.9, 1.1), Vector2(1.0, 1.0)]
+const SQUASH_SEC := [0.1, 0.05, 0.05]
+const SHADOW_DROP := 35.0
+const STAND_FEET := 27.5          # 원작 −(0, h×0.5 − 27.5) 의 27.5
+
+## 등장 연출을 걸고 **총 소요 초**를 돌려준다(전투 개시가 이만큼 늦는다).
+func _appear_intro(vis: Vector2) -> float:
+	if _views.is_empty():
+		return 0.0
+	# 단상 스킨 — 편성창과 같은 통로(`UserDB.get_skin("stand_skin")`).
+	#   원작 `FightManager::getStandNumber()` 는 서버가 준 값이고 우리는 세이브가 들고 있다.
+	var sn := int(UserDB.get_skin("stand_skin"))
+	var sman := AtlasUI.manifest(ST)
+	var skey := "stand_stand%d" % (posmod(sn, maxi(1, sman.size())) + 1)
+	if not sman.has(skey):
+		skey = "stand_stand1"
+	var ds := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+	var slide := vis.x * 0.5                       # 원작 MoveBy(dir × VisibleRect::center().x)
+	var keys: Array = _views.keys()
+	keys.sort()
+	var i := -1
+	for k in keys:
+		i += 1
+		var v: Dictionary = _views[k]
+		var holder = v.get("node")
+		if not (holder is Node2D) or not is_instance_valid(holder):
+			continue
+		var slot: Vector2 = v.get("pos", (holder as Node2D).position)
+		var dir := 1.0 if bool(v.get("mine", false)) else -1.0
+		var enter := APPEAR_LEAD + float(i) * APPEAR_STAGGER
+
+		# 단상 — 밑변이 땅(슬롯 y)에 닿게 깐다.
+		# # ASSUMPTION: 원작의 최종 슬롯좌표를 주는 `FUN_0105564c` 를 못 읽어서 **낙하 높이**는
+		#   단상 도형에서 유도했다 — 단상 중심이 발끝보다 27.5 위(원작 상수)이고 단상 밑변이
+		#   땅이므로 `lift = 그려진높이×0.5 − 27.5×드래곤배율`.
+		var stand := AtlasUI.spr_cocos(ST, skey, Design.ASSET_SCALE * ds)
+		var lift := 0.0
+		if stand != null:
+			var sh_h := float(stand.texture.get_height()) * stand.scale.y
+			lift = maxf(0.0, sh_h * 0.5 - STAND_FEET * ds)
+			stand.position = Vector2(slot.x - dir * slide, slot.y - sh_h * 0.5)
+			stand.z_index = -2                     # 원작 addChild(stand, 1) — 드래곤보다 뒤
+			add_child(stand)
+			var stw := stand.create_tween()
+			stw.tween_interval(enter)
+			stw.tween_property(stand, "position:x", slot.x, APPEAR_SLIDE)
+			stw.tween_property(stand, "position:x", slot.x - dir * APPEAR_BOUNCE_PX, APPEAR_BOUNCE)
+			stw.tween_property(stand, "position:x", slot.x, APPEAR_BOUNCE)
+			stw.tween_interval(STAND_HOLD - float(i) * APPEAR_STAGGER)
+			stw.tween_property(stand, "modulate:a", 0.0, STAND_FADE)
+			stw.tween_callback(stand.queue_free)
+
+		# 드래곤 레이어 — 단상 위(공중)에서 시작해 같이 밀려 들어왔다가 착지한다.
+		var air := Vector2(slot.x - dir * slide, slot.y - lift)
+		(holder as Node2D).position = air
+		var tw := (holder as Node2D).create_tween()
+		tw.tween_interval(enter)
+		tw.tween_property(holder, "position:x", slot.x, APPEAR_SLIDE)
+		tw.tween_property(holder, "position:x", slot.x - dir * APPEAR_BOUNCE_PX, APPEAR_BOUNCE)
+		tw.tween_property(holder, "position:x", slot.x, APPEAR_BOUNCE)
+		tw.tween_interval(DROP_HOLD - float(i) * APPEAR_STAGGER)
+		tw.tween_property(holder, "position:y", slot.y, DROP_SEC)
+
+		# 그림자 — 착지 전엔 안 보이고, 착지 순간 원래 크기로 부풀며 나타난다.
+		var shadow = v.get("shadow")
+		if shadow is Node2D and is_instance_valid(shadow):
+			var base_s: Vector2 = (shadow as Node2D).scale
+			(shadow as Node2D).modulate.a = 0.0
+			var sw := (shadow as Node2D).create_tween()
+			sw.tween_interval(LAND_AT)
+			sw.tween_callback(func() -> void:
+				if is_instance_valid(shadow):
+					(shadow as Node2D).scale = Vector2.ZERO)
+			sw.tween_property(shadow, "modulate:a", 1.0, STAND_FADE)
+			sw.parallel().tween_property(shadow, "scale", base_s, STAND_FADE)
+
+		# HUD — 원작도 `setHUD(dragon, fVar24)` 로 **지연 뒤** 만든다(등장이 끝나야 붙는다).
+		var barh = v.get("barh")
+		if barh is CanvasItem and is_instance_valid(barh):
+			(barh as CanvasItem).modulate.a = 0.0
+			var hw := (barh as CanvasItem).create_tween()
+			hw.tween_interval(LAND_AT)
+			hw.tween_property(barh, "modulate:a", 1.0, STAND_FADE)
+
+		# 착지 스쿼시 — 스파인 자체를 눌렀다 편다(원작 ④).
+		var sp = v.get("spine")
+		if sp is Node2D and is_instance_valid(sp):
+			var bs: Vector2 = (sp as Node2D).scale
+			var qw := (sp as Node2D).create_tween()
+			qw.tween_interval(LAND_AT)
+			for q in SQUASH.size():
+				var f: Vector2 = SQUASH[q]
+				qw.tween_property(sp, "scale",
+					Vector2(bs.x * f.x, bs.y * f.y), float(SQUASH_SEC[q]))
+	return LAND_AT + SQUASH_SEC[0] + SQUASH_SEC[1] + SQUASH_SEC[2]
 
 
 # ---------- 드래곤 HUD — 원작 `MakeInterface::setHUD` @01050ffc 이식 ----------
@@ -551,12 +729,21 @@ func _make_hud(p: Dictionary, at: Vector2, dragon_h := DRAGON_H) -> Dictionary:
 	return {"root": root, "fill": fill, "hp_label": hp, "name_label": nm, "icons": icons}
 
 
-## 속성 아이콘 — 원작 `FightDragon::getElementSprite()`.
-## 프레임은 `battle/element_%s_mark.png`(cave.gd 가 이미 쓰는 원본 세트와 같은 것).
+## 속성 아이콘 — 원작 `FightDragon::getElementSprite()` @010373fc.
+##
+## 🔴 2026-08-05 정정(사용자 지적 "HP바 왼쪽 원형 구멍에 **정기 아이콘**이 들어가야 하는데
+##   시너지 이펙트가 쓰이고 있다") — 종전의 `battle/element_%s_mark` 는 틀렸다.
+##   원작 함수는 **`item/item_small/ele_*.png`**(= 속성 **정기 아이템** 아이콘)를 쓴다:
+##       if (elementIndex < 9) createWithSpriteFrameName(PTR_s_item_item_small_ele_ground_png[i])
+##       else                  createWithSpriteFrameName("item/item_small/ele_shadow.png")
+##   테이블 첫 항목이 `ele_ground` 라 프레임 세트가 특정된다(9종 + shadow 폴백).
+## ⚠️ 어휘 — 데이터의 `element` 는 aqua/earth, 프레임은 water/ground(`ELE_FRAME`).
 func _element_sprite(element: String) -> Sprite2D:
 	if element == "":
 		return null
-	return _spr("battle_ui", "battle_element_%s_mark" % element, 1.0)
+	# 원작의 index≥9 폴백과 같은 자리 — 표에 없는 이름이면 shadow.
+	var key: String = String(ELE_FRAME.get(element, "shadow"))
+	return _spr("item_small_ui", "item_item_small_ele_%s" % key, 1.0)
 
 
 ## 원작 BMFont(`GameManager::getFontName_subtitle`).
@@ -1011,19 +1198,46 @@ func _apply_passives() -> void:
 			"hp": int(mine_head.get("hp_max", 1))}, ctx)
 
 
+## 연승방지봇의 등장 대사 — **줄 하나가 대화창 하나**다(🟦 사용자 확정 2026-08-05).
+##
+## 라온·누리 대사는 원작 그대로(`ColosseumRaonTalk*`/`ColosseumNuriTalk*`)이고 어느 단계를
+## 쓰는지는 연승 스케줄이 정한다(25 누리A · 50 라온A · 75 누리B · 100 라온B · 150 라온C).
+## 선대군은 사용자 CSV(`docs/input/sheets/colosseum_guard.csv`)다 — 그 칸에서
+## `(최초 조우 시)` / `(반복)` 두 벌로 갈라 적을 수 있고, 어느 쪽을 쓸지는 로직이
+## 이미 정해서 넘겨 준다(`Colosseum.make_guard` → `first_meet`).
+##
+## 표시는 마을 NPC 대화와 **같은 위젯**(`NpcTalkLayer` = 원작 `ScenarioTextBox` + 중앙 화자)이라
+## 타자기·▶화살표·탭 넘기기가 그대로 온다. 초상은 `data/npc_face.json` 키(= 방지봇 키)로 찾고,
+## 원작에 없는 오리지널 캐릭터(선대군)는 초상 없이 대사창만 뜬다.
+func _guard_talk() -> void:
+	var gen := _gen
+	var lines: Array = _foe.get("lines", [])
+	var firsts: Array = _foe.get("lines_first", [])
+	if bool(_foe.get("first_meet", false)) and not firsts.is_empty():
+		lines = firsts
+	if lines.is_empty():
+		return
+	var nick := String(_foe.get("nick", ""))
+	var npc := String(_foe.get("guard_key", ""))
+	var tl := NpcTalkLayer.open(self, npc if NpcPortrait.has_art(npc) else "", nick, "")
+	for ln in lines:
+		if _skipped or gen != _gen or not is_instance_valid(tl):
+			break
+		# ⚠️ 전투 로그(`_say`)에 같이 남기지 않는다 — 로그 상자와 대사창이 **같은 자리**라
+		#    글자가 겹쳐 보인다(2026-08-05 캡처 검수).
+		tl.set_text(String(ln))
+		await tl.advanced
+		# ⚠️ 한 프레임 쉬고 다음 줄로 간다. 바로 이어 붙이면 **아직 emit 중인 신호**에 다음
+		#    `await` 가 연결돼 그 한 번의 탭이 남은 줄을 통째로 밀어 버린다(실측 2026-08-05).
+		await get_tree().process_frame
+	if is_instance_valid(tl):
+		tl.close()
+
+
 func _play() -> void:
 	var gen := _gen
-	# 연승방지봇(라온/누리/선대군)은 붙기 전에 **대사를 한다**.
-	# 라온·누리 대사는 원작 그대로(ColosseumRaonTalk*/ColosseumNuriTalk*), 단계는 연승 스케줄이
-	# 정한다(25 누리A · 50 라온A · 75 누리B · 100 라온B · 150 라온C). 선대군은 사용자 CSV.
-	var lines: Array = _foe.get("lines", [])
-	if not lines.is_empty():
-		for ln in lines:
-			if _skipped:
-				break
-			_say("%s: %s" % [String(_foe.get("nick", "")), String(ln).replace("\n", " ")])
-			await _wait(1.9)
-			if gen != _gen: return
+	await _guard_talk()
+	if gen != _gen: return
 	_say("%s 와(과)의 대전!" % String(_foe.get("nick", "")))
 	_vs_intro()                 # 원작 fight_spine("FIGHT!") 개시 연출
 	await _wait(1.8)
@@ -1444,6 +1658,19 @@ const ATK_JUMP1_EASE := 0.5         # 원작 CCEaseOut(0x3f000000)
 const ATK_JUMP2_EASE := 0.125       # 원작 CCEaseOut(0x3e000000)
 const ATK_JUMP_GAP := 0.1           # 원작 CCDelayTime(0x3dcccccd)
 
+## 🔴 2026-08-05 두 건 수정(사용자 지적).
+##
+## ① **턴마다 앞으로 밀리던 버그** — 복귀 지점을 `node.position`(호출 순간의 자리)로 잡고
+##    있었다. 앞선 공격의 복귀 트윈이 아직 안 끝났거나 `_swap_position`·`_shake_horizontal`
+##    이 자리를 옮겨 둔 상태에서 다음 공격이 시작되면 **전진한 자리가 새 원점**이 돼 누적된다.
+##    ⇒ 원점을 슬롯 좌표(`v["pos"]`)로 고정하고, 이 드래곤에 걸려 있던 이동 트윈은 죽인다.
+##    (자리 교대 중이면 `v["home"]` 을 `_swap_position` 이 갱신해 준다 — 그때는 그 자리가 원점이다.)
+##
+## ② **밀착** — 원작 상수 175/100 은 절대 거리라 우리 슬롯 간격(≈560pt)에서는 절반도 못 간다.
+##    🟦 사용자 확정: 상대와 닿도록 늘린다. 원작의 **두 단계 구조와 되돌아오는 75pt 는 유지**하고
+##    착지점만 상대 몸통 옆으로 잡는다 — 폭은 실측값(`dragon_w`)이라 종마다 자동으로 맞는다.
+const CONTACT_OVERLAP := 0.8        # 두 몸통 반폭 합에 곱한다(1.0=딱 붙음, <1=살짝 겹침)
+
 func _attack_jump(v: Dictionary, target: Dictionary, hit: float, anim_dur: float) -> void:
 	if target.is_empty() or _mode == "":
 		return
@@ -1451,18 +1678,29 @@ func _attack_jump(v: Dictionary, target: Dictionary, hit: float, anim_dur: float
 	if not (n is Node2D) or not is_instance_valid(n):
 		return
 	var node := n as Node2D
-	var home: Vector2 = node.position
-	var tp: Vector2 = target.get("pos", home)
+	var home: Vector2 = v.get("home", node.position)
+	var tp: Vector2 = target.get("home", target.get("pos", home))
 	# 전방 = 상대가 있는 쪽. 원작의 ±1 부호 자리다.
 	var dir := signf(tp.x - home.x)
 	if is_zero_approx(dir):
 		return
 	# 원작이 곱하는 `[sp+0x580]` = 드래곤 레이어 배율(3v3 0.75 / 1v1 1.0).
 	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
-	var p1 := home + Vector2(dir * ATK_JUMP1_DX * s, 0.0)
-	var p2 := home + Vector2(dir * ATK_JUMP2_DX * s, 0.0)
+	# 착지점 = 상대 옆(몸통 반폭 합만큼 떨어진 자리). 원작 구조상 ②가 최종 정지 자리다.
+	var reach := (float(v.get("dragon_w", DRAGON_H)) + float(target.get("dragon_w", DRAGON_H))) \
+		* 0.5 * CONTACT_OVERLAP
+	var far := absf(tp.x - home.x) - reach
+	var dx2: float = maxf(ATK_JUMP2_DX * s, far)
+	var dx1: float = dx2 + (ATK_JUMP1_DX - ATK_JUMP2_DX) * s   # 원작의 오버슈트 75×s 유지
+	var p1 := home + Vector2(dir * dx1, 0.0)
+	var p2 := home + Vector2(dir * dx2, 0.0)
 	var gen := _gen
+	# 이 드래곤에 남아 있던 이동 트윈을 끊는다(①).
+	var old = v.get("move_tw")
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
 	var t := create_tween()
+	v["move_tw"] = t
 	_tween_jump(t, node, home, p1, ATK_JUMP1_H * s, hit, ATK_JUMP1_EASE)
 	t.tween_interval(ATK_JUMP_GAP)
 	_tween_jump(t, node, p1, p2, ATK_JUMP2_H * s, hit, ATK_JUMP2_EASE)
@@ -1470,7 +1708,7 @@ func _attack_jump(v: Dictionary, target: Dictionary, hit: float, anim_dur: float
 	t.tween_property(node, "position", home, MOVE_SEC)
 	t.tween_callback(func() -> void:
 		if gen == _gen and is_instance_valid(node):
-			node.position = home)
+			node.position = v.get("home", home))
 
 
 ## Cocos `CCJumpTo` + `CCEaseOut` 한 구간을 트윈에 붙인다.
@@ -1543,6 +1781,19 @@ func _action_code(ev: Dictionary, t: String) -> int:
 	return AC_HIT
 
 
+## 이펙트가 붙는 **몸통 중앙** — 🔴 2026-08-05 정정(사용자 지적 "이펙트가 드래곤과 안 겹친다").
+##
+## 원작은 이펙트를 **드래곤 레이어**(앵커 중앙)에 붙이므로 기준점이 몸통 한가운데다.
+## 우리 holder 원점은 `PartySelect._spine_node` 규약대로 스프라이트 **바닥 중앙**(발밑)이라
+## 그대로 쓰면 이펙트가 전부 발치에 깔린다 ⇒ 실측 높이의 절반만큼 올려 원작 앵커로 맞춘다.
+## (같은 보정을 `_damaged_particle` 은 이미 하고 있었다 — 나머지가 빠져 있었던 것.)
+func _body_pos(v: Dictionary) -> Vector2:
+	if v.is_empty():
+		return _vis() * 0.5
+	var p: Vector2 = v.get("pos", _vis() * 0.5)
+	return p - Vector2(0.0, float(v.get("dragon_h", DRAGON_H)) * 0.5)
+
+
 ## 한 이벤트의 스파인 연출 — 공격자/피격자를 함께 움직인다.
 func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> void:
 	var atk: Dictionary = _views.get(atk_tag, {})
@@ -1591,6 +1842,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 	# code 3 회피 — 원작 `evadeEffect` + `setInvisibleSpine`/`setVisibleSpine`.
 	if code == AC_EVADE:
 		if not dfn.is_empty():
+			_evade_back(dfn)
 			_evade_effect(dfn)
 		return
 
@@ -1623,7 +1875,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		_status_icon(dfn, int(ev.get("skill_id", 0)), false, int(ev.get("turns", 0)))
 
 	# 이펙트 스파인은 **드래곤 모션과 별개**로 얹힌다(원작 castSkill 이 그렇게 만든다).
-	var at: Vector2 = dfn.get("pos", _vis() * 0.5) if not dfn.is_empty() else _vis() * 0.5
+	var at: Vector2 = _body_pos(dfn)
 	match t:
 		"skill":
 			# 원작 `createIcon` 은 이펙트와 함께 **화면 상단 스킬 이름 배너**도 낸다.
@@ -1708,6 +1960,16 @@ func _swap_position(actor: Dictionary, hold: float) -> void:
 			t2.tween_property(an, "position", base2 + shift, SWAP_SEC)
 			t2.tween_interval(hold)
 			t2.tween_property(an, "position", base2, SWAP_SEC)
+	# 교대해 있는 동안은 **그 자리가 원점**이다 — 이걸 안 옮기면 그 사이 공격의 복귀가
+	# 원래 슬롯으로 튀어 자리 교대가 풀린다(`_attack_jump` ① 참조).
+	front["home"] = Vector2(fhome.x + dir * SWAP_STEP, fhome.y)
+	actor["home"] = fhome
+	var gen := _gen
+	get_tree().create_timer(SWAP_SEC * 2.0 + hold + 0.1).timeout.connect(func() -> void:
+		if gen != _gen:
+			return
+		front["home"] = front.get("pos", fhome)
+		actor["home"] = actor.get("pos", ahome))
 
 
 ## 회피 — 원작 `MakeInterface::evadeEffect` @0108f078.
@@ -1717,6 +1979,37 @@ func _swap_position(actor: Dictionary, hold: float) -> void:
 ## (프레임 이름은 SSO 바이트 복원: 길이 0x24>>1=18 · "battle" + "/m" + "iss_%s.p" + "ng")
 const EVADE_LIFT := 75.0
 const EVADE_POP := 2.0
+
+## 회피 백스텝 — 🟦 사용자 확정 2026-08-05("원작은 회피 시 드래곤 스파인이 뒤로 빠졌다").
+##
+## ⚠️ 근거 범위를 밝혀 둔다: 원작 `evadeEffect` @0108f078 은 **MISS 프레임 하나**만 낸다
+##   (Delay 0.25 → ScaleTo 0/2.0 → ScaleTo 0.25/1.0 → Delay 0.25 → MoveBy 0.5 (0,75)
+##    → FadeTo 0.5 → remove). 몸이 빠지는 안무는 이 함수에 없다 — 액션 코드 3 핸들러 쪽인데
+##   `action` 이 `[skip>8000]` 이라 디컴프에 없고 아직 ASM 으로 못 짚었다.
+## ⇒ 크기·시간은 같은 파일에서 이미 확인된 피격 흔들림(`shakeLayerToHorizontal`,
+##   0.05초 단위)과 같은 단위로 맞췄다. 원작 상수를 찾으면 여기만 갈아 끼우면 된다.
+const EVADE_BACK_PX := 45.0
+const EVADE_BACK_SEC := 0.08
+const EVADE_HOLD := 0.12
+
+## 회피한 드래곤이 공격자 반대쪽으로 물러났다 돌아온다.
+func _evade_back(v: Dictionary) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	var node := n as Node2D
+	var home: Vector2 = v.get("home", node.position)
+	# 뒤 = 자기 진영 바깥쪽(내 팀은 −x, 상대는 +x).
+	var back := -1.0 if bool(v.get("mine", false)) else 1.0
+	var old = v.get("move_tw")
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	var t := node.create_tween()
+	v["move_tw"] = t
+	t.tween_property(node, "position",
+		home + Vector2(back * EVADE_BACK_PX, 0.0), EVADE_BACK_SEC)
+	t.tween_interval(EVADE_HOLD)
+	t.tween_property(node, "position", home, EVADE_BACK_SEC)
 
 func _evade_effect(dfn: Dictionary) -> void:
 	# 회피 효과음 — 원작 `music/effect_evade.mp3`(실재). 전투 씬이
@@ -1808,7 +2101,7 @@ func _zzing(v: Dictionary) -> void:
 		return
 	var holder := Node2D.new()
 	holder.z_index = 101
-	holder.position = v.get("pos", _vis() * 0.5)
+	holder.position = _body_pos(v)
 	holder.visible = false
 	add_child(holder)
 	var inst = (load(ZZING_SCENE) as PackedScene).instantiate()
@@ -2084,8 +2377,8 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 ##       `getDragonVoiceCriticalFilePath()` = **보이스만**.
 ##   ⇒ 9999 컷인 코드는 지웠다. 되살릴 근거(액션 코드 666 을 쓰는 이벤트 매치)가 생기면
 ##     복원 안무는 `docs/ref/porting/Colosseum.md` §8.7 에 적어 뒀다.
-## 원작 `criticalEffectMake` 의 폴백 스파인 — 자기 크리 스파인이 없는 종이 쓴다.
-const CRIT_FALLBACK := "res://scenes/dragons/dragon_9998_critical.tscn"
+## ⚫ 원작 `criticalEffectMake` 의 폴백(`dragon_9998_critical`)은 **쓰지 않는다** —
+##    아래 `_critical_effect` 주석 참조(에셋 미다운로드 자리표시자였다).
 
 func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 	var cid := int(atk.get("id", 0))
@@ -2098,13 +2391,17 @@ func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 			path = ep
 	# 🔴 2026-08-05(사용자 지적 "크리티컬에 울음소리만 난다") — **원작 폴백을 빠뜨렸다.**
 	#   `criticalEffectMake` @01089a1c 는 자기 크리 스파인이 없으면
-	#   `dragon/dragon_**9998**_critical_spine.spine_json` + `dragon_9998_spine.img_plist` 를 쓴다.
-	#   그래서 크리 스파인이 없는 종(예: 한울 = 스파인 3020 — 원작에도 `_critical_spine` 이 없다)도
-	#   원작에선 이펙트가 났다. 우리는 `false` 를 돌려주고 아무것도 안 냈다.
-	#   변환본 `scenes/dragons/dragon_9998_critical.tscn` 실재(애니 `animation`).
+	#   `dragon/dragon_**9998**_critical_spine.spine_json` 를 쓴다 — 그래서 폴백을 달았었다.
+	#
+	# 🔴🔴 2026-08-05 **재정정(사용자 지적 "노란 다운로드 아이콘 박스가 뜬다")** — 그 폴백은
+	#   연출이 아니라 **원작의 '에셋 미다운로드' 자리표시자**였다. 변환본
+	#   `assets/converted/critical_9998/dragon_9998_critical.png` 을 열어 보면
+	#   **노란 다운로드 아이콘 상자 + 드래곤 금지 표지 5개**다 — 그림 자체가 "이 종의 리소스를
+	#   아직 못 받았다"는 개발용 표시다(원작은 드래곤 에셋을 온디맨드로 내려받았다).
+	#   우리는 전 에셋이 로컬에 있으므로 이 상태가 존재할 수 없다 ⇒ **폴백을 쓰지 않는다.**
+	#   크리 스파인이 없는 종은 원작에서도 볼 수 없던 그림 대신 아무것도 내지 않고,
+	#   호출부가 그 자리에서 크리티컬 보이스·타격 프레임만 낸다(`_motion` 코드 41/43 경로).
 	if cid <= 0 or not ResourceLoader.exists(path):
-		path = CRIT_FALLBACK
-	if not ResourceLoader.exists(path):
 		return false
 	var holder := Node2D.new()
 	holder.z_index = 8                          # 원작 addChild(spine, 8, −2)
@@ -2112,9 +2409,11 @@ func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 	var node = dfn.get("node")
 	if node is Node2D and is_instance_valid(node):
 		(node as Node2D).add_child(holder)
+		# 원작 레이어 앵커는 몸통 중앙 — 우리 holder 원점은 발밑이다(`_body_pos` 주석).
+		holder.position = Vector2(0.0, -float(dfn.get("dragon_h", DRAGON_H)) * 0.5)
 	else:
 		add_child(holder)
-		holder.position = dfn.get("pos", _vis() * 0.5)
+		holder.position = _body_pos(dfn)
 	# 원작 setScaleX(음수) — 공격 방향으로 뒤집는다.
 	holder.scale = Vector2(-1.0 if bool(atk.get("mine", false)) else 1.0, 1.0)
 	var inst = (load(path) as PackedScene).instantiate()
@@ -2277,17 +2576,57 @@ func _float_text(pos: Vector2, text: String, col: Color, heal := false) -> void:
 
 
 # ---------- 결과 ----------
+#
+# 원작 `MakeInterface::loadWinUI` @010ac410 / `loadLoseUI` — 2026-08-05 재채굴(사용자 지적
+# "승리 연출이 텍스트뿐이고 드래곤 모션·화면 처리가 불완전하다"). 새로 밝혀진 것:
+#
+#   ① **결과는 곧바로 안 뜬다.** `createGameEndPopup` 이 내용물마다
+#      `CCDelayTime(4.95) → CCShow` 를 걸어 둔다 ⇒ 전장이 한 박자 그대로 보인다.
+#   ② `scene/colosseum/result_popup1.png` 를 **setScale(0.9)**(0x3f666666) 로 화면 바닥에
+#      깔고(z=1) 그 위에 `popup_win_%s` / `popup_win_bg_%s` 를 얹는다. **셋 다 보유.**
+#   ③ 연승 표시 = `scene/colosseum/icon_fist%d.png` + BMFont(subtitle) `"X%d"`
+#      (`FightManager::getUserWinningStreak`). ⇒ 전투 화면 우상단의 정체불명 `X14`/`X7`
+#      뱃지가 **이것**이었다(종전 미해결 메모 해소).
+#   ④ 승패 문구 스파인 = `scene/colosseum/colosseum_win_and_lose_spine`
+#      (애니 `colosseum_win_spine` / `colosseum_lose_spine`, SSO 바이트 복원).
+#      🟠 **우리 덤프에 없다** — `DV2/480/scene/colosseum/` 에 있는 스파인은 colo_waiting ·
+#      fight · lightning 셋뿐이다. 같은 함수가 부르는 `colosseum_9patch/popup_eff_lose2.png` ·
+#      `popup_lose_%s2.png` 도 없다(후기 UI 세트). ⇒ 보유 프레임(`popup_win_kr` 계열)로 낸다.
+#
+# ⚠️ **드래곤 승리 모션은 원작에 없다.** MakeInterface 전체에서 스파인 애니 리터럴은
+#    `wait`(7회) · `down`(3회) · `damaged`(3회) **뿐**이고 `love` 는 한 번도 안 나온다
+#    (SSO 0x65766f6c08 검색 → MakeInterface·FightScene 0건, 동굴·상태창 등 다른 화면만).
+#    ⇒ 이긴 드래곤은 `wait` 로 돌아가고, 진 드래곤은 `down` 으로 쓰러져 있는 것이 원작 화면이다.
+#    없는 모션을 지어내지 않는다(§2-6).
+const RESULT_DELAY := 4.95          # 원작 createGameEndPopup 의 CCDelayTime(4.95)
+const RESULT_PANEL_SCALE := 0.9     # 원작 result_popup1 setScale(0x3f666666)
 
 func _finish() -> void:
 	var win := _winner == "ally"
 	# 로직에 결과를 넘긴다 — 레이팅·연승·연승방지 갱신은 전부 Colosseum 이 한다.
-	var r := Colosseum.apply_result(_mode, win, String(_foe.get("nick", "")))
+	var r := Colosseum.apply_result(_mode, win, String(_foe.get("nick", "")), _foe)
+
+	# ① 살아남은 드래곤은 대기 자세로 돌아간다(원작이 쓰는 유일한 종료 애니).
+	for k in _views.keys():
+		var v: Dictionary = _views[k]
+		if not bool(v.get("dead", false)) and _has_anim(v, "wait"):
+			_play_anim(v, "wait")
+	# 전장을 한 박자 보여 준 뒤 결과를 띄운다(원작 4.95초).
+	await _wait(RESULT_DELAY)
+	if not is_instance_valid(self):
+		return
 
 	var vis := _vis()
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.55)
 	dim.size = vis
 	add_child(dim)
+
+	# ② ⚪ 원작 `result_popup1`(setScale 0.9)은 **안 깐다.**
+	#   원작 좌표가 `VisibleRect::bottom() − (0, h×0.5)` = 판 중심이 화면 바닥보다 h/2 아래,
+	#   즉 **완전히 화면 밖**이다(그래서 `setVisible(false)` + `Delay(4.95) → Show` 와 짝이다).
+	#   올라오는 목적지를 주는 코드를 아직 못 짚어서, 임의 위치에 놓으면 전장을 통째로 가린다
+	#   (2026-08-05 캡처에서 확인). 근거를 찾으면 여기만 되살리면 된다.
 
 	# 원작 승패 아트 — popup_win_kr / popup_lose_kr (+ _bg). 전부 보유.
 	var bgk := "scene_colosseum_popup_win_bg_kr" if win else "scene_colosseum_popup_lose_bg_kr"
@@ -2301,11 +2640,27 @@ func _finish() -> void:
 		f.position = Vector2(vis.x * 0.5, vis.y * 0.42)
 		add_child(f)
 
+	# ③ 연승 — 원작 `icon_fist%d` + BMFont "X%d".
+	var streak := int(r.get("streak", 0))
+	if streak > 0:
+		var fist := _spr(CO, "scene_colosseum_icon_fist%d" % (2 if _mode == "team" else 1),
+			Design.ASSET_SCALE)
+		if fist != null:
+			fist.position = Vector2(vis.x * 0.5 - 40.0, vis.y * 0.42 + 165.0)
+			add_child(fist)
+		var sl := Label.new()
+		sl.text = "X%d" % streak
+		sl.size = Vector2(120.0, 34.0)
+		sl.position = Vector2(vis.x * 0.5 + 2.0, vis.y * 0.42 + 149.0)
+		_bm_style(sl, 26, Color.WHITE)
+		add_child(sl)
+
 	var info := Label.new()
 	var d := int(r.get("delta", 0))
-	info.text = "%s%d점  →  %d점 (%s)\n%d연승" % [
+	# 연승은 위 ③(원작 `icon_fist` + "X%d")이 낸다 — 여기서 또 적지 않는다.
+	info.text = "%s%d점  →  %d점 (%s)" % [
 		"+" if d >= 0 else "", d, int(r.get("rating_after", 0)),
-		String((r.get("tier_after", {}) as Dictionary).get("name", "")), int(r.get("streak", 0))]
+		String((r.get("tier_after", {}) as Dictionary).get("name", ""))]
 	info.size = Vector2(vis.x, 60.0)
 	info.position = Vector2(0.0, vis.y * 0.42 + 90.0)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -87,6 +87,7 @@ var _uid := -1              # 지금 보고 있는 드래곤(하단 목록에서
 var _panel_only := false
 var _panel_left := true
 var _panel_pos := Vector2.INF  # 단독 모드 좌상단 강제(INF = 기본 배치)
+var _panel_dismiss := true     # 단독 모드에서 바깥 클릭에 닫히는가(전투 팝업만 true)
 var _record: Dictionary = {}   # 단독 모드에서 보여 줄 레코드(봇이면 세이브에 없다)
 
 ## 어느 씬에서든: `StatusLayer.open(self)`.
@@ -112,14 +113,21 @@ static func open(host: Node) -> StatusLayer:
 ## `left` 면 화면 왼쪽에, 아니면 오른쪽에 붙인다(원작은 터치한 드래곤 쪽에 낸다).
 ## `pos` 를 주면 좌우/세로 배치를 무시하고 그 좌상단에 놓는다 — 편성창(`ColosseumSelect`)이
 ## 원작 `changeSelect` 좌표 `(W-242, H/2+55)` 를 그대로 쓰려고 넘긴다.
+##
+## `dismiss` = 화면 아무 곳이나 누르면 닫히는가. **전투 중 팝업만** 그렇다
+## (원작 `removeDragonInfo` = 빈 곳 터치). 편성창의 패널은 화면 구성물이라 상시 표시다.
+## 🔴 2026-08-05(사용자 지적 "창을 비활성화→활성화하면 패널이 날아간다") — 전면 catcher 가
+##   포커스 복귀 클릭까지 먹어서 닫혔다. `dismiss=false` 면 catcher 자체를 안 깐다
+##   ⇒ 아래 화면(편성창)의 클릭도 그대로 통과한다.
 static func open_panel(host: Node, record: Dictionary, left := true,
-		pos := Vector2.INF) -> StatusLayer:
+		pos := Vector2.INF, dismiss := true) -> StatusLayer:
 	var l := StatusLayer.new()
 	l.layer = 24
 	l._panel_only = true
 	l._record = record
 	l._panel_left = left
 	l._panel_pos = pos
+	l._panel_dismiss = dismiss
 	host.add_child(l)
 	return l
 
@@ -319,13 +327,15 @@ func _build_panel_only(vis: Vector2, S: float) -> void:
 		return
 	# 원작 전투 팝업은 화면을 어둡게 하지 않는다(전투가 계속 보인다) — 투명 클릭 판만 깐다.
 	# CanvasLayer 는 크기가 없어 앵커 프리셋이 0 으로 접힌다 → 크기를 직접 준다.
-	var catcher := Control.new()
-	catcher.size = vis
-	catcher.mouse_filter = Control.MOUSE_FILTER_STOP
-	catcher.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			_close())
-	add_child(catcher)
+	# `_panel_dismiss` 가 꺼져 있으면(편성창) 판을 아예 안 깐다 — 아래 화면이 계속 눌린다.
+	if _panel_dismiss:
+		var catcher := Control.new()
+		catcher.size = vis
+		catcher.mouse_filter = Control.MOUSE_FILTER_STOP
+		catcher.gui_input.connect(func(e):
+			if e is InputEventMouseButton and e.pressed:
+				_close())
+		add_child(catcher)
 
 	# `_build_panel` 은 pane 을 `W - inset - PW×scale` 에 놓고, inset 은
 	# `clampf((W-670)×0.25, 40, 200)` 이라 좁은 창에서는 **40 고정**이다.
@@ -696,14 +706,15 @@ func _hit(g: Control, center: Vector2, box: float, tip: String, cb: Callable) ->
 	g.add_child(b)
 	return b
 
-func _icon(g: Control, tex: Texture2D, center: Vector2, scale: float) -> void:
-	if tex == null: return
+func _icon(g: Control, tex: Texture2D, center: Vector2, scale: float) -> Sprite2D:
+	if tex == null: return null
 	var s := Sprite2D.new()
 	s.texture = tex
 	s.material = _pma
 	s.scale = Vector2(scale, scale)
 	s.position = center
 	g.add_child(s)
+	return s
 
 # ------------------------------------------------------------ 아이템(장비) 그룹
 ## 원작 `showItems` — `item_box2` 1칸 anchor(0.5,0) @ (w/2, 10) 안에 `MultyEquipView`.
@@ -767,14 +778,79 @@ func _build_gem_group(pane: Control, a: Dictionary, at: Vector2, size: Vector2, 
 
 # ------------------------------------------------------------ 드링크 그룹
 ## 원작 initWidget: `item_box2` 1칸 + 비었으면 `item_box2_plus`(펄스 애니) → `Dragon::getBuf`.
-## ⚫ 버프 드링크의 효과·지속시간은 서버 유실이라 장착 UI 를 만들지 않는다(HARD RULE 6).
-func _build_drink_group(pane: Control, _a: Dictionary, at: Vector2, size: Vector2, S: float) -> void:
+## 차 있으면 그 아이템 아이콘을 **scale 0.8**(0x3f4ccccd)로 얹는다. 칸을 누르면
+## `CharacterInfoPopup::setClickInfo` 가 `DrinkPopup::create(dragon)` 를 연다.
+##
+## 🔴 2026-08-05 정정(사용자 지적 "드링크 칸이 미구현으로 막힌다") — 종전 주석
+##   "효과·지속시간이 서버와 함께 유실됐다"는 **틀렸다.** 규칙은 위키 item.pdf §2.3 에 있고
+##   수치는 사용자가 2026-07-26 확정했다(`data/item_effects.json`). 판정(`ItemEffect`)·
+##   저장(`drink_buffs`)·전투 반영(`PartyStats`)·턴 차감(`battle.gd`)까지 전부 이미 있었고
+##   **이 칸의 배선만** 없었다. ⇒ `DrinkPopup` 을 붙인다.
+##
+## ⚠️ 어휘 — 우리 `drink_buffs` 는 아이템이 아니라 **능력치 축별 누적**이라
+##   ({att:{pct,turns}, …}) 칸에는 그 축의 대표 드링크 아이콘을 낸다.
+const DRINK_ICON := {"att": "att_drink1", "def": "def_drink1", "hp": "hp_drink1",
+	"crit": "cri_drink1", "dodge": "miss_drink1", "block": "prodef_drink1"}
+const DRINK_KR := {"att": "공격력", "def": "방어력", "hp": "생명력",
+	"crit": "크리티컬", "dodge": "회피", "block": "방어확률"}
+
+func _build_drink_group(pane: Control, a: Dictionary, at: Vector2, size: Vector2, S: float) -> void:
 	var g := _group(pane, at, size, "드링크")
 	var box := _cw("common_item_box2", 58.0) * S
 	var c := Vector2(size.x * 0.5, size.y - 10.0 - box * 0.5)
 	_icon(g, _tex("common_ui", "common_item_box2"), c, S)
-	_icon(g, _tex("common_ui", "common_item_box2_plus"), c, S * 0.8)
-	_hit(g, c, box, "버프 드링크 — 효과 수치가 서버와 함께 유실돼 미구현", func(): pass)
+
+	var buffs: Dictionary = a.get("drink_buffs", {})
+	var tip := "버프 드링크\n(클릭: 먹이기)"
+	if buffs.is_empty():
+		# 원작: 비었으면 `item_box2_plus`. (펄스 ScaleTo 0.2/1.15→0.2/1.1→0.5/1.2→0.5/1.0 반복)
+		var plus := _icon(g, _tex("common_ui", "common_item_box2_plus"), c, S * 0.8)
+		if plus != null:
+			var base := plus.scale
+			var tw := plus.create_tween().set_loops()
+			for f in [[0.2, 1.15], [0.2, 1.1], [0.5, 1.2], [0.5, 1.0]]:
+				tw.tween_property(plus, "scale", base * float(f[1]), float(f[0]))
+	else:
+		# 가장 오래 남은 축을 대표로 그린다(원작은 아이템 하나라 대표가 자명하다).
+		var top := ""
+		for k in buffs.keys():
+			if top == "" or int((buffs[k] as Dictionary).get("turns", 0)) \
+					> int((buffs[top] as Dictionary).get("turns", 0)):
+				top = String(k)
+		var ip := Data.item_icon_path(String(DRINK_ICON.get(top, "")))
+		if ip != "" and ResourceLoader.exists(ip):
+			_icon(g, load(ip), c, S * 0.8)          # 원작 setScale(0x3f4ccccd = 0.8)
+		var lines: Array = []
+		for k2 in buffs.keys():
+			var e: Dictionary = buffs[k2]
+			lines.append("%s +%d%%  (%d턴)" % [String(DRINK_KR.get(String(k2), String(k2))),
+				int(e.get("pct", 0)), int(e.get("turns", 0))])
+		lines.sort()
+		tip = "\n".join(PackedStringArray(lines)) + "\n(클릭: 먹이기)"
+
+	var uid := int(a.get("uid", _uid))
+	# 봇 레코드(콜로세움 상대)는 세이브에 없다 — 먹일 대상이 아니므로 창을 안 연다.
+	if uid <= 0 or UserDB.get_dragon(uid).is_empty():
+		_hit(g, c, box, "버프 드링크", func(): pass)
+		return
+	_hit(g, c, box, tip, func() -> void:
+		DrinkPopup.open(self, uid, func() -> void: _redraw(uid)))
+
+
+## 드링크를 먹인 뒤 화면만 다시 그린다 — 원작 `setReloadPopupForDrink` 가 `initWidget` 을
+## 통째로 다시 부르는 자리다. 단독 패널 모드는 `_record` 를 세이브에서 다시 읽어야 한다.
+func _redraw(uid: int) -> void:
+	if not _record.is_empty():
+		var fresh := UserDB.get_dragon(uid)
+		if not fresh.is_empty():
+			_record = fresh
+		# 가림판까지 통째로 지우고 다시 그린다(`_root` 만 지우면 판이 겹쳐 쌓인다).
+		for ch in get_children():
+			ch.queue_free()
+		_root = null
+		_build()
+		return
+	_reopen(uid)
 
 # ------------------------------------------------------------ 스킬 그룹
 ## 원작 initWidget 스킬 루프:

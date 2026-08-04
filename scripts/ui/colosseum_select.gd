@@ -494,7 +494,9 @@ func _open_panel(uid: int) -> void:
 	var ph: float = StatusLayer.PANEL.y * StatusLayer.PANEL_SCALE
 	var pos := Vector2(_vis.x - INFO_RIGHT - pw * 0.5,
 		_vis.y * 0.5 - INFO_UP - ph * 0.5)
-	_panel = StatusLayer.open_panel(self, d, false, pos)
+	# `dismiss=false` — 이 패널은 편성창의 **구성물**이라 바깥을 눌러도 닫히지 않는다.
+	# (전투 팝업만 원작 `removeDragonInfo` 처럼 빈 곳 터치로 닫힌다.)
+	_panel = StatusLayer.open_panel(self, d, false, pos, false)
 	_panel.layer = layer + 1
 	_panel_uid = uid
 	# 밀려 들어오기 + ±10 튕김(원작 MoveBy(0.1, -center.x) → +10 → -10).
