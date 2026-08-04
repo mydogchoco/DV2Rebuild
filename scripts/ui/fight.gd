@@ -130,11 +130,13 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 
 		var sp := PartySelect._spine_node(int(p.get("id", 0)),
 			"adult" if int(p.get("level", 1)) >= 30 else "child", 170.0)
+		var ap: AnimationPlayer = null
 		if sp != null:
 			# 스파인 기본 방향이 왼쪽이므로 **왼쪽 진영(내 팀)** 을 뒤집어 마주 보게 한다.
 			if mine:
 				sp.scale = Vector2(-absf(sp.scale.x), sp.scale.y)
 			holder.add_child(sp)
+			ap = _find_anim_player(sp)
 
 		# 이름 + HP 바 — 원작 9patch/bar_bg2 + bar1(둘 다 보유). 발밑에 놓는다.
 		var barh := Control.new()
@@ -157,9 +159,9 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		add_child(nm)
 
 		_views[tag] = {
-			"node": holder, "bar": fill, "barh": barh, "name": nm,
+			"node": holder, "bar": fill, "barh": barh, "name": nm, "anim": ap,
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
-			"dead": false, "pos": Vector2(x, y),
+			"dead": false, "pos": Vector2(x, y), "mine": mine,
 		}
 
 
@@ -300,11 +302,25 @@ func _play() -> void:
 	if gen != _gen: return
 	for ev in _events:
 		_apply(ev)
-		await _wait(0.45)
+		# 원작 간격 = 애니 길이 + 0.5(복귀) + 0.5(다음까지). 애니 길이를 모르는 이벤트는 짧게.
+		await _wait(_evt_delay(ev))
 		if gen != _gen: return
 	await _wait(0.5)
 	if gen != _gen: return
 	_finish()
+
+
+## 이벤트 사이 간격 — 원작은 `Delay(getDuration(anim) + 0.5)` + `Delay(0.5)` 로 벌린다.
+## 실제 애니 길이는 `_motion` 이 재생하며 알게 되므로 여기선 종류별 대표값을 쓴다.
+func _evt_delay(ev: Dictionary) -> float:
+	match String(ev.get("type", "")):
+		"awaken":
+			return 2.0                       # 각성기는 길다(ultimate1)
+		"normal", "double":
+			return 1.5 if bool(ev.get("crit", false)) else 1.15
+		"dot", "effect_tick":
+			return 0.35
+	return 0.7
 
 
 ## 이벤트 1건을 화면에 반영 — HP 감소 · 데미지 숫자 · 사망 처리.
@@ -315,6 +331,7 @@ func _apply(ev: Dictionary) -> void:
 	if dfn == "" or not _views.has(dfn):
 		return
 	var v: Dictionary = _views[dfn]
+	_motion(ev, t, String(ev.get("attacker", "")), dfn)   # 스파인 공격/피격 모션
 	if bool(ev.get("miss", false)):
 		_float_text(v["pos"], "MISS", Color(0.85, 0.9, 1.0))
 		return
@@ -329,13 +346,17 @@ func _apply(ev: Dictionary) -> void:
 		_set_bar(v)
 		_float_text(v["pos"], "+%d" % heal, Color(0.5, 1.0, 0.5))
 	if bool(ev.get("dead", false)) and not bool(v["dead"]):
+		# 원작 사망 모션 `down` 을 먼저 틀고(우리 변환본에 실재) 그 다음 사라진다.
+		_play_anim(v, "down")
 		v["dead"] = true
 		# 스파인만 지우면 **빈 HP 바와 이름표가 허공에 남는다**(2026-08-04 스크린샷에서 확인).
-		# 셋을 함께 없앤다.
+		# 셋을 함께 없앤다. down 을 볼 수 있게 조금 늦춘다.
 		for k in ["node", "barh", "name"]:
 			var n = v.get(k)
 			if n != null and is_instance_valid(n):
-				create_tween().tween_property(n, "modulate:a", 0.0, 0.45)
+				var tw := create_tween()
+				tw.tween_interval(0.55)
+				tw.tween_property(n, "modulate:a", 0.0, 0.45)
 	_log_line(ev, t, dfn, dmg, heal)
 
 
@@ -385,6 +406,105 @@ func _set_bar(v: Dictionary) -> void:
 	if b is NinePatchRect and is_instance_valid(b):
 		var r := clampf(float(v["hp"]) / float(v["hp_max"]), 0.0, 1.0)
 		(b as NinePatchRect).size = Vector2(BAR_W * r, BAR_H)
+
+
+# ---------- 스파인 안무(원작 FightScene / MakeInterface) ----------
+#
+# 원작 시퀀스(FightScene::onClickDebug @00f8b388 이 그대로 늘어놓는다):
+#     setAnimation(X) → Delay(getDuration(X) + 0.5) → setAnimation("wait") → Delay(0.5) → …
+# 즉 **애니를 틀고 그 길이 + 0.5초 뒤 대기 모션으로 돌아온다.** 우리도 같은 규칙을 쓴다.
+#
+# 접근 이동 = `MakeInterface::setAction`(action @01062fd4 머리) —
+#     Delay → [ScaleTo(1.5) + MoveBy(offset)] → Delay(hold) → [ScaleTo(1.0) + MoveBy(-offset)]
+# 공격자가 **앞으로 나가며 커졌다가 제자리로 돌아온다**. 배율·간격은 그대로 옮긴다.
+const ATK_SCALE := 1.5              # 원작 ScaleTo(…, 1.5)
+const ATK_LEAD := 0.5               # 원작이 애니 길이에 더하는 여유
+const APPROACH := 120.0             # 상대 쪽으로 나가는 거리(우리 3v3 간격 기준)
+const MOVE_SEC := 0.18
+
+## 우리 변환본 드래곤 씬이 실제로 갖고 있는 애니(2026-08-04 실측):
+##   wait · attack · critical · damaged · down · love · ultimate1 · ultimate2
+## 즉 **연출에 필요한 건 전부 이미 변환돼 있었다** — 지금까지 wait 만 틀고 있었을 뿐이다.
+const ANIM_IDLE := "wait"
+
+
+func _find_anim_player(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var r := _find_anim_player(c)
+		if r != null:
+			return r
+	return null
+
+
+## 애니 1회 재생 후 대기 모션 복귀. 반환 = 그 애니 길이(초).
+func _play_anim(v: Dictionary, name: String) -> float:
+	var ap = v.get("anim")
+	if not (ap is AnimationPlayer) or not is_instance_valid(ap):
+		return 0.0
+	var p := ap as AnimationPlayer
+	if not p.has_animation(name):
+		return 0.0
+	var a := p.get_animation(name)
+	a.loop_mode = Animation.LOOP_NONE
+	p.play(name)
+	var dur := a.length
+	# 원작: Delay(duration + 0.5) 뒤 "wait" 로 복귀.
+	var gen := _gen
+	get_tree().create_timer(dur + ATK_LEAD).timeout.connect(func() -> void:
+		if gen != _gen or not is_instance_valid(p) or bool(v.get("dead", false)):
+			return
+		if p.has_animation(ANIM_IDLE):
+			p.get_animation(ANIM_IDLE).loop_mode = Animation.LOOP_LINEAR
+			p.play(ANIM_IDLE))
+	return dur
+
+
+## 공격자 접근 → 제자리 복귀(원작 setAction 의 MoveBy 왕복 + ScaleTo).
+func _approach(v: Dictionary, toward_right: bool, hold: float) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	var node := n as Node2D
+	var home: Vector2 = v.get("pos", node.position)
+	var dx := APPROACH if toward_right else -APPROACH
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(node, "position", home + Vector2(dx, 0.0), MOVE_SEC)
+	tw.tween_property(node, "scale", Vector2(ATK_SCALE, ATK_SCALE) * _base_scale(v), MOVE_SEC)
+	tw.chain().tween_interval(maxf(0.1, hold))
+	var tw2 := tw.chain()
+	tw2.set_parallel(true)
+	tw2.tween_property(node, "position", home, MOVE_SEC)
+	tw2.tween_property(node, "scale", _base_scale(v), MOVE_SEC)
+
+
+func _base_scale(v: Dictionary) -> Vector2:
+	if not v.has("base_scale"):
+		var n = v.get("node")
+		v["base_scale"] = (n as Node2D).scale if n is Node2D else Vector2.ONE
+	return v["base_scale"]
+
+
+## 한 이벤트의 스파인 연출 — 공격자/피격자를 함께 움직인다.
+func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> void:
+	var atk: Dictionary = _views.get(atk_tag, {})
+	var dfn: Dictionary = _views.get(dfn_tag, {})
+	if not atk.is_empty() and not bool(atk.get("dead", false)):
+		# 원작 애니 선택: 각성기 = ultimate1 · 크리티컬 = critical · 그 외 = attack.
+		var name := "attack"
+		if t == "awaken":
+			name = "ultimate1"
+		elif bool(ev.get("crit", false)):
+			name = "critical"
+		var dur := _play_anim(atk, name)
+		# 각성기는 제자리에서 낸다(원작도 궁극기는 접근 이동이 없다 — UltimateLayer 가 화면을 덮는다).
+		if t != "awaken":
+			_approach(atk, bool(atk.get("mine", false)), dur)
+	if not dfn.is_empty() and int(ev.get("damage", 0)) > 0 \
+			and not bool(ev.get("miss", false)):
+		_play_anim(dfn, "damaged")
 
 
 func _float_text(pos: Vector2, text: String, col: Color) -> void:
