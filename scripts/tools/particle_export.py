@@ -51,6 +51,17 @@ SOURCES = [
     # 축복 둥지(황금 월계관) 먼지 — 원작 CaveScene::setDragonInfo 알 분기가
     # `getNestLevel()==1` 일 때만 둥지 중심에 붙인다(CaveScene.c:23392).
     ("scene/cave/dust", "cave_dust"),
+    # 콜로세움 전투 — 원작 MakeInterface 가 부르는 두 종(리터럴 확인).
+    #   damagedEffect @0108f4cc → 피격 대상 레이어에 z=6
+    #   deadEffect    @0109a654 → 격파 대상 중앙 (같이 music/effect_dead.mp3 볼륨 0.5)
+    ("scene/colosseum/effect_damaged", "colosseum_damaged"),
+    ("scene/colosseum/effect_dead", "colosseum_dead"),
+    # 스킬 파티클 — 원작 castSkill 의 `particle/skill/skill_%d.plist` 와
+    # particleEffect @010908d8 의 `skill_%d_effect.plist`. DV2/particle/skill 에 있는 전량.
+    ("skill/skill_14", "skill_14"),
+    ("skill/skill_31", "skill_31"),
+    ("skill/skill_13_effect", "skill_13_effect"),
+    ("skill/skill_14_effect", "skill_14_effect"),
 ]
 # 초월맥스 가산은 연출측(battle.gd)에서 처리; 여기선 순수 파티클 파라미터만.
 

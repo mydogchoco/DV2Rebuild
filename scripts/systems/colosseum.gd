@@ -401,9 +401,13 @@ static func _make_bot_dragon(id: int, uid: int, spec: Dictionary,
 	}
 	if awakened:
 		d["awaken_skill"] = Data.awaken_skill_of(id)
-	d["gems"] = _roll_gems(d["gems"], spec.get("gem", {}), rng)
-	d["equip"] = _roll_equip(spec.get("equip", {}), rng, id)
-	d["skills"] = _roll_skills(spec.get("skill", {}), rng)
+	# 🟦 연승방지봇(이벤트성 매치)은 구성을 **시트가 전부 정한다** — 굴리지 않는다.
+	#   안 적힌 칸은 비운 채로 두고 `_apply_guard_spec` 이 적힌 것만 채운다.
+	#   (랜덤 에픽 장비가 붙으면 저작한 스탯·연출 의도가 무너진다.)
+	if not bool(spec.get("no_roll", false)):
+		d["gems"] = _roll_gems(d["gems"], spec.get("gem", {}), rng)
+		d["equip"] = _roll_equip(spec.get("equip", {}), rng, id)
+		d["skills"] = _roll_skills(spec.get("skill", {}), rng)
 	# 학습 풀과 장착 칸은 별개다(§ Loadout) — 배운 것을 열린 칸에 그대로 낀다.
 	var eq: Array = []
 	for i in Loadout.SKILL_SLOTS:
@@ -544,7 +548,11 @@ static func _dragon_pool() -> Array:
 
 
 ## 랭커 CSV 1행 → 봇. 빈 칸은 랭커 분류의 폴백 규칙으로 채운다.
-static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerator) -> Dictionary:
+##
+## `authored` = 연승방지봇처럼 **시트가 구성을 전부 정한 상대**. 이때는 랜덤 굴림을 끄고
+## 시트에 적힌 것만 채운다(안 적은 칸 = 없음). 랭커는 종전대로 빈 칸을 굴린다.
+static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerator,
+		authored := false) -> Dictionary:
 	var spec: Dictionary = (_cfg().get("bots", {}) as Dictionary).get("grades", {}).get("ranker", {})
 	var n := party_size(mode)
 	var src: Array = rec.get("dragons", [])
@@ -555,8 +563,11 @@ static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerat
 			var sp := spec.duplicate(true)
 			sp["level"] = int(r.get("level", spec.get("level", 50)))
 			sp["awakened"] = bool(r.get("awakened", spec.get("awakened", true)))
-			dragons.append(_make_bot_dragon(int(r.get("id", 0)),
-				BOT_UID_BASE + 500000 + i, sp, rng))
+			sp["no_roll"] = authored
+			var bd := _make_bot_dragon(int(r.get("id", 0)),
+				BOT_UID_BASE + 500000 + i, sp, rng)
+			_apply_sheet_spec(bd, r, rng)
+			dragons.append(bd)
 		elif not src.is_empty():
 			break                                   # CSV 가 지정한 수만큼만
 	var rating := int(rec.get("rating", 0))
@@ -566,6 +577,71 @@ static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerat
 		"nick": String(rec.get("nick", "")), "grade": "ranker", "rating": rating,
 		"tier": tier_of(rating), "dragons": dragons, "bot": true, "ranker": true,
 	}
+
+
+## 시트가 적어 준 구성(젬·스킬·장비·임의스탯·면역)을 봇 드래곤 레코드에 얹는다.
+##
+## 🟦 사용자 확정 2026-08-04 — 연승방지봇은 **이벤트성 매치**라 일반 매칭과 규칙이 다르다.
+## 출처 = `docs/input/sheets/colosseum_guard.csv` → `build_colosseum.py` 가 이름을 실제
+## id·키로 확정해 `data/colosseum.json` `guards[].dragons[]` 에 실어 둔 것을 여기서 푼다.
+## 이름 해석·검증은 전부 빌더가 끝냈다 — 여기서는 **장착만** 한다(못 끼우면 조용히 넘어가지
+## 않고 push_warning 으로 남긴다).
+static func _apply_sheet_spec(bd: Dictionary, r: Dictionary, rng: RandomNumberGenerator) -> void:
+	var did := int(bd.get("id", 0))
+	# 젬 — 칸 타입까지 시트가 정한다. 봇은 부화를 거치지 않으므로 랜덤 칸 타입 때문에
+	#   지정한 젬이 안 들어가는 일이 없어야 한다(빌더가 젬에 맞는 타입을 계산해 둔다).
+	var gm: Dictionary = r.get("gems", {})
+	if not gm.is_empty():
+		var field: Dictionary = {"types": gm.get("types", []), "slots": [null, null, null]}
+		field = Gem.set_types(field, gm.get("types", []))
+		for e: Dictionary in (gm.get("list", []) as Array):
+			var next := Gem.equip_at(field, int(e.get("slot", 0)), String(e.get("name", "")),
+				int(e.get("tier", 0)), Data.gems)
+			if next.is_empty():
+				push_warning("[Colosseum] 젬 장착 실패: %s (드래곤 %d)" % [e, did])
+				continue
+			field = next
+		bd["gems"] = field
+	# 스킬 — 배운 것과 장착 칸은 별개다(§ Loadout). 시트 순서대로 열린 칸에 끼운다.
+	var sk: Array = r.get("skills", [])
+	if not sk.is_empty():
+		var learned: Array = []
+		for s: Dictionary in sk:
+			learned.append({"id": int(s.get("id", 0)), "level": int(s.get("level", 1))})
+		bd["skills"] = learned
+		var eq: Array = []
+		for i in Loadout.SKILL_SLOTS:
+			eq.append(int((learned[i] as Dictionary).get("id", 0))
+				if i < learned.size() and Loadout.slot_unlocked(i, int(bd.get("level", 50)))
+				else 0)
+		bd["skill_equip"] = eq
+	# 장비 — 칸(all/battle/support/artifact)은 빌더가 주 능력치로 정해 둔다.
+	#   희귀도·추가 옵션은 시트에 없으므로 **굴리지 않는다**(주 능력 + 조건부 효과만).
+	var ep: Array = r.get("equip", [])
+	if not ep.is_empty():
+		var field2 := {"slots": []}
+		for e2: Dictionary in ep:
+			var next2 := Equipment.equip(field2, String(e2.get("slot", "all")),
+				String(e2.get("key", "")), Data.equipment, {}, did)
+			if next2.is_empty():
+				push_warning("[Colosseum] 장비 장착 실패: %s (드래곤 %d)" % [e2, did])
+				continue
+			field2 = next2
+		bd["equip"] = field2
+	# 임의 스탯 — 확정값 + 범위값(범위는 상대를 만들 때마다 굴린다).
+	var ov: Dictionary = (r.get("stats", {}) as Dictionary).duplicate()
+	for k in (r.get("stats_roll", {}) as Dictionary):
+		var span: Array = r["stats_roll"][k]
+		if span.size() >= 2:
+			ov[k] = rng.randf_range(float(span[0]), float(span[1]))
+	if not ov.is_empty():
+		bd["stat_override"] = ov
+	if r.has("grade"):
+		bd["grade_override"] = float(r["grade"])
+	# 면역(비고 칸) — 전투가 읽는다. {skills:[id…], pure: bool, bonus: bool}
+	var im: Dictionary = r.get("immune", {})
+	if not im.is_empty():
+		bd["immune"] = im.duplicate()
 
 
 static func _tier_mid_rating(tier_key: String) -> int:
@@ -677,7 +753,7 @@ static func make_guard(g: Dictionary, mode: String, rng: RandomNumberGenerator) 
 		"rating": int(g.get("rating", 0)),
 		"dragons": g.get("dragons", []),
 	}
-	var bot := _make_ranker(rec, mode, rng)
+	var bot := _make_ranker(rec, mode, rng, true)     # authored — 시트가 구성을 전부 정한다
 	bot["guard"] = true
 	bot["guard_key"] = String(g.get("key", ""))
 	bot["talk_stage"] = String(g.get("talk_stage", ""))
@@ -816,3 +892,63 @@ static func _gen_ladder(mode: String, weekly: bool, rng: RandomNumberGenerator) 
 			row["rating"] = maxi(0, 900 - i * 22 + rng.randi_range(-10, 10))
 		out.append(row)
 	return out
+
+
+# ---------- 대전 무대(스테이지) 속성 ----------
+#
+# 원작은 전투 시작에 무대 속성을 **룰렛**으로 뽑고(`MakeInterface::createElement` @0105daf0),
+# 그 속성과 같은 종족의 드래곤 전원에게 버프 스파인을 붙인다
+# (`checkStageBuff` @0105f368 → `showStageBuff` @0105f4b8). 배경도 그 속성으로 갈린다
+# (`DualManager::getAttributeBgImage` @00f88b28).
+#
+# 여기(logic)는 **무엇이 뽑혔는가**만 정하고, 룰렛 연출·배경·스파인은 render(`fight.gd`)가 한다(§8).
+# 표·상수는 전부 `data/colosseum.json` `stage` (= `build_colosseum.py` STAGE).
+
+static func stage_cfg() -> Dictionary:
+	return _cfg().get("stage", {})
+
+
+## 룰렛 9칸 — 인덱스가 곧 원작 `FightManager::getStageElement()` 값이다.
+static func stage_wheel() -> Array:
+	return stage_cfg().get("wheel", [])
+
+
+## 무대 1회 추첨. 반환 = `{index, element, bg}` (`bg` = `stage_<N>.jpg` 의 N).
+## `rng` 를 주면 시드 고정이 되고(재현 가능), 안 주면 전역 난수를 쓴다.
+static func roll_stage(rng: RandomNumberGenerator = null) -> Dictionary:
+	var w := stage_wheel()
+	if w.is_empty():
+		return {}
+	return stage_at(int((rng.randi() if rng != null else randi()) % w.size()))
+
+
+## 룰렛 칸 번호로 직접 만든다(추첨 없이). 원작에선 서버가 이 값을 내려줬다
+## (`FightManager::getStageElement`) — 검수·재현용 진입점이 여기다.
+static func stage_at(index: int) -> Dictionary:
+	var w := stage_wheel()
+	if w.is_empty():
+		return {}
+	var i := posmod(index, w.size())
+	var el := String(w[i])
+	return {
+		"index": i,
+		"element": el,
+		"bg": int((stage_cfg().get("bg", {}) as Dictionary).get(el, 3)),
+	}
+
+
+## 속성 이름으로 무대를 만든다(못 찾으면 {}). 검수용.
+static func stage_of(element: String) -> Dictionary:
+	var i := stage_wheel().find(element)
+	return stage_at(i) if i >= 0 else {}
+
+
+## 무대 속성이 일치하는 드래곤에게 걸리는 스탯 배수.
+## 🟦 +10% = 사용자 확정 2026-08-05(원작 수치는 서버와 함께 유실 — 클라는 연출만 한다).
+static func stage_mult() -> float:
+	return 1.0 + float(stage_cfg().get("buff_pct", 0)) / 100.0
+
+
+## 그 배수가 걸리는 스탯 키 목록.
+static func stage_stats() -> Array:
+	return stage_cfg().get("buff_stats", [])

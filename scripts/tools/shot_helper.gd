@@ -141,8 +141,13 @@ func _ready() -> void:
 			var fparty: Array = Colosseum.eligible_uids()
 			if fparty.is_empty():
 				fparty = UserDB.party()
-			Scenes.goto("fight", {"mode": extra if extra != "0" else "team",
-				"opponent": foe, "party": fparty})
+			# `--stage=<속성>`(earth/aqua/fire/…) 으로 **무대 속성을 고정**한다 — 룰렛이 랜덤이라
+			#   무대 버프(속성 일치 드래곤)를 겨냥해 찍으려면 고정이 필요하다.
+			var fp := {"mode": extra if extra != "0" else "team",
+				"opponent": foe, "party": fparty}
+			if stage != "" and stage != "0":
+				fp["stage_element"] = stage
+			Scenes.goto("fight", fp)
 			for i in 20: await get_tree().process_frame
 		"fightfx":
 			# 대전 중 **간헐 연출** 검수 — 스킬 이름 배너(createIcon 상단)와 상태이상 아이콘은

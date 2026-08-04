@@ -170,6 +170,64 @@ COIN = {
                "4": {"dia": 45, "coin": 450}, "5": {"dia": 70, "coin": 700}},
 }
 
+# ── 대전 무대(스테이지) 속성 ───────────────────────────────────────────────
+#
+# 원작: 전투 시작에 무대 속성이 **룰렛으로** 정해지고, 그 속성과 **같은 종족**의 드래곤에게
+# 버프 스파인이 붙는다. 네 조각 전부 클라에 남아 있다 —
+#
+#   ① 룰렛      `MakeInterface::addBottomPropertyUI` @01055d28
+#                  `scene/colosseum/stage_bg.png`(anchor 0.5,0 · 화면 바닥 · 가로 꽉 채움, z=15)에
+#                  Delay(1.0) → `createElement` → Delay((idx+11)×0.1) → …fade out
+#              `MakeInterface::createElement` @0105daf0
+#                  `item/etc/ele_*.png` 9칸을 150pt 간격으로 늘어놓고 0.1초마다 −150 이동.
+#                  `checkElementMatch` 가 +450 에서 fade-in(0.3s, scale 0.825),
+#                  중앙(0)에서 fade-out, −600 에서 +600 으로 되돌린다.
+#                  당첨 칸만 마지막에 ScaleTo(0.1,0.9)→ScaleTo(0.05,0.825) 로 튄다.
+#                  큰 도장 = 같은 아이콘 scale 2.5·alpha 0 → Delay(idx×0.1+1.0) →
+#                  FadeTo(0.25,200)+ScaleTo(0.25,0.825) → 제거.
+#   ② 속성→종족 `DAT_021c4ac4` — libgame.so 직접 디코드 = **[1,7,5,0,2,6,4,3,8]**
+#                  (VA−0x100000 오프셋, [[dv2-rodata-constants-readable]]).
+#                  createElement 의 칸 순서와 9/9 일치한다(교차검증).
+#   ③ 버프 표시 `MakeInterface::checkStageBuff` @0105f368 → `showStageBuff` @0105f4b8
+#                  종족이 일치하는 **양 진영 전원**에게 `battle/stage_<race>_buff_spine` 을
+#                  드래곤 레이어 중앙에 scale **1.5**, z=10 으로 붙이고 "animation" 1회.
+#   ④ 배경      `DualManager::getAttributeBgImage` @00f88b28 — 종족 → `stage_N.jpg`.
+#
+# 🟦 **보정치 +10% 는 사용자 확정 2026-08-05.** 클라의 `checkStageBuff` 는 **연출만** 하고
+#    스탯을 건드리지 않는다(전수 확인 — 수치는 서버와 함께 유실).
+STAGE = {
+    "_source": "MakeInterface::createElement @0105daf0 · checkStageBuff @0105f368 · "
+               "showStageBuff @0105f4b8 · DualManager::getAttributeBgImage @00f88b28 · "
+               "DAT_021c4ac4 [1,7,5,0,2,6,4,3,8] (libgame.so 직접 디코드)",
+    # 룰렛 칸 순서 = createElement 의 스프라이트 배열 순서(인덱스 0..8 = getStageElement 값).
+    "wheel": ["aqua", "chaos", "dark", "earth", "fire", "holy", "light", "wind", "shadow"],
+    # 종족 → 배경 jpg 번호(getAttributeBgImage 의 switch 그대로).
+    # shadow 는 원작에 분기가 없어 default 인 stage_3 으로 떨어진다.
+    "bg": {"earth": 3, "aqua": 0, "fire": 4, "wind": 7, "light": 6,
+           "dark": 2, "holy": 5, "chaos": 1, "shadow": 3},
+    # 🟦 사용자 확정 — 무대 속성과 같은 속성의 드래곤은 스탯 +10%.
+    "buff_pct": 10,
+    # ASSUMPTION: **어느 칸에 걸리는지는 근거가 없다.** 주 능력치 3종에만 건다 —
+    #   cri/evd/blk 는 그 자체가 %라 "10% 상대 증가"가 뜻이 어긋난다.
+    "buff_stats": ["hp", "att", "def"],
+    # 연출 상수(원작 그대로). fight.gd 가 읽는다.
+    "anim": {
+        "step_sec": 0.1,     # createElement: MoveBy(0.1, (−150,0))
+        "step_px": 150.0,    # 칸 간격
+        "base_steps": 11,    # Delay((idx + 11) × 0.1) — 당첨까지의 총 스텝
+        "window": 3,         # +450 = 3칸 밖에서 fade-in
+        "fade_sec": 0.3,     # checkElementMatch 의 FadeTo/ScaleTo
+        "icon_scale": 0.825,
+        "stamp_scale": 2.5,  # 큰 도장 시작 배율
+        "stamp_alpha": 200,  # FadeTo(0.25, 200)
+        "stamp_sec": 0.25,
+        "lead_sec": 1.0,     # addBottomPropertyUI 의 첫 Delay(1.0)
+        "hold_sec": 1.0,     # 결정 후 Delay(1.0)
+        "out_sec": 0.5,      # FadeTo(0.5, 0)
+        "buff_scale": 1.5,   # showStageBuff 의 spine+0x150
+    },
+}
+
 TICKET = {
     "_note": "# ASSUMPTION — 원작 `energy` + ColosseumBattleInfo::updateStamina 회복 타이머 구조만 차용.",
     "max": 10,
@@ -282,14 +340,292 @@ def read_orig_talks(prefix: str) -> dict:
     return {k: [s for _, s in sorted(v)] for k, v in out.items()}
 
 
-def read_stat_override(row: dict) -> dict:
-    """연승방지봇 시트 1행의 임의 스탯 칸 → {스탯키: 값}. 빈 칸은 넣지 않는다."""
-    out: dict[str, int] = {}
-    for col, key in GUARD_STAT_COLS.items():
-        v = (row.get(col) or "").strip().replace(",", "")
-        if v.lstrip("-").isdigit():
-            out[key] = int(v)
+# ── 시트 자유기입 해석기 ───────────────────────────────────────────────────
+#
+# 연승방지봇 시트의 젬·스킬·장비·비고 칸은 사람이 말로 적는다("일반젬 중간 등급 공공체").
+# 여기서 **실제 id·키로 확정**해 data/colosseum.json 에 싣는다. 못 알아들으면 조용히
+# 넘어가지 않고 **에러로 멈춘다**(CLAUDE.md §2-6 — 임의 대체 금지).
+GEMS_JSON = REPO / "data" / "gems.json"
+SKILLS_JSON = REPO / "data" / "skills.json"
+EQUIP_JSON = REPO / "data" / "equipment.json"
+
+_ERRORS: list[str] = []
+
+
+def _err(where: str, msg: str) -> None:
+    _ERRORS.append(f"{where}: {msg}")
+
+
+def _load(p: Path) -> dict:
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def _norm(s: str) -> str:
+    """이름 대조용 정규화 — 공백을 지운다('고속 이동' ↔ '고속이동')."""
+    return re.sub(r"\s+", "", s or "")
+
+
+# 젬 code → 그 젬이 들어갈 슬롯 타입(원작 Dragon::getGemType 0=ATT 1=DEF 2=HP 3=ALL).
+# 시트가 젬을 지정하면 **칸 타입도 그 젬에 맞춰 준다**(봇은 부화를 거치지 않으므로
+# 랜덤 칸 타입 때문에 지정한 젬이 안 들어가는 일이 없어야 한다).
+GEM_SLOT_TYPE = {
+    "ATT": "ATT", "DEF": "DEF", "HP": "HP",
+    "ATTDEF": "ATT", "ATTHP": "ATT", "DEFATT": "DEF", "DEFHP": "DEF",
+    "HPATT": "HP", "HPDEF": "HP", "ATTDEFHP": "ALL",
+    "SOULATT": "ATT", "SOULDEF": "DEF", "SOULHP": "HP", "SOULALL": "ALL",
+}
+GEM_AXIS = {"공": "ATT", "방": "DEF", "체": "HP"}     # '공공체' 표기의 글자 → 스탯 축
+GEM_CATEGORY_WORD = {"일반젬": "normal", "일반": "normal",
+                     "혼성젬": "hybrid", "혼성": "hybrid",
+                     "소울젬": "soul", "소울": "soul"}
+
+
+def parse_gems(text: str, where: str) -> dict:
+    """젬 칸 → {"types": [슬롯타입 ×3], "list": [{"slot","name","tier"} …]}.
+
+    받는 표기(시트 실제 기입 기준):
+      · `일반젬 중간 등급 공공체`      분류 + 티어말 + **축 글자 3개**(칸 순서대로)
+      · `샌즈의 소울젬 최대 티어 3개`  젬 이름 + 티어말 + 개수
+    티어말: 최대/최고 = 만렙 · 중간 = 가운데 단계 · 최소/최하 = 0 · `N티어` = 그 index.
+    """
+    text = (text or "").strip()
+    if not text:
+        return {}
+    gems = _load(GEMS_JSON)
+    table = gems.get("gems", {})
+    if not table:
+        _err(where, "data/gems.json 을 읽지 못했다")
+        return {}
+
+    def tier_of(name: str) -> int:
+        n = len(table[name].get("tiers", []))
+        mx = max(0, n - 1)
+        m = re.search(r"(\d+)\s*(?:티어|단계|등급)", text)
+        if m:
+            return max(0, min(mx, int(m.group(1))))
+        if "최대" in text or "최고" in text or "만렙" in text:
+            return mx
+        if "중간" in text:
+            return mx // 2
+        if "최소" in text or "최하" in text or "최저" in text:
+            return 0
+        _err(where, f"젬 티어를 못 읽었다 — '{text}' (최대/중간/최소/N티어 중 하나를 적어 주세요)")
+        return mx
+
+    # ① 젬 이름이 그대로 적혀 있나(가장 확실한 표기).
+    named = [nm for nm in table if _norm(nm) in _norm(text)]
+    named.sort(key=len, reverse=True)
+    if named:
+        name = named[0]
+        cnt = 3
+        m = re.search(r"(\d+)\s*개", text)
+        if m:
+            cnt = max(1, min(3, int(m.group(1))))
+        tier = tier_of(name)
+        code = str(table[name].get("code", ""))
+        ty = GEM_SLOT_TYPE.get(code, "ALL")
+        return {"types": [ty] * 3,
+                "list": [{"slot": i, "name": name, "tier": tier} for i in range(cnt)]}
+
+    # ② 분류 + 축 글자(공/방/체) 3개.
+    cat = ""
+    for word, c in GEM_CATEGORY_WORD.items():
+        if word in text:
+            cat = c
+            break
+    axis = re.search(r"([공방체]{2,3})", text)
+    if not cat or not axis:
+        _err(where, f"젬 표기를 못 읽었다 — '{text}' (젬 이름을 그대로 적거나 "
+                    f"'일반젬 중간 등급 공공체' 형식으로 적어 주세요)")
+        return {}
+    by_code = {str(v.get("code", "")): k for k, v in table.items()
+               if str(v.get("category", "")) == cat}
+    types: list[str] = []
+    lst: list[dict] = []
+    for i, ch in enumerate(axis.group(1)):
+        code = GEM_AXIS[ch]
+        if cat == "soul":
+            code = "SOUL" + code
+        name = by_code.get(code)
+        if not name:
+            _err(where, f"'{ch}' 축의 {cat} 젬이 data/gems.json 에 없다")
+            continue
+        types.append(GEM_SLOT_TYPE.get(code, "ALL"))
+        lst.append({"slot": i, "name": name, "tier": tier_of(name)})
+    while len(types) < 3:
+        types.append("ALL")
+    return {"types": types, "list": lst}
+
+
+def parse_skills(text: str, where: str) -> list[dict]:
+    """스킬 칸 → [{"id", "level"} …].
+
+    표기: `철갑 방패, 복수의 거울 5레벨` — 끝의 `N레벨` 은 **앞의 스킬 전부**에 걸린다
+    (스킬마다 따로 적으면 그 스킬에만 걸린다). 이름은 공백을 무시하고 대조한다.
+    """
+    text = (text or "").strip()
+    if not text:
+        return []
+    db = _load(SKILLS_JSON)
+    by_name = {_norm(v.get("name", "")): int(k) for k, v in db.items()}
+    tail = re.search(r"(\d+)\s*레벨\s*$", text)
+    default_lv = int(tail.group(1)) if tail else 1
+    out: list[dict] = []
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        m = re.search(r"(\d+)\s*레벨", part)
+        lv = int(m.group(1)) if m else default_lv
+        nm = _norm(re.sub(r"\d+\s*레벨", "", part))
+        if not nm:
+            continue
+        sid = by_name.get(nm)
+        if sid is None:
+            _err(where, f"스킬 '{part.strip()}' 을 data/skills.json 에서 못 찾았다")
+            continue
+        mx = int(db[str(sid)].get("max_level", 5))
+        out.append({"id": sid, "level": max(1, min(mx, lv))})
     return out
+
+
+def equip_catalog() -> dict:
+    """`Equipment.catalog()` 와 **같은 키**를 파이썬에서 만든다(이름 → 키·칸).
+
+    ⚠️ 키 규약이 어긋나면 게임이 장비를 못 찾는다 — scripts/systems/equipment.gd
+       `catalog()` 의 키 조립과 1:1로 맞춘 것이다.
+    """
+    eq = _load(EQUIP_JSON)
+    slots = eq.get("slots", [])
+
+    def slot_of(main: dict) -> str:
+        for s in slots:
+            acc = s.get("accepts")
+            if not isinstance(acc, list):
+                continue
+            for stat in main:
+                if stat in acc:
+                    return str(s.get("id"))
+        return "all"
+
+    out: dict[str, dict] = {}
+    for kind, spec in (eq.get("basic") or {}).items():
+        for g in spec.get("grades", []):
+            out[g["name"]] = {"key": f"basic:{kind}:{int(g['grade'])}",
+                              "slot": str(spec.get("slot", "all")), "dragon_id": 0}
+    for e in (eq.get("event") or []):
+        if not e.get("implemented", True):
+            continue
+        out[e["name"]] = {"key": f"event:{e['name']}",
+                          "slot": slot_of(e.get("main", {})), "dragon_id": 0}
+    for fam, famd in (eq.get("special") or {}).items():
+        if not famd.get("implemented", True):
+            continue
+        for it in famd.get("items", []):
+            out[it["name"]] = {"key": f"special:{fam}:{it['name']}",
+                               "slot": slot_of(it.get("main", {})), "dragon_id": 0}
+    for x in ((eq.get("exclusive") or {}).get("list") or []):
+        if not x.get("implemented", False):
+            continue
+        out[x["name"]] = {"key": f"exclusive:{x['name']}", "slot": "all",
+                          "dragon_id": int(x.get("dragon_id", 0))}
+    art = eq.get("artifacts") or {}
+    for a in art.get("types", []):
+        for gi, gname in enumerate(art.get("grades", [])):
+            out[f"{gname} {a['name']}"] = {"key": f"artifact:{a['name']}:{gi}",
+                                           "slot": "artifact", "dragon_id": 0}
+    return out
+
+
+def parse_equip(text: str, dragon_id: int, where: str) -> list[dict]:
+    """장비 칸 → [{"key", "slot"} …]. 쉼표로 나눈 **장비 이름**을 카탈로그 키로 확정한다.
+
+    칸(all/battle/support/artifact)은 장비의 주 능력치가 정한다(위키 §2 슬롯 표) —
+    같은 칸을 두 장비가 다투면 뒤엣것이 `all` 로 밀린다(원작도 칸이 4개다).
+    """
+    text = (text or "").strip()
+    if not text:
+        return []
+    cat = equip_catalog()
+    norm = {_norm(k): v for k, v in cat.items()}
+    out: list[dict] = []
+    used: set[str] = set()
+    for part in text.split(","):
+        nm = _norm(part)
+        if not nm:
+            continue
+        it = norm.get(nm)
+        if it is None:
+            _err(where, f"장비 '{part.strip()}' 을 data/equipment.json 에서 못 찾았다")
+            continue
+        if it["dragon_id"] and it["dragon_id"] != dragon_id:
+            _err(where, f"장비 '{part.strip()}' 은 전용 장비라 드래곤 {it['dragon_id']} "
+                        f"에게만 장착된다(이 줄은 {dragon_id})")
+            continue
+        slot = it["slot"]
+        if slot in used:                      # 같은 칸이 겹치면 남는 칸으로 옮긴다
+            slot = next((s for s in ("all", "battle", "support", "artifact")
+                         if s not in used and (s == "all" or s == it["slot"])), "")
+            if not slot:
+                _err(where, f"장비 '{part.strip()}' 을 넣을 칸이 없다(칸 4개를 이미 썼다)")
+                continue
+        used.add(slot)
+        out.append({"key": it["key"], "slot": slot})
+    return out
+
+
+# 비고 칸의 **면역** 표기. 원작에 없는 이벤트성 규칙이라 어휘를 여기에 고정한다.
+#   `관통` `추가데미지` → 방어를 우회해 더해지는 피해(우리 `pure` + 장비 on-attack 추가피해)
+#   그 밖에 문장에 등장하는 **스킬 이름** → 그 스킬로 받는 피해 0
+IMMUNE_WORD_PURE = ("관통",)
+IMMUNE_WORD_BONUS = ("추가데미지", "추가 데미지", "추가대미지", "추가 대미지")
+
+
+def parse_immune(note: str, where: str) -> dict:
+    text = (note or "").strip()
+    if "면역" not in text:
+        return {}
+    db = _load(SKILLS_JSON)
+    head = text.split("면역")[0]
+    skills = sorted({int(k) for k, v in db.items()
+                     if v.get("name") and _norm(v["name"]) in _norm(head)})
+    out: dict = {}
+    if skills:
+        out["skills"] = skills
+    if any(w in text for w in IMMUNE_WORD_PURE):
+        out["pure"] = True
+    if any(_norm(w) in _norm(text) for w in IMMUNE_WORD_BONUS):
+        out["bonus"] = True
+    if not out:
+        _err(where, f"'면역' 이라 적혀 있는데 무엇에 면역인지 못 읽었다 — '{text}'")
+    out["_text"] = text
+    return out
+
+
+def read_stat_override(row: dict, where: str) -> tuple[dict, dict]:
+    """임의 스탯 칸 → ({확정값}, {범위값}). 빈 칸은 넣지 않는다.
+
+    받는 표기: `929` · `2.70%`(퍼센트 기호는 떼고 읽는다) · `15~40`(범위 — 상대를
+    만들 때마다 그 사이에서 굴린다) · `1,200`(자릿점).
+    """
+    fixed: dict[str, float] = {}
+    ranged: dict[str, list] = {}
+    for col, key in GUARD_STAT_COLS.items():
+        v = (row.get(col) or "").strip().replace(",", "").replace("%", "")
+        if not v:
+            continue
+        m = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*[~∼-]\s*(-?\d+(?:\.\d+)?)", v)
+        if m:
+            lo, hi = float(m.group(1)), float(m.group(2))
+            ranged[key] = [min(lo, hi), max(lo, hi)]
+            continue
+        try:
+            f = float(v)
+        except ValueError:
+            _err(where, f"'{col}' 칸을 숫자로 못 읽었다 — '{v}'")
+            continue
+        fixed[key] = int(f) if f == int(f) else f
+    return fixed, ranged
 
 
 def build_guards() -> list[dict]:
@@ -299,35 +635,68 @@ def build_guards() -> list[dict]:
     드래곤 구성 = 전부 CSV(사용자 작성) — 랭커 시트와 같은 방식.
     """
     rows = read_csv(GUARD_CSV)
+    # 행 → NPC 는 **이름 칸 우선**으로 묶는다. 키 칸은 사용자가 자유롭게 적을 수 있고
+    # (실제로 선대군 줄의 키가 `sundaegun` → `LinearAlgebra` 로 바뀌었다), 우리 코드가
+    # 아는 것은 GUARD_NPCS 의 이름이다. 키만 있고 이름이 없는 줄은 **바로 위 줄에 이어 붙는다**
+    # (드래곤 3마리를 세 줄에 나눠 적는 시트 구조).
+    name_to_key = {n["name"]: n["key"] for n in GUARD_NPCS}
     by_key: dict[str, dict] = {}
+    sheet_key_to_npc: dict[str, str] = {}
+    cur = ""
     for r in rows:
-        key = (r.get("키") or "").strip()
-        if not key:
+        raw_key = (r.get("키") or "").strip()
+        name = (r.get("이름") or "").strip()
+        if name and name in name_to_key:
+            cur = name_to_key[name]
+            if raw_key:
+                sheet_key_to_npc[raw_key] = cur
+        elif raw_key and raw_key in sheet_key_to_npc:
+            cur = sheet_key_to_npc[raw_key]
+        elif raw_key and raw_key in name_to_key.values():
+            cur = raw_key
+        elif name:
+            _err(f"시트 '{name}'", "GUARD_NPCS 에 없는 이름이다(라온/누리/선대군 중 하나여야 한다)")
             continue
+        if not cur:
+            continue
+        key = cur
         g = by_key.setdefault(key, {"dragons": [], "talk_csv": []})
         line = (r.get("대사") or "").strip()
         if line:
             g["talk_csv"].append(line)
         did = (r.get("드래곤id") or "").strip()
         if did.isdigit():
+            where = "%s 드래곤 %s" % (key, did)
             d = {
                 "id": int(did),
                 "level": int(r.get("레벨") or 50),
                 "awakened": (r.get("각성") or "").strip().upper() in ("O", "Y", "TRUE", "1"),
-                "gems": [x.strip() for x in (r.get("젬") or "").split("|") if x.strip()],
-                "skills": [x.strip() for x in (r.get("스킬") or "").split("|") if x.strip()],
-                "equip": [x.strip() for x in (r.get("장비") or "").split("|") if x.strip()],
             }
+            # 젬·스킬·장비는 말로 적힌 칸이라 여기서 **실제 id·키로 확정**한다.
+            gem = parse_gems(r.get("젬", ""), where)
+            if gem:
+                d["gems"] = gem
+            sk = parse_skills(r.get("스킬", ""), where)
+            if sk:
+                d["skills"] = sk
+            ep = parse_equip(r.get("장비", ""), int(did), where)
+            if ep:
+                d["equip"] = ep
             # 이벤트성 매치 — 적힌 스탯만 최종값을 덮어쓴다(빈 칸은 계산대로).
-            stats = read_stat_override(r)
+            stats, ranged = read_stat_override(r, where)
             if stats:
                 d["stats"] = stats
+            if ranged:
+                d["stats_roll"] = ranged
+            imm = parse_immune(r.get("비고", ""), where)
+            if imm:
+                d["immune"] = imm
             grade = (r.get(GUARD_GRADE_COL) or "").strip()
             if grade:
                 try:
                     d["grade"] = float(grade)
                 except ValueError:
-                    pass
+                    _err(where, f"'등급' 칸을 숫자로 못 읽었다 — '{grade}'")
             g["dragons"].append(d)
         if (r.get("레이팅") or "").strip().isdigit():
             g["rating"] = int(r["레이팅"])
@@ -420,10 +789,17 @@ def migrate_guard_sheet() -> bool:
         out.append([(r.get(c) or "") for c in header])
     if old == header and was == out:
         return False
-    with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(header)
-        w.writerows(out)
+    # 사용자가 엑셀로 열어 둔 채 빌드를 돌리는 일이 잦다. 시트 갱신 실패로 **데이터 빌드까지**
+    # 죽이지 않는다 — 경고만 하고 기존 내용 그대로 진행한다(읽기는 이미 끝났다).
+    try:
+        with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(header)
+            w.writerows(out)
+    except PermissionError:
+        print(f"  ⚠️ {GUARD_CSV.relative_to(REPO)} 가 잠겨 있어 시트 갱신을 건너뛴다"
+              " (엑셀 등에서 열려 있는지 확인). 데이터 빌드는 계속한다.")
+        return False
     added = [c for c in GUARD_HEADER if c not in old]
     print(f"  ~ {GUARD_CSV.relative_to(REPO)} — "
           + (f"열 추가(기입 내용 보존): {', '.join(added)}" if added else "등장연승 갱신"))
@@ -561,6 +937,7 @@ def build() -> dict:
             "select_1vs1": "대전에 참가할 드래곤을 선택해주세요.",
             "select_3vs3": "대전에 참가할 드래곤을 3마리 선택해주세요.",
         },
+        "stage": STAGE,
         "rating": RATING,
         "ticket": TICKET,
         "refresh": REFRESH,
@@ -571,6 +948,44 @@ def build() -> dict:
         "nick": build_nick(),
         "rankers": rankers,
     }
+
+
+def _print_guards(guards: list[dict]) -> None:
+    """해석 결과를 사람이 읽는 형태로 찍는다 — 사용자가 시트 의도와 대조할 수 있게."""
+    db = _load(SKILLS_JSON)
+    seen: set[str] = set()
+    for g in guards:
+        if g["key"] in seen:
+            continue
+        seen.add(g["key"])
+        print(f"  [{g['name']}] 등장 {[s['streak_at'] for s in GUARD_SCHEDULE if s['key'] == g['key']]}"
+              f" · 드래곤 {len(g['dragons'])}마리")
+        for d in g["dragons"]:
+            bits = []
+            if d.get("stats"):
+                bits.append(" ".join(f"{k}={v}" for k, v in d["stats"].items()))
+            if d.get("stats_roll"):
+                bits.append(" ".join(f"{k}={v[0]}~{v[1]}" for k, v in d["stats_roll"].items()))
+            if d.get("grade"):
+                bits.append(f"등급={d['grade']}")
+            print(f"    · id {d['id']} Lv{d['level']}{' 각성' if d.get('awakened') else ''}"
+                  f"  {' | '.join(bits) if bits else '스탯=계산대로'}")
+            if d.get("gems"):
+                gm = d["gems"]
+                print("        젬  " + ", ".join(f"{e['name']}(T{e['tier']})" for e in gm["list"])
+                      + f"  칸타입 {gm['types']}")
+            if d.get("skills"):
+                print("        스킬 " + ", ".join(
+                    f"{db.get(str(s['id']), {}).get('name', s['id'])} Lv{s['level']}"
+                    for s in d["skills"]))
+            if d.get("equip"):
+                print("        장비 " + ", ".join(f"{e['key'].split(':')[-1]}[{e['slot']}]"
+                                                 for e in d["equip"]))
+            if d.get("immune"):
+                im = d["immune"]
+                names = [db.get(str(i), {}).get("name", str(i)) for i in im.get("skills", [])]
+                extra = [w for w, on in (("관통", im.get("pure")), ("추가피해", im.get("bonus"))) if on]
+                print("        면역 " + ", ".join(names + extra))
 
 
 def main(argv: list[str]) -> int:
@@ -588,10 +1003,14 @@ def main(argv: list[str]) -> int:
     data = build()
     n_rank = len(data["rankers"])
     n_nick = sum(len(v) for v in data["nick"].values())
-    n_gd = sum(len(g["dragons"]) for g in data["guards"])
-    n_ov = sum(1 for g in data["guards"] for d in g["dragons"] if d.get("stats"))
     print(f"[colosseum] 티어 {len(TIERS)} · 봇분류 {len(BOT_GRADES)} · 랭커 {n_rank} · 닉조각 {n_nick}")
-    print(f"  연승방지봇 {len(data['guards'])}회 등장 · 드래곤 {n_gd}칸 · 임의스탯 지정 {n_ov}칸")
+    _print_guards(data["guards"])
+    if _ERRORS:
+        # 못 알아들은 칸이 있으면 **쓰지 않는다** — 반쯤 반영된 봇이 더 나쁘다.
+        print("\n  ⛔ 시트에서 못 읽은 칸 %d 건 — data/colosseum.json 을 쓰지 않았다:" % len(_ERRORS))
+        for e in _ERRORS:
+            print("     · " + e)
+        return 1
     if n_rank == 0:
         print(f"  ⚠️ 랭커 0명 — {RANKER_CSV.relative_to(REPO)} 를 채우면 반영된다(--init 로 생성).")
     if "--dry" in argv:

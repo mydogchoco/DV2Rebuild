@@ -15,6 +15,10 @@ extends RefCounted
 ## 적용 순서는 `battle.gd::_setup_party` 의 원래 순서를 그대로 옮긴 것이며, 순서가 결과를
 ## 바꾸므로(젬 % → 장비 → 팀버프 배수 → 드링크 배수 → 카데스 감산) 임의로 바꾸지 말 것.
 
+## 확률로 굴리는 스탯(%). 임의 스탯 지정에서 **소수점을 지켜야** 하는 것들이다 —
+## 나머지 스탯은 정수다(체력 12345.6 같은 값은 뜻이 없다).
+const PROB_STATS := ["cri", "evd", "blk"]
+
 ## 파티 전체 구성으로 1회 산출하는 속성 조합 팀버프 델타.
 ## race_dim=element 는 2026-07-31 확정(`CombineElementsLayer::combine` decomp :1341-1394 의
 ## switch 0=earth 1=aqua 2=fire 3=wind 4=light 5=dark 6=holy 7=chaos 8=shadow).
@@ -61,7 +65,7 @@ static func team_buff_names(uids: Array) -> Array:
 ##
 ## 반환: stats Dictionary (hp/att/def/cri/evd/blk … + artifact · equip_keys)
 static func resolve(d: Dictionary, ddef: Dictionary, delta: Dictionary,
-		kades: bool, field_element: String) -> Dictionary:
+		kades: bool, field_element: String, stage_element := "") -> Dictionary:
 	# 실 스탯 = base + 영구base보정 + Σ레벨업 롤(gain_log). §K-1(랜덤롤 모델).
 	var base_bonus: Dictionary = (d.get("stat_bonus", {}) as Dictionary).get("base", {})
 	var stats := Growth.main_stats(ddef, Data.stat_table, d.get("gain_log", []), base_bonus)
@@ -94,6 +98,37 @@ static func resolve(d: Dictionary, ddef: Dictionary, delta: Dictionary,
 		var pen := Kades.penalty_pct(Data.kades, bool(d.get("awakened", false)),
 			String(ddef.get("element", "")), field_element)
 		stats = Kades.apply_penalty(stats, pen)
+	# 콜로세움 **무대 속성 보정** — 무대와 같은 속성의 드래곤만 +N%.
+	#   원작 연출 = `MakeInterface::checkStageBuff` @0105f368 → `showStageBuff` @0105f4b8
+	#   (양 진영 전원에 걸린다 — 내 팀 전용이 아니다). 클라는 **연출만** 하고 스탯을 안 건드리므로
+	#   배수는 서버와 함께 유실 ⇒ 🟦 +10% 는 사용자 확정 2026-08-05(`data/colosseum.json` stage).
+	#   `stage_element` 가 빈 문자열이면 아무 일도 없다 ⇒ 탐험 등 기존 호출부는 그대로다.
+	#   카데스 감산 **뒤**에 온다: 무대 보정은 그 대결에서만 붙는 마지막 가산이다.
+	if stage_element != "" and String(ddef.get("element", "")) == stage_element:
+		var sm := Colosseum.stage_mult()
+		if not is_equal_approx(sm, 1.0):
+			for sk: String in Colosseum.stage_stats():
+				stats[sk] = int(round(float(int(stats.get(sk, 0))) * sm))
+	# 🟦 임의 스탯(레코드가 직접 들고 오는 값) — 콜로세움 **연승방지봇**처럼 도감·성장곡선과
+	#   무관한 이벤트성 상대에 쓴다(출처 = docs/input/sheets/colosseum_guard.csv).
+	#   여기가 마지막이어야 한다: 적힌 칸은 **젬·장비·팀버프·드링크를 다 계산한 뒤의 최종값**을
+	#   그대로 대체한다. 적지 않은 칸은 위 계산 결과가 그대로 남는다.
+	#   UserDB 드래곤에는 이 필드가 없다 — 플레이어 스탯 경로는 건드리지 않는다.
+	#   ⚠️ 확률 스탯(크리/회피/막기)만 **소수점을 지킨다** — 시트가 `2.70%` 처럼 적을 수 있고
+	#      전투 판정이 그 소수를 그대로 굴린다(`Battle._roll`). 나머지는 정수로 맞춘다.
+	var ov: Dictionary = d.get("stat_override", {})
+	for k in ov:
+		stats[k] = float(ov[k]) if PROB_STATS.has(String(k)) else int(round(float(ov[k])))
+	# 면역(연승방지봇의 이벤트 규칙) — 전투가 읽는 필드를 stats 에 얹어 그대로 흘려보낸다.
+	#   {skills:[스킬id…] 로 받는 피해 0, pure: 관통 면역, bonus: 장비·각성 추가피해 면역}
+	var im: Dictionary = d.get("immune", {})
+	if not im.is_empty():
+		if im.has("skills"):
+			stats["skill_immune"] = im["skills"]
+		if bool(im.get("pure", false)):
+			stats["immune_pure"] = true
+		if bool(im.get("bonus", false)):
+			stats["immune_bonus"] = true
 	return stats
 
 
@@ -108,13 +143,13 @@ static func uses_drink(d: Dictionary) -> bool:
 ##   각성 스킬·장비 조건부 효과까지 전투와 **같은 함수**로 얹힌다(호출은 선택 — 카드가 조우
 ##   전이라 적을 모르면 생략할 수 있다).
 static func summary(uids: Array, kades: bool, field_element: String,
-		hp_state: Dictionary = {}) -> Array:
+		hp_state: Dictionary = {}, stage_element := "") -> Array:
 	var ordered: Array = []
 	for uid in uids:
 		var d := UserDB.get_dragon(int(uid))
 		if not d.is_empty():
 			ordered.append(d)
-	return summary_of(ordered, kades, field_element, hp_state)
+	return summary_of(ordered, kades, field_element, hp_state, stage_element)
 
 
 ## 같은 일을 **레코드 배열**로 한다 — 세이브에 없는 드래곤도 같은 경로를 타게 하려고 나눴다.
@@ -122,14 +157,15 @@ static func summary(uids: Array, kades: bool, field_element: String,
 ## 콜로세움 봇(`Colosseum.make_bot`)이 이 문으로 들어온다. 봇 전용 스탯 계산을 따로 만들면
 ## 플레이어와 밸런스가 어긋나므로, **레코드 모양만 같으면 같은 함수**가 처리한다.
 ## `summary(uids…)` 는 UserDB 에서 레코드를 꺼내 이걸 부르는 얇은 껍데기다.
+## `stage_element` = 콜로세움 무대 속성(빈 문자열이면 보정 없음 — 탐험 경로가 이 값을 안 쓴다).
 static func summary_of(records: Array, kades: bool, field_element: String,
-		hp_state: Dictionary = {}) -> Array:
+		hp_state: Dictionary = {}, stage_element := "") -> Array:
 	var party3: Array = records.slice(0, 3)
 	var delta := team_delta(party3)
 	var out: Array = []
 	for d: Dictionary in party3:
 		var ddef := Data.get_dragon(int(d["id"]))
-		var stats := resolve(d, ddef, delta, kades, field_element)
+		var stats := resolve(d, ddef, delta, kades, field_element, stage_element)
 		var hpmax := int(stats.get("hp", 1))
 		var hp0 := int(hp_state.get(str(int(d["uid"])), hpmax)) if not hp_state.is_empty() else hpmax
 		# 각성 스킬·장비 조건부 효과(`apply_passives`)가 읽는 필드들도 같이 채운다 —
@@ -148,10 +184,15 @@ static func summary_of(records: Array, kades: bool, field_element: String,
 			"hp": clampi(hp0, 0, hpmax), "hp_max": hpmax,
 			"awakened": bool(d.get("awakened", false)),
 			"awaken_skill": int(d.get("awaken_skill", 0)) if bool(d.get("awakened", false)) else 0,
-			"grade": Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
+			# 등급도 시트가 지정하면 그 값(임의 스탯이면 계산 등급이 뜻을 잃는다).
+			"grade": float(d["grade_override"]) if d.has("grade_override") else
+				Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
 				d.get("gain_log", []), Data.level_curve.get("grade", {})),
 			"atk_type": String(ddef.get("type", "")),
 			"skill_level_sum": lvsum,
+			# 무대 속성 일치 여부 — render 가 버프 스파인을 붙일 대상 판정에 그대로 쓴다
+			# (원작 `checkStageBuff` 의 `getRace(d) == 무대종족` 과 같은 조건).
+			"stage_buff": stage_element != "" and String(ddef.get("element", "")) == stage_element,
 		})
 	return out
 

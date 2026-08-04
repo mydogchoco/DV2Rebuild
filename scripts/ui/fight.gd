@@ -70,6 +70,7 @@ var _events: Array = []
 var _winner := ""
 var _gen := 0
 var _log: Label
+var _stage: Dictionary = {}  # Colosseum.roll_stage() 결과 {index, element, bg}
 
 
 func enter(params: Dictionary = {}) -> void:
@@ -103,9 +104,19 @@ func _rebuild() -> void:
 		uids = UserDB.party()
 	var n := Colosseum.party_size(_mode)
 
+	# 무대 속성 추첨 — 원작은 전투 시작 룰렛으로 정한다(`createElement`).
+	# **스탯보다 먼저** 뽑아야 한다: 무대와 같은 속성의 드래곤이 보정을 받으므로
+	# `PartyStats` 가 이 값을 알아야 한다(양 진영 모두 — 원작 `checkStageBuff` 도 그렇다).
+	# `stage_element` 를 넘기면 그 무대로 고정한다(원작에선 서버가 정해 줬다 — 검수·재현용).
+	var forced := String(_params.get("stage_element", ""))
+	_stage = Colosseum.stage_of(forced) if forced != "" else {}
+	if _stage.is_empty():
+		_stage = Colosseum.roll_stage(_rng)
+	var sel := String(_stage.get("element", ""))
+
 	# 양 팀 스탯 — **같은 함수**로 만든다(봇 전용 계산 없음, §Colosseum 설계).
-	_my = PartyStats.summary(uids.slice(0, n), false, "")
-	_fo = PartyStats.summary_of((_foe.get("dragons", []) as Array).slice(0, n), false, "")
+	_my = PartyStats.summary(uids.slice(0, n), false, "", {}, sel)
+	_fo = PartyStats.summary_of((_foe.get("dragons", []) as Array).slice(0, n), false, "", {}, sel)
 
 	var vis := _vis()
 	_build_bg(vis)
@@ -113,14 +124,17 @@ func _rebuild() -> void:
 	_build_team(_fo, false, vis)
 	_build_top(vis)
 	_build_log(vis)
+	_build_stage_roulette(vis)
 	_start()
 
 
 # ---------- 배경 ----------
 
 func _build_bg(vis: Vector2) -> void:
-	# 원작은 대전마다 stage_N 을 고른다. 시드가 고정되면 같은 무대가 나온다.
-	var n := _rng.randi() % 8
+	# 🔴 2026-08-05 정정 — 종전엔 배경을 **독립적으로** 랜덤 뽑았다(무대 속성과 무관).
+	#   원작은 `DualManager::getAttributeBgImage` @00f88b28 가 **무대 속성 → stage_N.jpg** 로
+	#   가른다. 룰렛이 고른 속성과 배경이 반드시 같아야 한다.
+	var n := int(_stage.get("bg", 3))
 	var p := "%s/stage_%d.jpg" % [BG_DIR, n]
 	if not ResourceLoader.exists(p):
 		p = "%s/stage_3.jpg" % BG_DIR
@@ -131,6 +145,189 @@ func _build_bg(vis: Vector2) -> void:
 	tr.size = vis
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	add_child(tr)
+
+
+# ---------- 무대 속성 룰렛 — 원작 `MakeInterface::addBottomPropertyUI` @01055d28 ----------
+#
+# 원작이 하는 일(디컴프 그대로):
+#   `scene/colosseum/stage_bg.png` 를 anchor(0.5, 0)·화면 바닥에 놓고 **가로를 꽉 채우도록**
+#   `setScale(화면오른쪽 / 프레임폭)` 한 뒤 z=15 로 붙인다. 그 스프라이트가 시퀀스를 돈다:
+#     Delay(1.0) → createElement → Delay((idx+11)×0.1) → FadeTo(0,255) → … →
+#     Delay(1.0) → FadeTo(0.5, 0) → remove
+#
+#   `createElement` @0105daf0 — 룰렛 본체. 기준점 = 바 로컬 (w×0.5 + 10, h×0.5 + 50).
+#     `item/etc/ele_*.png` 9칸을 (i+3)×150pt 오른쪽에 alpha 0 · scale 0 으로 깔고,
+#     0.1초마다 −150 씩 민다. `checkElementMatch` @0105f010 가 매 칸마다:
+#       x == 기준+450 → FadeTo(0.3, 255) + ScaleTo(0.3, 0.825)   (창 안으로 등장)
+#       x == 기준     → FadeTo(0.3, 0)   + ScaleTo(0.3, 0)       (창 밖으로 소멸)
+#       x == 기준−600 → setPositionX(기준+600)                    (되돌리기)
+#     당첨 칸만 (idx+1) 스텝을 더 가 기준점에 멈추고 ScaleTo(0.1,0.9)→ScaleTo(0.05,0.825) 로 튄다.
+#     그와 별개로 **큰 도장** 한 장(같은 아이콘, scale 2.5 · alpha 0)이 기준점에 있다가
+#     Delay(idx×0.1 + 1.0) 뒤 FadeTo(0.25, 200) + ScaleTo(0.25, 0.825) 로 내려앉고 사라진다.
+#
+# 우리 구현이 원작과 다른 **한 가지**: 되돌리기(wrap) 대신 **위상을 민 긴 띠**를 만든다.
+#   원작은 아이콘 9장을 −600 에서 +600 으로 순간이동시켜 재사용하는데, 그러면 같은 노드가
+#   중앙을 여러 번 지나며 `checkElementMatch` 의 소멸 분기에 다시 걸린다. 결과 위치는
+#   같으므로(주기 8칸) 띠를 `wheel[(j−8) mod 9]` 로 깔면 **당첨 칸이 정확히 마지막 스텝에
+#   기준점**에 오고 중간에 소멸 분기를 타지 않는다. 간격·시간·배율·알파는 전부 원작 값이다.
+const ELE_FRAME := {
+	"earth": "ground", "aqua": "water", "fire": "fire", "wind": "wind",
+	"light": "light", "dark": "dark", "holy": "holy", "chaos": "chaos", "shadow": "shadow",
+}
+const STAGE_ANCHOR := Vector2(10.0, 50.0)   # 원작 (w*0.5 + 10, h*0.5 + 50) 의 +오프셋
+
+func _build_stage_roulette(vis: Vector2) -> void:
+	if _stage.is_empty():
+		return
+	var A: Dictionary = Colosseum.stage_cfg().get("anim", {})
+	var step_sec := float(A.get("step_sec", 0.1))
+	var step_px := float(A.get("step_px", 150.0))
+	var base_steps := int(A.get("base_steps", 11))
+	var window := int(A.get("window", 3))
+	var fade := float(A.get("fade_sec", 0.3))
+	var icon_s := float(A.get("icon_scale", 0.825))
+	var lead := float(A.get("lead_sec", 1.0))
+	var idx := int(_stage.get("index", 0))
+	var wheel := Colosseum.stage_wheel()
+	if wheel.is_empty():
+		return
+	var total := base_steps + idx           # 원작 Delay((idx+11)×0.1) 의 스텝 수
+
+	# ① 바닥 띠 — 원작 프레임 그대로, 가로 꽉 채움.
+	var bar := _spr(CO, "scene_colosseum_stage_bg")
+	if bar == null:
+		return
+	var bw := float(bar.texture.get_width())
+	var bh := float(bar.texture.get_height())
+	var k := vis.x / bw                      # 원작 setScale(VisibleRect::right / w)
+	bar.scale = Vector2(k, k)
+	bar.centered = false
+	bar.position = Vector2(0.0, vis.y - bh * k)
+	bar.z_index = 15                         # 원작 addChild(bar, 15)
+	add_child(bar)
+
+	# 룰렛 좌표는 **바 로컬**이다(원작도 바의 자식으로 붙인다).
+	# ⚠️ Cocos 는 부모 좌하단 기준·y 위쪽 증가라 `(w*0.5+10, h*0.5+50)` 은 **바 윗변보다 위**다
+	#   (43 높이 바에서 71.5 ⇒ 윗변 +28.5). Godot 은 y 아래쪽 증가라 뒤집는다(§Design).
+	#   이 뒤집기를 빠뜨리면 아이콘이 바 **아래**(화면 밖)로 가 하나도 안 보인다.
+	var org := Vector2(bw * 0.5 + STAGE_ANCHOR.x, bh - (bh * 0.5 + STAGE_ANCHOR.y))
+
+	# ② 룰렛 띠. j = 몇 스텝 뒤에 기준점에 닿는가 = 그 칸이 중앙에 서는 순서다.
+	#    당첨 칸이 마지막 스텝(j = total = base_steps + idx)에 와야 하므로
+	#    `wheel[(j − base_steps) mod 9]` 로 깐다 ⇒ j = total 일 때 `wheel[idx]` ✓.
+	#    (원작은 −600 → +600 wrap 으로 같은 결과를 낸다.)
+	var phase := base_steps
+	var gen := _gen
+	for j in range(window, total + 1):
+		var el := String(wheel[posmod(j - phase, wheel.size())])
+		var ic := _spr("item_etc", "item_etc_ele_%s" % ELE_FRAME.get(el, "ground"))
+		if ic == null:
+			continue
+		ic.position = org + Vector2(float(j) * step_px, 0.0)
+		ic.scale = Vector2.ZERO
+		ic.modulate.a = 0.0
+		bar.add_child(ic)
+		# 이동은 스텝마다의 MoveBy(-150) 를 이어 붙인 것과 같다(등속) ⇒ 트윈 하나로 낸다.
+		# 모든 트윈이 원작 첫 Delay(1.0)(`lead`) 만큼 늦게 시작한다.
+		# 🔴 모든 칸이 **같은 속도**(150pt / 0.1초)로 움직여야 j 번째가 정확히 j 스텝째에
+		#   기준점에 온다. 도착점을 org.x 로 고정하면 칸마다 속도가 달라져 전부 중앙으로
+		#   모여든다(2026-08-05 첫 캡처에서 아이콘이 한 장만 보이던 원인).
+		var mv := ic.create_tween()
+		mv.tween_interval(lead)
+		mv.tween_property(ic, "position:x", org.x + float(j - total) * step_px,
+			float(total) * step_sec).set_trans(Tween.TRANS_LINEAR)
+		# 등장 — 창 안(+window 칸)에 들어오는 순간.
+		var tin := ic.create_tween()
+		tin.tween_interval(lead + float(j - window) * step_sec)
+		tin.tween_property(ic, "modulate:a", 1.0, fade)
+		tin.parallel().tween_property(ic, "scale", Vector2(icon_s, icon_s), fade)
+		if j == total:
+			# 당첨 칸 — 소멸하지 않고 기준점에서 튄다(원작 ScaleTo 0.1→0.9, 0.05→0.825).
+			var pop := ic.create_tween()
+			pop.tween_interval(lead + float(total) * step_sec)
+			pop.tween_property(ic, "scale", Vector2(0.9, 0.9), 0.1)
+			pop.tween_property(ic, "scale", Vector2(icon_s, icon_s), 0.05)
+		else:
+			# 나머지 — 기준점에 닿을 때 사라진다.
+			var out := ic.create_tween()
+			out.tween_interval(lead + float(j) * step_sec)
+			out.tween_property(ic, "modulate:a", 0.0, fade)
+			out.parallel().tween_property(ic, "scale", Vector2.ZERO, fade)
+			out.tween_callback(ic.queue_free)
+
+	# ③ 큰 도장 — 당첨 아이콘이 확대 상태에서 내려앉는다.
+	var stamp := _spr("item_etc",
+		"item_etc_ele_%s" % ELE_FRAME.get(String(_stage.get("element", "")), "ground"))
+	if stamp != null:
+		var ss := float(A.get("stamp_scale", 2.5))
+		stamp.position = org
+		stamp.scale = Vector2(ss, ss)
+		stamp.modulate.a = 0.0
+		bar.add_child(stamp)
+		var st := stamp.create_tween()
+		# 원작 도장 딜레이 = `Delay(idx×0.1 + 1.0)` 이고 그건 `createElement` 안이라
+		# 바의 첫 `Delay(1.0)` 뒤에 온다 ⇒ 시작 기준 `lead + idx×0.1 + 1.0`.
+		st.tween_interval(lead + float(idx) * step_sec + lead)
+		st.tween_property(stamp, "modulate:a",
+			float(A.get("stamp_alpha", 200)) / 255.0, float(A.get("stamp_sec", 0.25)))
+		st.parallel().tween_property(stamp, "scale", Vector2(icon_s, icon_s),
+			float(A.get("stamp_sec", 0.25)))
+		st.tween_callback(stamp.queue_free)
+
+	# ④ 바 자체의 수명 — 결정 후 hold_sec 쥐고 있다가 out_sec 에 걸쳐 사라진다.
+	var life := bar.create_tween()
+	life.tween_interval(lead + float(total) * step_sec + float(A.get("hold_sec", 1.0)))
+	life.tween_property(bar, "modulate:a", 0.0, float(A.get("out_sec", 0.5)))
+	life.tween_callback(bar.queue_free)
+
+	# ⑤ 무대 버프 스파인 — 룰렛이 결정되는 순간 속성이 맞는 드래곤 전원에게 붙는다.
+	#   원작 `checkStageBuff` 는 이걸 전투 시작 지연에 물리는데, 우리는 **결정 시점**에 맞춘다
+	#   (룰렛이 우리 쪽에선 로그 바와 같은 타임라인이라, 그래야 원인과 결과가 이어져 보인다).
+	get_tree().create_timer(lead + float(total) * step_sec).timeout.connect(func() -> void:
+		if gen == _gen:
+			_stage_buff_fx())
+
+
+## 무대 버프 — 원작 `MakeInterface::showStageBuff` @0105f4b8.
+## 종족이 무대 속성과 같은 드래곤 **양 진영 전원**에게 `battle/stage_<race>_buff_spine` 을
+## 드래곤 레이어 중앙에 scale 1.5 · z=10 으로 붙이고 `"animation"` 을 **1회** 재생한다.
+## 변환본 = `scenes/buffs/stage_buff_<element>.tscn`(탐험 `battle.gd::_build_field_buff` 와 공유).
+func _stage_buff_fx() -> void:
+	var el := String(_stage.get("element", ""))
+	if el == "":
+		return
+	var path := "res://scenes/buffs/stage_buff_%s.tscn" % el
+	if not ResourceLoader.exists(path):
+		return
+	var bs := float((Colosseum.stage_cfg().get("anim", {}) as Dictionary).get("buff_scale", 1.5))
+	for tag in _views:
+		var v: Dictionary = _views[tag]
+		if not bool(v.get("stage_buff", false)) or bool(v.get("dead", false)):
+			continue
+		var node = v.get("node")
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		var holder := Node2D.new()
+		# 우리 holder 원점 = 발밑 중앙이라 몸통 중앙까지 올린다(원작은 레이어 contentSize×0.5).
+		holder.position = Vector2(0.0, -float(v.get("dragon_h", DRAGON_H)) * 0.5)
+		holder.scale = Vector2(bs, bs)
+		holder.z_index = 10                     # 원작 addChild(spine, 10)
+		(node as Node2D).add_child(holder)
+		var inst = (load(path) as PackedScene).instantiate()
+		holder.add_child(inst)
+		# ⚠️ 이 스파인은 **원점 보정을 하면 안 된다.** 변환 씬의 스프라이트가 전부
+		#   `visible = false` 로 시작해(애니가 켠다) 경계 실측이 빈 사각형으로 나오고,
+		#   무엇보다 `root/bone1:position` 트랙이 y −196 까지 **올라가는 것이 이 이펙트의 안무**다
+		#   (불길이 드래곤 몸에서 솟는다). 원작도 레이어 중앙에 그대로 붙인다.
+		var ap := _find_anim_player(inst)
+		if ap != null:
+			var anims := ap.get_animation_list()
+			if anims.size() > 0:
+				ap.get_animation(anims[0]).loop_mode = Animation.LOOP_NONE
+				ap.play(anims[0])
+				var t := holder.create_tween()
+				t.tween_interval(ap.get_animation(anims[0]).length)
+				t.tween_callback(holder.queue_free)
 
 
 # ---------- 팀 배치 ----------
@@ -154,6 +351,8 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		#      adult 134/134 에 `attack` 존재, child 132/133 · baby 132/133 은 **없음**.
 		#      종전엔 레벨 30 미만이면 child 를 띄워서, 저레벨 드래곤이 공격해도 아무 모션이
 		#      없었다(사용자 지적).
+		# 🔴 2026-08-05 보강(사용자 지적) — "성체"는 **각성체를 포함하지 않는다.**
+		#   각성한 드래곤은 `_e` 스파인이 정답이다(`Growth.spine_stage` — `_dragon_spine` 참조).
 		# 발밑 그림자 — 원작 `MakeInterface::setShadow` @01050b10 이
 		#   `common/shadow.png` 를 드래곤 위치 −(0, s*95) 에 `setScale(s + 1.0)` 로 깐다
 		#   (z=1, tag=-0x226). 우리 holder 원점 = 스프라이트 **바닥 중앙**이라 그 자리에 둔다.
@@ -168,7 +367,10 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		#   스파인을 **native 크기 그대로** 놓고 3v3=0.75 / 1v1=1.0 만 곱한다 ⇒ 종마다 크기가 다르다.
 		#   실측(2026-08-05): 성체 native 높이 288~296pt → 3v3 이면 ~217pt.
 		#   종전 값(170×0.75=127pt)은 레퍼런스(`docs/ref/pvp/`, 드래곤 210~250pt)의 절반이었다.
-		var sp := _dragon_spine(int(p.get("id", 0)))
+		# 단계는 **각성 여부만** 본다 — 레벨로 유생/아성체까지 가르는 `Growth.spine_stage` 를
+		# 그대로 쓰면 저레벨 봇이 공격 모션 없는 child 로 떨어진다(위 ②). 콜로세움은 성체 이상만이다.
+		var sp := _dragon_spine(int(p.get("id", 0)),
+			"e" if bool(p.get("awakened", false)) else "adult")
 		var ap: AnimationPlayer = null
 		if sp != null:
 			# 원작 makeDragonLayer 의 최종 setScale — 3v3 은 0.75 로 줄인다.
@@ -197,8 +399,12 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 			"dname": String(p.get("name", "")), "icons": hud["icons"],
 			"hp_label": hud["hp_label"], "anim": ap, "id": int(p.get("id", 0)),
 			"element": String(p.get("element", "")),
+			"awakened": bool(p.get("awakened", false)),
+			# 무대 속성 일치 — `PartyStats` 가 스탯 보정과 **같은 조건**으로 채워 준다.
+			"stage_buff": bool(p.get("stage_buff", false)),
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
 			"dead": false, "pos": Vector2(x, y), "mine": mine, "slot": i,
+			"dragon_h": dh,        # 실측 스파인 높이 — 무대 버프 스파인을 몸통 중앙에 올릴 때 쓴다
 		}
 
 
@@ -817,6 +1023,10 @@ func _apply(ev: Dictionary) -> void:
 	if bool(ev.get("dead", false)) and not bool(v["dead"]):
 		# 원작 사망 = `deadTypeNormalDamage` / `deadTypeBigDamage` 가 **"damaged" → "down"**
 		# 두 단계로 낸다. `damaged` 가 여기(사망 도입부)에만 쓰이는 게 원작 사양이다.
+		# 원작 `MakeInterface::deadEffect` @0109a654 —
+		#   `particle/scene/colosseum/effect_dead.plist` 를 대상 중앙에 뿌리고
+		#   `music/effect_dead.mp3` 를 **볼륨 0.5**(0x3f000000)로 낸다.
+		_dead_fx(v)
 		var d0 := _play_anim(v, "damaged")
 		var gen0 := _gen
 		get_tree().create_timer(maxf(0.15, d0)).timeout.connect(func() -> void:
@@ -976,9 +1186,18 @@ const ANIM_IDLE := "wait"
 
 ## 콜로세움 드래곤 스파인 — **native 크기 그대로**, 원점 = 발밑 중앙(우리 배치 규약).
 ## 원작 `makeDragonLayer` 와 같다: 크기를 건드리지 않고 3v3/1v1 배율만 밖에서 곱한다.
-## ⚠️ 콜로세움은 항상 성체다(입장 레벨 25 + 공격 모션이 성체에만 있다 — 위 `_build_team` 주석).
-func _dragon_spine(id: int) -> Node2D:
-	var path := "res://scenes/dragons/dragon_%d_adult.tscn" % id
+##
+## 🔴 2026-08-05 수정(사용자 지적) — **각성 드래곤이 성체로 나오고 있었다.**
+##   종전엔 `dragon_%d_adult` 로 못 박아서, 각성체(`_e`) 스파인이 있는 드래곤도 성체 그림이 떴다.
+##   단계 판정은 원작 `Dragon::getImagePathSpineJson` 의 각성 분기를 옮긴
+##   **`Growth.spine_stage`** 한 곳뿐이다(도감·동굴·편성이 이미 쓰는 그 함수).
+##   실측 2026-08-05: `_e` 씬 **134/134 에 `attack` 이 있다** ⇒ 전투 모션도 문제 없다.
+##   콜로세움은 입장 레벨 25 이상이라 유생·아성체는 애초에 못 들어오지만,
+##   각성 스파인이 없는 종(`_e` 미보유)은 성체로 안전하게 떨어진다.
+func _dragon_spine(id: int, stage := "adult") -> Node2D:
+	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [id, stage]
+	if id <= 0 or not ResourceLoader.exists(path):
+		path = "res://scenes/dragons/dragon_%d_adult.tscn" % id
 	if id <= 0 or not ResourceLoader.exists(path):
 		return null
 	var holder := Node2D.new()
@@ -1042,7 +1261,24 @@ func _play_anim(v: Dictionary, name: String) -> float:
 ##   `action` code 0(기본 피격)이 `getDuration(spine, "damaged", 0)` 를 부르지만
 ##   **재생이 아니라 측정**이고(실측: 반환값이 곧장 CCDelayTime 으로 간다),
 ##   눈에 보이는 반응은 이 **깜빡임**이다. 종전엔 이걸 통째로 빠뜨렸다.
+##
+## 🔊 2026-08-05 — **피격 효과음의 주인을 찾았다.**
+##   `MakeInterface::runSpineWithAnimationName` @0104f468 이 애니 이름이 `"damaged"` 로
+##   시작하면 `rand()&1` 로 `music/effect_dragon_damaged_1.mp3` / `_2.mp3` 를 고르고
+##   **볼륨 `(rand()%6) × 0.05 + 0.25`**(= 0.25~0.50) 로 낸다.
+##   그리고 `asm_cfg.py --table` 로 확인한 code 0 핸들러(@01067300)의 도달 호출에
+##   `runSpineWithAnimationName` 가 **있다** ⇒ 기본 피격도 이 소리를 낸다.
+##   깜빡임(=투명) 중에 애니가 도니 화면엔 안 보이고 **소리만** 남는 게 원작 동작이다.
+##   같은 이유로 `battle.gd` 도 `InterFace::setCallHitSound` 로 같은 두 음원을 쓴다.
 const HIT_BLINK_BACK := 0.1         # 원작 FadeTo(0.1, 255)
+const HIT_SFX_VOL_BASE := 0.25      # 원작 (rand()%6)*0.05 + 0.25
+const HIT_SFX_VOL_STEP := 0.05
+const HIT_SFX_VOL_N := 6
+
+func _hit_sfx() -> void:
+	Bgm.sfx("effect_dragon_damaged_%d" % (1 + (_rng.randi() & 1)),
+		HIT_SFX_VOL_BASE + float(_rng.randi() % HIT_SFX_VOL_N) * HIT_SFX_VOL_STEP)
+
 
 func _damaged_color(v: Dictionary) -> void:
 	var n = v.get("node")
@@ -1219,6 +1455,12 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 	if not dfn.is_empty() and not bool(dfn.get("dead", false)) \
 			and int(ev.get("damage", 0)) > 0:
 		_damaged_color(dfn)
+		# 소리·파티클은 깜빡임과 같은 순간이다 —
+		#   소리 = `runSpineWithAnimationName("damaged")` (위 `_hit_sfx` 주석)
+		#   파티클 = `MakeInterface::damagedEffect` @0108f4cc 의
+		#            `particle/scene/colosseum/effect_damaged.plist` (대상에 붙는다)
+		_hit_sfx()
+		_damaged_particle(dfn)
 		if code == AC_POISON or code == AC_CRIT_FX:
 			# 흔들림 방향 = 맞은 쪽이 밀리는 방향(공격자 반대편).
 			_shake_horizontal(dfn, 1.0 if bool(dfn.get("mine", false)) else -1.0)
@@ -1239,7 +1481,11 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		"skill":
 			# 원작 `createIcon` 은 이펙트와 함께 **화면 상단 스킬 이름 배너**도 낸다.
 			_skill_banner(String(ev.get("skill_name", "")), int(ev.get("skill_id", 0)))
+			_skill_sfx(int(ev.get("skill_id", 0)))
 			_skill_spine(int(ev.get("skill_id", 0)), at)
+			# 원작 `castSkill` @0108a924 의 `particle/skill/skill_%d.plist` ·
+			# `particleEffect` @010908d8 의 `skill_%d_effect.plist`.
+			_skill_particle(int(ev.get("skill_id", 0)), at)
 		"awaken":
 			# 원작 `FightScene` @00f8cd6c: `showCutIn(actor, 0.5)` → `UltimateLayer`.
 			# `showCutIn` 은 `getNo()` 가 **9013/9014**(이벤트 드래곤)일 때만 전면 컷인
@@ -1509,6 +1755,67 @@ func _skill_banner(sname: String, skill_id: int) -> void:
 # 재생한다. 새로 짜지 않고 같은 규약을 따른다(§3 우리 코드 먼저).
 const SKILL_SPINE_SEC := 0.7
 
+
+# ---------- 효과음 / 파티클 ----------
+#
+# 🔎 2026-08-05 조회 결과(사용자 지적 "콜로세움 공격 효과음·이펙트"):
+#   `MakeInterface` 안의 `SoundManager::playEffect` 13곳을 전수로 함수에 매핑했더니
+#   **전투 중 소리를 내는 곳은 둘뿐**이다 —
+#     ① `runSpineWithAnimationName` @0104f468 — 애니가 `"damaged"` 면 피격음(위 `_hit_sfx`),
+#        `"appear"` 면 `music/voice1.mp3`.
+#     ② `deadEffect` @0109a654 — `music/effect_dead.mp3` 볼륨 0.5.
+#   나머지는 전부 버튼/로비음이고, `castSkill` @0108a924 · `action` @01062fd4(ASM 전수)에는
+#   **사운드 문자열이 하나도 없다.**
+#
+#   ⚠️ 그래서 **스킬 효과음의 재생 지점은 콜로세움 경로에서 못 찾았다.**
+#      `FightScene::init` 이 `preloadHeavyResource` 로 `effect_skill_%d.mp3` 24종을 통째로
+#      올리지만, 그 프리로드는 `BattleScene`·`OpeningBattleScene` 과 **공유**라 근거가 못 된다.
+#      # ASSUMPTION: 탐험(`AdventureScene` @57622 `music/effect_skill_%d.mp3`)에서 **전수 대조로
+#      확정된** 같은 규약을 그대로 쓴다(N 24종이 전부 skills.json 의 스킬 id). 파일이 없으면
+#      아무 소리도 내지 않는다 — 카테고리 폴백 같은 자작 대체는 두지 않는다.
+
+## 스킬 효과음 — 전용 음원이 있는 스킬만 낸다.
+func _skill_sfx(sid: int) -> void:
+	if sid <= 0:
+		return
+	var own := "effect_skill_%d" % sid
+	if ResourceLoader.exists("res://assets/music/%s.mp3" % own):
+		Bgm.sfx(own)
+
+
+## 피격 파티클 — 원작 `MakeInterface::damagedEffect` @0108f4cc.
+## `particle/scene/colosseum/effect_damaged.plist` 를 **대상 드래곤 레이어**에 z=6 으로 붙인다.
+func _damaged_particle(v: Dictionary) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	CocosParticle.spawn(n as Node2D, "colosseum_damaged",
+		Vector2(0.0, -float(v.get("dragon_h", DRAGON_H)) * 0.5), 6, 0.9)
+
+
+## 격파 연출 — 원작 `MakeInterface::deadEffect` @0109a654.
+## `particle/scene/colosseum/effect_dead.plist` + `music/effect_dead.mp3`(볼륨 0.5).
+const DEAD_SFX_VOL := 0.5           # 원작 playEffect 3번째 인자 0x3f000000
+
+func _dead_fx(v: Dictionary) -> void:
+	Bgm.sfx("effect_dead", DEAD_SFX_VOL)
+	var n = v.get("node")
+	if n is Node2D and is_instance_valid(n):
+		CocosParticle.spawn(n as Node2D, "colosseum_dead",
+			Vector2(0.0, -float(v.get("dragon_h", DRAGON_H)) * 0.5), 7, 0.9)
+
+
+## 스킬 파티클 — 원작 `castSkill` 의 `particle/skill/skill_%d.plist` 와
+## `particleEffect` @010908d8 의 `particle/skill/skill_%d_effect.plist`.
+## 변환된 것만 뜬다(원작에 있는 파일도 6종뿐이다).
+func _skill_particle(sid: int, at: Vector2) -> void:
+	if sid <= 0:
+		return
+	for name in ["skill_%d" % sid, "skill_%d_effect" % sid]:
+		if CocosParticle.spawn(self, name, at, 101, 0.9) != null:
+			return
+
+
 ## 스킬 이펙트 스파인 1회 재생. 없으면 false.
 func _skill_spine(sid: int, at: Vector2) -> bool:
 	var path := "res://scenes/fx/skill_%d_spine.tscn" % sid
@@ -1628,9 +1935,13 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 ##     복원 안무는 `docs/ref/porting/Colosseum.md` §8.7 에 적어 뒀다.
 func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 	var cid := int(atk.get("id", 0))
-	var path := "res://scenes/dragons/dragon_%d_e_critical.tscn" % cid
-	if not ResourceLoader.exists(path):
-		path = "res://scenes/dragons/dragon_%d_critical.tscn" % cid
+	# 🔴 2026-08-05 — 각성 여부를 본다. 종전엔 `_e_critical` 이 있으면 **미각성 드래곤도**
+	#   각성 크리티컬 스파인을 썼다(본체 스파인과 단계가 어긋난다).
+	var path := "res://scenes/dragons/dragon_%d_critical.tscn" % cid
+	if bool(atk.get("awakened", false)):
+		var ep := "res://scenes/dragons/dragon_%d_e_critical.tscn" % cid
+		if ResourceLoader.exists(ep):
+			path = ep
 	if cid <= 0 or not ResourceLoader.exists(path):
 		return false
 	var holder := Node2D.new()

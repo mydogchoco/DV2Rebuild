@@ -144,12 +144,19 @@ func play(track: String) -> void:
 		_fade.tween_property(_a, "volume_db", _base_vol, FADE)
 
 ## 1회성 효과음(승리 팡파레 등). 별도 임시 플레이어.
-func sfx(track: String) -> void:
+## `vol` = 원작 `SoundManager::playEffect(..., volume, ...)` 의 볼륨 인자(0~1, 1=원음).
+## 원작이 음원마다 다른 볼륨을 넘기는 자리가 있다 —
+##   피격 `runSpineWithAnimationName` @0104f468: `(rand()%6)*0.05 + 0.25`
+##   사망 `deadEffect` @0109a654: 0.5
+## 기본값 1.0 이라 기존 호출부는 그대로다.
+func sfx(track: String, vol := 1.0) -> void:
 	if _muted: return
 	var st := _make_stream(track)
 	if st == null: return
 	if st is AudioStreamMP3: st.loop = false
-	var p := AudioStreamPlayer.new(); p.bus = SFX_BUS; p.stream = st; p.volume_db = _base_vol
+	var p := AudioStreamPlayer.new(); p.bus = SFX_BUS; p.stream = st
+	p.volume_db = _base_vol + (0.0 if is_equal_approx(vol, 1.0)
+		else linear_to_db(clampf(vol, 0.0001, 1.0)))
 	add_child(p); p.play()
 	p.finished.connect(func(): if is_instance_valid(p): p.queue_free())
 

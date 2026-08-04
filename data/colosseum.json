@@ -108,6 +108,52 @@
   "select_1vs1": "대전에 참가할 드래곤을 선택해주세요.",
   "select_3vs3": "대전에 참가할 드래곤을 3마리 선택해주세요."
  },
+ "stage": {
+  "_source": "MakeInterface::createElement @0105daf0 · checkStageBuff @0105f368 · showStageBuff @0105f4b8 · DualManager::getAttributeBgImage @00f88b28 · DAT_021c4ac4 [1,7,5,0,2,6,4,3,8] (libgame.so 직접 디코드)",
+  "wheel": [
+   "aqua",
+   "chaos",
+   "dark",
+   "earth",
+   "fire",
+   "holy",
+   "light",
+   "wind",
+   "shadow"
+  ],
+  "bg": {
+   "earth": 3,
+   "aqua": 0,
+   "fire": 4,
+   "wind": 7,
+   "light": 6,
+   "dark": 2,
+   "holy": 5,
+   "chaos": 1,
+   "shadow": 3
+  },
+  "buff_pct": 10,
+  "buff_stats": [
+   "hp",
+   "att",
+   "def"
+  ],
+  "anim": {
+   "step_sec": 0.1,
+   "step_px": 150.0,
+   "base_steps": 11,
+   "window": 3,
+   "fade_sec": 0.3,
+   "icon_scale": 0.825,
+   "stamp_scale": 2.5,
+   "stamp_alpha": 200,
+   "stamp_sec": 0.25,
+   "lead_sec": 1.0,
+   "hold_sec": 1.0,
+   "out_sec": 0.5,
+   "buff_scale": 1.5
+  }
+ },
  "rating": {
   "_note": "# ASSUMPTION — 원작은 서버가 증감치를 내려줬다(getDuelBaseRankPoint/getDuelAddRankPoint). 시작 1000 = BRONZE 중간. 연승 보너스는 위로 갈수록 굳지 않게 하는 장치.",
   "start": 1000,
@@ -327,7 +373,47 @@
     "왜 맨날! 나만 싸우는 건데!"
    ],
    "rating": 0,
-   "dragons": [],
+   "dragons": [
+    {
+     "id": 4191,
+     "level": 50,
+     "awakened": false,
+     "skills": [
+      {
+       "id": 110,
+       "level": 5
+      },
+      {
+       "id": 36,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "def": 30000,
+      "cri": 2.7,
+      "evd": 5
+     },
+     "stats_roll": {
+      "hp": [
+       15.0,
+       40.0
+      ],
+      "att": [
+       250.0,
+       300.0
+      ]
+     },
+     "immune": {
+      "skills": [
+       13,
+       30
+      ],
+      "pure": true,
+      "bonus": true,
+      "_text": "아수라일섬, 복수의 거울 스킬 데미지, 관통 및 추가데미지에 면역"
+     }
+    }
+   ],
    "_talk_source": "원작 ColosseumNuriTalk*"
   },
   {
@@ -343,7 +429,137 @@
     "어디, 네 녀석의 볼품없는 실력을 평가해주지!"
    ],
    "rating": 0,
-   "dragons": [],
+   "dragons": [
+    {
+     "id": 14,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "ATT",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 11,
+       "level": 5
+      },
+      {
+       "id": 13,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 929,
+      "def": 266
+     }
+    },
+    {
+     "id": 4000,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "HP",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "체력의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 30,
+       "level": 5
+      },
+      {
+       "id": 60,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 840,
+      "att": 500
+     }
+    },
+    {
+     "id": 83,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "DEF",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "방어의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 14,
+       "level": 5
+      },
+      {
+       "id": 70,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 561,
+      "att": 666
+     }
+    }
+   ],
    "_talk_source": "원작 ColosseumRaonTalk*"
   },
   {
@@ -364,7 +580,47 @@
     "물론 난 최선을 다할 테지만! 우히히힛!"
    ],
    "rating": 0,
-   "dragons": [],
+   "dragons": [
+    {
+     "id": 4191,
+     "level": 50,
+     "awakened": false,
+     "skills": [
+      {
+       "id": 110,
+       "level": 5
+      },
+      {
+       "id": 36,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "def": 30000,
+      "cri": 2.7,
+      "evd": 5
+     },
+     "stats_roll": {
+      "hp": [
+       15.0,
+       40.0
+      ],
+      "att": [
+       250.0,
+       300.0
+      ]
+     },
+     "immune": {
+      "skills": [
+       13,
+       30
+      ],
+      "pure": true,
+      "bonus": true,
+      "_text": "아수라일섬, 복수의 거울 스킬 데미지, 관통 및 추가데미지에 면역"
+     }
+    }
+   ],
    "_talk_source": "원작 ColosseumNuriTalk*"
   },
   {
@@ -381,7 +637,137 @@
     "덤비라고!! 어설픈 녀석!"
    ],
    "rating": 0,
-   "dragons": [],
+   "dragons": [
+    {
+     "id": 14,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "ATT",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 11,
+       "level": 5
+      },
+      {
+       "id": 13,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 929,
+      "def": 266
+     }
+    },
+    {
+     "id": 4000,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "HP",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "체력의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 30,
+       "level": 5
+      },
+      {
+       "id": 60,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 840,
+      "att": 500
+     }
+    },
+    {
+     "id": 83,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "DEF",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "방어의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 14,
+       "level": 5
+      },
+      {
+       "id": 70,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 561,
+      "att": 666
+     }
+    }
+   ],
    "_talk_source": "원작 ColosseumRaonTalk*"
   },
   {
@@ -400,7 +786,137 @@
     "덤비라고 애송이!"
    ],
    "rating": 0,
-   "dragons": [],
+   "dragons": [
+    {
+     "id": 14,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "ATT",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 11,
+       "level": 5
+      },
+      {
+       "id": 13,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 929,
+      "def": 266
+     }
+    },
+    {
+     "id": 4000,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "HP",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "체력의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 30,
+       "level": 5
+      },
+      {
+       "id": 60,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 840,
+      "att": 500
+     }
+    },
+    {
+     "id": 83,
+     "level": 50,
+     "awakened": false,
+     "gems": {
+      "types": [
+       "ATT",
+       "DEF",
+       "HP"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "공격의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "방어의 젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "체력의 젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 14,
+       "level": 5
+      },
+      {
+       "id": 70,
+       "level": 5
+      }
+     ],
+     "stats": {
+      "hp": 561,
+      "att": 666
+     }
+    }
+   ],
    "_talk_source": "원작 ColosseumRaonTalk*"
   },
   {
@@ -417,25 +933,163 @@
      "id": 777,
      "level": 50,
      "awakened": true,
-     "gems": [],
-     "skills": [],
-     "equip": []
+     "gems": {
+      "types": [
+       "ALL",
+       "ALL",
+       "ALL"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 23,
+       "level": 5
+      },
+      {
+       "id": 56,
+       "level": 5
+      }
+     ],
+     "equip": [
+      {
+       "key": "exclusive:한울의 불꽃",
+       "slot": "all"
+      },
+      {
+       "key": "special:balrog:카이저 발록의 투구",
+       "slot": "battle"
+      },
+      {
+       "key": "special:fiod:피오드의 텅 빈 모래시계",
+       "slot": "support"
+      }
+     ],
+     "grade": 7.0
     },
     {
      "id": 666,
      "level": 50,
      "awakened": true,
-     "gems": [],
-     "skills": [],
-     "equip": []
+     "gems": {
+      "types": [
+       "ALL",
+       "ALL",
+       "ALL"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 11,
+       "level": 5
+      },
+      {
+       "id": 29,
+       "level": 5
+      }
+     ],
+     "equip": [
+      {
+       "key": "exclusive:샛별의 날개장식",
+       "slot": "all"
+      },
+      {
+       "key": "special:balrog:카이저 발록의 투구",
+       "slot": "battle"
+      },
+      {
+       "key": "special:fiod:피오드의 텅 빈 모래시계",
+       "slot": "support"
+      }
+     ],
+     "grade": 7.0
     },
     {
      "id": 800,
      "level": 50,
      "awakened": true,
-     "gems": [],
-     "skills": [],
-     "equip": []
+     "gems": {
+      "types": [
+       "ALL",
+       "ALL",
+       "ALL"
+      ],
+      "list": [
+       {
+        "slot": 0,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 1,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       },
+       {
+        "slot": 2,
+        "name": "샌즈의 소울젬",
+        "tier": 9
+       }
+      ]
+     },
+     "skills": [
+      {
+       "id": 160,
+       "level": 5
+      },
+      {
+       "id": 170,
+       "level": 5
+      }
+     ],
+     "equip": [
+      {
+       "key": "special:balrog:카이저 발록의 팔찌",
+       "slot": "support"
+      },
+      {
+       "key": "special:balrog:카이저 발록의 투구",
+       "slot": "battle"
+      },
+      {
+       "key": "special:fiod:피오드의 텅 빈 모래시계",
+       "slot": "all"
+      }
+     ],
+     "grade": 7.0
     }
    ],
    "_talk_source": "사용자 CSV"

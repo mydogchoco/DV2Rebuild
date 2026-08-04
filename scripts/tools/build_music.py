@@ -45,6 +45,11 @@ PATTERNS = [
     # 부화 빛기둥 타격음 — cave.gd 가 상수(`EGG_BEAT_SFX`)로 들고 있어 리터럴 스캔에 안 걸린다.
     # ⚠️ 원작 대응은 미확정(디컴프에 없는 익명 람다가 낸다) — docs/ref/porting/EggHatch.md §6.3.
     re.compile(r"^effect_egg$"),
+    # 드래곤 피격음 — `rand()&1` 로 둘 중 하나. `"effect_dragon_damaged_%d"` 로 조립하므로
+    # 리터럴 스캔에 안 걸린다(그래서 `_2` 가 통째로 빠져 있었다 — 2026-08-05 발견).
+    # 원작: `InterFace::setCallHitSound` @00d3adec(탐험) ·
+    #       `MakeInterface::runSpineWithAnimationName` @0104f468(콜로세움, 볼륨 0.25~0.50).
+    re.compile(r"^effect_dragon_damaged_[12]$"),
 ]
 
 
