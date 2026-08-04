@@ -121,6 +121,32 @@ func _run() -> void:
 			nicks[String(o["nick"])] = true
 		fails += _eq("닉 중복 없음", nicks.size(), list.size())
 
+		# ── 7-b. 랜덤 매칭 — 구판 흐름(시작 버튼 → 덱 선택 → 상대 1기 배정) ──────
+		# 근거: `__ColosseumScene::onClickedColosseum1vs1/3vs3` 에 후보 목록이 없다.
+		for mode in ["single", "team"]:
+			var foe := Colosseum.roll_match(mode, rng)
+			fails += _b("매칭 상대 1기 (%s)" % mode, not foe.is_empty())
+			fails += _eq("매칭 파티 크기 (%s)" % mode, (foe["dragons"] as Array).size(),
+				Colosseum.party_size(mode))
+			fails += _b("매칭 상대 닉 (%s)" % mode, String(foe.get("nick", "")) != "")
+
+		# ── 7-c. 랭킹 보드 — 원작 pvp_total_rank / pvp_week_rank ────────────────
+		var board := Colosseum.ladder("team", false, rng)
+		fails += _eq("보드 행수", board.size(), Colosseum.LADDER_SIZE)
+		var desc := true
+		for i in range(1, board.size()):
+			if int(board[i]["rating"]) > int(board[i - 1]["rating"]):
+				desc = false
+		fails += _b("보드 내림차순", desc)
+		# 같은 호출은 같은 보드를 준다(세이브에 남는다) — 순위가 매 프레임 흔들리면 안 된다.
+		var board2 := Colosseum.ladder("team", false, rng)
+		fails += _eq("보드 고정", String(board2[0]["nick"]), String(board[0]["nick"]))
+		var rank := Colosseum.my_rank("team", false)
+		fails += _b("내 순위 1..N+1 (%d)" % rank, rank >= 1 and rank <= board.size() + 1)
+		# 주간 보드는 별도 축이다.
+		var wk := Colosseum.ladder("team", true, rng)
+		fails += _eq("주간 보드 행수", wk.size(), Colosseum.LADDER_SIZE)
+
 	# ── 8. 연승방지봇 스케줄 (🟦 사용자 확정: 25 누리A·50 라온A·75 누리B·100 라온B·150 라온C·999 선대군)
 	var sched := [[0, ""], [24, ""], [25, "누리"], [49, "누리"], [50, "라온"], [74, "라온"],
 				  [75, "누리"], [99, "누리"], [100, "라온"], [149, "라온"], [150, "라온"],

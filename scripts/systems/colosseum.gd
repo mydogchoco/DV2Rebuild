@@ -576,11 +576,11 @@ static func _tier_mid_rating(tier_key: String) -> int:
 	return int(_cfg().get("rating", {}).get("start", 1000))
 
 
-# --- 상대 목록(원작 match1_list / match3_list 자리) ---------------------------
-
-## 지금 티어에 맞는 상대 목록을 굴린다. 원작이 서버에서 받던 그 배열이다.
-##
-## `guard` 가 켜져 있으면(연승방지) 한 단계 위 분류가 섞인다.
+# --- 상대 목록 -----------------------------------------------------------------
+#
+# ⚠️ 이 함수는 **로비가 쓰지 않는다**. 구판 로비는 후보 목록을 보여 주지 않는다(아래 `roll_match`
+#   주석 참조 — `match1_list`/`match3_list` 는 후기판 전용 키였다).
+#   남겨 두는 이유: 스크린샷 도구(`shot_helper.gd`)와 테스트가 "봇 여러 기를 한 번에" 만들 때 쓴다.
 static func roll_opponents(mode: String, rng: RandomNumberGenerator = null) -> Array:
 	if rng == null:
 		rng = RandomNumberGenerator.new()
@@ -703,3 +703,116 @@ static func consume_guard() -> void:
 	if int(s.get("guard_left", 0)) > 0:
 		s["guard_left"] = int(s["guard_left"]) - 1
 		save_state(s)
+
+
+# --- 랜덤 매칭 --------------------------------------------------------------
+#
+# 🔴 정정 2026-08-04 — 종전의 `roll_opponents()`(후보 5명 목록에서 고르기)는 **후기판 오독**이었다.
+#   구판 로비 클래스 `__ColosseumScene`(libgame.so 에 그대로 남아 있다) 의 흐름은
+#     `onClickedColosseum1vs1` @00f257a4 / `onClickedColosseum3vs3` @00f25570
+#       → 피로도 검사(`this+0x260 → +0x40 == 0` 이면 토스트)
+#       → `checkDragon()` 실패면 토스트
+#       → `LoadingLayer::show` + `FightManager::setType(0|1)`
+#       → `Select1vs1Layer/Select3vs3Layer::create(1)` → `show()`
+#   즉 **시작 버튼 → 덱 선택 → 서버가 상대를 배정**이다. 로비에 후보 목록이 없다는 것은
+#   구판 `responseList` 가 처리하는 JSON 키에도 드러난다 — `pvp_total_rank`/`pvp_week_rank`
+#   (랭킹 보드)는 있고 `match1_list`/`match3_list`(후보 목록)는 **후기판에만** 있다.
+#   ⇒ 서버가 하던 "상대 1명 배정"을 이 함수가 대신한다(§2-1 예외, 배선 교체).
+
+## 이번 판 상대 1기를 굴린다. 연승방지가 걸려 있으면 그 봇이 우선한다.
+static func roll_match(mode: String, rng: RandomNumberGenerator = null) -> Dictionary:
+	if rng == null:
+		rng = RandomNumberGenerator.new()
+		rng.randomize()
+	var s := state()
+	var rating := rating_of(mode)
+	var tkey := String(tier_of(rating).get("key", "bronze"))
+	var bots: Dictionary = _cfg().get("bots", {})
+	var mix: Dictionary = (bots.get("tier_mix", {}) as Dictionary).get(tkey, {})
+
+	if int(s.get("guard_left", 0)) > 0:
+		var gnpc := guard_for(streak_of(mode))
+		if not gnpc.is_empty():
+			return make_guard(gnpc, mode, rng)
+
+	var g := _pick_grade(mix, rng)
+	var rankers: Array = _cfg().get("rankers", [])
+	if g == "ranker" and not rankers.is_empty():
+		return _make_ranker(rankers[rng.randi() % rankers.size()], mode, rng)
+	if g == "ranker":
+		g = "adept"                                  # 랭커 CSV 가 비었으면 중급으로
+	# ASSUMPTION: 상대 레이팅 폭(-120 ~ +160)은 서버 매칭 규칙이 유실돼 우리가 정한 값이다.
+	var r := maxi(0, rating + rng.randi_range(-120, 160))
+	return make_bot(g, mode, r, rng, gen_nick(rng))
+
+
+# --- 랭킹 보드 (원작 pvp_total_rank / pvp_week_rank) --------------------------
+#
+# 구판 로비 왼쪽 CCTableView 가 보여 주던 것. 서버 소유 데이터라 유실 →
+# 봇 사다리로 대신 채운다(§2-1 예외 · 사용자 확정 "봇으로만 구성").
+# 한 번 만들면 세이브에 남아 순위가 흔들리지 않고, **새로고침(원작 onClickedRefresh)** 으로만 갈린다.
+
+const LADDER_SIZE := 30
+
+## 랭킹 보드 행 목록(내림차순). 없으면 만들어 저장한다.
+## `weekly` = 주간 탭(원작 `pvp_week_rank`) — 같은 사다리에 주간 점수를 얹는다.
+static func ladder(mode: String, weekly := false, rng: RandomNumberGenerator = null) -> Array:
+	var s := state()
+	var key := "pvp_week_rank" if weekly else "pvp_total_rank"
+	var by_mode: Dictionary = s.get(key, {})
+	if typeof(by_mode) != TYPE_DICTIONARY:
+		by_mode = {}
+	var rows: Array = by_mode.get(mode, [])
+	if rows.is_empty():
+		rows = _gen_ladder(mode, weekly, rng)
+		by_mode[mode] = rows
+		s[key] = by_mode
+		save_state(s)
+	return rows
+
+
+## 새로고침 — 사다리를 다시 굴린다(원작 `onClickedRefresh` 가 목록을 다시 받는 것과 같은 자리).
+static func reroll_ladder(mode: String, rng: RandomNumberGenerator = null) -> void:
+	var s := state()
+	for weekly in [false, true]:
+		var key := "pvp_week_rank" if weekly else "pvp_total_rank"
+		var by_mode: Dictionary = s.get(key, {})
+		if typeof(by_mode) != TYPE_DICTIONARY:
+			by_mode = {}
+		by_mode[mode] = _gen_ladder(mode, weekly, rng)
+		s[key] = by_mode
+	save_state(s)
+
+
+## 내 순위 — 나보다 점수가 높은 봇 수 + 1 (원작 `my_rank` / `my_week_rank`).
+static func my_rank(mode: String, weekly := false) -> int:
+	var mine := rating_of(mode)
+	var n := 1
+	for r: Dictionary in ladder(mode, weekly):
+		if int(r.get("rating", 0)) > mine:
+			n += 1
+	return n
+
+
+static func _gen_ladder(mode: String, weekly: bool, rng: RandomNumberGenerator) -> Array:
+	if rng == null:
+		rng = RandomNumberGenerator.new()
+		rng.randomize()
+	var tiers: Array = (_cfg().get("tier", {}) as Dictionary).get("list", [])
+	var top := 2000
+	if not tiers.is_empty():
+		top = int((tiers[tiers.size() - 1] as Dictionary).get("min_rating", 2000))
+	var rankers: Array = _cfg().get("rankers", [])
+	var nicks := gen_nicks(LADDER_SIZE, rng)
+	var out: Array = []
+	for i in LADDER_SIZE:
+		# ASSUMPTION: 사다리 점수 분포(1위 = 마스터 상단, 아래로 계단식)는 유실된 서버 값 대체다.
+		var base := top + 420 - i * 26 + rng.randi_range(-12, 12)
+		var nick := String(nicks[i])
+		if i < rankers.size():                       # 상위 칸은 사용자 랭커 풀이 차지한다
+			nick = String((rankers[i] as Dictionary).get("nick", nick))
+		var row := {"nick": nick, "rating": maxi(0, base)}
+		if weekly:
+			row["rating"] = maxi(0, 900 - i * 22 + rng.randi_range(-10, 10))
+		out.append(row)
+	return out
