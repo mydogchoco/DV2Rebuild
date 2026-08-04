@@ -129,6 +129,34 @@ func _ready() -> void:
 			for i in 20: await get_tree().process_frame
 			Scenes.goto("colosseum", {})
 			for i in 20: await get_tree().process_frame
+		"coloselect":
+			# 콜로세움 전용 편성창(원작 Select3vs3Layer / Select1vs1Layer) 배치 검수.
+			# `--extra=single` 이면 1vs1(단상 1칸), 아니면 3vs3.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 20: await get_tree().process_frame
+			var clobby := Scenes.current_scene()
+			if clobby != null:
+				# `--extra=commit` = 로비 시작 버튼부터 눌러 **편성 확정 → 매칭 대기 → 대전**
+				#   전 구간을 통으로 확인한다(배선 회귀 감지).
+				if extra == "commit":
+					clobby.call("_start", "team")
+					for i in 6: await get_tree().process_frame
+					for ch in clobby.get_children():
+						if ch is ColosseumSelect:
+							ch.call("_commit")
+							break
+				else:
+					var cmode := "single" if extra == "single" else "team"
+					var cseed: Array = Colosseum.eligible_uids()
+					var csel := ColosseumSelect.open(clobby, cmode,
+						cseed.slice(0, Colosseum.party_size(cmode)), Callable())
+					# `--extra=toggle` = 후보를 눌러 **선택 해제**시킨다 —
+					#   클릭 경로(빈 슬롯 복귀·패널 닫힘·확정 비활성)를 캡처로 본다.
+					if extra == "toggle" and cseed.size() > 1:
+						for i in 6: await get_tree().process_frame
+						csel.call("_toggle", int(cseed[cseed.size() - 1]))
 		"matching":
 			# 매칭 대기 연출(원작 MatchingLayer + LoadingLayer(3)) 검수.
 			# 실제 진입은 편성창 확인 뒤라 캡처가 어렵다 — 로비 위에 직접 띄운다.

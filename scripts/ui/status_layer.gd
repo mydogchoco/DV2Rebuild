@@ -86,6 +86,7 @@ var _uid := -1              # 지금 보고 있는 드래곤(하단 목록에서
 ## 패널 단독 모드(원작 `CharacterInfoPopup` 단독 사용 — `open_panel` 참조).
 var _panel_only := false
 var _panel_left := true
+var _panel_pos := Vector2.INF  # 단독 모드 좌상단 강제(INF = 기본 배치)
 var _record: Dictionary = {}   # 단독 모드에서 보여 줄 레코드(봇이면 세이브에 없다)
 
 ## 어느 씬에서든: `StatusLayer.open(self)`.
@@ -109,12 +110,16 @@ static func open(host: Node) -> StatusLayer:
 ##
 ## `record` = UserDB 드래곤 레코드 **또는 봇 레코드**(콜로세움 상대는 세이브에 없다).
 ## `left` 면 화면 왼쪽에, 아니면 오른쪽에 붙인다(원작은 터치한 드래곤 쪽에 낸다).
-static func open_panel(host: Node, record: Dictionary, left := true) -> StatusLayer:
+## `pos` 를 주면 좌우/세로 배치를 무시하고 그 좌상단에 놓는다 — 편성창(`ColosseumSelect`)이
+## 원작 `changeSelect` 좌표 `(W-242, H/2+55)` 를 그대로 쓰려고 넘긴다.
+static func open_panel(host: Node, record: Dictionary, left := true,
+		pos := Vector2.INF) -> StatusLayer:
 	var l := StatusLayer.new()
 	l.layer = 24
 	l._panel_only = true
 	l._record = record
 	l._panel_left = left
+	l._panel_pos = pos
 	host.add_child(l)
 	return l
 
@@ -313,8 +318,8 @@ func _build_panel_only(vis: Vector2, S: float) -> void:
 		queue_free()
 		return
 	# 원작 전투 팝업은 화면을 어둡게 하지 않는다(전투가 계속 보인다) — 투명 클릭 판만 깐다.
+	# CanvasLayer 는 크기가 없어 앵커 프리셋이 0 으로 접힌다 → 크기를 직접 준다.
 	var catcher := Control.new()
-	catcher.set_anchors_preset(Control.PRESET_FULL_RECT)
 	catcher.size = vis
 	catcher.mouse_filter = Control.MOUSE_FILTER_STOP
 	catcher.gui_input.connect(func(e):
@@ -330,8 +335,9 @@ func _build_panel_only(vis: Vector2, S: float) -> void:
 	var inner := 40.0 + pw
 	_root = Control.new()
 	_root.size = Vector2(pw, PANEL.y * PANEL_SCALE)
-	_root.position = Vector2(margin if _panel_left else vis.x - pw - margin,
-		maxf(10.0, vis.y * 0.5 - PANEL.y * PANEL_SCALE * 0.5))
+	_root.position = _panel_pos if _panel_pos.is_finite() else \
+		Vector2(margin if _panel_left else vis.x - pw - margin,
+			maxf(10.0, vis.y * 0.5 - PANEL.y * PANEL_SCALE * 0.5))
 	add_child(_root)
 	_build_panel(a, inner, 0.0, S)
 

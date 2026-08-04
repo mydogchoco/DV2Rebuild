@@ -558,10 +558,8 @@ func _start(mode: String) -> void:
 	if ok.size() < n:
 		_notice("레벨 %d 이상 드래곤이 %d마리 필요합니다." % [Colosseum.min_level(), n])
 		return
-	# ③ 덱 선택.
-	# 🟠 원작 전용 선택창은 `Select1vs1Layer`/`Select3vs3Layer`(CCMenuOnScrollView +
-	#   `makeMagneticDummy` 드래그 재정렬 + `dragon_select_deco`)로 따로 있고 형태가 다르다.
-	#   그쪽 이식은 별건 — 지금은 **같은 일을 하는 원작 유래 위젯**(`PartySelect`)을 쓴다.
+	# ③ 덱 선택 — 원작 전용 편성창(`Select1vs1Layer`/`Select3vs3Layer`) 이식본.
+	#   `LoadingLayer::show()` → `FightManager::setType(0|1)` → `Select*Layer::create(1)`.
 	var seed_party: Array = []
 	for u in UserDB.party():
 		if Colosseum.eligible(int(u)):
@@ -571,7 +569,7 @@ func _start(mode: String) -> void:
 			break
 		if not seed_party.has(int(u)):
 			seed_party.append(int(u))
-	PartySelect.open_run(self, seed_party.slice(0, n), func(picked: Array) -> void:
+	ColosseumSelect.open(self, mode, seed_party.slice(0, n), func(picked: Array) -> void:
 		if picked.is_empty():
 			return
 		if not Colosseum.spend_ticket():

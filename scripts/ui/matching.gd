@@ -65,6 +65,9 @@ func _ready() -> void:
 	# ⚠️ 앵커 프리셋은 **부모 크기**를 따르는데 이 레이어는 크기가 0 인 채로 붙는다
 	#   (호스트가 크기를 안 준다) → 실측 뷰포트 크기를 직접 준다. 종전엔 이걸 빠뜨려
 	#   가림막이 0×0 이라 전혀 안 어두워졌다(2026-08-05 캡처에서 확인).
+	# FULL_RECT 프리셋을 그대로 두고 size 를 주면 Godot 이 "_ready 뒤 덮어쓴다"고 경고한다
+	# → 크기를 직접 관리하므로 앵커를 좌상단으로 되돌린다.
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	size = vis
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0)
