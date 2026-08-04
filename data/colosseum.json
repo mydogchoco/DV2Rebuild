@@ -1,0 +1,247 @@
+{
+ "_re_basis": "콜로세움(솔로잉 재설계). 🟦 사용자 확정 2026-08-04 — 원작은 PvP 라 CUT 이었으나 상대를 봇으로만 채워 되살린다. 티어 경계·이름·프레임 경로는 원작 클라에서 채굴했고(StrategyManager::GetTier @0170f130, ColosseumProfile::getRatingBorder @00f15ad8), 레이팅 증감·입장권·봇 구성은 서버 유실이라 자작 노브다. 설계 전문 = docs/ref/porting/Colosseum.md. 이 파일은 build_colosseum.py 가 생성한다.",
+ "_source": {
+  "tier": "StrategyManager::GetTier @0170f130 / GetTierName @0170ed74 / GetTierBorderName @0170ee4c",
+  "frames": "ColosseumProfile::getRatingBorder @00f15ad8 · MakeInterface::ColosseumFightInitWidget @010519b0",
+  "save_schema": "ColosseumScene::_responseList @00f4ca90 (match1_list/match3_list/single/tournament/straight_*/energy)",
+  "streak_hook": "FightScene::initWinningStreak @00f89290 · ColosseumManager::getWinningStreak @01032494"
+ },
+ "modes": {
+  "single": {
+   "label": "1 vs 1",
+   "party": 1,
+   "rating_key": "single",
+   "streak_key": "straight_single"
+  },
+  "team": {
+   "label": "3 vs 3",
+   "party": 3,
+   "rating_key": "tournament",
+   "streak_key": "straight_team"
+  }
+ },
+ "tier": {
+  "list": [
+   {
+    "id": 5,
+    "key": "bronze",
+    "name": "BRONZE",
+    "min_rating": 0
+   },
+   {
+    "id": 4,
+    "key": "silver",
+    "name": "SILVER",
+    "min_rating": 1200
+   },
+   {
+    "id": 3,
+    "key": "gold",
+    "name": "GOLD",
+    "min_rating": 1500
+   },
+   {
+    "id": 2,
+    "key": "platinum",
+    "name": "PLATINUM",
+    "min_rating": 1900
+   },
+   {
+    "id": 1,
+    "key": "master",
+    "name": "MASTER",
+    "min_rating": 2300
+   }
+  ],
+  "frames": {
+   "border": "common/list_frame_%s.png",
+   "dragon": "common/dragon_frame_%s.png",
+   "icon": "common/tier_icon_%s.png",
+   "header": "scene/colosseumrank/txt_%s_kr.png"
+  }
+ },
+ "rating": {
+  "_note": "# ASSUMPTION — 원작은 서버가 증감치를 내려줬다(getDuelBaseRankPoint/getDuelAddRankPoint). 시작 1000 = BRONZE 중간. 연승 보너스는 위로 갈수록 굳지 않게 하는 장치.",
+  "start": 1000,
+  "min": 0,
+  "win": 24,
+  "lose": -18,
+  "streak_bonus_per": 2,
+  "streak_bonus_max": 12,
+  "lose_mult_by_tier": {
+   "5": 0.5,
+   "4": 0.8,
+   "3": 1.0,
+   "2": 1.2,
+   "1": 1.5
+  }
+ },
+ "ticket": {
+  "_note": "# ASSUMPTION — 원작 `energy` + ColosseumBattleInfo::updateStamina 회복 타이머 구조만 차용.",
+  "max": 10,
+  "recover_seconds": 600,
+  "cost_per_match": 1
+ },
+ "streak": {
+  "_note": "🟦 사용자 확정 — 연승방지봇. 연승이 guard_at 에 닿으면 그 다음 상대는 한 단계 위 분류에서 나오고, guard_repeat 회 연속 유지된다.",
+  "guard_at": 5,
+  "guard_repeat": 3
+ },
+ "bots": {
+  "grades": {
+   "novice": {
+    "label": "초급",
+    "level": 50,
+    "awakened": false,
+    "gem": {
+     "categories": [
+      "normal",
+      "hybrid",
+      "soul"
+     ],
+     "tier": "random"
+    },
+    "skill": {
+     "count": 2,
+     "level_min": 1,
+     "level_max": 5
+    },
+    "equip": {
+     "slots": 4,
+     "grade_min": 0,
+     "grade_max": 5,
+     "random_catalog": true
+    }
+   },
+   "adept": {
+    "label": "중급",
+    "level": 50,
+    "awakened": true,
+    "gem": {
+     "categories": [
+      "hybrid",
+      "soul"
+     ],
+     "tier": -1
+    },
+    "skill": {
+     "count": 2,
+     "level_min": 4,
+     "level_max": 5
+    },
+    "equip": {
+     "slots": 4,
+     "grade_min": 3,
+     "grade_max": 4,
+     "random_catalog": true
+    }
+   },
+   "ranker": {
+    "label": "랭커",
+    "_note": "구성은 colosseum_ranker.csv 가 결정한다(사용자 작성). 아래는 빈 칸 폴백.",
+    "level": 50,
+    "awakened": true,
+    "gem": {
+     "categories": [
+      "hybrid",
+      "soul"
+     ],
+     "tier": -1
+    },
+    "skill": {
+     "count": 2,
+     "level_min": 5,
+     "level_max": 5
+    },
+    "equip": {
+     "slots": 4,
+     "grade_min": 4,
+     "grade_max": 5,
+     "random_catalog": true
+    }
+   }
+  },
+  "tier_mix": {
+   "bronze": {
+    "novice": 100,
+    "adept": 0,
+    "ranker": 0
+   },
+   "silver": {
+    "novice": 70,
+    "adept": 30,
+    "ranker": 0
+   },
+   "gold": {
+    "novice": 30,
+    "adept": 70,
+    "ranker": 0
+   },
+   "platinum": {
+    "novice": 5,
+    "adept": 80,
+    "ranker": 15
+   },
+   "master": {
+    "novice": 0,
+    "adept": 50,
+    "ranker": 50
+   }
+  },
+  "list_size": 5
+ },
+ "nick": {
+  "prefix": [
+   "붉은",
+   "푸른",
+   "검은",
+   "하얀",
+   "황금",
+   "번개",
+   "폭풍",
+   "심연",
+   "새벽",
+   "고요한",
+   "불타는",
+   "얼어붙은",
+   "잊혀진",
+   "떠도는",
+   "굶주린",
+   "은빛",
+   "잿빛",
+   "머나먼"
+  ],
+  "noun": [
+   "용사",
+   "기사",
+   "마도사",
+   "사냥꾼",
+   "방랑자",
+   "수호자",
+   "파수꾼",
+   "조련사",
+   "연금술사",
+   "드래곤",
+   "비룡",
+   "익룡",
+   "화룡",
+   "빙룡",
+   "성기사",
+   "검객",
+   "궁수",
+   "현자",
+   "여행자"
+  ],
+  "suffix": [
+   "님",
+   "짱",
+   "s",
+   "II",
+   "99",
+   "7",
+   "_1",
+   "0v0"
+  ]
+ },
+ "rankers": []
+}

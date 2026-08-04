@@ -68,6 +68,7 @@ var adventure_events: Dictionary = {}  # 탐험 이벤트 큐(원작은 서버 e
 var awaken: Dictionary = {}          # 드래곤 각성 규칙. 재료수량=위키 item.pdf 확정, 레벨조건·상한=자작.
 var gacha_eggs: Dictionary = {}      # 뽑기 알(의문의 알/빛문알/속성알) 개봉 풀. 성급범위=위키 item.pdf §5, 가중치=자작 노브. 로직=EggGacha.
 var kades: Dictionary = {}           # 카데스의 공간(유타칸 전설 모드) 규칙. BGM=원작 디컴프 확정, 페널티·보스레벨=위키 확정. 로직=Kades.
+var colosseum: Dictionary = {}       # 콜로세움(솔로잉 재설계, 🟦사용자확정 2026-08-04). 티어경계=원작 채굴(StrategyManager::GetTier), 레이팅·봇구성=자작. 로직=Colosseum.
 ## 에자녹 스크롤 → 스킬 아이템 변환표(등급=획득 스킬 레벨). 원작 근거는 파일 `_basis` 참조.
 var skill_scrolls: Dictionary = {}
 var incapacitation: Dictionary = {}  # 행동불능(원작 Dragon::cureTime). 상태표현·다이아비용=원작 확정, 발생조건·1시간=사용자 확정. 로직=Incapacitation.
@@ -131,6 +132,7 @@ func _ready() -> void:
 	npc_talk = _load_json("res://data/npc_talk.json")
 	gacha_eggs = _load_json("res://data/gacha_eggs.json")
 	kades = _load_json("res://data/kades.json")
+	colosseum = _load_json("res://data/colosseum.json")
 	incapacitation = _load_json("res://data/incapacitation.json")
 	card_codes = _load_json("res://data/card_codes.json")
 	skill_scrolls = _load_json("res://data/skill_scrolls.json")

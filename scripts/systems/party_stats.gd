@@ -114,7 +114,17 @@ static func summary(uids: Array, kades: bool, field_element: String,
 		var d := UserDB.get_dragon(int(uid))
 		if not d.is_empty():
 			ordered.append(d)
-	var party3: Array = ordered.slice(0, 3)
+	return summary_of(ordered, kades, field_element, hp_state)
+
+
+## 같은 일을 **레코드 배열**로 한다 — 세이브에 없는 드래곤도 같은 경로를 타게 하려고 나눴다.
+##
+## 콜로세움 봇(`Colosseum.make_bot`)이 이 문으로 들어온다. 봇 전용 스탯 계산을 따로 만들면
+## 플레이어와 밸런스가 어긋나므로, **레코드 모양만 같으면 같은 함수**가 처리한다.
+## `summary(uids…)` 는 UserDB 에서 레코드를 꺼내 이걸 부르는 얇은 껍데기다.
+static func summary_of(records: Array, kades: bool, field_element: String,
+		hp_state: Dictionary = {}) -> Array:
+	var party3: Array = records.slice(0, 3)
 	var delta := team_delta(party3)
 	var out: Array = []
 	for d: Dictionary in party3:
@@ -124,9 +134,12 @@ static func summary(uids: Array, kades: bool, field_element: String,
 		var hp0 := int(hp_state.get(str(int(d["uid"])), hpmax)) if not hp_state.is_empty() else hpmax
 		# 각성 스킬·장비 조건부 효과(`apply_passives`)가 읽는 필드들도 같이 채운다 —
 		# 전투(`battle.gd::_apply_awaken_skills`)가 쓰는 것과 같은 이름·같은 출처.
+		# ⚠️ UserDB 를 거치지 않는다 — 레코드가 들고 있는 장착 정보로 직접 센다(봇 호환).
 		var lvsum := 0
-		for sd in (UserDB.dragon_battle_skills(int(d["uid"])).get("skills", []) as Array):
-			lvsum += int((sd as Dictionary).get("level", 1))
+		for i in Loadout.SKILL_SLOTS:
+			var e := Loadout.equipped_entry(d, i)
+			if not e.is_empty():
+				lvsum += int(e.get("level", 1))
 		out.append({
 			"id": int(d["id"]), "uid": int(d["uid"]), "level": int(d.get("level", 1)),
 			"name": Icons.name_of(d),
