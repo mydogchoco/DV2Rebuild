@@ -26,6 +26,10 @@ const REGISTRY := {
 	"imp_shop": "res://scenes/imp_shop.tscn",
 	"laboratory": "res://scenes/laboratory.tscn", # 연구소 — LaboratoryScene
 	"mamorudiclab": "res://scenes/mamorudiclab.tscn", # 우노 마모루딕 연구소 — DragonAwaken
+	# 콜로세움(솔로 재설계 🟦2026-08-04) — 원작 ColosseumScene. 상대는 봇만.
+	# 원작 진입 = WorldMapScene::onClickMenu tag 0x1c84 → ColosseumScene::scene()
+	#   (WorldMapScene.c:12511 — 점술집 0x1c24·우편함 0x1ce8 과 같은 메인 메뉴 switch).
+	"colosseum": "res://scenes/colosseum.tscn",
 	"promote": "res://scenes/promote.tscn",       # 육성(훈련·교배·하늘둥지) — PromoteScene
 	# 스토리(시나리오) 재생 — 원작 ScenarioLayer + ScenarioTextBox
 	"story": "res://scenes/story.tscn",
@@ -52,10 +56,12 @@ const TRANSITIONS := {
 	"imp_shop": ["worldmap"],
 	"laboratory": ["town", "worldmap"],
 	"mamorudiclab": ["worldmap"],
+	"colosseum": ["worldmap", "battle"],
 	"promote": ["worldmap", "town", "cave"],
 	# worldmap→worldmap = 지역 갈아타기(원작 `WorldMapScene::moveMap(int)`). 자기 자신도 허용.
 	"worldmap": ["worldmap", "town", "cave", "battle", "adventure", "mamorudiclab", "story",
-		"prologue", "shop", "magicshop", "laboratory", "breeding", "promote", "imp_shop"],
+		"prologue", "shop", "magicshop", "laboratory", "breeding", "promote", "imp_shop",
+		"colosseum"],
 	# 프롤로그는 인트로라 끝나면 메인(월드맵)/동굴로만 나간다.
 	"prologue": ["worldmap", "cave"],
 	# shop: 허기 먹이 팝업 `<CaveDragonFoodMsg_Ad_3>` "상점으로 이동하시겠습니까?" 확인 경로.

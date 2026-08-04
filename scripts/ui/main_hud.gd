@@ -41,7 +41,9 @@ const BAR_MENU := [
 	# 원작 메인 메뉴의 '육성'은 `PromoteScene::scene(0)` 으로 간다(WorldMapScene.c:10813·12448).
 	["육성", "promote"],       # 원작 PromoteScene                (레퍼런스 칸: 육성)
 	["연구소", "laboratory"],  # 원작 LaboratoryScene             (레퍼런스 칸: 던전)
-	["점술집", "magicshop"],   # 원작 tag 0x15 MagicShopScene     (레퍼런스 칸: 대전=컷)
+	# 🟦 2026-08-04 — 콜로세움이 솔로로 되살아나면서 원작 '대전' 칸을 되돌려 줬다.
+	# 그 자리에 있던 점술집은 **엘피스 마을에서 계속 들어갈 수 있다**(town.gd:1018) → 잃는 것 없음.
+	["콜로세움", "colosseum"], # 원작 tag 0x1c84 ColosseumScene    (레퍼런스 칸: 대전)
 	["월드맵", "overview"],    # 원작 tag 0x12 WorldMapFullLayer  (레퍼런스 칸: 기타)
 ]
 
@@ -546,7 +548,7 @@ func _act(action: String) -> void:
 	match action:
 		"cave":
 			Scenes.goto("cave")
-		"shop", "magicshop", "laboratory", "breeding", "promote":
+		"shop", "magicshop", "laboratory", "breeding", "promote", "colosseum":
 			# `from` = 나갈 때 돌아올 곳. 원작은 메인에서 직행하고 뒤로가면 메인으로 돌아온다.
 			Scenes.goto(action, {"from": "worldmap"})
 		"status":

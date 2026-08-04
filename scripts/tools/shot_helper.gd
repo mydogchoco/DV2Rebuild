@@ -119,6 +119,14 @@ func _ready() -> void:
 			for i in 10: await get_tree().process_frame
 			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
 				"hp_state": {}, "streak": 0, "party_uids": uids, "run_seed": randi()})
+		"colosseum":
+			# 콜로세움 로비(원작 ColosseumScene) 배치 검수.
+			# ⚠️ intro→colosseum 은 상태기계가 막는다(TRANSITIONS) — 다른 케이스와 같이
+			#   메인 허브(월드맵)를 한 번 거친다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 20: await get_tree().process_frame
 		"getitem":
 			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
 			Scenes.goto("shop", {"area": "elpis"})
@@ -593,6 +601,56 @@ func _ready() -> void:
 					func() -> void: print("SHOT: reward phases done"))
 			else:
 				print("SHOT: _play_reward_phases 노드 없음")
+		"rewardbuff":
+			# 탐험 보상 배수권(경험치·골드 N배) 실동작 검수 — 2026-08-04.
+			#   ① 가방에서 **실제 사용 경로**(_consumable_action → _use_consumable)로 켠다
+			#   ② UserDB pmeta 에 실시간 만료로 저장되는지
+			#   ③ 전투 승리 보상에 배수가 실제로 곱해지는지(골드 획득량 비교)
+			# `--extra=off` 로 주면 버프 없이 같은 전투를 돌려 기준값을 찍는다.
+			UserDB.begin_batch()          # ⚠️ 검수용 — 디스크에 쓰지 않는다
+			Scenes.goto("cave", {})
+			for i in 30: await get_tree().process_frame
+			var rb_on := extra != "off"
+			if rb_on:
+				var cv_rb := _find_method_node(get_tree().root, "_use_consumable")
+				for rk in ["expx2", "goldx4"]:
+					UserDB.add_item(rk, 1)
+					var rkind := String(cv_rb.call("_consumable_action", rk, Data.items[rk]))
+					print("SHOT rewardbuff: %s → use_kind=%s" % [rk, rkind])
+					if rkind != "":
+						cv_rb.call("_use_consumable", rk, rkind)
+			var rb_now := int(Time.get_unix_time_from_system())
+			print("SHOT rewardbuff: state=", UserDB.reward_buff(),
+				" exp×", ItemEffect.reward_buff_mult(UserDB.reward_buff(), "exp", rb_now),
+				" gold×", ItemEffect.reward_buff_mult(UserDB.reward_buff(), "gold", rb_now),
+				" 남은=", ItemEffect.reward_buff_left_text(
+					ItemEffect.reward_buff_left(UserDB.reward_buff(), "gold", rb_now)))
+			# 세이브 왕복(JSON) — 게임을 껐다 켜도 남아 있어야 한다. int 가 float 로 돌아오는
+			# JSON 함정까지 같이 본다.
+			var rb_json = JSON.parse_string(JSON.stringify(UserDB.reward_buff()))
+			print("SHOT rewardbuff: JSON 왕복 후 gold×",
+				ItemEffect.reward_buff_mult(rb_json, "gold", rb_now),
+				" (1시간 뒤 ", ItemEffect.reward_buff_mult(rb_json, "gold", rb_now + 3601), ")")
+			# 전투 1회 — 골드 획득량으로 배수 확인. 스킵을 켜서 빨리 끝낸다.
+			var rb_gold0 := UserDB.gold()
+			Scenes.goto("worldmap", {"region": "yutakan"})   # 씬 매니저가 cave→battle 직행을 막는다
+			for i in 12: await get_tree().process_frame
+			Scenes.goto("battle", {"stage": stage, "region": "yutakan", "enc": 0,
+				"hp_state": {}, "streak": 0})
+			for i in 30: await get_tree().process_frame
+			var bt := _find_method_node(get_tree().root, "_play_reward_phases")
+			if bt != null:
+				bt.set("_skip", true)
+			for i in 600:
+				await get_tree().process_frame
+				if UserDB.gold() != rb_gold0:
+					break
+			var rb_exp := 0
+			var rb_bt := _find_method_node(get_tree().root, "_play_reward_phases")
+			if rb_bt != null and rb_bt.get("_exp_gained") != null:
+				rb_exp = int(rb_bt.get("_exp_gained"))
+			print("SHOT rewardbuff: 전투 골드 획득 = %d · EXP = %d (버프 %s)"
+				% [UserDB.gold() - rb_gold0, rb_exp, "ON" if rb_on else "OFF"])
 		"cutin":
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
