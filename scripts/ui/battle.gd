@@ -1473,6 +1473,9 @@ func _play_event(ev: Dictionary) -> void:
 			var is_crit := bool(ev.get("crit", false)) and int(ev.get("damage", 0)) > 0
 			if not atk.is_empty(): _cue(atk, is_crit)
 			if bool(ev.get("miss", false)):
+				# 회피 효과음 — 원작 `music/effect_evade.mp3`(실재). 전투 씬이
+				# `MakeInterface::preloadHeavyResource`(MakeInterface.c:37956)로 올려 두는 음원이다.
+				Bgm.sfx("effect_evade")
 				_fx_text(dfn, "battle_miss_kr", "MISS", Color(0.8, 0.8, 0.8), "scene_adventure_txt_miss")
 				_log("%s의 공격 — 빗나감!" % _disp(ev.get("attacker", "")))
 			else:
@@ -3415,6 +3418,14 @@ func _finish() -> void:
 		var gold_base := gold_r
 		# 각성 스킬 '부유한 기운'(42) — 탐험시 골드 획득량 50% 증가. 판정=AwakenSkill(logic).
 		gold_r = int(round(float(gold_r) * AwakenSkill.mult_of(_awaken_explore(), "gold_pct")))
+		# 탐험 보상 배수권(골드 2·4배) — 실시간 1시간 버프. 규칙 = 원작 설명문 + 위키 §9.6,
+		# 판정 = ItemEffect(logic), 상태 = UserDB `reward_buff`(게임을 꺼도 시간이 흐른다).
+		# 각성 보너스 **뒤에** 곱한다 → 괄호(+N)에 배수권 몫도 함께 실린다.
+		var _now := int(Time.get_unix_time_from_system())
+		var _rb: Dictionary = UserDB.reward_buff()
+		var gold_mult := ItemEffect.reward_buff_mult(_rb, "gold", _now)
+		if gold_mult > 1.0:
+			gold_r = int(round(float(gold_r) * gold_mult))
 		phases.append({"kind": "gold", "total": gold_r, "base": gold_base,
 			"bonus": gold_r - gold_base})
 		# 전투 미션 달성 EXP 보너스(원작 QuestAndBattleLabel "+40%/+20%"). 판정=BattleMission(logic).
@@ -3423,6 +3434,10 @@ func _finish() -> void:
 		var mbonus := BattleMission.exp_bonus(BattleMission.evaluate(_missions, _events, names))
 		if mbonus > 0.0:
 			exp_r = int(exp_r * (1.0 + mbonus))
+		# 탐험 보상 배수권(경험치 2·4배) — 미션 보너스까지 얹힌 최종 경험치에 곱한다.
+		var exp_mult := ItemEffect.reward_buff_mult(_rb, "exp", _now)
+		if exp_mult > 1.0:
+			exp_r = int(round(float(exp_r) * exp_mult))
 		_exp_gained += exp_r
 		if is_instance_valid(_exp_label): _exp_label.text = str(_exp_gained)
 		UserDB.add_currency("gold", gold_r)
@@ -3452,7 +3467,9 @@ func _finish() -> void:
 		#    배지 코드는 참고용으로 남겨 둔다(호출부 없음).
 		reward_txt = "  +EXP %d / +골드 %d" % [exp_r, gold_r]
 		# ── 아이템 드롭 — **화이트리스트**(사용자 확정 2026-07-31) ──────────────
-		# 탐험에서 나오는 것은 다섯 가지뿐이다: 특수 드랍 / 먹이 / 속성 정기 / 드래곤 알 / 젬·장비.
+		# 탐험에서 나오는 것은 일곱 가지뿐이다: 특수 드랍 / 먹이 / 속성 정기 /
+		#   **희귀 속성(신성·혼돈·그림자)** / **드링크 1·2단계** / 드래곤 알 / 젬·장비.
+		#   뒤의 둘은 🟦 사용자 확정 2026-08-04 로 추가됐다(수급처 전무 6+12종을 여는 경로).
 		# 판정은 전부 `Drops`(logic), 표는 `data/drops.json` + `stages.json drops`.
 		# 🟠 걷어낸 것: 드랍표가 없는 던전에서 `items_by("consumable")+("material")`(+한때 food)
 		#   풀에서 **아무 아이템이나** 시드 추첨해 주던 폴백. 지역과 무관한 재료가 쏟아지고
@@ -3616,8 +3633,13 @@ func _finish() -> void:
 		#    이어진다(이벤트 26·27 은 애초에 이길 수 없는 연출 전투다).
 		#    ⇒ 재도전·월드맵 같은 갈림길을 두지 않는다. 버튼 하나로만 나간다.
 		var sr: Dictionary = _params["story_return"]
-		# 결과 문구(승리/패배) 아래에 놓는다 — 패배 시 y*0.38 은 문구와 겹친다.
-		_big_button("이야기 계속", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, vis.y * 0.5 + 120.0),
+		# 🔴 2026-08-04 (사용자 신고 "전투 승리 후 진행이 안 된다 / 전투가 안 끝나는 것 같다"):
+		#    종전 위치 `y*0.5 + 120`(=466) 은 **파티 카드 띠 한가운데**였다 —
+		#    카드는 `cardY = vis.y - 128 - ch` = 459 부터 시작하고 `z_index = 400`,
+		#    `_big_button` 은 124 라 버튼이 카드 **뒤로** 깔린다. 그리면서 클릭 영역까지
+		#    가려져 이야기로 돌아갈 방법이 없었다(전투가 안 끝난 것처럼 보인다).
+		#    ⇒ 다른 결과 버튼과 같은 띠(`y*0.38`)로 올린다 — 거기는 카드 위쪽 빈 배경이다.
+		_big_button("이야기 계속", "9patch_btn2", Vector2(vis.x * 0.5 - 140.0, vis.y * 0.38),
 			func() -> void:
 				Scenes.goto("story", {"no": int(sr.get("no", 1)), "part": int(sr.get("part", 0)),
 					"resume_flow": int(sr.get("resume_flow", 0)),

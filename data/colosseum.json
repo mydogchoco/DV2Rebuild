@@ -99,6 +99,7 @@
   "stun": "%s이(가) 쓰러졌습니다.",
   "stuned": "%s의 움직임이 봉쇄되었습니다.",
   "skillblock": "%s이(가) %s의 %s의 사용을 차단하였습니다.",
+  "immune": "%s은(는) %s에 면역입니다.",
   "atk_normal": "일반 공격",
   "atk_double": "연속 공격",
   "atk_critical": "강력한 공격",
@@ -153,6 +154,14 @@
    "out_sec": 0.5,
    "buff_scale": 1.5
   }
+ },
+ "bgm": {
+  "_source": "로비 = ColosseumScene::onEnterTransitionDidFinish @00f41e00. 대전 랜덤 = 🟦 사용자 확정 2026-08-05(클라에 재생 호출 없음 — 전수 확인).",
+  "lobby": "bg_colosseum",
+  "battle": [
+   "bg_colosseum_battle_1",
+   "bg_colosseum_battle_2"
+  ]
  },
  "rating": {
   "_note": "# ASSUMPTION — 원작은 서버가 증감치를 내려줬다(getDuelBaseRankPoint/getDuelAddRankPoint). 시작 1000 = BRONZE 중간. 연승 보너스는 위로 갈수록 굳지 않게 하는 장치.",
@@ -240,7 +249,7 @@
   }
  },
  "streak": {
-  "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). guard_repeat 은 그 문턱을 넘은 뒤 방지봇이 목록에 유지되는 판 수.",
+  "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). 무장은 문턱을 **정확히 밟은 판**에만 한다(Colosseum._is_guard_threshold). guard_repeat 은 그 문턱을 넘은 뒤 방지봇이 목록에 유지되는 판 수.",
   "guard_at": 25,
   "guard_repeat": 3
  },

@@ -403,6 +403,13 @@ func _custom_dragon_checks() -> int:
 	(p777b[0]["effects"] as Array).append({"kind": "dot", "pct": 5, "turns": 2, "source": 32})
 	f += _true("777 지속피해(dot)는 안 막는다(경계 확인)",
 		B._has_flag(p777b[0], "status_immune"))
+	# 🔴 2026-08-05(사용자 지적) — **표시**도 면역이어야 한다.
+	#   `_add_flag` 가 막았는데 이벤트에 `debuff` 가 남아 화면엔 아이콘이 떴다.
+	var evi: Dictionary = B._mark_immune({"target": "A0", "debuff": "confused", "turns": 2}, p777b[0])
+	f += _eq("면역 대상 이벤트에서 debuff 표기가 사라진다", evi.has("debuff"), false)
+	f += _eq("면역 사실은 immune 로 남는다", bool(evi.get("immune", false)), true)
+	var evn: Dictionary = B._mark_immune({"target": "E0", "debuff": "confused", "turns": 2}, plain2[0])
+	f += _eq("면역 아닌 대상은 debuff 가 그대로", String(evn.get("debuff", "")), "confused")
 	# 크리티컬 발동 시 상대 방어율·회피율의 절반 무시 (93 태양의 불꽃과 같은 통로).
 	#
 	# ⚠️ 시드를 맞춘 1:1 비교는 성립하지 않는다 — 이 플래그는 크리를 **먼저** 굴리므로

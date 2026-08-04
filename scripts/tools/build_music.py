@@ -89,6 +89,16 @@ def wanted_keys() -> set[str]:
         for track in json.loads(sf.read_text(encoding="utf-8")).get("bgm", {}).values():
             if track:
                 keys.add(str(track))
+    # 콜로세움 BGM — 로비 1곡 + **대전 랜덤 목록**(data/colosseum.json `bgm`).
+    # fight.gd 가 `Colosseum.battle_bgm()` 로 골라 넘기므로 리터럴 스캔에 안 걸린다
+    # (안 걷으면 목록의 2번째 곡부터 파일이 없어 조용히 무음이 된다 — 2026-08-05 실제로 그랬다).
+    cs = REPO / "data" / "colosseum.json"
+    if cs.exists():
+        bgm = json.loads(cs.read_text(encoding="utf-8")).get("bgm", {})
+        if bgm.get("lobby"):
+            keys.add(str(bgm["lobby"]))
+        for t in bgm.get("battle", []):
+            keys.add(str(t))
     for mp3 in SRC.glob("*.mp3"):
         stem = mp3.stem
         if any(p.match(stem) for p in PATTERNS):

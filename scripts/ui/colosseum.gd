@@ -121,7 +121,9 @@ func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_rng.randomize()
-	Bgm.play("bg_colosseum")        # 원작 콜로세움 BGM(music/bg_colosseum.mp3 실재)
+	# 원작 `ColosseumScene::onEnterTransitionDidFinish` @00f41e00 —
+	# `playBackground("music/bg_colosseum.mp3", loop=1)`. 경로는 data 로 뺐다.
+	Bgm.play(Colosseum.lobby_bgm())
 	# 일일/주간 보상 — 원작은 우편함 지급(⚫온라인 CUT)이라 진입 시 즉시 준다.
 	# 문구도 원작 그대로(Colosseum_Daily_Result_1 / Colosseum_Weekly_Result_1).
 	for r: Dictionary in Colosseum.claim_rewards():

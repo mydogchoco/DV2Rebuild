@@ -228,6 +228,23 @@ STAGE = {
     },
 }
 
+# ── BGM ────────────────────────────────────────────────────────────────────
+#
+# 로비는 원작이 명시한다 — `ColosseumScene::onEnterTransitionDidFinish` @00f41e00 이
+# `SoundManager::playBackground("music/bg_colosseum.mp3", loop=1)`.
+#
+# 🟦 **대전 BGM 이 매 판 랜덤이라는 것은 사용자 확정 2026-08-05.**
+#   디컴프한 `FightScene` · `FightManager` · `MakeInterface` 어디에도 전투 BGM 재생 호출이
+#   없다(전수 grep) — 곡 목록도 서버/유실 경로라 클라에서 확인할 수 없다. 그래서 목록은
+#   **이름이 그 용도를 말하는 보유 음원**으로 시작하고, 여기가 곧 튜닝 노브다.
+#   (`DV2/music/` 에 `bg_colosseum_battle_1.mp3` · `_2.mp3` 실재. 더 넣고 싶으면 이 배열에.)
+BGM = {
+    "_source": "로비 = ColosseumScene::onEnterTransitionDidFinish @00f41e00. "
+               "대전 랜덤 = 🟦 사용자 확정 2026-08-05(클라에 재생 호출 없음 — 전수 확인).",
+    "lobby": "bg_colosseum",
+    "battle": ["bg_colosseum_battle_1", "bg_colosseum_battle_2"],
+}
+
 TICKET = {
     "_note": "# ASSUMPTION — 원작 `energy` + ColosseumBattleInfo::updateStamina 회복 타이머 구조만 차용.",
     "max": 10,
@@ -237,7 +254,8 @@ TICKET = {
 
 STREAK = {
     "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 "
-             "50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). guard_repeat 은 그 문턱을 "
+             "50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). 무장은 문턱을 **정확히 밟은 "
+             "판**에만 한다(Colosseum._is_guard_threshold). guard_repeat 은 그 문턱을 "
              "넘은 뒤 방지봇이 목록에 유지되는 판 수.",
     "guard_at": 25,
     "guard_repeat": 3,
@@ -924,6 +942,9 @@ def build() -> dict:
             "stuned": "%s의 움직임이 봉쇄되었습니다.",
             "skillblock": "%s이(가) %s의 %s의 사용을 차단하였습니다.",
             # 위 문구의 `%s`(공격 종류) 자리에 들어가는 이름.
+            # 면역 — 낱말은 원작 `<Immunity>면역</Immunity>` 이고, 문장만 우리가 짰다
+            # (연승방지봇 전용 이벤트 규칙이라 원작에 대응 문장이 없다).
+            "immune": "%s은(는) %s에 면역입니다.",
             "atk_normal": "일반 공격",
             "atk_double": "연속 공격",
             "atk_critical": "강력한 공격",
@@ -938,6 +959,7 @@ def build() -> dict:
             "select_3vs3": "대전에 참가할 드래곤을 3마리 선택해주세요.",
         },
         "stage": STAGE,
+        "bgm": BGM,
         "rating": RATING,
         "ticket": TICKET,
         "refresh": REFRESH,

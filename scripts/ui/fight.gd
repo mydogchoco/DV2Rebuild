@@ -83,7 +83,11 @@ func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_rng.randomize()
-	Bgm.play("bg_colosseum_battle_2")   # 원작 콜로세움 전투 BGM(실재)
+	# 🟦 대전 BGM 은 **매 판 랜덤**(사용자 확정 2026-08-05). 곡 목록 = data/colosseum.json `bgm.battle`.
+	#   ⚠️ 클라(`FightScene`·`FightManager`·`MakeInterface`)에는 전투 BGM 재생 호출이 **하나도 없다**
+	#     (전수 grep) — 로비만 `ColosseumScene::onEnterTransitionDidFinish` @00f41e00 이 낸다.
+	#     그래서 곡 목록은 원작 대조로 확정할 수 없고, 이름이 용도를 말하는 보유 음원으로 시작한다.
+	Bgm.play(Colosseum.battle_bgm(_rng))
 	_rebuild()
 
 
@@ -117,6 +121,8 @@ func _rebuild() -> void:
 	# 양 팀 스탯 — **같은 함수**로 만든다(봇 전용 계산 없음, §Colosseum 설계).
 	_my = PartyStats.summary(uids.slice(0, n), false, "", {}, sel)
 	_fo = PartyStats.summary_of((_foe.get("dragons", []) as Array).slice(0, n), false, "", {}, sel)
+	# 각성 스킬·장비 조건부 효과 — **HUD 를 만들기 전에** 얹는다(최대 체력을 바꾼다).
+	_apply_passives()
 
 	var vis := _vis()
 	_build_bg(vis)
@@ -124,8 +130,8 @@ func _rebuild() -> void:
 	_build_team(_fo, false, vis)
 	_build_top(vis)
 	_build_log(vis)
-	_build_stage_roulette(vis)
-	_start()
+	# 무대 룰렛이 끝나야 전투가 시작된다(원작 initInterface 의 지연 누적과 같은 자리).
+	_start(_build_stage_roulette(vis))
 
 
 # ---------- 배경 ----------
@@ -176,9 +182,12 @@ const ELE_FRAME := {
 }
 const STAGE_ANCHOR := Vector2(10.0, 50.0)   # 원작 (w*0.5 + 10, h*0.5 + 50) 의 +오프셋
 
-func _build_stage_roulette(vis: Vector2) -> void:
+## 반환 = **룰렛이 결론 날 때까지의 초**. 원작 `initInterface` 가 개시 연출들의 지연을
+## `fVar24` 에 누적해 마지막에 `setActionParam`(= 액션 재생)에 넘기는 것과 같은 자리다 —
+## 무대가 정해지기 전에 전투가 시작되면 안 된다(사용자 지적 2026-08-05).
+func _build_stage_roulette(vis: Vector2) -> float:
 	if _stage.is_empty():
-		return
+		return 0.0
 	var A: Dictionary = Colosseum.stage_cfg().get("anim", {})
 	var step_sec := float(A.get("step_sec", 0.1))
 	var step_px := float(A.get("step_px", 150.0))
@@ -190,13 +199,13 @@ func _build_stage_roulette(vis: Vector2) -> void:
 	var idx := int(_stage.get("index", 0))
 	var wheel := Colosseum.stage_wheel()
 	if wheel.is_empty():
-		return
+		return 0.0
 	var total := base_steps + idx           # 원작 Delay((idx+11)×0.1) 의 스텝 수
 
 	# ① 바닥 띠 — 원작 프레임 그대로, 가로 꽉 채움.
 	var bar := _spr(CO, "scene_colosseum_stage_bg")
 	if bar == null:
-		return
+		return 0.0
 	var bw := float(bar.texture.get_width())
 	var bh := float(bar.texture.get_height())
 	var k := vis.x / bw                      # 원작 setScale(VisibleRect::right / w)
@@ -286,6 +295,9 @@ func _build_stage_roulette(vis: Vector2) -> void:
 	get_tree().create_timer(lead + float(total) * step_sec).timeout.connect(func() -> void:
 		if gen == _gen:
 			_stage_buff_fx())
+
+	# 전투 개시 시점 = 룰렛이 멈추고 **도장이 다 내려앉은 뒤**.
+	return lead + float(total) * step_sec + float(A.get("stamp_sec", 0.25))
 
 
 ## 무대 버프 — 원작 `MakeInterface::showStageBuff` @0105f4b8.
@@ -927,7 +939,9 @@ func _render_log() -> void:
 # 원작 `FightScene::setActionParam` 이 서버 액션 큐를 훑던 자리.
 # 우리는 `Battle.simulate()` 이벤트 배열을 같은 방식으로 훑는다.
 
-func _start() -> void:
+## `intro_delay` = 개시 연출(무대 룰렛)이 끝날 때까지의 초. 시뮬레이션 자체는 바로 돌리고
+## **재생만** 미룬다 — 원작도 액션 큐는 이미 손에 있고 `setActionParam` 만 지연시킨다.
+func _start(intro_delay := 0.0) -> void:
 	var cfg := _json("res://data/combat.json")
 	var skills := _json("res://data/skills.json")
 	var pa := _combatants(_my, "ally")
@@ -935,17 +949,56 @@ func _start() -> void:
 	var res: Dictionary = Battle.simulate(pa, pb, _rng, cfg, skills)
 	_events = res.get("events", [])
 	_winner = String(res.get("winner", ""))
+	if intro_delay > 0.0:
+		var gen := _gen
+		await get_tree().create_timer(intro_delay).timeout
+		if gen != _gen:
+			return
 	_play()
 
 
+## 요약 행 → 전투원. **탐험 전투(`battle.gd::_run_and_replay`)와 같은 조립**이다.
+##
+## 🔴 2026-08-05 정정 — 종전엔 스탯만 넘겨서 콜로세움 전투에 **스킬·각성스킬·장비 조건부
+##   효과가 하나도 안 들어갔다**(양 진영 모두). 스킬 2칸이 무의미했고, 연승방지봇 시트의
+##   스킬·장비 칸도 그림의 떡이었다. 넘겨야 하는 필드는 `make_combatant` 인자 목록 그대로다.
 func _combatants(team: Array, side: String) -> Array:
 	var out: Array = []
 	for i in team.size():
 		var p: Dictionary = team[i]
 		var c := Battle.make_combatant(("A%d" if side == "ally" else "E%d") % i,
-			side, String(p.get("element", "")), p.get("stats", {}))
+			side, String(p.get("element", "")), p.get("stats", {}), 0.0,
+			p.get("skills", []), p.get("skill_slots", []))
+		c["hp_max"] = int(p.get("hp_max", c["hp_max"]))
+		c["hp"] = int(p.get("hp", c["hp_max"]))
+		# 각성 스킬·장비 효과는 `_apply_passives`(전투 시작 전)가 이미 산출해 뒀다 —
+		# 체력은 위에서 값으로 들어왔고, 나머지는 효과 목록으로 옮긴다.
+		c["awaken_no"] = int(p.get("awaken_skill", 0))
+		c["grade"] = float(p.get("grade", 0.0))
+		c["dragon_id"] = int(p.get("id", 0))
+		c["atk_type"] = String(p.get("atk_type", ""))
+		c["awaken_gauge"] = float(p.get("awaken_gauge", 0.0))
+		for e in (p.get("awaken_effects", []) as Array):
+			(c["effects"] as Array).append((e as Dictionary).duplicate())
 		out.append(c)
 	return out
+
+
+## 각성 스킬 + 장비 조건부 효과를 **양 진영에** 얹는다.
+##
+## 원작은 서버가 계산해 결과만 내려줬다 — 우리는 탐험 전투와 **같은 함수**(`PartyStats.apply_passives`)
+## 를 쓴다. 상대 쪽도 같은 대우를 받아야 봇의 전용 장비(선대군의 `한울의 불꽃` 등)가 산다.
+## 조건 판정용 '적'은 상대 진영 첫 드래곤의 더미다(원작도 이 단계에선 더미만 본다).
+func _apply_passives() -> void:
+	var mine_head: Dictionary = _my[0] if not _my.is_empty() else {}
+	var foe_head: Dictionary = _fo[0] if not _fo.is_empty() else {}
+	var ctx := {"field_element": String(_stage.get("element", "")), "enemy_boss": false}
+	if not _my.is_empty():
+		PartyStats.apply_passives(_my, {"element": String(foe_head.get("element", "")),
+			"hp": int(foe_head.get("hp_max", 1))}, ctx)
+	if not _fo.is_empty():
+		PartyStats.apply_passives(_fo, {"element": String(mine_head.get("element", "")),
+			"hp": int(mine_head.get("hp_max", 1))}, ctx)
 
 
 func _play() -> void:
@@ -1092,6 +1145,10 @@ func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> v
 			var sn := String(ev.get("skill_name", ""))
 			if sn != "":
 				_say(String(L.get("skill", "")) % [an, dn, sn])
+			# 연승방지봇의 면역(이벤트 규칙) — 피해 0 인 이유를 안 알려 주면
+			# 스킬이 고장 난 것처럼 보인다.
+			if bool(ev.get("immune", false)) and sn != "":
+				_say(String(L.get("immune", "")) % [dn, sn])
 		"dot":
 			_say(String(L.get("poison", "")) % [dn, dmg])
 	if heal > 0:
@@ -1164,18 +1221,17 @@ func _set_bar(v: Dictionary) -> void:
 # 상수 출처(부동소수 리터럴 디코드): 0x3d088815=1/30 · 0x3f900000=1.125 · 0x3fa00000=1.25 ·
 #   0x3f866666=1.05 · 0x3f666666=0.90 · 0x3f733333=0.95 · 0x3d4ccccd=0.05 · 0xbdcccccd=−0.1
 #
-# ⚠️ **이 분기에 이동(MoveBy/MoveTo)이 없다.** 공격자는 제자리에서 스케일 펄스만 한다.
-#   `action` 안의 MoveBy 는 전부 뒤쪽 분기(줄 2029·2073·3036·4771~ / 지속시간 0.25)에 있고
-#   그것들이 어느 액션 코드인지는 아직 특정하지 못했다 — 특정 전엔 붙이지 않는다(HARD RULE 6).
-#   ⇒ 종전 `_approach`(APPROACH 120pt 전진)는 근거가 없어 **끄고**, 원작 스케일 펄스로 바꾼다.
-#   되살릴 근거가 생기면 `ATK_APPROACH` 만 0 이 아닌 값으로 되돌리면 된다.
+# 🔴 2026-08-05 정정 — 종전에 여기 "이 분기에 이동이 없다"고 적어 뒀던 것은 **틀렸다**.
+#   위 ①~⑨는 스케일 펄스 쪽만 본 것이고, 같은 핸들러의 **다른 갈래**(@0107070c, 공격유형 ≠ 4)에
+#   `CCJumpTo` 두 번 + `CCMoveTo` 복귀가 그대로 들어 있다 — `_attack_jump` 참조.
+#   못 찾은 이유: 디컴프가 `action` 을 `[skip>8000]` 으로 건너뛰어 ASM 으로만 읽히는데,
+#   그때 스케일 펄스 구간만 읽고 "이동 없음"으로 단정했다.
 const ATK_ANIM_SPEED := 1.125       # 원작 runSpineWithAnimationName(…, 1.125)
 const ATK_FPS := 30.0               # 원작 getAttackFrame() ÷ 30
 const ATK_PULSE_SEC := 0.05         # 원작 ScaleTo 지속시간(3단 공통)
 const ATK_PULSE := [Vector2(1.25, 1.05), Vector2(0.90, 0.95), Vector2(1.00, 1.00)]
 const ATK_TAIL := 0.1               # 원작 마지막 Delay 의 −0.1
 const ATK_LEAD := 0.05              # 원작 ①의 +0.05
-const ATK_APPROACH := 0.0           # 원작 기본공격엔 이동이 없다(위 ⚠️)
 const MOVE_SEC := 0.18
 
 ## 우리 변환본 드래곤 씬이 실제로 갖고 있는 애니(2026-08-04 실측):
@@ -1212,6 +1268,13 @@ func _dragon_spine(id: int, stage := "adult") -> Node2D:
 	if r.size.y > 1.0:
 		inst.position -= Vector2(r.get_center().x, r.position.y + r.size.y)
 	return holder
+
+
+## 그 전투원의 스파인이 이 애니를 갖고 있나(종마다 편차가 있다).
+func _has_anim(v: Dictionary, name: String) -> bool:
+	var ap = v.get("anim")
+	return ap is AnimationPlayer and is_instance_valid(ap) \
+		and (ap as AnimationPlayer).has_animation(name)
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:
@@ -1339,16 +1402,85 @@ func _attack_pulse(v: Dictionary, target: Dictionary, anim_dur: float) -> void:
 			Vector2(base.x * f.x, absf(base.y) * f.y), ATK_PULSE_SEC)
 	tw.tween_property(node, "scale", base, 0.0)
 
-	# 이동은 원작 기본공격 분기에 없다 — 근거가 생기면 ATK_APPROACH 를 켠다.
-	if ATK_APPROACH <= 0.0 or target.is_empty():
+	_attack_jump(v, target, hit, anim_dur)
+
+
+## 평타 이동 — 원작 액션 코드 **5** 핸들러(@010665d8 → @0107070c, ASM 실측 2026-08-05).
+##
+## 🔴 종전 주석 "원작 기본공격엔 이동이 없다"는 **오판**이었다(사용자 지적 + 레퍼런스
+##   `docs/ref/pvp/화면 캡처 …202613.png` 에서 공격자가 상대 위에 올라가 있다).
+##   `action` 이 `[skip>8000]` 이라 디컴프에 안 보였을 뿐, ASM 에 안무가 그대로 있다:
+##
+##     ① CCJumpTo(dur, home + (**175** × dir × scale, 0), height **100** × scale, jumps 1)
+##          └ CCEaseOut(rate **0.5**)
+##     ② CCDelayTime(**0.1**)                                    (0x3dcccccd)
+##     ③ CCJumpTo(dur, home + (**100** × dir × scale, 0), height **50** × scale, jumps 1)
+##          └ CCEaseOut(rate **0.125**)
+##     ④ CCDelayTime(애니길이/1.5 − 타격시점 + 0.1)
+##     ⑤ CCMoveTo(제자리)
+##
+##   상수 출처(리터럴): 0x432f0000=175 · 0x42c80000=100 · 0x42480000=50 ·
+##   0x3f000000=0.5 · 0x3e000000=0.125 · 0x3dcccccd=0.1.
+##   `dir` 은 원작에서 `[sp+0x4d0]`(±1 뒤집기 부호), `scale` 은 `[sp+0x580]`(3v3=0.75).
+##
+## # ASSUMPTION: 두 점프의 **지속시간**은 원작이 타격 시점에서 파생시키는데
+##   (`s2 = 타격시점 + [sp+0x4f8]`) 그 덧셈항을 특정하지 못했다. 타격 시점을 그대로 쓴다 —
+##   그래야 ①이 끝나는 순간이 곧 타격이라 화면과 로그가 맞는다.
+const ATK_JUMP1_DX := 175.0         # 원작 0x432f0000
+const ATK_JUMP1_H := 100.0          # 원작 0x42c80000
+const ATK_JUMP2_DX := 100.0         # 원작 두 번째 점프의 x
+const ATK_JUMP2_H := 50.0           # 원작 0x42480000
+const ATK_JUMP1_EASE := 0.5         # 원작 CCEaseOut(0x3f000000)
+const ATK_JUMP2_EASE := 0.125       # 원작 CCEaseOut(0x3e000000)
+const ATK_JUMP_GAP := 0.1           # 원작 CCDelayTime(0x3dcccccd)
+
+func _attack_jump(v: Dictionary, target: Dictionary, hit: float, anim_dur: float) -> void:
+	if target.is_empty() or _mode == "":
 		return
-	var home: Vector2 = v.get("pos", node.position)
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	var node := n as Node2D
+	var home: Vector2 = node.position
 	var tp: Vector2 = target.get("pos", home)
-	var dx := signf(tp.x - home.x) * minf(ATK_APPROACH, absf(tp.x - home.x) - 90.0)
-	var mv := create_tween()
-	mv.tween_property(node, "position", home + Vector2(dx, 0.0), MOVE_SEC)
-	mv.tween_interval(maxf(0.1, anim_dur - MOVE_SEC * 2.0))
-	mv.tween_property(node, "position", home, MOVE_SEC)
+	# 전방 = 상대가 있는 쪽. 원작의 ±1 부호 자리다.
+	var dir := signf(tp.x - home.x)
+	if is_zero_approx(dir):
+		return
+	# 원작이 곱하는 `[sp+0x580]` = 드래곤 레이어 배율(3v3 0.75 / 1v1 1.0).
+	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+	var p1 := home + Vector2(dir * ATK_JUMP1_DX * s, 0.0)
+	var p2 := home + Vector2(dir * ATK_JUMP2_DX * s, 0.0)
+	var gen := _gen
+	var t := create_tween()
+	_tween_jump(t, node, home, p1, ATK_JUMP1_H * s, hit, ATK_JUMP1_EASE)
+	t.tween_interval(ATK_JUMP_GAP)
+	_tween_jump(t, node, p1, p2, ATK_JUMP2_H * s, hit, ATK_JUMP2_EASE)
+	t.tween_interval(maxf(0.0, anim_dur - hit) + ATK_JUMP_GAP)
+	t.tween_property(node, "position", home, MOVE_SEC)
+	t.tween_callback(func() -> void:
+		if gen == _gen and is_instance_valid(node):
+			node.position = home)
+
+
+## Cocos `CCJumpTo` + `CCEaseOut` 한 구간을 트윈에 붙인다.
+##   CCJumpTo:  frac = fmod(t × jumps, 1) → y += height × 4 × frac × (1 − frac),
+##              x·y 는 시작→끝을 t 로 선형 보간 (jumps = 1 이므로 frac = t)
+##   CCEaseOut: t' = pow(t, 1 / rate)  (rate 0.5 → t², 0.125 → t⁸)
+## Godot 에는 대응 트위너가 없어 `tween_method` 로 같은 식을 직접 낸다.
+func _tween_jump(t: Tween, node: Node2D, from: Vector2, to: Vector2,
+		height: float, sec: float, ease_rate: float) -> void:
+	var dur := maxf(0.05, sec)
+	var inv := 1.0 / maxf(0.001, ease_rate)
+	t.tween_method(func(x: float) -> void:
+		if not is_instance_valid(node):
+			return
+		var e: float = pow(clampf(x, 0.0, 1.0), inv)
+		var pos: Vector2 = from.lerp(to, e)
+		# Cocos 는 y 가 위쪽이고 우리는 아래쪽이라 부호를 뒤집는다(§Design).
+		pos.y -= height * 4.0 * e * (1.0 - e)
+		node.position = pos,
+		0.0, 1.0, dur)
 
 
 func _base_scale(v: Dictionary) -> Vector2:
@@ -1427,9 +1559,14 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		return
 
 	if not atk.is_empty() and not bool(atk.get("dead", false)):
-		# 원작 `castSkill` 은 종류를 가리지 않고 **"attack" 하나만** 튼다
-		# (크리티컬·각성기용 별도 애니를 콜로세움 경로에서 부르지 않는다).
-		var dur := _play_anim(atk, "attack")
+		# 🔴 2026-08-05 정정(사용자 지적 "크리티컬 모션이 없다") — 종전 주석
+		#   "콜로세움은 크리티컬용 별도 애니를 안 부른다"는 **틀렸다.**
+		#   액션 코드 **43** 핸들러(@01064f2c)의 배타 키가 `critical` · `wait` 이고
+		#   `runSpineWithAnimationName` + `getDuration` 을 부른다 ⇒ 크리티컬은 드래곤 자신의
+		#   **`critical` 애니**를 틀고 끝나면 `wait` 로 돌아간다(`asm_cfg.py --table` 로 확인).
+		#   변환본 성체·각성체 스파인에 `critical` 이 **전부** 들어 있다(2026-08-04 실측).
+		var anim := "critical" if code == AC_CRIT_FX and _has_anim(atk, "critical") else "attack"
+		var dur := _play_anim(atk, anim)
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
 			_attack_pulse(atk, dfn, dur)
@@ -1572,6 +1709,10 @@ const EVADE_LIFT := 75.0
 const EVADE_POP := 2.0
 
 func _evade_effect(dfn: Dictionary) -> void:
+	# 회피 효과음 — 원작 `music/effect_evade.mp3`(실재). 전투 씬이
+	# `MakeInterface::preloadHeavyResource`(MakeInterface.c:37956)로 올려 두는 음원이라
+	# 소유는 전투다. 모험(`battle.gd` miss 분기)과 같은 음원을 쓴다.
+	Bgm.sfx("effect_evade")
 	var at: Vector2 = dfn.get("pos", _vis() * 0.5)
 	var s := _spr("battle_ui", "battle_miss_kr", Design.ASSET_SCALE)
 	if s == null:
@@ -1933,6 +2074,9 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 ##       `getDragonVoiceCriticalFilePath()` = **보이스만**.
 ##   ⇒ 9999 컷인 코드는 지웠다. 되살릴 근거(액션 코드 666 을 쓰는 이벤트 매치)가 생기면
 ##     복원 안무는 `docs/ref/porting/Colosseum.md` §8.7 에 적어 뒀다.
+## 원작 `criticalEffectMake` 의 폴백 스파인 — 자기 크리 스파인이 없는 종이 쓴다.
+const CRIT_FALLBACK := "res://scenes/dragons/dragon_9998_critical.tscn"
+
 func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 	var cid := int(atk.get("id", 0))
 	# 🔴 2026-08-05 — 각성 여부를 본다. 종전엔 `_e_critical` 이 있으면 **미각성 드래곤도**
@@ -1942,7 +2086,15 @@ func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 		var ep := "res://scenes/dragons/dragon_%d_e_critical.tscn" % cid
 		if ResourceLoader.exists(ep):
 			path = ep
+	# 🔴 2026-08-05(사용자 지적 "크리티컬에 울음소리만 난다") — **원작 폴백을 빠뜨렸다.**
+	#   `criticalEffectMake` @01089a1c 는 자기 크리 스파인이 없으면
+	#   `dragon/dragon_**9998**_critical_spine.spine_json` + `dragon_9998_spine.img_plist` 를 쓴다.
+	#   그래서 크리 스파인이 없는 종(예: 한울 = 스파인 3020 — 원작에도 `_critical_spine` 이 없다)도
+	#   원작에선 이펙트가 났다. 우리는 `false` 를 돌려주고 아무것도 안 냈다.
+	#   변환본 `scenes/dragons/dragon_9998_critical.tscn` 실재(애니 `animation`).
 	if cid <= 0 or not ResourceLoader.exists(path):
+		path = CRIT_FALLBACK
+	if not ResourceLoader.exists(path):
 		return false
 	var holder := Node2D.new()
 	holder.z_index = 8                          # 원작 addChild(spine, 8, −2)

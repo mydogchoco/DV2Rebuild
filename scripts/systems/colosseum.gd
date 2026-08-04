@@ -181,10 +181,14 @@ static func apply_result(mode: String, win: bool, opponent_nick := "") -> Dictio
 	s[sk] = streak + 1 if win else 0
 	s[bk] = maxi(int(s.get(bk, 0)), int(s[sk]))
 
-	# 연승방지 — 임계에 닿으면 다음 guard_repeat 판은 상대 등급이 한 단계 올라간다.
+	# 연승방지 — **스케줄 문턱에 닿는 그 판에만** 무장한다(25 · 50 · 75 · 100 · 150 · 999).
+	#
+	# 🔴 2026-08-05 정정: 종전엔 `streak >= guard_at(25)` 이라 25연승 뒤로는 **매 판** 다시
+	#   무장해 방지봇만 계속 나왔다. 그러면 시트가 정한 여섯 번의 등장이 뜻을 잃는다
+	#   (`_note` 도 "문턱을 넘은 뒤 유지되는 판 수"라고 적혀 있다 — 무한 유지가 아니다).
+	#   문턱을 **정확히 밟은 판**에만 guard_repeat 판을 무장하고, 그 판들을 쓰면 끝난다.
 	var st: Dictionary = _cfg().get("streak", {})
-	var guard_at := int(st.get("guard_at", 0))
-	if guard_at > 0 and win and int(s[sk]) >= guard_at:
+	if win and _is_guard_threshold(int(s[sk])):
 		s["guard_left"] = int(st.get("guard_repeat", 1))
 	elif not win:
 		s["guard_left"] = 0
@@ -735,6 +739,14 @@ static func guard_for(streak: int) -> Dictionary:
 	return best
 
 
+## 이 연승 수가 스케줄 문턱과 정확히 맞는가(= 이번 판부터 방지봇이 나온다).
+static func _is_guard_threshold(streak: int) -> bool:
+	for g: Dictionary in (_cfg().get("guards", []) as Array):
+		if int(g.get("streak_at", 0)) == streak:
+			return true
+	return false
+
+
 ## 다음 연승방지봇까지 남은 연승(없으면 0) — 로비 안내용.
 static func next_guard_in(streak: int) -> int:
 	var nxt := -1
@@ -952,3 +964,21 @@ static func stage_mult() -> float:
 ## 그 배수가 걸리는 스탯 키 목록.
 static func stage_stats() -> Array:
 	return stage_cfg().get("buff_stats", [])
+
+
+# ---------- BGM ----------
+#
+# 로비는 원작이 명시한다(`ColosseumScene::onEnterTransitionDidFinish` @00f41e00).
+# 대전 BGM 은 **매 판 랜덤**(🟦 사용자 확정 2026-08-05) — 클라에 재생 호출이 없어 곡 목록도
+# 확인할 수 없다. 목록은 `data/colosseum.json` `bgm.battle` 이 튜닝 노브다.
+
+static func lobby_bgm() -> String:
+	return String((_cfg().get("bgm", {}) as Dictionary).get("lobby", "bg_colosseum"))
+
+
+## 이번 판의 대전 BGM 1곡. `rng` 를 주면 재현 가능.
+static func battle_bgm(rng: RandomNumberGenerator = null) -> String:
+	var list: Array = (_cfg().get("bgm", {}) as Dictionary).get("battle", [])
+	if list.is_empty():
+		return "bg_colosseum_battle_2"
+	return String(list[int((rng.randi() if rng != null else randi()) % list.size())])

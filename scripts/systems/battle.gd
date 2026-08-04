@@ -25,7 +25,15 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# (다른 스탯은 원시 필드가 그대로 남아 있지만 hp_max 는 _aw_add_stat 가 직접 고친다).
 		"hp_base": int(stats.get("hp", 1)),
 		"att": int(stats.get("att", 1)), "def": int(stats.get("def", 1)),
-		"cri": int(stats.get("cri", 10)), "evd": int(stats.get("evd", 10)), "blk": int(stats.get("blk", 10)),
+		# 확률 스탯은 **실수**로 담는다 — 시트가 지정한 소수 확률(연승방지봇 `2.70%`)이
+		# 여기서 잘리면 안 된다. 판정은 `_eff_f` → `_roll` 이 실수 그대로 굴린다.
+		"cri": float(stats.get("cri", 10)), "evd": float(stats.get("evd", 10)),
+		"blk": float(stats.get("blk", 10)),
+		# 면역(연승방지봇 이벤트 규칙 — `_skill_immune` 주석). 없으면 종전과 동일.
+		# ⚠️ JSON 숫자는 float 로 들어온다 — id 비교가 조용히 실패하지 않게 여기서 int 로 굳힌다.
+		"skill_immune": _int_ids(stats.get("skill_immune", [])),
+		"immune_pure": bool(stats.get("immune_pure", false)),
+		"immune_bonus": bool(stats.get("immune_bonus", false)),
 		# 장비 스탯(원작 info_item_acc 컬럼). 전부 0 기본 = 장비 없으면 종전과 완전히 동일한 전투.
 		#   pure     방어 관통 대미지(flat). "방어 무시 고정 대미지"라 방어력·막기와 무관하게 더해진다.
 		#   depure   받는 pure 감소(flat). 피오드 모래시계 주 능력.
@@ -72,6 +80,12 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 # ============================================================ 상태효과 프레임워크
 ## 효과 반영 최종 스탯(stat 버프/디버프 pct/flat).
 static func _eff(c: Dictionary, stat: String) -> int:
+	return int(round(_eff_f(c, stat)))
+
+## `_eff` 의 실수판 — **확률 스탯(크리/회피/막기) 전용**이다.
+## 콜로세움 연승방지봇처럼 시트가 `2.70%` 를 지정할 수 있어서, 판정에 쓰는 확률만은
+## 반올림하지 않고 그대로 굴린다(`_roll` 이 실수를 받는다). 나머지 스탯은 `_eff` 그대로.
+static func _eff_f(c: Dictionary, stat: String) -> float:
 	var base := float(c.get(stat, 0))
 	var pct := 0.0
 	var flat := 0.0
@@ -79,7 +93,7 @@ static func _eff(c: Dictionary, stat: String) -> int:
 		if e.get("kind") == "stat" and e.get("stat") == stat:
 			if e.get("mode") == "pct": pct += float(e["value"])
 			else: flat += float(e["value"])
-	return int(round(base * (1.0 + pct / 100.0) + flat))
+	return base * (1.0 + pct / 100.0) + flat
 
 static func _has_flag(c: Dictionary, flag: String) -> bool:
 	for e in c.get("effects", []):
@@ -319,6 +333,23 @@ static func _add_flag(c: Dictionary, flag: String, turns: int, src: int) -> void
 		return
 	c["effects"].append({"kind": "status", "flag": flag, "turns": turns, "source": src})
 
+
+## 상태이상 면역에 막힌 이벤트에서 **디버프 표기를 지운다**.
+##
+## 🔴 2026-08-05(사용자 지적) — `_add_flag` 는 면역 대상에게 플래그를 **안 얹었는데**,
+##   이벤트에는 `debuff` 가 그대로 실려 나가 화면에 아이콘이 떴다. 로직은 맞고 표시만
+##   틀린 상태였다("겉값도 실제값도 둘 다 면역이어야 한다").
+##   `immune` 를 남겨 두는 이유: render 가 원하면 "면역!" 을 낼 수 있게(지금은 안 낸다).
+##
+## ⚠️ 경계는 `DEBUFF_FLAGS` 와 **같다** — 플래그형 상태이상만이다. 지속피해(`dot`)·
+##   받는피해 증가(`dmg_taken`)·능력치 감소(음수 `stat`)는 `_add_flag` 를 지나지 않아
+##   애초에 면역이 막지 않는다. 그 경계를 넓힐지는 여전히 사용자 확인 대상이다.
+static func _mark_immune(ev: Dictionary, target: Dictionary) -> Dictionary:
+	if _has_flag(target, IMMUNE_FLAG):
+		ev["immune"] = true
+		ev.erase("debuff")
+	return ev
+
 ## '모든 상태이상 무시' 를 나타내는 플래그. AwakenSkill 이 얹고, `_add_flag` 가 이걸 보고 막는다.
 const IMMUNE_FLAG := "status_immune"
 
@@ -399,13 +430,16 @@ static func pick_target(enemies: Array, _cfg: Dictionary) -> Dictionary:
 			best = c
 	return best
 
-static func _roll(rng: RandomNumberGenerator, percent: int, cap: int) -> bool:
-	return rng.randf() * 100.0 < float(clampi(percent, 0, cap))
+## 확률 판정. `percent` 는 **실수**를 받는다 — 정수 확률은 그대로 통과하고,
+## 시트가 지정한 소수 확률(연승방지봇 `2.70%`)도 잘리지 않는다.
+static func _roll(rng: RandomNumberGenerator, percent: float, cap: int) -> bool:
+	return rng.randf() * 100.0 < clampf(percent, 0.0, float(cap))
 
 ## 실효 회피 확률 = 방어자 회피 − 공격자 명중률(장비 accuracy). 장비 없으면 종전과 동일.
 ## 원작 근거: 명중률은 info_item_acc 의 accuracy 컬럼이자 피오드 마석의 주 능력(+13%).
-static func _evade_chance(attacker: Dictionary, defender: Dictionary) -> int:
-	return maxi(0, _eff(defender, "evd") - _eff(attacker, "accuracy"))
+## ⚠️ 실수 반환 — 회피도 소수 확률을 지킨다(`_eff_f` 주석 참조). `<= 0` 비교는 그대로 성립한다.
+static func _evade_chance(attacker: Dictionary, defender: Dictionary) -> float:
+	return maxf(0.0, _eff_f(defender, "evd") - float(_eff(attacker, "accuracy")))
 
 ## 피해 적용: 취약(dmg_taken) 배수 + 1회 생존(survive_once 50). 반환 {dmg(실피해), dead, survived?}.
 ## ── 보스 2페이즈 (혼돈의 틈새) ──────────────────────────────────────────────────
@@ -476,6 +510,31 @@ static func _crit_mult(attacker: Dictionary, cfg: Dictionary) -> float:
 	var base := float(cfg.get("damage", {}).get("crit_mult", 1.5))
 	return base * (1.0 + float(_eff(attacker, "cri_pow")) / 100.0)
 
+# --- 면역 (🟦 사용자 확정 2026-08-04 — 콜로세움 연승방지봇의 이벤트 규칙) -----------
+#
+# 원작에 없는 규칙이다. 연승방지봇은 **이벤트성 매치**라 도감·성장곡선을 벗어난 상대를
+# 저작할 수 있고(스탯 임의 부여), 그 상대가 "이 수단으로는 안 죽는다"를 표현할 방법이 필요했다.
+# 출처는 `docs/input/sheets/colosseum_guard.csv` 비고 칸 — 예: 누리(30000 방어)는
+# 방어를 우회하는 통로(관통·추가피해)와 방어력 비례 스킬 2종에 면역이라, 평타로만 깎인다.
+#
+# 전투원 필드 3종. 플레이어에는 없어서(기본 false/빈 배열) 기존 전투는 완전히 동일하다.
+#   `skill_immune`  그 스킬 id 로 받는 피해 0 (스킬 공격 + 그 스킬이 낸 반사 둘 다)
+#   `immune_pure`   관통 고정 피해(pure) 면역
+#   `immune_bonus`  장비·각성스킬의 **추가 피해**(attack_bonus 계열) 면역
+static func _int_ids(raw) -> Array:
+	var out: Array = []
+	for i in (raw as Array):
+		out.append(int(i))
+	return out
+
+static func _skill_immune(c: Dictionary, skill_id: int) -> bool:
+	if skill_id <= 0:
+		return false
+	for i in (c.get("skill_immune", []) as Array):
+		if int(i) == skill_id:
+			return true
+	return false
+
 ## 방어 관통 고정 피해(pure) — 방어력·막기를 무시하고 더해지는 flat 피해.
 ## 원작 위키: 묘안석 "방어 무시 고정 대미지", 피오드 모래시계 "관통 대미지 감소 20"(=depure).
 ## ASSUMPTION: 속성 상성·크리 배수의 영향을 받지 않고, 막기 감산 뒤에 더한다.
@@ -488,6 +547,8 @@ static func _crit_mult(attacker: Dictionary, cfg: Dictionary) -> float:
 ##   이 대응으로 50·70·666·777 의 '추가 데미지' 조항이 전부 해석된다.
 ##   ⚠️ 사용자 확인 대상(추론이다) — 틀렸다면 이 함수와 build_awaken_effects.py 만 고치면 된다.
 static func _pure_damage(attacker: Dictionary, defender: Dictionary) -> int:
+	if bool(defender.get("immune_pure", false)):
+		return 0                                   # 관통 면역(§ 면역 규칙)
 	var p := float(_eff(attacker, "pure")) * (1.0 + float(_eff(attacker, "pure_pct")) / 100.0)
 	var net := maxf(0.0, p - float(_eff(defender, "depure")))
 	net *= maxf(0.0, 1.0 - float(_eff(defender, "depure_pct")) / 100.0)
@@ -516,15 +577,21 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 	# 주는 피해 배수(각성스킬 "입히는 데미지 N% 증가")는 평타·스킬이 공통으로 지나는 여기서 곱한다.
 	raw_dmg = maxi(1, int(round(float(raw_dmg) * _dmg_deal_mult(attacker)
 		* _dmg_deal_vs_mult(attacker, defender))))
+	# 이 스킬로는 아예 피해를 못 입히는 상대(§ 면역 규칙) — 여기서 끊는다.
+	# 이벤트 조각에 `immune` 을 실어 render 가 "면역"을 띄울 수 있게 한다.
+	if is_skill and _skill_immune(defender, int(attacker.get("_cast_skill_id", 0))):
+		return {"damage": 0, "dead": false, "immune": true}
 	# 각성스킬 반응 — 공격 직전(누적 방출 45 불타는 날개 등)에 추가 피해를 얹는다.
-	raw_dmg += _aw_on_attack_bonus(attacker, defender, rng, raw_dmg)
+	# 면역이면 반응은 그대로 소모시키되(발동은 했다) 피해만 0 으로 만든다.
+	var bonus := _aw_on_attack_bonus(attacker, defender, rng, raw_dmg)
+	raw_dmg += 0 if bool(defender.get("immune_bonus", false)) else bonus
 	# 아티팩트 DEDMG(벤투스) = "상대 스킬 대미지 감소". 스킬 피해에만, 방어측 기준으로 깎는다.
 	if is_skill:
 		# 🟦 스킬 공격에도 **막기**를 적용한다(사용자 확정 2026-07-31).
 		#    근거: 각성스킬 78 [용암의 노련함] "자신의 스킬이 상대 방어율을 100% 무시" 가
 		#    존재한다는 것 자체가 원작에서 스킬도 막혔다는 뜻이다. 그 스킬이 면제 플래그다.
 		#    ⚠️ 방어 스킬 20 [보호의 장막]이 스킬 피해에 안 걸리는 것과는 다른 축이다.
-		if not _has_flag(attacker, "skill_ignores_block") 				and not _has_flag(defender, "no_block") 				and _roll(rng, _eff(defender, "blk"),
+		if not _has_flag(attacker, "skill_ignores_block") 				and not _has_flag(defender, "no_block") 				and _roll(rng, _eff_f(defender, "blk"),
 					int(cfg.get("judge", {}).get("prob_cap", 70))):
 			var bred := float(cfg.get("judge", {}).get("block_reduction", 0.5))
 			raw_dmg = maxi(1, int(round(float(raw_dmg) * (1.0 - bred))))
@@ -555,6 +622,10 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		out["def_skill"] = dres["fired"]
 		out["def_skill_id"] = int(dres.get("fired_id", 0))
 	var refl := int(dres.get("reflect", 0))
+	# 반사도 '그 스킬로 받는 피해'다 — 반사를 낸 방어 스킬(13 복수의 거울)에 면역이면 0.
+	if refl > 0 and _skill_immune(attacker, int(dres.get("fired_id", 0))):
+		refl = 0
+		out["reflect_immune"] = true
 	if refl > 0 and attacker["alive"]:
 		var rap := _apply_dmg(attacker, refl)
 		out["reflect"] = int(rap["dmg"])
@@ -574,7 +645,7 @@ static func _roll_crit(attacker: Dictionary, defender: Dictionary,
 		return true
 	if _has_flag(attacker, "crit_sure_if_no_evade") 			and _evade_chance(attacker, defender) <= 0:
 		return true
-	return _roll(rng, _eff(attacker, "cri"), cap)
+	return _roll(rng, _eff_f(attacker, "cri"), cap)
 
 
 ## 평타 1회(§K-4): 회피→방어율→크리. 상태이상·피격 방어스킬·반사·흡혈 반영.
@@ -594,10 +665,10 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	# `evade_sure` = 각성스킬 81 자격을 갖춘 자 "다음 공격 무조건 회피".
 	var sure_evade := _has_flag(defender, "evade_sure")
 	var evd_pct := _evade_chance(attacker, defender)
-	var blk_pct := _eff(defender, "blk")
+	var blk_pct := _eff_f(defender, "blk")
 	if pre_crit == 1 and halve:                    # 크리일 때만 절반으로 본다
-		evd_pct = int(evd_pct / 2)
-		blk_pct = int(blk_pct / 2)
+		evd_pct = evd_pct / 2.0
+		blk_pct = blk_pct / 2.0
 	# `crit_ignores_evade`(홀리) 는 회피를 통째로 건너뛴다 — 93 과 달리 절반이 아니다.
 	var skip_evade := pre_crit == 1 and _has_flag(attacker, "crit_ignores_evade")
 	if not skip_evade and (sure_evade or (not _has_flag(defender, "no_evade") 			and _roll(rng, evd_pct, cap))):
@@ -651,7 +722,7 @@ static func resolve_double(attacker: Dictionary, defender: Dictionary, rng: Rand
 	if not _has_flag(defender, "no_evade") and _roll(rng, _evade_chance(attacker, defender), cap):
 		return [_double_ev(attacker, defender, 0, true, false, false, 0, false),
 				_double_ev(attacker, defender, 1, true, false, false, 0, false)]
-	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff(defender, "blk"), cap)
+	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff_f(defender, "blk"), cap)
 	var out: Array = []
 	var dealt := 0                   # 이번 연속공격으로 실제로 준 피해 합(회복형 반응용)
 	for i in 2:
@@ -1135,12 +1206,12 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 			var t7 := pick_target(enemies, cfg)
 			if t7.is_empty(): return []
 			_add_flag(t7, "stun", 2, id)
-			return [_merge(ev, {"target": t7["name"], "debuff": "stun", "turns": 2})]
+			return [_mark_immune(_merge(ev, {"target": t7["name"], "debuff": "stun", "turns": 2}), t7)]
 		22:  # 환각 효과: 상대 자기 자신을 150% 공격(confused), 2턴
 			var t8 := pick_target(enemies, cfg)
 			if t8.is_empty(): return []
 			_add_flag(t8, "confused", 2, id)
-			return [_merge(ev, {"target": t8["name"], "debuff": "confused", "turns": 2})]
+			return [_mark_immune(_merge(ev, {"target": t8["name"], "debuff": "confused", "turns": 2}), t8)]
 		23:  # 상처 파악: 영구 취약 +(7+3L)% 받는 피해
 			var t9 := pick_target(enemies, cfg)
 			if t9.is_empty(): return []
@@ -1156,7 +1227,7 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 			if t11.is_empty(): return []
 			_add_flag(t11, "no_evade", 2, id)
 			_add_flag(t11, "no_block", 2, id)
-			return [_merge(ev, {"target": t11["name"], "debuff": "no_evade/no_block", "turns": 2})]
+			return [_mark_immune(_merge(ev, {"target": t11["name"], "debuff": "no_evade/no_block", "turns": 2}), t11)]
 		120: # 무언의 압박: 적 전체 공 -%. ASSUMPTION 수치(7+3L%, 살기표출 계열) — 효과식 수치 미명시
 			return _debuff_all(ev, enemies, [["att", -(7 + 3 * lv)]], 2, id)
 		130: # 약점 파악: 적 전체 방 -%. ASSUMPTION 수치(7+3L%)
@@ -1168,7 +1239,7 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 			for en in enemies:
 				if not en["alive"]: continue
 				_add_flag(en, "no_evade", 3, id)
-				evs3.append(_merge(ev, {"target": en["name"], "debuff": "no_evade", "turns": 3}))
+				evs3.append(_mark_immune(_merge(ev, {"target": en["name"], "debuff": "no_evade", "turns": 3}), en))
 			caster["effects"].append({"kind": "initiative", "side": caster["side"], "turns": 2})
 			return evs3
 		160: # 마비의 구름: 적 전체 3턴 크리 불가 + 스킬 사용횟수 1 차감
@@ -1177,7 +1248,7 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 				if not en2["alive"]: continue
 				_add_flag(en2, "no_crit", 3, id)
 				_drain_one_skill(en2)
-				evs4.append(_merge(ev, {"target": en2["name"], "debuff": "no_crit+drain", "turns": 3}))
+				evs4.append(_mark_immune(_merge(ev, {"target": en2["name"], "debuff": "no_crit+drain", "turns": 3}), en2))
 			return evs4
 		170: # 시간의 역행: 적 전체 2턴 회피·크리 불가
 			var evs5: Array = []
@@ -1185,7 +1256,7 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 				if not en3["alive"]: continue
 				_add_flag(en3, "no_evade", 2, id)
 				_add_flag(en3, "no_crit", 2, id)
-				evs5.append(_merge(ev, {"target": en3["name"], "debuff": "no_evade/no_crit", "turns": 2}))
+				evs5.append(_mark_immune(_merge(ev, {"target": en3["name"], "debuff": "no_evade/no_crit", "turns": 2}), en3))
 			return evs5
 		24:  # 어둠의 손길: 상대 장착 스킬 중 무작위 1개를 caster가 주체로 발동
 			var pool: Array = []
