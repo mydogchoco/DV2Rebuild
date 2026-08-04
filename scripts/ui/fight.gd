@@ -1132,7 +1132,9 @@ const AC_HIT := 0          # 기본 피격
 const AC_CONFUSE := 1      # 혼란 — 자기 자신을 때린다
 const AC_DOUBLE := 2       # 연속 공격
 const AC_EVADE := 3        # 회피
-const AC_CUTIN := 4        # 컷인(크리티컬)
+const AC_CUTIN := 4        # 각성기 컷인(`showCutIn`) — 아래 🔴 참조
+const AC_CRIT_FX := 41     # 크리티컬 이펙트(`criticalEffectMake`)
+const AC_CRIT_ANIM := 43   # 크리티컬 애니(`"critical"` → `"wait"`)
 const AC_SWAP := 42        # 위치 교대
 const AC_STUN := -15       # 기절(행동 불가)
 const AC_POISON := -32     # 중독
@@ -1156,7 +1158,7 @@ func _action_code(ev: Dictionary, t: String) -> int:
 		"awaken":
 			return AC_CUTIN
 	if bool(ev.get("crit", false)):
-		return AC_CUTIN
+		return AC_CRIT_FX
 	return AC_HIT
 
 
@@ -1213,7 +1215,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 	if not dfn.is_empty() and not bool(dfn.get("dead", false)) \
 			and int(ev.get("damage", 0)) > 0:
 		_damaged_color(dfn)
-		if code == AC_POISON or code == AC_CUTIN:
+		if code == AC_POISON or code == AC_CRIT_FX:
 			# 흔들림 방향 = 맞은 쪽이 밀리는 방향(공격자 반대편).
 			_shake_horizontal(dfn, 1.0 if bool(dfn.get("mine", false)) else -1.0)
 		if code == AC_BIGHIT:
@@ -1235,14 +1237,20 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 			_skill_banner(String(ev.get("skill_name", "")), int(ev.get("skill_id", 0)))
 			_skill_spine(int(ev.get("skill_id", 0)), at)
 		"awaken":
+			# 원작 `FightScene` @00f8cd6c: `showCutIn(actor, 0.5)` → `UltimateLayer`.
+			# `showCutIn` 은 `getNo()` 가 **9013/9014**(이벤트 드래곤)일 때만 전면 컷인
+			# (`getImagePathCutIn`/`CutBg`)을 내고, 나머지는 크리티컬 보이스만 낸다.
+			# 우리 드래곤에 9013/9014 는 없다 ⇒ 보이스 + 각성기 레이어.
+			_crit_voice(atk)
 			_awaken_fx(atk, at)
 		_:
 			if atk.is_empty():
 				pass
-			elif code == AC_CUTIN:
-				# 원작 크리티컬 연출(공용 포신 스파인)은 그대로 두고, 드빌1에서 온 종만
-				# **자기 크리티컬 이펙트**를 위에 얹는다(800 로키 = `col_action2`).
-				_critical_spine(atk, dfn)
+			elif code == AC_CRIT_FX:
+				# 크리티컬 = **공격한 드래곤 자기 크리티컬 스파인**(원작 criticalEffectMake).
+				_critical_effect(atk, dfn)
+				_crit_voice(atk)
+				# 드빌1에서 온 종만 자기 이펙트 시퀀스를 위에 더 얹는다(800 로키 = `col_action2`).
 				_dragon_fx_seq(int(atk.get("id", 0)), "col_action2", at)
 			else:
 				# 평타 — 드빌1에서 온 종만 전용 평타 이펙트를 갖는다(`col_action1`).
@@ -1499,71 +1507,82 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 	return true
 
 
-## 크리티컬 이펙트 — 원작은 **드래곤마다 전용 크리티컬 스켈레톤**을 갖는다
-## (`scenes/dragons/dragon_<id>_critical.tscn` 422종 · 각성본 `_e_critical` 111종 변환 완료).
-## 배치 규약은 battle.gd::_critical_spine 과 같다: 대상 위 z=8, 공격 방향으로 X 반전.
-## 크리티컬 컷인 — 원작 `MakeInterface::action` @01062fd4 의 크리티컬 분기.
+## 크리티컬 이펙트 — 원작 `MakeInterface::criticalEffectMake` @01089a1c (액션 코드 **41**).
 ##
-## 🔴 2026-08-05 정정 — 종전엔 **공격한 드래곤의 `critical` 애니**를 피격 지점에 띄웠는데,
-##   원작은 그게 아니라 **공용 이펙트 스파인 3종**을 화면 중앙에 세우는 컷인이다.
-##   근거(`probe/action_asm.c` 줄 865~1270, adrp+add 로 복원한 .rodata 문자열):
-##     `dragon/dragon_9999_critical_spine.spine_json`        ← 본체(init·ready·set·shot·walking)
-##     `dragon/dragon_9999_critical_ready_spine.spine_json`  ← ready 전용 레이어
-##     `dragon/dragon_9999_critical_shot_spine.spine_json`   ← shot 전용 레이어
-##   `CCSkeletonAnimation::createWithFile` ×3 → `VisibleRect::center` / `right` 에 배치.
+##   getAwaken()==0 ? "dragon/dragon_%d_critical_spine.spine_json"
+##                  : "dragon/dragon_%d_e_critical_spine.spine_json"   (폴백 `dragon_9998_…`)
+##   아틀라스 = `dragon/dragon_%d_spine.img_plist` · createWithFile(…, 1.0)
+##   setScaleX(음수 = 공격 방향으로 X 반전) · addChild(spine, **8**, −2)
+##   재생 = Show → runSpineWithAnimationName("animation") → DelayTime(getDuration("animation"))
+##   ⚠️ 붙는 곳은 **공격자가 아니라 대상(target)의 레이어**다 — 스파인만 공격자 것을 쓴다.
+##   (탐험 쪽 `battle.gd::_critical_spine` 이 같은 함수를 이미 이식해 뒀다 — 같은 규약을 따른다.)
 ##
-## 원작 시퀀스(호출 순서 그대로):
-##   Delay → Show → runSpine("init", ×2.0) → MoveTo(0.75)
-##   → runSpine("ready", ×1.125) → Delay(길이) → shakeLayerToVertical
-##   → Delay(0.5) → runSpine("ready", ×1.5) → Delay(0.25)
-##   → Spawn(Delay(길이), Shake(1.5, 0.5)) → runSpine("shot", ×1.5) → Delay(0.5)
-##
-## ⚠️ `_ready`/`_shot` 전용 스파인 2종은 아직 미변환(🟠)이다. 다만 **본체 스파인이 같은
-##   `init`/`ready`/`shot` 애니를 전부 갖고 있어**(실측: init·ready·set·shot·walking)
-##   한 장으로 같은 안무를 낸다. 2종을 변환하면 레이어만 더 얹으면 된다.
-const CRIT_SCENE := "res://scenes/dragons/dragon_9999_critical.tscn"
-const CRIT_INIT_SPEED := 2.0        # 원작 runSpine(…, "init", 2.0)
-const CRIT_READY_SPEED := 1.125     # 원작 runSpine(…, "ready", 1.125)
-const CRIT_SHOT_SPEED := 1.5        # 원작 runSpine(…, "shot", 1.5)
-const CRIT_GAP := 0.25              # 원작 Delay(0.25)
-const CRIT_SHAKE_SEC := 1.5         # 원작 Shake::actionWithDuration(1.5, 0.5)
-const CRIT_SHAKE_AMP := 0.5
-
-func _critical_spine(atk: Dictionary, _dfn: Dictionary) -> void:
-	if not ResourceLoader.exists(CRIT_SCENE):
-		return
-	var vis := _vis()
+## 🔴🔴 2026-08-05 **재정정** — 하루 전의 "원작 크리티컬은 공용 9999 컷인" 은 **틀렸다.**
+##   사용자 지적("전투 중간에 금발 소녀 애니가 뜬다")으로 다시 팠더니:
+##     · `dragon/dragon_9999_critical{,_ready,_shot}_spine` 을 만드는 블록은 `action` 안에서
+##       **`01064694 cmp w19,#0x29a` / `01064698 b.eq 0x01069eac` 단 한 곳**으로만 들어온다.
+##       `w19` = 액션 코드이므로 그 컷인은 **액션 코드 666 전용**이다(점프테이블 −54~170 밖의
+##       특수 코드라 `default` 비교 사다리에서 걸린다). 우리 `Battle.simulate()` 는 666 을
+##       만들지 않는다 ⇒ **어떤 대전에서도 뜨면 안 되는 연출**이었다.
+##     · dragon 9999 는 드래곤이 아니다 — `dragons.json` 에 없고, 스켈레톤을 렌더해 보면
+##       **거대한 새총을 든 금발 소녀**(누리)다. 이벤트 매치용 캐릭터로 보인다.
+##     · 진짜 크리티컬은 **41 `criticalEffectMake`**(공격자 자기 크리티컬 스파인, 폴백 9998) 와
+##       **43**(공격자 스파인의 `"critical"` → `"wait"` 애니) 다. 코드 0 의 배타 신호에도
+##       `isCritical`/`getCriticalFrame` 이 있어 **타격 프레임만 크리티컬용으로 바뀐다**.
+##     · **4 `showCutIn` 은 각성기 컷인**이다 — `FightScene` 이 `UltimateLayer` 를 만들기
+##       **직전에** 부르고(@00f8cd6c), 내부는 `getNo()==0x2335(9013) || 0x2336(9014)` 일 때만
+##       `Cutin::show(getImagePathCutIn, getImagePathCutBg)` 를 낸다. 그 밖의 드래곤은
+##       `getDragonVoiceCriticalFilePath()` = **보이스만**.
+##   ⇒ 9999 컷인 코드는 지웠다. 되살릴 근거(액션 코드 666 을 쓰는 이벤트 매치)가 생기면
+##     복원 안무는 `docs/ref/porting/Colosseum.md` §8.7 에 적어 뒀다.
+func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
+	var cid := int(atk.get("id", 0))
+	var path := "res://scenes/dragons/dragon_%d_e_critical.tscn" % cid
+	if not ResourceLoader.exists(path):
+		path = "res://scenes/dragons/dragon_%d_critical.tscn" % cid
+	if cid <= 0 or not ResourceLoader.exists(path):
+		return false
 	var holder := Node2D.new()
-	holder.z_index = 8                         # 원작 addChild(spine, 8, -2)
-	holder.position = vis * 0.5                # 원작 VisibleRect::center
-	# 원작 setScaleX(-…) — 공격 방향으로 뒤집는다.
+	holder.z_index = 8                          # 원작 addChild(spine, 8, −2)
+	# 원작은 **대상 레이어**에 붙인다.
+	var node = dfn.get("node")
+	if node is Node2D and is_instance_valid(node):
+		(node as Node2D).add_child(holder)
+	else:
+		add_child(holder)
+		holder.position = dfn.get("pos", _vis() * 0.5)
+	# 원작 setScaleX(음수) — 공격 방향으로 뒤집는다.
 	holder.scale = Vector2(-1.0 if bool(atk.get("mine", false)) else 1.0, 1.0)
-	add_child(holder)
-	var inst = (load(CRIT_SCENE) as PackedScene).instantiate()
+	var inst = (load(path) as PackedScene).instantiate()
 	holder.add_child(inst)
 	var ap := _find_anim_player(inst)
-	if ap == null:
+	var pick := ""
+	if ap != null:
+		# 원작은 `"animation"` 하나만 쓴다. 일부 스켈레톤은 이름이 `critical` 이다(데이터 편차).
+		for cand in ["animation", "critical"]:
+			if ap.has_animation(cand):
+				pick = cand
+				break
+	if pick == "":
 		holder.queue_free()
-		return
+		return false
+	ap.get_animation(pick).loop_mode = Animation.LOOP_NONE
+	ap.play(pick)
+	# 원작 CCDelayTime(getDuration("animation")) — 고정 초가 아니라 애니 길이만큼.
+	var t := holder.create_tween()
+	t.tween_interval(ap.get_animation(pick).length)
+	t.tween_callback(holder.queue_free)
+	return true
 
-	var gen := _gen
-	var step := func(name: String, speed: float) -> float:
-		if not ap.has_animation(name) or gen != _gen or not is_instance_valid(ap):
-			return 0.0
-		ap.get_animation(name).loop_mode = Animation.LOOP_NONE
-		ap.play(name, -1.0, speed)
-		return ap.get_animation(name).length / speed
 
-	var t_init: float = step.call("init", CRIT_INIT_SPEED)
-	await _wait(maxf(0.05, t_init))
-	var t_ready: float = step.call("ready", CRIT_READY_SPEED)
-	_shake_screen(CRIT_SHAKE_SEC * 0.4, CRIT_SHAKE_AMP)   # 원작 shakeLayerToVertical
-	await _wait(maxf(0.05, t_ready) + CRIT_GAP)
-	var t_shot: float = step.call("shot", CRIT_SHOT_SPEED)
-	_shake_screen(CRIT_SHAKE_SEC, CRIT_SHAKE_AMP)         # 원작 Shake(1.5, 0.5)
-	await _wait(maxf(0.3, t_shot) + 0.5)                  # 원작 마지막 Delay(0.5)
-	if is_instance_valid(holder):
-		holder.queue_free()
+## 크리티컬 보이스 — 원작 `showCutIn` 의 비-이벤트 분기가 내는 유일한 것
+## (`Dragon::getDragonVoiceCriticalFilePath()` → `music/voice<N>.mp3`).
+## 매핑은 `data/dragon_voices.json` `voices.<id>.critical`(유실분을 사용자 검수로 채운 값).
+func _crit_voice(atk: Dictionary) -> void:
+	var id := int(atk.get("id", 0))
+	var v := int((Data.dragon_voices.get("voices", {}).get(str(id), {}) as Dictionary).get("critical", 0))
+	if v > 0:
+		Bgm.sfx("voice%d" % v)
 
 
 ## 화면 흔들림 — 원작 `MakeInterface::shakeLayerToVertical` / `Shake::actionWithDuration`.
