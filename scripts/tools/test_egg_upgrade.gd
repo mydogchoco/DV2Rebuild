@@ -71,25 +71,24 @@ func _ready() -> void:
 	fails += _eq("3강 등급", EU.hatch_grade(3, ecfg), 7.5)
 	fails += _eq("0강은 확정 등급 없음(랜덤 굴림)", EU.hatch_grade(0, ecfg), 0.0)
 
-	# ── ⑤ 등급 곁 테이블 — 강화·소비·0강 계산 ───────────────────────────
-	# 알 3개 보유, 아직 강화 없음 → 0강 3개
-	var c: Dictionary = EU.normalize({})
-	fails += _eq("0강 개수 = 인벤 수", EU.owned_at(0, 3, c), 3)
-	c = EU.normalize(EU.after_upgrade(0, c))                  # 1개를 1강으로
-	fails += _eq("1강 1개", EU.owned_at(1, 3, c), 1)
-	fails += _eq("0강 2개로 줄었다", EU.owned_at(0, 3, c), 2)
-	c = EU.normalize(EU.after_upgrade(1, c))                  # 그 1개를 2강으로
-	fails += _eq("2강 1개", EU.owned_at(2, 3, c), 1)
-	fails += _eq("1강 0개", EU.owned_at(1, 3, c), 0)
-	fails += _eq("보유 등급 목록", str(EU.owned_grades(3, c)), str([0, 2]))
-	c = EU.normalize(EU.after_consume(2, c))                  # 2강 알 부화
-	fails += _eq("소비 후 2강 0개", EU.owned_at(2, 2, c), 0)
-	fails += _true("소비 후 테이블 비었다", c.is_empty())
+	# ── ⑤ 등급을 어디에 두는가 — v15 인벤 키 접미사 ──────────────────────
+	# ⚠️ 2026-08-04 정정: 종전 이 절은 `EU.owned_at/owned_grades/after_upgrade/
+	#    after_consume/to_save`(v14 곁 테이블 API)를 불렀는데, 그 5함수는 v15 재설계
+	#    (커밋 6f2cb03, 2026-07-31)에서 **삭제됐다** — 테스트만 남아 파일 전체가
+	#    파스 에러로 죽어 있었다. v15 는 등급을 인벤 키에 싣는다(`EggItem`).
+	fails += _eq("0강은 접미사 없음", EggItem.key("egg:17", 0), "egg:17")
+	fails += _eq("2강 키", EggItem.key("egg:17", 2), "egg:17#2")
+	fails += _eq("키에서 등급 읽기", EggItem.grade_of("egg:17#2"), 2)
+	fails += _eq("접미사 없으면 0강", EggItem.grade_of("egg:17"), 0)
+	fails += _eq("키에서 알 종류 읽기", EggItem.base_of("egg:17#2"), "egg:17")
+	fails += _true("강화된 알 판정", EggItem.is_upgraded("egg:17#2"))
+	fails += _true("0강은 강화 아님", not EggItem.is_upgraded("egg:17"))
+	fails += _true("같은 알의 변형", EggItem.is_variant_of("egg:17#2", "egg:17"))
+	fails += _true("다른 알은 변형 아님", not EggItem.is_variant_of("egg:18#2", "egg:17"))
 
-	# 구형(v12 이하) `{알키: 등급}` → 그 등급 1개
-	var old: Dictionary = EU.normalize(2)
-	fails += _eq("구형 값 = 2강 1개", EU.owned_at(2, 1, old), 1)
-	fails += _eq("저장 형식은 문자열 키", str(EU.to_save(old)), str({"2": 1}))
+	# 구형 세이브(v14 이하 곁 테이블) 읽기 — 마이그레이션 전용으로 남은 `normalize`.
+	fails += _eq("구형 값 = 2강 1개", str(EU.normalize(2)), str({2: 1}))
+	fails += _eq("구형 테이블 정규화", str(EU.normalize({"2": 1})), str({2: 1}))
 
 	# ── ⑥ 재료 수급: 환산 조합(위키 각주 12/6/3)이 데이터에 있다 ─────────
 	var ci: Dictionary = _load("res://data/combine_item.json")
