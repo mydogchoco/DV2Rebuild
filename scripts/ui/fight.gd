@@ -1340,6 +1340,61 @@ func _apply(ev: Dictionary) -> void:
 		# 회피 워드아트는 `_evade_effect`(원작 evadeEffect)가 낸다 — 여기서 또 찍지 않는다.
 		_log_line(ev, t, dfn, 0, 0)
 		return
+	# 🔴 각성기는 **연출 도중에** 맞는다 — 원작 `getDamageTextTime()` @01020e4c 이
+	#   속성별로 5.5~8.65초를 준다(불 7.8 · 땅 5.5 …). 종전엔 각성기 시작과 동시에 피가 깎여
+	#   9~12초짜리 연출이 도는 내내 결과가 이미 나와 있었다.
+	if t == "awaken":
+		var atk_v: Dictionary = _views.get(_actor_tag(ev), {})
+		var wait := UltimateFx.damage_at(String(atk_v.get("element", "")), float(_speed))
+		_ultimate_knockback(v, wait)
+		var gen := _gen
+		var ev2 := ev.duplicate(true)
+		get_tree().create_timer(wait).timeout.connect(func() -> void:
+			if is_instance_valid(self) and gen == _gen:
+				_apply_hit(ev2, t, dfn, v))
+		return
+	_apply_hit(ev, t, dfn, v)
+
+
+## 각성기 피격 반응 — 원작 `damage<El>_C` 가 대상에게 거는 것.
+## `damageEarth_C` 실측: `JumpBy(0.2, …, S×150)` 을 0.3초 간격으로 **네 번** 저글링한 뒤
+## `JumpBy(…, S×800)` 으로 **높이 띄운다**. 마지막 큰 점프가 피해 표시 시각과 맞물린다.
+const ULT_KNOCK_SEC := 0.2
+const ULT_KNOCK_GAP := 0.3
+const ULT_KNOCK_N := 4
+const ULT_KNOCK_H := 150.0
+const ULT_LAUNCH_H := 800.0
+
+func _ultimate_knockback(v: Dictionary, at_sec: float) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n) or bool(v.get("dead", false)):
+		return
+	var node := n as Node2D
+	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+	var home: Vector2 = v.get("home", node.position)
+	# 저글링은 **피해 시각 직전**에 몰아친다(원작도 damage_C 가 그 무렵에 건다).
+	var lead := maxf(0.0, at_sec - (ULT_KNOCK_SEC + ULT_KNOCK_GAP) * float(ULT_KNOCK_N))
+	var old = v.get("move_tw")
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	var t := create_tween()
+	v["move_tw"] = t
+	t.tween_interval(lead)
+	for i in ULT_KNOCK_N:
+		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
+		_tween_jump(t, node, node.position + d * float(i), node.position + d * float(i + 1),
+			ULT_KNOCK_H * s * 0.35, ULT_KNOCK_SEC, 1.0)
+		t.tween_interval(ULT_KNOCK_GAP)
+	# 마지막 — 크게 띄웠다가 제자리로.
+	_tween_jump(t, node, node.position, home, ULT_LAUNCH_H * s * 0.35, 0.6, 1.0)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(node):
+			node.position = v.get("home", home))
+
+
+## 피격 결과(HP·수치·사망)를 실제로 반영한다. 각성기만 시각을 늦춰 부른다.
+func _apply_hit(ev: Dictionary, t: String, dfn: String, v: Dictionary) -> void:
+	var dmg := int(ev.get("damage", 0))
 	if dmg > 0:
 		v["hp"] = maxi(0, int(v["hp"]) - dmg)
 		_set_bar(v)
