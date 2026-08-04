@@ -199,6 +199,10 @@ func _build_top(vis: Vector2) -> void:
 ##   슬롯 초기 가시성/스케일/앵커 중 하나로 보이나 근거 없이 만지지 않는다.
 ##   ⇒ 그때까지는 **보유 프레임 `vs`** 로 낸다(원작 아트다. 자작 도형이 아니다).
 ##   고치면 `USE_SPINE` 만 true 로 돌리면 된다.
+##
+## ✅ 2026-08-04 — "인트로가 중앙이 아니라 상단에 뜬다"던 종전 메모는 **내 오독이었다.**
+##   실측: vis=(1230,692) · 스프라이트 pos=(615,346) = 정확히 중앙.
+##   상단의 큰 흰 형체는 `_build_top` 이 상시로 까는 `vs_bg` 였다(무대 배경의 광선과도 겹쳤다).
 const FIGHT_SPINE := "res://scenes/fx/colosseum_fight.tscn"
 const USE_SPINE := false
 
@@ -776,16 +780,9 @@ func _finish() -> void:
 	info.add_theme_font_size_override("font_size", 24)
 	add_child(info)
 
-	if bool(r.get("tier_up", false)):
-		# 원작 ColosseumTierupPopup 자리 — 아직 이식 전이라 문구로 알린다.
-		var up := Label.new()
-		up.text = "티어 승급!  %s" % String((r.get("tier_after", {}) as Dictionary).get("name", ""))
-		up.size = Vector2(vis.x, 40.0)
-		up.position = Vector2(0.0, vis.y * 0.42 + 150.0)
-		up.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		up.add_theme_font_size_override("font_size", 26)
-		up.modulate = Color(1.0, 0.9, 0.4)
-		add_child(up)
+	# 원작 `ColosseumTierupPopup` — 승급/강등이 있으면 결과 위에 띄운다.
+	if bool(r.get("tier_up", false)) or bool(r.get("tier_down", false)):
+		ColosseumTierupPopup.open(self, r)
 
 	AtlasUI.frame_button(self, "확인", Vector2(vis.x * 0.5 - 90.0, vis.y - 130.0),
 		Vector2(180.0, 48.0), func() -> void:
