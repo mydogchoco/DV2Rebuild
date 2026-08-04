@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 import json
+import re
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -29,6 +30,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 STAGES = REPO / "data" / "stages.json"
 MONSTERS = REPO / "data" / "monsters.json"
+SKILLS = REPO / "data" / "skills.json"
 
 WIKI = "나무위키 dungeon_1 §1.2/§1.3/§2.1"
 
@@ -96,7 +98,47 @@ def _load(p: Path):
     return json.loads(p.read_text(encoding="utf-8"), object_pairs_hook=OrderedDict)
 
 
-def _enemy(asset_id, name, element, att, dfn, hp, level, skills, boss=True, weight=None):
+def _norm(s: object) -> str:
+    """스킬 이름 비교용 정규화 — `build_monster_skills.py` 와 같은 규약(괄호·공백 무시)."""
+    return re.sub(r"\s+", "", re.sub(r"\([^)]*\)", "", str(s or "")))
+
+
+def _skill_ids() -> dict:
+    """`skills.json` 의 이름 → id. 위 표들이 **이름**으로 적힌 것을 편성용 id 로 옮긴다."""
+    out = {}
+    for key, sd in _load(SKILLS).items():
+        if isinstance(sd, dict) and sd.get("name"):
+            out[_norm(sd["name"])] = int(sd.get("id", key))
+    return out
+
+
+def _to_ids(skills, table: dict, missing: set) -> list:
+    """편성(`stages.json enemies`)에 실을 스킬 목록을 **id** 로 만든다.
+
+    🔴 2026-08-04 수정: 종전엔 위 표의 **이름 문자열을 그대로** 실었다. 전투는
+    `battle.gd::_enemy_skills` 가 `int(sid)` 로 읽으므로 한글 이름은 조용히 0 이 되어
+    **밤 던전 몬스터 24마리가 스킬을 한 번도 쓰지 못했다**(스킬 이름 45건, 전 필드의 night).
+    `build_monster_skills.py` 는 같은 변환을 하지만 낮 편성 기준으로 나중에 돌려야만
+    고쳐졌다 — 실행 순서에 의존하지 않도록 **여기서 바로 id 로 적는다**.
+    (`monsters.json` 쪽은 계속 이름이다 — `build_monster_skills.py` 가 그걸 읽는다.)
+    """
+    ids = []
+    for s in skills or []:
+        if isinstance(s, int):
+            if s not in ids:
+                ids.append(s)
+            continue
+        sid = table.get(_norm(s))
+        if sid is None:
+            missing.add(str(s))
+            continue
+        if sid not in ids:
+            ids.append(sid)
+    return ids
+
+
+def _enemy(asset_id, name, element, att, dfn, hp, level, skills, boss=True, weight=None,
+           skill_table=None, missing=None):
     e = OrderedDict()
     e["id"] = asset_id
     e["asset_id"] = NIGHT_VISUAL_ASSET.get(asset_id, asset_id)
@@ -107,8 +149,9 @@ def _enemy(asset_id, name, element, att, dfn, hp, level, skills, boss=True, weig
     e["att"] = att
     e["def"] = dfn
     e["boss"] = boss
-    if skills:
-        e["skills"] = list(skills)
+    ids = _to_ids(skills, skill_table or {}, missing if missing is not None else set())
+    if ids:
+        e["skills"] = ids
     if weight is not None:
         e["weight"] = weight
     return e
@@ -117,6 +160,8 @@ def _enemy(asset_id, name, element, att, dfn, hp, level, skills, boss=True, weig
 def build_stages(check: bool = False) -> int:
     d = _load(STAGES)
     stages = d["stages"]
+    skill_table = _skill_ids()
+    missing: set = set()
     night_by_field = {f: row for row in NIGHT_BOSS for f in [row[0]]}
     day_boss = {}
     for f, _aid in KADES_BOSS:
@@ -132,10 +177,12 @@ def build_stages(check: bool = False) -> int:
         nv = s.setdefault("night", OrderedDict())
         nv["level"] = NIGHT_LEVEL
         enemies = [_enemy(aid, name, el, att, dfn, hp, NIGHT_LEVEL, skills,
-                          weight=NIGHT_BOSS_WEIGHT)]
+                          weight=NIGHT_BOSS_WEIGHT,
+                          skill_table=skill_table, missing=missing)]
         for rid, rname, _fm, _sz, rel, ratt, rdef, rhp, rskills, w in NIGHT_RANDOM:
             enemies.append(_enemy(rid, rname, rel, ratt, rdef, rhp, NIGHT_LEVEL, rskills,
-                                  boss=False, weight=w))
+                                  boss=False, weight=w,
+                                  skill_table=skill_table, missing=missing))
         nv["enemies"] = enemies
         nv["random_boss"] = True
         nv["_enemies_basis"] = (
@@ -152,7 +199,8 @@ def build_stages(check: bool = False) -> int:
         kv = s.setdefault("kades", OrderedDict())
         kv["enemies"] = [_enemy(aid, str(db["name"]), str(db.get("element", "none")),
                                 int(db["att"]), int(db["def"]), int(db["hp_max"]),
-                                int(db["level"]), db.get("skills", []))]
+                                int(db["level"]), db.get("skills", []),
+                                skill_table=skill_table, missing=missing)]
         kv["_enemies_basis"] = (
             f"{WIKI} §2.1 — 카데스 보스는 **낮 보스와 같은 몬스터의 색만 바뀐 판**이다"
             "('보스도 원래 몹에 색만 바꾼것뿐이다') → 이름·기본 스탯은 낮 보스 그대로, "
@@ -165,8 +213,12 @@ def build_stages(check: bool = False) -> int:
 
     d["_variant_basis"] = (
         "유타칸 밤(501~514)·카데스(601~614) 편성 = scripts/tools/build_yutakan_variants.py 가 기입. "
-        "각 스테이지의 night/kades 블록 참조. 변형이 있는 필드는 1~14 중 6·8 을 뺀 12종뿐이다."
+        "각 스테이지의 night/kades 블록 참조. 변형이 있는 필드는 1~14 중 6·8 을 뺀 12종뿐이다. "
+        "편성의 skills 는 **id** 다 — battle.gd::_enemy_skills 가 int 로 읽는다."
     )
+    if missing:
+        # 조용히 버리지 않는다 — 이름이 안 풀리면 그 몬스터는 스킬을 못 쓰게 되므로 보고한다.
+        print("⚠️ skills.json 에서 못 찾은 스킬 이름(편성에서 빠짐):", sorted(missing))
     if not check:
         STAGES.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     return n

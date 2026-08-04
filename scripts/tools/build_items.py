@@ -157,9 +157,13 @@ def main():
     add("alchemy_special", "mtr", "초월의 용액", "material", "alchemy", offline="todo")
     add("alchemy_platinum_01", "mtr", "샌즈의 눈물(10%)", "material", "alchemy", offline="todo")
     add("alchemy_platinum_02", "mtr", "샌즈의 눈물(20%)", "material", "alchemy", offline="todo")
+    # 보석 4종 — 임프 상인(퐁) 거래 재화. 🟢 2026-08-04 `todo` → `impl`:
+    #   수급처(임프 #160/#161 드랍, `data/monster_drops.json`)와 소비처(임프 상점,
+    #   `scripts/ui/imp_shop.gd`)가 둘 다 배선돼 실제로 돌아간다 — 표기만 낡아 있었다
+    #   (`test_imp_shop.gd` 의 "입수 가능 표시" 4건이 그걸 잡고 있었다).
     for k, nm in [("amethyst", "자수정"), ("emerald", "에메랄드"),
                   ("ruby", "루비"), ("sapphire", "사파이어")]:
-        add("jewel_%s" % k, "mtr", nm, "material", "jewel", offline="todo")
+        add("jewel_%s" % k, "mtr", nm, "material", "jewel", offline="impl")
 
     # 알조각 (7조각 조합)
     SHARD = {"janer": 4036, "nowaema": 4035, "lucifer": 3001, "holy": 3002,
