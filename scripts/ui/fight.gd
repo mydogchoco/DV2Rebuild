@@ -546,10 +546,14 @@ func _appear_intro(vis: Vector2) -> float:
 		# # ASSUMPTION: 원작의 최종 슬롯좌표를 주는 `FUN_0105564c` 를 못 읽어서 **낙하 높이**는
 		#   단상 도형에서 유도했다 — 단상 중심이 발끝보다 27.5 위(원작 상수)이고 단상 밑변이
 		#   땅이므로 `lift = 그려진높이×0.5 − 27.5×드래곤배율`.
-		var stand := AtlasUI.spr_cocos(ST, skey, Design.ASSET_SCALE * ds)
+		# ⚠️ `spr_cocos` 는 **Node2D 홀더**를 돌려주고(트림 보정 스프라이트를 감싼다)
+		#   안쪽에서 이미 `Design.ASSET_SCALE` 을 곱한다 ⇒ 인자에는 배율만 넘긴다.
+		#   (2026-08-05: 여기서 `stand.texture` 를 읽어 스크립트 예외가 났고, 그 바람에
+		#    등장 연출 전체가 중간에 끊겨 있었다. 크기는 `size_pt` 로 얻는다.)
+		var stand := AtlasUI.spr_cocos(ST, skey, ds)
 		var lift := 0.0
 		if stand != null:
-			var sh_h := float(stand.texture.get_height()) * stand.scale.y
+			var sh_h := AtlasUI.size_pt(ST, skey).y * ds
 			lift = maxf(0.0, sh_h * 0.5 - STAND_FEET * ds)
 			stand.position = Vector2(slot.x - dir * slide, slot.y - sh_h * 0.5)
 			stand.z_index = -2                     # 원작 addChild(stand, 1) — 드래곤보다 뒤
@@ -630,7 +634,9 @@ func _appear_intro(vis: Vector2) -> float:
 const DRAGON_H := 170.0             # `_spine_node` 정규화 높이
 const HUD_LIFT := 18.0              # 원작은 100(원작 레이어 크기 기준) — 위 주석 참조
 const HUD_TOP_MIN := 155.0          # 상단 프로필 판 아래로만 — 아래 ⚠️
-const HUD_ELEM_POS := Vector2(17.5, 19.75)
+## 🟦 2026-08-05 사용자 확정 — 원작 리터럴은 `(17.5, 19.75)` 인데 우리 커버 프레임 기준으로는
+##   아이콘이 원형 구멍에서 왼쪽으로 벗어난다 ⇒ x 를 **+25** 한다(원작 값은 이 주석에 보존).
+const HUD_ELEM_POS := Vector2(17.5 + 25.0, 19.75)
 const HUD_ELEM_W := 28.5
 
 func _make_hud(p: Dictionary, at: Vector2, dragon_h := DRAGON_H) -> Dictionary:
@@ -1282,7 +1288,18 @@ func _apply(ev: Dictionary) -> void:
 	if dfn == "" or not _views.has(dfn):
 		return
 	var v: Dictionary = _views[dfn]
-	_motion(ev, t, String(ev.get("attacker", "")), dfn)   # 스파인 공격/피격 모션
+
+	# 🔴 2026-08-05(사용자 지적) — 상태이상 아이콘이 **붙기만 하고 갱신·제거가 없었다.**
+	#   `Battle.simulate` 는 소유자 행동 뒤마다 `{type:"effect_tick", target, source(스킬id),
+	#   turns(남은 턴)}` 을 흘려 준다. 그걸 안 읽어서 숫자가 안 줄고, 만료돼도 안 사라졌다.
+	if t == "effect_tick":
+		_tick_icon(v, int(ev.get("source", 0)), int(ev.get("turns", 0)))
+		return
+	#   빛의 정화(26)는 대상마다 `cleanse: true` 를 낸다 — 그 대상의 **해로운** 아이콘을 지운다.
+	if bool(ev.get("cleanse", false)):
+		_clear_debuff_icons(v)
+
+	_motion(ev, t, _actor_tag(ev), dfn)                   # 스파인 공격/피격 모션
 	if bool(ev.get("miss", false)):
 		# 회피 워드아트는 `_evade_effect`(원작 evadeEffect)가 낸다 — 여기서 또 찍지 않는다.
 		_log_line(ev, t, dfn, 0, 0)
@@ -1292,6 +1309,12 @@ func _apply(ev: Dictionary) -> void:
 		_set_bar(v)
 		var col := Color(1.0, 0.85, 0.3) if bool(ev.get("crit", false)) else Color(1, 1, 1)
 		_float_text(v["pos"], str(dmg), col)
+	# 방어 스킬 발동(철갑 방패·신의 결계·복수의 거울·보호의 장막) — 🔴 2026-08-05 신설.
+	#   시전이 아니라 **피격 처리**에서 나오므로 `_motion` 경로가 아니다. 종전엔 콜로세움이
+	#   `def_skill` 을 아예 안 읽어서, 발동해도 화면·로그에 흔적이 하나도 없었다
+	#   (사용자에겐 "철갑 방패가 발동하지 않는다"로 보였다).
+	_defense_fired(v, ev)
+
 	var heal := int(ev.get("heal", 0))
 	if heal > 0:
 		v["hp"] = mini(int(v["hp_max"]), int(v["hp"]) + heal)
@@ -1351,7 +1374,7 @@ func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> v
 	var L: Dictionary = Data.colosseum.get("log", {})
 	if L.is_empty():
 		return
-	var an := _who(String(ev.get("attacker", "")))
+	var an := _who(_actor_tag(ev))
 	var dn := _who(dfn)
 	match t:
 		"normal", "double":
@@ -1379,6 +1402,60 @@ func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> v
 		_say(String(L.get("recover", "")) % [dn, heal])
 	if bool(ev.get("dead", false)):
 		_say(String(L.get("stun", "")) % dn)
+
+
+## 방어 스킬 발동 표시 — 원작 실드 스파인 + 문구.
+##
+## 원작 조건(`battle.gd::_shield_impact` 와 **같은 근거**): `startAttack` @00c89038 이 피격
+## 처리 중 `setCheckShildImpact(slot)` 을 부르고, 그 안이 `iVar5 != 0xb`(= 스킬 11 철갑 방패)
+## 이면 건너뛴다 ⇒ 실드 연출은 **철갑 방패 전용**이다. 나머지 방어 스킬은 문구만 남는다.
+## 문구는 원작 문자열 `<ColosseumBuff>`("%s이(가) 자신에게 %s을(를) 사용하였습니다.").
+const SHIELD_SKILL := 11
+const SHIELD_SPINE := "res://scenes/worldmap_fx/skill_adbloking_spine.tscn"
+
+func _defense_fired(v: Dictionary, ev: Dictionary) -> void:
+	var nm := String(ev.get("def_skill", ""))
+	if nm == "":
+		return
+	var L: Dictionary = Data.colosseum.get("log", {})
+	_say(String(L.get("buff", "%s / %s")) % [String(v.get("dname", "")), nm])
+	if int(ev.get("def_skill_id", 0)) != SHIELD_SKILL:
+		return
+	if not ResourceLoader.exists(SHIELD_SPINE):
+		return
+	var holder := Node2D.new()
+	holder.z_index = 60
+	holder.position = _body_pos(v)
+	add_child(holder)
+	var inst = (load(SHIELD_SPINE) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	if ap != null and ap.get_animation_list().size() > 0:
+		var a0 := ap.get_animation_list()[0]
+		ap.get_animation(a0).loop_mode = Animation.LOOP_NONE
+		ap.play(a0)
+	# 원작 `Delay(0.7) → Hide`.
+	var tw := holder.create_tween()
+	tw.tween_interval(0.7)
+	tw.tween_callback(holder.queue_free)
+
+
+## 이벤트의 **행동 주체** 태그 — 🔴 2026-08-05(사용자 지적 "철갑 방패가 안 나오고
+## 무언의 압박만 나온다")로 드러난 배선 누락.
+##
+## `Battle.simulate()` 의 이벤트는 종류마다 주체 칸 이름이 다르다:
+##   평타/연타/각성기(`_deal_attack`·`resolve_awaken`) → **`attacker`**
+##   스킬(`_apply_skill_effect`)                       → **`caster`**
+##   혼란·기절(`_act`)                                 → **`actor`**
+## 종전엔 `attacker` 만 봐서 **스킬 이벤트의 주체가 통째로 비었다** ⇒ 시전자가 공격 모션도
+## 이동도 안 하고, 로그의 시전자 이름도 빈칸으로 찍혔다. 방어 스킬(철갑 방패)은 애초에
+## 이 경로가 아니라 피격 처리에서 나오므로(`fired`) 아래 `_defense_fired` 가 따로 낸다.
+func _actor_tag(ev: Dictionary) -> String:
+	for k in ["attacker", "caster", "actor"]:
+		var s := String(ev.get(k, ""))
+		if s != "" and _views.has(s):
+			return s
+	return ""
 
 
 ## 내부 전투원 이름(A0/E0) → 화면에 낼 드래곤 이름.
@@ -1557,6 +1634,15 @@ func _play_anim(v: Dictionary, name: String) -> float:
 ##   `runSpineWithAnimationName` 가 **있다** ⇒ 기본 피격도 이 소리를 낸다.
 ##   깜빡임(=투명) 중에 애니가 도니 화면엔 안 보이고 **소리만** 남는 게 원작 동작이다.
 ##   같은 이유로 `battle.gd` 도 `InterFace::setCallHitSound` 로 같은 두 음원을 쓴다.
+## 🔴 2026-08-05(사용자 지적 "피격 때 스파인이 통째로 사라져 점멸한다") — **엔진 차이 보정.**
+##   원작 `CCFadeTo(0.0, 0)` 은 Cocos2d-x 에서 **그 노드의 opacity 만** 바꾼다 —
+##   `setCascadeOpacityEnabled` 를 켜지 않으면 자식(=스파인 슬롯)으로 안 내려간다.
+##   Godot 의 `modulate` 는 **항상 자식까지 내려가서**, 같은 값을 그대로 옮기면 드래곤이
+##   통째로 지워진다. `damagedColor` 를 받는 노드가 레이어인지 스파인인지는 호출부가
+##   `action`(`[skip>8000]`) 안이라 아직 못 짚었다 ⇒ 시퀀스·시간은 원작 그대로 두고
+##   **깊이만** 완전 투명(0.0)이 아니라 얕은 값으로 둔다(🟦 사용자 확정).
+##   원작 프레임을 확보해 판정이 서면 이 상수 하나만 0.0 으로 되돌리면 된다.
+const HIT_BLINK_ALPHA := 0.35       # 원작 리터럴은 0 — 위 주석 참조
 const HIT_BLINK_BACK := 0.1         # 원작 FadeTo(0.1, 255)
 const HIT_SFX_VOL_BASE := 0.25      # 원작 (rand()%6)*0.05 + 0.25
 const HIT_SFX_VOL_STEP := 0.05
@@ -1578,7 +1664,7 @@ func _damaged_color(v: Dictionary) -> void:
 	if ap is AnimationPlayer and is_instance_valid(ap) and (ap as AnimationPlayer).has_animation("damaged"):
 		hold = (ap as AnimationPlayer).get_animation("damaged").length
 	var tw := node.create_tween()
-	tw.tween_property(node, "modulate:a", 0.0, 0.0)
+	tw.tween_property(node, "modulate:a", HIT_BLINK_ALPHA, 0.0)
 	tw.tween_interval(maxf(0.05, hold - HIT_BLINK_BACK))
 	tw.tween_property(node, "modulate:a", 1.0, HIT_BLINK_BACK)
 
@@ -1890,6 +1976,8 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 			# `showCutIn` 은 `getNo()` 가 **9013/9014**(이벤트 드래곤)일 때만 전면 컷인
 			# (`getImagePathCutIn`/`CutBg`)을 내고, 나머지는 크리티컬 보이스만 낸다.
 			# 우리 드래곤에 9013/9014 는 없다 ⇒ 보이스 + 각성기 레이어.
+			# 🟦 2026-08-05 — 원작 탐험 `setAnimatedAttackC`(코드 4·7)와 같이 **컷인을 낸다**.
+			_cutin(atk)
 			_crit_voice(atk)
 			_awaken_fx(atk, at)
 		_:
@@ -1901,6 +1989,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 				_swap_position(atk, 0.8)
 				# 크리티컬 = **공격한 드래곤 자기 크리티컬 스파인**(원작 criticalEffectMake).
 				_critical_effect(atk, dfn)
+				_cutin(atk)              # 🟦 위 각성기와 같은 근거(코드 4·7)
 				_crit_voice(atk)
 				# 드빌1에서 온 종만 자기 이펙트 시퀀스를 위에 더 얹는다(800 로키 = `col_action2`).
 				_dragon_fx_seq(int(atk.get("id", 0)), "col_action2", at)
@@ -2086,7 +2175,50 @@ func _status_icon(v: Dictionary, skill_id: int, is_buff: bool, turns: int) -> vo
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_bm_style(l, 36, Color.WHITE, "font_normal")
 		holder.add_child(l)
+	# 정화(26)가 **해로운 것만** 지울 수 있게 성격을 남긴다.
+	holder.set_meta("buff", is_buff)
 	_icon_pulse(holder)
+
+
+## 남은 턴 갱신 — 0 이하면 아이콘을 떼고 줄을 다시 붙인다(원작 `removeIcon` 자리).
+func _tick_icon(v: Dictionary, skill_id: int, turns: int) -> void:
+	var host = v.get("icons")
+	if not (host is Node2D) or not is_instance_valid(host) or skill_id <= 0:
+		return
+	var box := host as Node2D
+	var n := box.get_node_or_null(NodePath("ic%d" % skill_id))
+	if n == null:
+		return
+	if turns <= 0:
+		box.remove_child(n)
+		n.queue_free()
+		_relayout_icons(box)
+		return
+	var lb = n.get_node_or_null("t")
+	if lb is Label:
+		(lb as Label).text = str(turns)
+
+
+## 해로운 효과 아이콘 전부 제거(빛의 정화).
+func _clear_debuff_icons(v: Dictionary) -> void:
+	var host = v.get("icons")
+	if not (host is Node2D) or not is_instance_valid(host):
+		return
+	var box := host as Node2D
+	for c in box.get_children():
+		if not bool((c as Node).get_meta("buff", false)):
+			box.remove_child(c)
+			c.queue_free()
+	_relayout_icons(box)
+
+
+## 아이콘 줄을 왼쪽부터 다시 붙인다.
+func _relayout_icons(box: Node2D) -> void:
+	var i := 0
+	for c in box.get_children():
+		if c is Node2D:
+			(c as Node2D).position = Vector2(float(i) * ICON_STEP, 0.0)
+		i += 1
 
 
 ## 상태이상이 **새로 붙는 순간**의 반짝임 — 원작 `createIcon` 이 같은 시퀀스 안에서 낸다.
@@ -2471,72 +2603,126 @@ func _shake_screen(sec: float, amp: float) -> void:
 ## ⚠️ 여기 구현한 건 그 골격까지다. `UltimateLayer` 전체 안무(속성별 개별 연출 · 카메라 ·
 ##   `battle/<combine>/combine_outline` 합체 외곽선 · `particle/scene/colosseum/effect_damaged`)
 ##   는 아직 이식 전이다 — 자산은 이제 다 있으니 이어서 붙이면 된다.
+##
+## 2026-08-05 **본체를 `scripts/ui/ultimate_fx.gd` 로 옮겼다** — 개발 확인 창
+## (`scripts/tools/dev_ultimate_fx.gd`, 씬 `scenes/dev_ultimate_fx.tscn`)이 **대전과 같은 코드**를
+## 재생해야 "구현상황 확인"이 성립한다. 연출 수정은 그 파일에서 한다.
 func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
-	var el := String(atk.get("element", ""))
-	var dir := "ultimate_" + el
-	var man := _man(dir)
-	if man.is_empty():
-		return
-	var pfx := "skill_ultimate_%s_%s_" % [el, el]
-	# 바닥 링
-	var ring := _spr(dir, pfx + "circle1", Design.ASSET_SCALE)
-	if ring != null:
-		ring.position = at
-		ring.z_index = 90
-		add_child(ring)
-		var rt := ring.create_tween()
-		rt.tween_property(ring, "scale", Vector2(2.0, 2.0) * Design.ASSET_SCALE, 0.5)
-		rt.parallel().tween_property(ring, "modulate:a", 0.0, 0.5)
-		rt.tween_callback(ring.queue_free)
-	# 번호 시퀀스 — 가장 긴 계열을 골라 프레임 애니로 돌린다.
-	var fam := _longest_family(man, pfx)
-	if fam.is_empty():
-		return
-	var spr := _spr(dir, fam[0], Design.ASSET_SCALE)
-	if spr == null:
-		return
-	spr.position = at
-	spr.z_index = 101
-	add_child(spr)
-	var i := 0
 	var gen := _gen
-	var step := func() -> void: pass
-	var t := Timer.new()
-	t.wait_time = 0.08                      # 원작 프레임 시퀀스 간격대
-	t.autostart = true
-	spr.add_child(t)
-	t.timeout.connect(func() -> void:
-		i += 1
-		if gen != _gen or i >= fam.size():
-			if is_instance_valid(spr):
-				spr.queue_free()
-			return
-		var tex := _tex(dir, fam[i])
-		if tex != null and is_instance_valid(spr):
-			spr.texture = tex)
+	UltimateFx.play(self, String(atk.get("element", "")), at, _pma,
+		func() -> bool: return is_instance_valid(self) and gen == _gen)
 
 
-## `<prefix><name><N>` 꼴 중 원소가 가장 많은 계열을 프레임 순서대로 반환.
-func _longest_family(man: Dictionary, pfx: String) -> Array:
-	var groups := {}
-	for k in man:
-		var s := String(k)
-		if not s.begins_with(pfx) or s.begins_with(pfx + "circle"):
-			continue
-		var tail := s.substr(pfx.length())
-		var base := tail.rstrip("0123456789")
-		if base == tail:
-			continue                        # 번호 없는 단품은 시퀀스가 아니다
-		if not groups.has(base):
-			groups[base] = []
-		(groups[base] as Array).append(s)
-	var best: Array = []
-	for b in groups:
-		var arr: Array = groups[b]
-		if arr.size() > best.size():
-			arr.sort()
-			best = arr
-	return best
+# ---------- 드래곤 컷인 — 원작 `Cutin::show` @Cutin.c:450 ----------
+#
+# 🔴 2026-08-05(사용자 지적 "각성기/크리티컬에 드래곤 에셋 컷인이 안 나온다") — **자산을 찾았다.**
+#   종전엔 "원작 컷인은 이벤트 드래곤 9013/9014 전용"이라고 결론지었는데, 그건
+#   `MakeInterface::showCutIn`(콜로세움) **한 경로만** 본 것이었다.
+#   `Dragon::getImagePathCutIn` @Dragon.c:8879 은 종마다 그림을 만든다:
+#       미각성 `dragon/dragon_%d_critical/cut_in.png` · 각성 `…/e_cut_in.png`
+#       (폴백 `dragon/dragon_9998_critical/cut_in.png` — §미다운로드 자리표시자라 안 쓴다)
+#   배경은 `Dragon::getImagePathCutBg` @0125e144 가 **속성 letter** 로 고른다:
+#       `dragon/cut_in_<e|a|f|w|l|d|h|c|s>/bg_cut{1,2,3}.png`
+#   ⇒ 변환본 실측: `assets/converted/critical_*` **388종**에 `cut_in`/`e_cut_in`,
+#     `assets/converted/cut_in_*` 9종에 `bg_cut1~3`. **전부 보유하고 있었다.**
+#
+# 원작 호출부 두 갈래:
+#   · 탐험 `BattleDragon::setAnimatedAttackC(int)` @00d1d9b4 — `param_1 == 4 || param_1 == 7`
+#     이면 `Cutin::show(0, **2.0**(0x40000000), cutIn, cutBg, voice, 0)` ⇒ **모든 드래곤**이 낸다.
+#   · 콜로세움 `MakeInterface::showCutIn` @01086348 — `getNo()==0x2335||0x2336` 일 때만.
+#   🟦 사용자 확정 2026-08-05: 콜로세움에서도 **탐험과 같이** 낸다(크리티컬·각성기).
+#
+# `Cutin::show` 안무(리터럴):
+#   가림막  Delay(d) → FadeTo(t, **150**) → Delay(dur×0.4) → FadeTo(t, 0) → 제거
+#   배경띠  `bg_cut1→2→3` 을 `CCRepeatForever` 로 돌리고,
+#           Delay(d) → Spawn(EaseOut(ScaleTo(t, s, s×**1.05**), rate **0.25**),
+#                            Seq(Delay(dur×0.5), FadeTo(t2, **100**), Spawn(FadeTo(t,0), MoveBy)))
+#   초상    Delay(d) → Delay(t2) → Spawn(FadeTo(t, **255**), MoveTo(t, …))
+# # ASSUMPTION: 세부 시간 `t`/`t2` 와 이동 벡터는 Ghidra 가 float 레지스터로 흘려 못 읽었다 —
+#   `dur`(2.0)에서 나눈 비율로 둔다. 값을 확보하면 아래 상수만 갈아 끼우면 된다.
+const CUTIN_DUR := 2.0              # 원작 Cutin::show 2번째 인자 0x40000000
+const CUTIN_DIM := 150.0 / 255.0    # 원작 FadeTo(…, 150)
+const CUTIN_BG_HOLD := 100.0 / 255.0 # 원작 FadeTo(…, 100)
+const CUTIN_STEP := 0.08            # 배경띠 3프레임 순환
+const CUTIN_IN := 0.2
+const CUTIN_EASE := 0.25            # 원작 CCEaseOut(…, 0.25)
+const CUTIN_BG_POP := 1.05          # 원작 ScaleTo(t, s, s×1.05)
+const CUTIN_ELE := {"earth": "e", "aqua": "a", "fire": "f", "wind": "w", "light": "l",
+	"dark": "d", "holy": "h", "chaos": "c", "shadow": "s"}
+
+func _cutin(atk: Dictionary) -> void:
+	var did := int(atk.get("id", 0))
+	var awakened := bool(atk.get("awakened", false))
+	var key := "dragon_dragon_%d_critical_%scut_in" % [did, "e_" if awakened else ""]
+	var tex := _tex("critical_%d" % did, key)
+	if tex == null and awakened:                      # 각성 그림이 없는 종은 기본 컷인
+		tex = _tex("critical_%d" % did, "dragon_dragon_%d_critical_cut_in" % did)
+	if tex == null:
+		return                                        # 폴백(9998)은 자리표시자라 안 쓴다
+	var vis := _vis()
+	var root := Node2D.new()
+	root.z_index = 300
+	add_child(root)
+
+	# ① 가림막.
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0)
+	dim.size = vis
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(dim)
+	var dt := dim.create_tween()
+	dt.tween_property(dim, "color:a", CUTIN_DIM, CUTIN_IN)
+	dt.tween_interval(CUTIN_DUR * 0.4)
+	dt.tween_property(dim, "color:a", 0.0, CUTIN_IN)
+
+	# ② 배경띠 — 속성별 3프레임 순환.
+	var el := String(CUTIN_ELE.get(String(atk.get("element", "")), ""))
+	var mine := bool(atk.get("mine", false))
+	if el != "":
+		var bg := _spr("cut_in_%s" % el, "dragon_cut_in_%s_bg_cut1" % el, Design.ASSET_SCALE)
+		if bg != null:
+			bg.position = vis * 0.5
+			bg.scale *= 0.94
+			root.add_child(bg)
+			var frames: Array = []
+			for i in 3:
+				var t2 := _tex("cut_in_%s" % el, "dragon_cut_in_%s_bg_cut%d" % [el, i + 1])
+				if t2 != null:
+					frames.append(t2)
+			if frames.size() > 1:
+				var loop := bg.create_tween().set_loops()
+				for f2 in frames:
+					loop.tween_callback(func() -> void:
+						if is_instance_valid(bg): bg.texture = f2)
+					loop.tween_interval(CUTIN_STEP)
+			var bs := bg.scale
+			var bt := bg.create_tween()
+			bt.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			bt.tween_property(bg, "scale",
+				Vector2(bs.x / 0.94, bs.y / 0.94 * CUTIN_BG_POP), CUTIN_IN)
+			bt.tween_interval(CUTIN_DUR * 0.5)
+			bt.tween_property(bg, "modulate:a", CUTIN_BG_HOLD, CUTIN_IN)
+			bt.tween_property(bg, "modulate:a", 0.0, CUTIN_IN)
+
+	# ③ 드래곤 초상 — 자기 진영 쪽에서 밀려 들어온다(원작 MoveTo).
+	var por := Sprite2D.new()
+	por.texture = tex
+	por.material = _pma
+	por.scale = Vector2.ONE * Design.ASSET_SCALE
+	var home := Vector2(vis.x * (0.32 if mine else 0.68), vis.y * 0.5)
+	por.position = home + Vector2((-1.0 if mine else 1.0) * vis.x * 0.35, 0.0)
+	por.modulate.a = 0.0
+	root.add_child(por)
+	var pt := por.create_tween()
+	pt.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	pt.tween_property(por, "position", home, CUTIN_IN)
+	pt.parallel().tween_property(por, "modulate:a", 1.0, CUTIN_IN)
+	pt.tween_interval(CUTIN_DUR * 0.5)
+	pt.tween_property(por, "modulate:a", 0.0, CUTIN_IN)
+
+	var life := root.create_tween()
+	life.tween_interval(CUTIN_DUR)
+	life.tween_callback(root.queue_free)
 
 
 func _man(dir: String) -> Dictionary:
@@ -2598,7 +2784,9 @@ func _float_text(pos: Vector2, text: String, col: Color, heal := false) -> void:
 #    (SSO 0x65766f6c08 검색 → MakeInterface·FightScene 0건, 동굴·상태창 등 다른 화면만).
 #    ⇒ 이긴 드래곤은 `wait` 로 돌아가고, 진 드래곤은 `down` 으로 쓰러져 있는 것이 원작 화면이다.
 #    없는 모션을 지어내지 않는다(§2-6).
-const RESULT_DELAY := 4.95          # 원작 createGameEndPopup 의 CCDelayTime(4.95)
+## 🟦 2026-08-05 사용자 확정 — 원작 값은 **4.95**(`createGameEndPopup` 의 CCDelayTime)인데
+##   기다림이 너무 길다는 지적으로 **1초**로 줄인다. 원작 상수는 아래 주석에 보존.
+const RESULT_DELAY := 1.0           # 원작 createGameEndPopup 의 CCDelayTime(4.95)
 const RESULT_PANEL_SCALE := 0.9     # 원작 result_popup1 setScale(0x3f666666)
 
 func _finish() -> void:

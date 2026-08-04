@@ -309,19 +309,60 @@ static func _apply_lifesteal(c: Dictionary) -> int:
 	return maxi(0, int(c["hp"]) - before)
 
 ## 해로운 효과 전부 제거(정화 26). 이로운 효과(양수 stat·lifesteal·survive_once·패시브)는 유지.
+## 이 효과가 **해로운가** — 정화(26)가 지우는 대상이자 면역이 막는 대상이다.
+##
+## 🔴 2026-08-05 — 종전 `_cleanse` 는 `kind == "status"` 를 **전부** 지웠다. 그러면 정화가
+##   자기편의 이로운 플래그(50 필살 방어의 `survive_once` · 각성 81 `evade_sure` ·
+##   5 `crit_sure` · 그리고 **`status_immune` 자체**)까지 날려 버린다. 해로운 플래그
+##   목록(`DEBUFF_FLAGS`)에 든 것만 해로운 것으로 본다.
+static func _is_debuff(e: Dictionary) -> bool:
+	var k := String(e.get("kind", ""))
+	if k == "status":
+		return String(e.get("flag", "")) in DEBUFF_FLAGS
+	if k == "dot" or k == "dmg_taken" or k == "timed":
+		return true
+	return k == "stat" and float(e.get("value", 0)) < 0
+
+## 지금 이 전투원에게 지울 해로운 효과가 있는가(정화 발동 판정).
+static func _has_any_debuff(c: Dictionary) -> bool:
+	for e in c.get("effects", []):
+		if _is_debuff(e as Dictionary):
+			return true
+	return false
+
+## 살아 있는 아군 중 하나라도 해로운 효과를 달고 있는가.
+static func _any_debuffed(allies: Array) -> bool:
+	for a in allies:
+		var c := a as Dictionary
+		if bool(c.get("alive", true)) and _has_any_debuff(c):
+			return true
+	return false
+
 static func _cleanse(c: Dictionary) -> void:
 	var keep: Array = []
 	for e in c.get("effects", []):
-		var k := String(e.get("kind", ""))
-		if k == "status" or k == "dot" or k == "dmg_taken" or k == "timed":
-			continue
-		if k == "stat" and float(e.get("value", 0)) < 0:
-			continue
-		keep.append(e)
+		if not _is_debuff(e as Dictionary):
+			keep.append(e)
 	c["effects"] = keep
 
 static func _add_stat(c: Dictionary, stat: String, mode: String, value: float, turns: int, src: int) -> void:
+	# 능력치 **감소**는 상태이상이다 — 면역이면 안 걸린다(아래 `_immune` 주석).
+	if value < 0.0 and _has_flag(c, IMMUNE_FLAG):
+		return
 	c["effects"].append({"kind": "stat", "stat": stat, "mode": mode, "value": value, "turns": turns, "source": src})
+
+
+## '모든 상태이상 무시' 가 이 해로운 효과를 막는가.
+##
+## 🟦 2026-08-05 사용자 확정 — 종전에는 **플래그형만**(`DEBUFF_FLAGS`) 막고 지속피해·
+##   받는피해 증가·능력치 감소·시한폭탄은 그대로 걸렸다(2026-07-29부터 남아 있던 미확정
+##   경계). 각성스킬 문구가 "**모든** 상태이상 무시"이고, 사용자가 "면역인 디버프는 아예
+##   받지 않고 버프창에도 안 뜨게" 라고 확정했다 ⇒ **해로운 효과 전 종류**로 넓힌다.
+##   대상 = `status`(해로운 플래그) · `dot` · `timed` · `dmg_taken` · 음수 `stat`.
+##   이로운 효과(자기 버프·양수 stat)는 그대로 걸린다.
+## 검증 = `scripts/tools/test_immune.gd`.
+static func _immune(c: Dictionary) -> bool:
+	return _has_flag(c, IMMUNE_FLAG)
 
 static func _add_flag(c: Dictionary, flag: String, turns: int, src: int) -> void:
 	# 상태이상 면역(각성스킬 777 성좌의 주권자 · 700 각성하는 의지 "모든 상태이상 무시").
@@ -958,6 +999,10 @@ static func _eligible_attack(c: Dictionary, skills_db: Dictionary, cfg: Dictiona
 		# 이미 같은 버프/디버프가 활성화 중이면 후보에서 빼서 발동 확률조차 굴리지 않는다.
 		if _same_skill_effect_active(c, int(s["id"]), sdef, allies, enemies):
 			continue
+		# 🟦 2026-08-05 사용자 확정 — **26 빛의 정화**는 아군에게 실제로 지울 해로운 효과가
+		#   있을 때만 후보가 된다(허공에 쓰고 사용횟수만 까먹지 않게).
+		if int(s["id"]) == 26 and not _any_debuffed(allies):
+			continue
 		out.append(s)
 	return out
 
@@ -1135,6 +1180,8 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 			if t5.is_empty(): return []
 			var pct := (20 if bool(s.get("dedicated", false)) else 15) + 2 * lv
 			var bomb := maxi(1, int(round(float(caster["hp"]) * float(pct) / 100.0)))
+			if _immune(t5):
+				return [_mark_immune(_merge(ev, {"target": t5["name"]}), t5)]
 			t5["effects"].append({"kind": "timed", "turns": 7, "dmg": bomb, "source": id})
 			return [_merge(ev, {"target": t5["name"], "timed_turns": 7, "timed_dmg": bomb})]
 		55:  # 이판사판: 자신과 상대 현재 체력 50%(전용 60%) 감소
@@ -1215,11 +1262,15 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 		23:  # 상처 파악: 영구 취약 +(7+3L)% 받는 피해
 			var t9 := pick_target(enemies, cfg)
 			if t9.is_empty(): return []
+			if _immune(t9):
+				return [_mark_immune(_merge(ev, {"target": t9["name"]}), t9)]
 			t9["effects"].append({"kind": "dmg_taken", "pct": 7 + 3 * lv, "turns": -1, "source": id})
 			return [_merge(ev, {"target": t9["name"], "debuff": "vulnerable%", "value": 7 + 3 * lv, "turns": -1})]
 		32:  # 신경독소: 2턴 DoT, 최대체력의 (3+1L)%
 			var t10 := pick_target(enemies, cfg)
 			if t10.is_empty(): return []
+			if _immune(t10):
+				return [_mark_immune(_merge(ev, {"target": t10["name"]}), t10)]
 			t10["effects"].append({"kind": "dot", "pct": 3 + lv, "turns": 2, "source": id})
 			return [_merge(ev, {"target": t10["name"], "debuff": "dot%", "value": 3 + lv, "turns": 2})]
 		46:  # 뼈 부수기: 단일 방어·회피 불가, 2턴
@@ -1281,7 +1332,9 @@ static func _debuff_all(ev: Dictionary, enemies: Array, mods: Array, turns: int,
 		if not en["alive"]: continue
 		for m in mods:
 			_add_stat(en, String(m[0]), "pct", float(m[1]), turns, src)
-		out.append(_merge(ev, {"target": en["name"], "turns": turns}))
+		# 면역이면 `_add_stat` 이 아무것도 안 걸었다 — 이벤트에서도 디버프 표기를 지운다.
+		out.append(_mark_immune(_merge(ev, {"target": en["name"], "turns": turns,
+			"debuff": "stat"}), en))
 	return out
 
 ## 대상의 액티브 스킬 중 하나의 남은 횟수 1 차감(마비의 구름 160).

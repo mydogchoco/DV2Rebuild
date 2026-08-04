@@ -497,6 +497,14 @@ func _open_panel(uid: int) -> void:
 	# `dismiss=false` — 이 패널은 편성창의 **구성물**이라 바깥을 눌러도 닫히지 않는다.
 	# (전투 팝업만 원작 `removeDragonInfo` 처럼 빈 곳 터치로 닫힌다.)
 	_panel = StatusLayer.open_panel(self, d, false, pos, false)
+	# 🔴 2026-08-05(사용자 지적 "칸을 눌러도 상태창만 사라지고 끝난다") — 칸의 심화 편집은
+	#   전부 `cave.gd` 안의 팝업이다(사용자 확정 2026-07-28). 메인 화면 상태창
+	#   (`main_hud.gd::_act("status")`)과 **같은 통로**로 동굴에 넘긴다.
+	#   ⚠️ 씬을 옮기므로 고르던 편성은 풀린다 — 돌아와서 다시 고르면 된다.
+	#      (드링크 칸만은 `StatusLayer` 가 제자리에서 `DrinkPopup` 을 띄운다.)
+	_panel.action_requested.connect(func(a: String, arg: int) -> void:
+		UserDB.set_active(uid)
+		Scenes.goto("cave", {"open": a, "arg": arg}))
 	_panel.layer = layer + 1
 	_panel_uid = uid
 	# 밀려 들어오기 + ±10 튕김(원작 MoveBy(0.1, -center.x) → +10 → -10).
