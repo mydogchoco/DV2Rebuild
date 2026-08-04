@@ -171,15 +171,55 @@ func _build_top(vis: Vector2) -> void:
 	_side_plate(String(_foe.get("nick", "")), int(_foe.get("rating", 0)),
 		vis.x - 20.0 - 330.0, vis)
 
-	# 가운데 VS — 원작 fight_spine 미변환이라 보유 프레임 vs/vs_bg 로 낸다.
+	# 상단 가운데 VS 표식(상시). 개시 연출은 `_vs_intro()` 가 따로 낸다.
 	var vb := _spr(CO, "scene_colosseum_vs_bg", Design.ASSET_SCALE)
 	if vb != null:
 		vb.position = Vector2(vis.x * 0.5, 56.0)
 		add_child(vb)
-	var v := _spr(CO, "scene_colosseum_vs", Design.ASSET_SCALE)
+	var v := _spr(CO, "scene_colosseum_mini_vs", Design.ASSET_SCALE)
 	if v != null:
 		v.position = Vector2(vis.x * 0.5, 56.0)
 		add_child(v)
+
+
+## 대전 개시 연출 — 원작 `scene/colosseum/fight_spine`("FIGHT!").
+##
+## ⚠️ **2026-08-04 미해결**: `build_colosseum_fx.py` + `build_spine_scene.gd` 로 변환·씬 빌드는
+##   끝났고(`scenes/fx/colosseum_fight.tscn`, 12본/8슬롯/anim=animation) 파일도 생기는데,
+##   화면에 **아무것도 안 그려진다**(헤드리스 스크린샷 확인). 원인 미규명 —
+##   슬롯 초기 가시성/스케일/앵커 중 하나로 보이나 근거 없이 만지지 않는다.
+##   ⇒ 그때까지는 **보유 프레임 `vs`** 로 낸다(원작 아트다. 자작 도형이 아니다).
+##   고치면 `USE_SPINE` 만 true 로 돌리면 된다.
+const FIGHT_SPINE := "res://scenes/fx/colosseum_fight.tscn"
+const USE_SPINE := false
+
+func _vs_intro() -> void:
+	var vis := _vis()
+	if USE_SPINE and ResourceLoader.exists(FIGHT_SPINE):
+		var holder := Node2D.new()
+		holder.z_index = 100
+		holder.position = vis * 0.5
+		add_child(holder)
+		var inst = (load(FIGHT_SPINE) as PackedScene).instantiate()
+		holder.add_child(inst)
+		var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+		if ap and ap.has_animation("animation"):
+			ap.get_animation("animation").loop_mode = Animation.LOOP_NONE
+			ap.play("animation")
+		var tw := holder.create_tween()
+		tw.tween_interval(1.4)
+		tw.tween_property(holder, "modulate:a", 0.0, 0.3)
+		tw.tween_callback(holder.queue_free)
+		return
+	var v := _spr(CO, "scene_colosseum_vs", Design.ASSET_SCALE * 1.6)
+	if v != null:
+		v.z_index = 100
+		v.position = vis * 0.5
+		add_child(v)
+		var tw2 := create_tween()
+		tw2.tween_interval(1.2)
+		tw2.tween_property(v, "modulate:a", 0.0, 0.3)
+		tw2.tween_callback(v.queue_free)
 
 
 ## 한쪽 진영의 프로필 판 — 원작 `profilebox` + `common/tier_icon_*`.
@@ -255,7 +295,8 @@ func _combatants(team: Array, side: String) -> Array:
 func _play() -> void:
 	var gen := _gen
 	_say("%s 와(과)의 대전!" % String(_foe.get("nick", "")))
-	await _wait(1.0)
+	_vs_intro()                 # 원작 fight_spine("FIGHT!") 개시 연출
+	await _wait(1.8)
 	if gen != _gen: return
 	for ev in _events:
 		_apply(ev)
