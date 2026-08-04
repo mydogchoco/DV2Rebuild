@@ -54,12 +54,12 @@ extends RefCounted
 ## 보유 프레임(`9patch/train_box4` · `common/bar_bg2`+`bar_exp`+`bar_cover` ·
 ## `scene/adventure/icon_exp` · `common/backlight3` · `common/shadow`)으로 재구성한다.
 
-## 각성 조건(우리 규칙). 원작 재료표 `AccountManager::getAwakenMtrData`(아이템 3종×수량)는
-## 서버 유실이고 위키에도 효과("등급 +0.6", docs/ref/wiki/etc.pdf §1.3.3)만 있다 →
-## Lv.45 + 각성의 마석 1개로 둔다(레벨 상한은 Growth.level_cap 45→50).
+## 각성 조건은 원작 문자열 `<DragonAwakenComment>`와 레퍼런스 카드로 확정된 Lv.50.
+## 재료표 `AccountManager::getAwakenMtrData`(아이템 3종×수량)는 서버 유실이고,
+## 위키에서 아니마·보네르 수량과 효과("등급 +0.6")를 보완한다.
 ## 진입점은 우노 마모루딕 연구소 하나뿐이며 **우노 지역 구현 전까지 연결하지 않는다**
 ## (scripts/ui/mamorudiclab.gd `_open_evolution`). 동굴은 이 상수를 상태 표시에만 쓴다.
-const AWAKEN_LEVEL := 45
+const AWAKEN_LEVEL := 50
 const AWAKEN_JEWELS := ["evol_jewel_6", "evol_jewel_5", "evol_jewel_4", "evol_jewel_3"]
 
 const DRAGON_SCENE := "res://scenes/dragons/dragon_%d_%s.tscn"
@@ -146,8 +146,44 @@ static func _spine(path: String, anim: String, loop: bool, scale: float, pos: Ve
 	if ap and ap.has_animation(anim):
 		ap.get_animation(anim).loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
 		ap.play(anim)
+		# 첫 프레임의 본 변환을 즉시 적용해 원작 anchorPoint와 같은 가시영역 정렬에 쓴다.
+		ap.advance(0.0)
 	holder.set_meta("ap", ap)
 	return holder
+
+## 변환된 Spine 씬의 현재 가시 Sprite2D들을 holder 로컬 좌표로 합친 경계.
+## 원작 CCSkeletonAnimation의 anchorPoint(0.5, 0.5)를 하드코딩 오프셋 없이 복원한다.
+static func _visible_bounds(holder: Node2D) -> Rect2:
+	var found := false
+	var out := Rect2()
+	var stack: Array[Node] = [holder]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child in node.get_children():
+			stack.push_back(child)
+		if node == holder or not (node is Sprite2D):
+			continue
+		var sprite := node as Sprite2D
+		if not sprite.is_visible_in_tree() or sprite.texture == null:
+			continue
+		var r := sprite.get_rect()
+		var rel := holder.global_transform.affine_inverse() * sprite.global_transform
+		for corner in [r.position, Vector2(r.end.x, r.position.y), r.end,
+				Vector2(r.position.x, r.end.y)]:
+			var p: Vector2 = rel * corner
+			if not found:
+				out = Rect2(p, Vector2.ZERO)
+				found = true
+			else:
+				out = out.expand(p)
+	return out if found else Rect2()
+
+static func _center_visible_at(holder: Node2D, target: Vector2) -> void:
+	var bounds := _visible_bounds(holder)
+	if bounds.size == Vector2.ZERO:
+		holder.position = target
+		return
+	holder.position = target - holder.transform.basis_xform(bounds.get_center())
 
 static func _dur(holder: Node2D, anim: String, fallback := 1.0) -> float:
 	if not is_instance_valid(holder): return fallback
@@ -203,17 +239,17 @@ static func _set_evol_dragon(ctx: Dictionary) -> void:
 	var path := _dragon_scene(did, "e")
 	if not ResourceLoader.exists(path):
 		path = _dragon_scene(did, Growth.stage_for_level(int(d.get("level", 1))))
-	# 원작 위치 (w*0.23, h*0.5) + **anchor(0.5,0.5)** = 스프라이트 **중심**이 그 점에 온다.
-	# 우리 스파인 씬의 원점은 스켈레톤 루트(=발밑)라 그대로 두면 몸이 위로만 뻗어 화면을 넘는다
-	# (실측: 각성체 날개가 상단 밖으로 잘렸다). 발밑을 아래로 내려 중심을 원작 지점에 맞춘다.
-	# ASSUMPTION: 오프셋 0.14h — 동굴 받침대 기준(발밑 0.49h ⇒ 몸 중심 ≈ 0.36h)에서 역산한 값.
-	var pos := Vector2(vis.x * 0.23, _cy(ctx, vis.y * 0.5) + vis.y * 0.14)
-	var evol := _spine(path, "love", true, EVOL_DRAGON_SCALE * S, pos, Z_EVOL, cont)
+	# 원작 위치 (w*0.23, h*0.5) + anchor(0.5,0.5). 변환 씬의 원점은 발밑이므로
+	# 현재 love 프레임의 실제 가시 경계를 구해 그 중심을 같은 좌표에 정렬한다.
+	var center := Vector2(vis.x * 0.23, _cy(ctx, vis.y * 0.5))
+	var evol := _spine(path, "love", true, EVOL_DRAGON_SCALE * S, center, Z_EVOL, cont)
+	if evol:
+		_center_visible_at(evol, center)
 	ctx["evol"] = evol
-	ctx["evol_pos"] = pos
+	ctx["evol_pos"] = evol.position if evol else center
 	# 원작 앵커 지점(= 스프라이트 중심). actEvolEffect 는 대상 bbox **중앙**에 서므로 이 값을 쓴다
 	# (발밑 pos 를 쓰면 워드아트가 드래곤 발치에 깔린다 — 실측으로 확인).
-	ctx["evol_center"] = Vector2(vis.x * 0.23, _cy(ctx, vis.y * 0.5))
+	ctx["evol_center"] = center
 	# 확인 버튼 — 원작 `common/check_btn.png` @ (w*0.9, h*0.95), scale 1.5, 투명 → 0.5초 페이드인.
 	var btn := TextureButton.new()
 	var bp := "res://assets/converted/common_ui/common_check_btn.tres"
@@ -377,8 +413,8 @@ static func _draw_base(ctx: Dictionary) -> void:
 		v.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 		v.add_theme_constant_override("outline_size", 5)
 		v.position = Vector2(vis.x * 0.55 + 120.0, y); base.add_child(v)
-	# 각성 완료 문구(원작 문자열 테이블에 대응 항목을 못 찾아 우리 문구다).
-	var tt := Label.new(); tt.text = "각성 완료 — 레벨 상한 %d" % Growth.level_cap(true)
+	# 각성 전후 레벨 상한은 50으로 동일하므로 상한 해금이라는 잘못된 안내를 제거한다.
+	var tt := Label.new(); tt.text = "각성 완료"
 	tt.add_theme_font_size_override("font_size", 18)
 	tt.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
 	tt.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))

@@ -1035,7 +1035,13 @@ func _stone_make_right(host: Control, e: Dictionary, picks: Dictionary, changed:
 	up.rotation_degrees = -90.0
 	up.position = Vector2(ax - 14.0, 116.0)
 	up.pressed.connect(func():
-		picks[did] = mini(have, int(picks.get(did, 0)) + 1)
+		var current := int(picks.get(did, 0))
+		# 원작은 종류 초과 오류(`MasicStoneErroMsg_4`)를 갖는다. 사용자 지정 상한 10종은
+		# 선택 시점에도 적용해 11번째 종류가 선택 상태로 들어가지 않게 한다.
+		if current <= 0 and picks.size() >= AwakenStone.max_kinds(Data.awaken):
+			_say("한번에 넣을수 있는 알의 종류를 초과했습니다.")
+			return
+		picks[did] = mini(have, current + 1)
 		changed.call())
 	host.add_child(up)
 	var cnt := Label.new()

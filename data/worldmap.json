@@ -855,74 +855,107 @@
       "ty": 945.63,
       "_residual": "|dx| 평균 21.2 최대 41.6 / |dy| 평균 12.9 최대 29.7 (5점)",
       "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     },
+     "ambient": {
+      "s": 0.75,
+      "tx": -149.57,
+      "ty": 945.63,
+      "_basis": "initAnimation의 절대좌표는 라벨과 같은 월드맵 레이어 좌표다. bbox 최소corner를 중심으로 오인한 종전 변환(s=0.70394 tx=-35.85 ty=983.13)을 폐기하고, bbox 중심으로 검증된 coord.label 변환을 공유한다."
      }
     },
     "content_w": 1360,
     "_coord_note": "pos=bg-아틀라스 px(프레임 중심). design = bg_design + (pos − bg_tex_center)×scale. scale = 0.9686×692/939 — 유타칸과 같은 세로 채움비(맵 전체가 한 화면에 들어온다). center_x=true → bg_design.x 는 런타임에 max(content_w, 화면폭)×0.5 로 재계산(해상도 무관 중앙정렬). 🔴 2026-07-28 이전 값(scale 0.92)은 맵이 화면(692)보다 높아 위쪽이 잘렸고, 그 바람에 위쪽 앰비언트(엘프 세계수·생명수 / 드워프 엘리베이터)가 화면 밖으로 밀려났다.",
     "ambient_prefix": "scene_worldmap_map_elf_ani_new_",
+    "field_fx": [
+     {
+      "field": 16, "kind": "spine", "scene": "ani_elf_wood_new_spine",
+      "anim": "touch", "loop": false, "layer_pos": [1515, 741], "scale": 0.75,
+      "sounds": ["effect_elysium_1_fire", "effect_elysium_1_wii"], "remove_after": 7.0,
+      "_orig": "WorldMapElfLayer::setMapAnimation case 16: ani_elf_wood_new_spine at (1515,741), touch once"
+     },
+     {
+      "field": 17, "kind": "spine", "scene": "ani_elf_valley_new_spine",
+      "anim": "animation", "loop": false, "layer_pos": [484, 772], "scale": 0.75,
+      "sounds": ["effect_elysium_2_eye", "effect_elysium_2_puuok"], "remove_after": 7.0,
+      "_orig": "WorldMapElfLayer::setMapAnimation case 17: ani_elf_valley_new_spine at (484,772), animation once"
+     },
+     {
+      "field": 18, "kind": "spine", "scene": "ani_elf_temple_spine",
+      "anim": "animation", "loop": false, "layer_pos": [709, 481], "scale": 0.75,
+      "sounds": ["effect_elysium_3_ghost", "effect_elysium_3_sword"], "remove_after": 6.0,
+      "_orig": "WorldMapElfLayer::setMapAnimation case 18: ani_elf_temple_spine at (709,481), animation once"
+     },
+     {
+      "field": 19, "kind": "sprite", "base": "ani_tree_touch",
+      "layer_pos": [895, 1029], "sounds": ["effect_elysium_4_worldwood"],
+      "fade_in": 0.5, "hold": 2.0, "fade_out": 0.5,
+      "_orig": "WorldMapElfLayer::setMapAnimation case 19: ani_tree_touch fade 0.5 + hold 2 + fade 0.5"
+     }
+    ],
     "ambient": [
      {
       "base": "ani_elf_waterflow_spine",
       "kind": "spine",
       "scene": "ani_elf_waterflow_spine",
       "anim": "animation",
-      "pos": [
-       685.0,
-       495.3
+      "design_offset": [40, 200],
+      "layer_pos": [
+       1024,
+       693
       ],
       "_orig": "WorldMapElfLayer::initAnimation CCPoint(1024,693) setAnimation('animation',true) z=11",
-      "scale": 0.70394,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)"
      },
      {
       "base": "ani_elf_wave_new_spine",
       "kind": "spine",
       "scene": "ani_elf_wave_new_spine",
       "anim": "animation",
-      "pos": [
-       685.7,
-       495.3
+      "design_offset": [40, 200],
+      "layer_pos": [
+       1025,
+       693
       ],
       "_orig": "동 initAnimation CCPoint(1025,693) z=11",
-      "scale": 0.70394,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
-      "hide_slots": [
-       "w_elf_riverdustbook"
-      ],
-      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)",
+      "_book_basis": "원작 Spine의 강변 지형판. 마젠타 진단에서 background1과 조각만으로는 세계수-성소 사이 투명 틈이 남아 원작처럼 표시한다."
      },
      {
       "base": "ani_elf_livingwaters_new_spine",
       "kind": "spine",
       "scene": "ani_elf_livingwaters_new_spine",
       "anim": "animation",
-      "pos": [
-       612.5,
-       293.3
+      "layer_pos": [
+       921,
+       980
       ],
       "_orig": "동 initAnimation CCPoint(921,980) z=11",
-      "scale": 0.70394,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)"
      },
      {
       "base": "ani_elf_tree_spine",
       "kind": "spine",
       "scene": "ani_elf_tree_spine",
       "anim": "animation",
-      "pos": [
-       601.9,
-       251.7
+      "layer_pos": [
+       906,
+       1039
       ],
+      "design_offset": [
+       -44.7,
+       42.3
+      ],
+      "_offset_basis": "treebase를 정적 map004 세계수에 영상 정합. treebase 458x449를 원작 축척 0.75로 줄인 뒤 map004와 RGB 중첩 최소오차 위치(dx=28,dy=26)에 맞춤.",
       "_orig": "동 initAnimation CCPoint(906,1039) z=11",
-      "scale": 0.70394,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
-      "hide_slots": [
-       "w_elf_treebook"
-      ],
-      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)",
+      "_book_basis": "원작 Spine의 세계수 하단 지형판. 세계수 영상 정합 후 원작처럼 표시해 주변 지형 연결부를 완성한다."
      }
     ],
-    "_ambient_source": "원작 WorldMapElfLayer::initAnimation 축자 이식. 좌표 = 원작 cocos → bg-아틀라스 px 균일변환(s=0.70394 tx=-35.85 ty=983.13, background1_bg 슬롯 실측 정합). 프레임딜레이 0.2s. 🔴 2026-07-28 재이식 — 종전 비균일 어파인(x/y 축척이 9~11% 달랐다)을 폐기.",
+    "_ambient_source": "원작 WorldMapElfLayer::initAnimation 축자 이식. layer_pos=원작 cocos 절대좌표. 런타임 변환은 coord.ambient(s=0.75 tx=-149.57 ty=945.63): contentScaleFactor 이론축척 + initBG bbox 중심 ↔ background1 슬롯 실측중심 정합. 2026-08-02 bbox 최소corner를 중심으로 오인한 종전 변환을 폐기해 우하단 공통 드리프트를 수정. 프레임딜레이 0.2s.",
     "sounds": [
      {
       "track": "effect_area_river",
@@ -985,10 +1018,10 @@
      "label": "정령의 숲",
      "target": "battle:16",
      "pos": [
-      861.7,
-      482.2
+      910.0,
+      477.5
      ],
-     "_pos_basis": "initBG 좌표 균일변환(해당 조각은 지형 위에 얹혀 슬롯이 없다)",
+     "_pos_basis": "background1과 나머지 조각에 map001 경계를 영상 정합한 중심. 종전 initBG 근사값(861.7,482.2)이 오른쪽 섬 이음매에 투명 구멍을 남겨 폐기.",
      "label_level": 25,
      "label_pos": [
       1500,
@@ -1095,43 +1128,56 @@
       "ty": 895.62,
       "_residual": "|dx| 평균 10.5 최대 22.3 / |dy| 평균 21.6 최대 38.1 (5점)",
       "_basis": "원작 레이어 좌표(포인트, y-up) → bg-아틀라스 px(y-down): (s*x + tx, -s*y + ty). s 는 이론값(아틀라스 px→cocos 포인트 4/3 · contentScaleFactor 0.75)이라 고정, tx/ty 만 initBG 의 조각 bbox 중심 ↔ 우리 슬롯 실측중심으로 최소제곱. coord.layer 와 값이 다른 이유 = 그쪽은 bbox **최소corner** 를 중심으로 오인해 맞췄다. 구름·발광점은 종전 값으로 눈맞춤이 끝나 있어 건드리지 않는다."
+     },
+     "ambient": {
+      "s": 0.75,
+      "tx": -117.43,
+      "ty": 895.62,
+      "_basis": "initAnimation의 절대좌표는 라벨과 같은 월드맵 레이어 좌표다. bbox 최소corner를 중심으로 오인한 종전 변환(s=0.73140 tx=-3.05 ty=949.80)을 폐기하고, bbox 중심으로 검증된 coord.label 변환을 공유한다."
      }
     },
     "content_w": 1360,
     "_coord_note": "pos=bg-아틀라스 px(프레임 중심). design = bg_design + (pos − bg_tex_center)×scale. scale = 0.9686×692/879 — 유타칸과 같은 세로 채움비(맵 전체가 한 화면에 들어온다). center_x=true → bg_design.x 는 런타임에 max(content_w, 화면폭)×0.5 로 재계산(해상도 무관 중앙정렬). 🔴 2026-07-28 이전 값(scale 0.859)은 맵이 화면(692)보다 높아 위쪽이 잘렸고, 그 바람에 위쪽 앰비언트(엘프 세계수·생명수 / 드워프 엘리베이터)가 화면 밖으로 밀려났다.",
     "ambient_prefix": "scene_worldmap_map_dwarf_ani_new_",
+    "field_fx": [
+     {
+      "field": 20, "kind": "sprite", "base": "ani_mineral",
+      "layer_pos": [279, 143], "sounds": ["effect_metal_2_mountain"],
+      "pulses": 3, "fade_in": 1.0, "fade_out": 1.0,
+      "_orig": "WorldMapDwarfLayer::setMapAnimation case 20: ani_mineral fades in and out three times"
+     },
+     {
+      "field": 21, "kind": "spine", "scene": "ani_grave_new_spine",
+      "anim": "animation", "loop": false, "layer_pos": [861, 670.5], "scale": 0.75,
+      "sounds": ["effect_metal_1_grave"], "remove_after": 6.0,
+      "_orig": "WorldMapDwarfLayer::setMapAnimation case 21: ani_grave_new_spine at (861,670.5), animation once"
+     },
+     {
+      "field": 22, "kind": "ambient_touch", "ambient_touch": "dwarf_statue",
+      "anim": "animation", "sounds": ["effect_metal_3_big"],
+      "_orig": "WorldMapDwarfLayer::setMapAnimation case 22: tag 14 statue animates once and returns to setup pose"
+     }
+    ],
     "ambient": [
      {
       "base": "ani_elevator_new_spine",
       "kind": "spine",
       "scene": "ani_elevator_new_spine",
       "anim": "elevator",
-      "pos": [
-       414.6,
-       415.9
+      "layer_pos": [
+       571,
+       730
       ],
+      "design_offset": [
+       -77.3,
+       56.3
+      ],
+      "_offset_basis": "숨긴 elevator_book(105x282)을 광물산맥 정적 지형과 영상 정합해 도르래 축에 복원. bg-atlas 보정(-101.3,+73.9)에 지역축척 0.7625 적용.",
       "_orig": "WorldMapDwarfLayer::initAnimation CCPoint(571,730) setAnimation('elevator',true) z=11",
-      "scale": 0.7314,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)",
       "hide_slots": [
        "w_dwarf_elevator_book"
-      ],
-      "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
-     },
-     {
-      "base": "ani_cart_new_spine",
-      "kind": "spine",
-      "scene": "ani_cart_new_spine",
-      "anim": "mine",
-      "pos": [
-       844.6,
-       417.3
-      ],
-      "_orig": "동 initAnimation CCPoint(1159,728) setAnimation('mine',true) z=11",
-      "scale": 0.7314,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)",
-      "hide_slots": [
-       "w_dwarf_mine_book"
       ],
       "_hide_basis": "맵 지형을 복제한 배경판 — 우리 배경이 이미 그린다(이중 렌더/축척 잔차 방지). 움직이는 부품은 유지"
      },
@@ -1139,40 +1185,46 @@
       "base": "ani_fire",
       "kind": "flip",
       "n": 3,
-      "pos": [
-       568.2,
-       282.8
+      "layer_pos": [
+       781,
+       912
       ],
       "_orig": "동 initAnimation CCPoint(781,912) getMapAnimation('ani_fire%02d.png',3)+RepeatForever z=11"
      },
      {
       "base": "ani_dwarfstatue_new_spine",
+      "id": "dwarf_statue",
       "kind": "spine",
       "scene": "ani_dwarfstatue_new_spine",
-      "anim": "animation",
-      "pos": [
-       1013.6,
-       547.5
+      "autoplay": false,
+      "layer_pos": [
+       1390,
+       550
       ],
+      "design_offset": [
+       -55.0,
+       36.0
+      ],
+      "_offset_basis": "거신의 입구 중심을 두 석상 사이에 두도록 화면 실루엣 기준 좌하향 보정.",
       "_orig": "동 initAnimation CCPoint(1390,550) z=13 tag=14",
-      "scale": 0.7314,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)"
      },
      {
       "base": "ani_ogre_spine",
       "kind": "spine",
       "scene": "ani_ogre_spine",
       "anim": "breath",
-      "pos": [
-       925.8,
-       681.4
+      "layer_pos": [
+       1270,
+       367
       ],
       "_orig": "동 initAnimation CCPoint(1270,367) setAnimation('breath',false)+setMix(...,0.4) z=13 tag=27. ⚪ animationOgre 의 breath↔walk 교대는 미이식",
-      "scale": 0.7314,
-      "_scale_basis": "원작 레이어공간 → bg-아틀라스 px 균일축척(슬롯 실측 정합)"
+      "scale": 0.75,
+      "_scale_basis": "원작 레이어 포인트 → bg-아틀라스 px 이론축척(contentScaleFactor 519/692=0.75)"
      }
     ],
-    "_ambient_source": "원작 WorldMapDwarfLayer::initAnimation 축자 이식. 좌표 = 원작 cocos → bg-아틀라스 px 균일변환(s=0.73140 tx=-3.05 ty=949.80, background1_bg 슬롯 실측 정합). 프레임딜레이 0.2s. 🔴 2026-07-28 재이식 — 종전 비균일 어파인(x/y 축척이 9~11% 달랐다)을 폐기.",
+    "_ambient_source": "원작 WorldMapDwarfLayer::initAnimation 축자 이식. layer_pos=원작 cocos 절대좌표. 런타임 변환은 coord.ambient(s=0.75 tx=-117.43 ty=895.62): contentScaleFactor 이론축척 + initBG bbox 중심 ↔ background1 슬롯 실측중심 정합. 2026-08-02 bbox 최소corner를 중심으로 오인한 종전 변환을 폐기해 우하단 공통 드리프트를 수정. 프레임딜레이 0.2s.",
     "sounds": [
      {
       "track": "effect_area_rail",
@@ -1219,6 +1271,8 @@
       219.5,
       580.0
      ],
+     "z_index": 10,
+     "_z_basis": "광물산맥 조각이 ani_elevator_new_spine의 내부 슬롯(z 0~3)보다 위에서 갈색 승강판과 레일 일부를 가리도록 배치.",
      "_pos_basis": "background1_bg 투명슬롯 실측중심",
      "label_level": 30,
      "label_pos": [

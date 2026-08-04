@@ -1,0 +1,383 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_skill_130_spine/skill_130_spine.png" id="1_asbw5"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_6htir"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_s1h4g"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(2, 352, 144, 140)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i5ivv"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(180, 194, 70, 94)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7qh6k"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(180, 290, 62, 86)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b2851"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(148, 378, 100, 116)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a58jg"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(2, 194, 176, 156)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xtl4j"]
+atlas = ExtResource("1_asbw5")
+region = Rect2(2, 2, 196, 190)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_7ob5p"]
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone4:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(71.66, -11.79), Vector2(170.66, -56.29)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone5:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.4),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(34.23, 1.94)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone5:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.347, 0.347), Vector2(1.627, 1.627)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone6:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.4333),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(40.65, -0.21)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone6:scale")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.4333, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.327, 0.327), Vector2(1.512, 1.512)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone3:position")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-2.02, -15.31), Vector2(-78.15, -65.85)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bone2:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(33, 56.36), Vector2(35, 125.36)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bone1:scale")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.3, 0.3666),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.399, 0.399), Vector2(1.234, 1.234), Vector2(0.949, 0.949), Vector2(1, 1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bone6/skill_weakpoint6_frame/skill_weakpoint6:visible")
+tracks/8/interp = 0
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.4333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, false, true]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bone6/skill_weakpoint6_frame/skill_weakpoint6:modulate")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0.4333, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/bone5/skill_weakpoint5_frame/skill_weakpoint5:visible")
+tracks/10/interp = 0
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, false, true]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/bone5/skill_weakpoint5_frame/skill_weakpoint5:modulate")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0.5, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/bone1/skill_weakpoint1_frame/skill_weakpoint1:visible")
+tracks/12/interp = 0
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0.2333, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/bone1/skill_weakpoint1_frame/skill_weakpoint1:modulate")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/bone2/skill_weakpoint2_frame/skill_weakpoint2:visible")
+tracks/14/interp = 0
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, false, true]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/bone2/skill_weakpoint2_frame/skill_weakpoint2:modulate")
+tracks/15/interp = 1
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0.4, 0.4666, 0.5, 0.5332, 0.5333, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 0.007843138, 0, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/bone3/skill_weakpoint3_frame/skill_weakpoint3:visible")
+tracks/16/interp = 0
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, false, true]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/bone3/skill_weakpoint3_frame/skill_weakpoint3:modulate")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0.4, 0.4666, 0.5, 0.5333, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 0, 0.003921569, 1), Color(0.9411765, 0.9411765, 0.9411765, 0.9411765), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/bone4/skill_weakpoint4_frame/skill_weakpoint4:visible")
+tracks/18/interp = 0
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, false, true]
+}
+tracks/19/type = "value"
+tracks/19/imported = false
+tracks/19/enabled = true
+tracks/19/path = NodePath("root/bone4/skill_weakpoint4_frame/skill_weakpoint4:modulate")
+tracks/19/interp = 1
+tracks/19/loop_wrap = true
+tracks/19/keys = {
+"times": PackedFloat32Array(0.4, 0.4666, 0.5, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 0.023529412, 0, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_a6kq6"]
+_data = {
+&"animation": SubResource("Animation_7ob5p")
+}
+
+[node name="Dragon_skill_130_spine_scene" type="Node2D" unique_id=1670254045]
+
+[node name="root" type="Node2D" parent="." unique_id=997528236]
+position = Vector2(-30, -15)
+scale = Vector2(0.677, 0.677)
+
+[node name="bone1" type="Node2D" parent="root" unique_id=1007032370]
+position = Vector2(41.49, -3.99)
+rotation = -0.56758106
+
+[node name="skill_weakpoint1_frame" type="Node2D" parent="root/bone1" unique_id=162265032]
+rotation = 0.56758106
+
+[node name="skill_weakpoint1" type="Sprite2D" parent="root/bone1/skill_weakpoint1_frame" unique_id=634913806]
+z_index = 2
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(10.641509, 13.317307)
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_s1h4g")
+
+[node name="bone2" type="Node2D" parent="root" unique_id=1582550221]
+position = Vector2(33, 56.36)
+rotation = -0.5391322
+
+[node name="skill_weakpoint2_frame" type="Node2D" parent="root/bone2" unique_id=129805621]
+position = Vector2(38.96, -48.04)
+rotation = 0.5391322
+
+[node name="skill_weakpoint2" type="Sprite2D" parent="root/bone2/skill_weakpoint2_frame" unique_id=425422380]
+z_index = 3
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(-7.981132, 59.927883)
+rotation = 1.5707964
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_i5ivv")
+
+[node name="bone3" type="Node2D" parent="root" unique_id=335968838]
+position = Vector2(-2.02, -15.31)
+rotation = -0.07068583
+
+[node name="skill_weakpoint3_frame" type="Node2D" parent="root/bone3" unique_id=1185640458]
+position = Vector2(43.11, 16.83)
+rotation = 0.07068583
+
+[node name="skill_weakpoint3" type="Sprite2D" parent="root/bone3/skill_weakpoint3_frame" unique_id=861611903]
+z_index = 4
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(-42.566036, -11.985577)
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_7qh6k")
+
+[node name="bone4" type="Node2D" parent="root" unique_id=1575566309]
+position = Vector2(71.66, -11.79)
+rotation = 0.64210665
+
+[node name="skill_weakpoint4_frame" type="Node2D" parent="root/bone4" unique_id=1571635263]
+position = Vector2(-18.16, 24.39)
+rotation = -0.64210665
+
+[node name="skill_weakpoint4" type="Sprite2D" parent="root/bone4/skill_weakpoint4_frame" unique_id=1886861753]
+z_index = 5
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(39.90566, -1.3317307)
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_b2851")
+
+[node name="bone5" type="Node2D" parent="root" unique_id=1526282298]
+position = Vector2(41.68, -7.01)
+rotation = -0.87598073
+
+[node name="skill_weakpoint5_frame" type="Node2D" parent="root/bone5" unique_id=1358140917]
+position = Vector2(-9.47, 1.14)
+rotation = 0.87598073
+
+[node name="skill_weakpoint5" type="Sprite2D" parent="root/bone5/skill_weakpoint5_frame" unique_id=676936832]
+z_index = 1
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(23.943396, 0)
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_a58jg")
+
+[node name="bone6" type="Node2D" parent="root" unique_id=1818635822]
+position = Vector2(53.42, -9.96)
+rotation = -0.65222955
+
+[node name="skill_weakpoint6_frame" type="Node2D" parent="root/bone6" unique_id=691969386]
+position = Vector2(-8.55, -5.27)
+rotation = 0.65222955
+
+[node name="skill_weakpoint6" type="Sprite2D" parent="root/bone6/skill_weakpoint6_frame" unique_id=1792219937]
+material = SubResource("CanvasItemMaterial_6htir")
+position = Vector2(2.6603773, 0)
+scale = Vector2(1.3301886, 1.3317307)
+texture = SubResource("AtlasTexture_xtl4j")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1461071864]
+libraries/ = SubResource("AnimationLibrary_a6kq6")

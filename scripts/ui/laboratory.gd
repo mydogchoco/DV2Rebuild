@@ -26,6 +26,7 @@ extends Control
 
 const DIR_UI := "laboratory_ui"
 const DIR_BG := "res://assets/converted/laboratory_bg/%s"
+const DragonEnhanceRules := preload("res://scripts/systems/dragon_enhance.gd")
 
 ## 원작 `LaboratoryScene::initMenu` 가 만드는 메뉴(호출 순서 그대로).
 ##   icon_egg_upgrade 알 강화 · icon_egg_mix 알 조합 · icon_egg_release 알 방생 ·
@@ -2321,6 +2322,7 @@ func _select_grid_body(pop: OrigPopup, entries: Array, on_pick: Callable, state:
 const SLOT_ITEM_AMOR := "bless_of_amor"
 const SLOT_ITEM_BONNER := "bonner"
 const SLOT_ITEM_ANIMA := "anima"
+const SLOT_ITEM_TICKET := DragonEnhanceRules.TICKET_ITEM
 ## 원작 행 라벨(드래곤강화4.png). '아티펙트' 는 원작 표기 그대로.
 const SLOT_ROW_KR := {
 	"all": "모든 장비 장착 가능", "battle": "전투형 장비 장착 가능",
@@ -2590,6 +2592,14 @@ func _open_enh_material_select(uid: int, slot_id: String) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	sc.add_child(row)
+	var ticket_card := _enh_ticket_card(cost)
+	row.add_child(ticket_card)
+	if DragonEnhanceRules.material_satisfies(true, UserDB.item_count(SLOT_ITEM_TICKET), 0.0, need_grade) \
+			and _has_cost(cost):
+		var ticket_button := Button.new(); ticket_button.flat = true
+		ticket_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ticket_button.pressed.connect(func(): _confirm_enhance_ticket(uid, slot_id, n))
+		ticket_card.add_child(ticket_button)
 	var active := UserDB.active_uid()
 	var shown := 0
 	for m in UserDB.dragons():
@@ -2602,14 +2612,14 @@ func _open_enh_material_select(uid: int, slot_id: String) -> void:
 		shown += 1
 		var card := _enh_material_card(md, need_grade, cost)
 		row.add_child(card)
-		var ok := _grade_of(md) >= need_grade and _has_cost(cost)
+		var ok := DragonEnhanceRules.material_satisfies(false, 0, _grade_of(md), need_grade) and _has_cost(cost)
 		if ok:
 			var b := Button.new(); b.flat = true
 			b.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			var mu := muid
 			b.pressed.connect(func(): _confirm_enhance(uid, slot_id, mu, n))
 			card.add_child(b)
-	if shown == 0:
+	if shown == 0 and UserDB.item_count(SLOT_ITEM_TICKET) <= 0:
 		var nn := Label.new()
 		nn.text = "재료로 쓸 드래곤이 없습니다.\n(대상 드래곤·활성 드래곤·잠금 드래곤은 제외됩니다)"
 		nn.add_theme_font_size_override("font_size", 18)
@@ -2617,6 +2627,48 @@ func _open_enh_material_select(uid: int, slot_id: String) -> void:
 		nn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nn.position = Vector2(60.0, 240.0); nn.size = Vector2(W - 120.0, 60.0)
 		pop.content.add_child(nn)
+
+func _enh_ticket_card(cost: Dictionary) -> Control:
+	var have := UserDB.item_count(SLOT_ITEM_TICKET)
+	var ok := have > 0 and _has_cost(cost)
+	var card := Control.new()
+	card.custom_minimum_size = Vector2(300.0, 430.0)
+	var bg := AtlasUI.nine("cave_ui", "scene_cave_dragonbg_nomal", Vector2(300.0, 430.0), Rect2(12, 12, 12, 12))
+	if bg != null: card.add_child(bg)
+	var ic := _item_icon(SLOT_ITEM_TICKET, Vector2(150.0, 126.0), 1.05)
+	if ic != null:
+		if not ok: ic.modulate = Color(0.55, 0.55, 0.55)
+		card.add_child(ic)
+	var title := Label.new(); title.text = Data.item_name(SLOT_ITEM_TICKET)
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.position = Vector2(18.0, 218.0); title.size = Vector2(264.0, 32.0)
+	card.add_child(title)
+	var count := Label.new(); count.text = "보유 %d / 필요 1" % have
+	count.add_theme_font_size_override("font_size", 17)
+	count.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04) if have > 0 else Color(0.72, 0.16, 0.10))
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.position = Vector2(18.0, 252.0); count.size = Vector2(264.0, 28.0)
+	card.add_child(count)
+	var note := Label.new(); note.text = "모든 종류·등급의\n재료 드래곤 대체"
+	note.add_theme_font_size_override("font_size", 17)
+	note.add_theme_color_override("font_color", Color(0.18, 0.48, 0.20))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.position = Vector2(18.0, 292.0); note.size = Vector2(264.0, 52.0)
+	card.add_child(note)
+	var y := 350.0
+	for k: String in cost:
+		var need := int(cost[k])
+		var owned := UserDB.item_count(k)
+		var line := Label.new(); line.text = "%s  %d / %d" % [Data.item_name(k), owned, need]
+		line.add_theme_font_size_override("font_size", 14)
+		line.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04) if owned >= need else Color(0.72, 0.16, 0.10))
+		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		line.position = Vector2(18.0, y); line.size = Vector2(264.0, 20.0)
+		card.add_child(line)
+		y += 22.0
+	return card
 
 func _has_cost(cost: Dictionary) -> bool:
 	for k: String in cost:
@@ -2697,6 +2749,43 @@ func _enh_material_card(md: Dictionary, need_grade: float, cost: Dictionary) -> 
 # ── ④ 확인 ────────────────────────────────────────────────────────────────
 ## 원작 드래곤강화5.png: [대상 카드] + [재료 카드] + 요구/재료 등급 + 확장될 슬롯 안내 +
 ## 빨간 "*주의 재료로 사용되는 드래곤은 삭제됩니다." + 확인/취소.
+func _confirm_enhance_ticket(uid: int, slot_id: String, n: int) -> void:
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty(): return
+	var pop := OrigPopup.open(self, "장비 슬롯 확장", Vector2(640.0, 430.0))
+	pop.body.position.y = maxf(6.0, round((_vis().y - pop.win_size.y) * 0.5))
+	var W: float = pop.win_size.x
+	var lvl := int(d.get("level", 1))
+	var por := _portrait_sprite(int(d.get("id", 0)), Growth.stage_for_level(lvl), 1.25)
+	if por != null:
+		por.position = Vector2(180.0, 185.0)
+		pop.content.add_child(por)
+	var ic := _item_icon(SLOT_ITEM_TICKET, Vector2(465.0, 185.0), 1.05)
+	if ic != null: pop.content.add_child(ic)
+	var plus := AtlasUI.spr("common_ui", "common_plus", Design.ASSET_SCALE * 1.2)
+	if plus != null:
+		plus.position = Vector2(W * 0.5, 185.0)
+		pop.content.add_child(plus)
+	var q := Label.new()
+	q.text = "드래곤 강화권 1개로 [%s 장비 장착 슬롯]을 확장하시겠습니까?" \
+		% String(SLOT_KR.get(slot_id, slot_id))
+	q.add_theme_font_size_override("font_size", 18)
+	q.add_theme_color_override("font_color", Color(0.30, 0.17, 0.04))
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.position = Vector2(24.0, 292.0); q.size = Vector2(W - 48.0, 30.0)
+	pop.content.add_child(q)
+	var note := Label.new(); note.text = "강화권은 모든 종류와 등급의 재료 드래곤을 대체합니다."
+	note.add_theme_font_size_override("font_size", 16)
+	note.add_theme_color_override("font_color", Color(0.18, 0.48, 0.20))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.position = Vector2(24.0, 326.0); note.size = Vector2(W - 48.0, 26.0)
+	pop.content.add_child(note)
+	var ok_cb := func():
+		pop.close()
+		_do_enhance_ticket(uid, slot_id, n)
+	pop.add_action_button("확인", ok_cb, 0, Vector2(170.0, 48.0), Vector2(W * 0.5 - 95.0, 388.0))
+	pop.add_action_button("취소", pop.close, 0, Vector2(170.0, 48.0), Vector2(W * 0.5 + 95.0, 388.0))
+
 func _confirm_enhance(uid: int, slot_id: String, mat_uid: int, n: int) -> void:
 	var d := UserDB.get_dragon(uid)
 	var m := UserDB.get_dragon(mat_uid)
@@ -2789,7 +2878,7 @@ func _do_enhance(uid: int, slot_id: String, mat_uid: int, n: int) -> void:
 		_toast("재료가 부족해.")
 		return
 	var m := UserDB.get_dragon(mat_uid)
-	if m.is_empty() or _grade_of(m) < _enh_grade_min(n):
+	if m.is_empty() or not DragonEnhanceRules.material_satisfies(false, 0, _grade_of(m), _enh_grade_min(n)):
 		_toast("재료 드래곤의 등급이 모자라.")
 		return
 	if not UserDB.release_dragon(mat_uid):
@@ -2797,6 +2886,30 @@ func _do_enhance(uid: int, slot_id: String, mat_uid: int, n: int) -> void:
 		return
 	for k: String in cost:
 		UserDB.use_item(k, int(cost[k]))
+	_complete_enhance(uid, slot_id, open)
+
+func _do_enhance_ticket(uid: int, slot_id: String, n: int) -> void:
+	var d := UserDB.get_dragon(uid)
+	if d.is_empty(): return
+	var open := _unlocked_slots(d)
+	if open.has(slot_id):
+		return
+	var cost := _enh_cost(n)
+	if not _has_cost(cost):
+		_toast("재료가 부족해.")
+		return
+	if not DragonEnhanceRules.material_satisfies(
+			true, UserDB.item_count(SLOT_ITEM_TICKET), 0.0, _enh_grade_min(n)):
+		_toast("드래곤 강화권이 부족해.")
+		return
+	if not UserDB.use_item(SLOT_ITEM_TICKET, 1):
+		_toast("드래곤 강화권이 부족해.")
+		return
+	for k: String in cost:
+		UserDB.use_item(k, int(cost[k]))
+	_complete_enhance(uid, slot_id, open)
+
+func _complete_enhance(uid: int, slot_id: String, open: Array) -> void:
 	var next := open.duplicate()
 	next.append(slot_id)
 	UserDB.set_dragon_field(uid, "equip_slots", next)

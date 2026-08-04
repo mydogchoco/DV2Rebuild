@@ -231,9 +231,7 @@ static func offers_escape(_is_boss: bool) -> bool:
 static func escape_frame(fortress: bool) -> String:
 	return "scene_adventure_choice_giveup_KR" if fortress else "scene_adventure_choice_run_KR"
 
-## 도망 성공 판정(원작 `setEventRun` = 0x9). 성공률은 서버 소유였다(클라에 판정 코드가 없다)
-## → `data/adventure_events.json` `run.chance`(자작). 보스는 `run.boss_chance`.
-static func run_succeeds(cfg: Dictionary, is_boss: bool, rng: RandomNumberGenerator) -> bool:
-	var r: Dictionary = cfg.get("run", {})
-	var p := float(r.get("boss_chance", 0.0)) if is_boss else float(r.get("chance", 1.0))
-	return rng.randf() < clampf(p, 0.0, 1.0)
+## 오프라인 도망 규칙 — 일반/보스 모두 확정 탈출. 원작 클라이언트의 `setEventRun`에는
+## 성공률 판정이 없고, 종전 `adventure_events.run.*chance`는 우리 자작값이었다.
+static func run_succeeds(_cfg: Dictionary, _is_boss: bool, _rng: RandomNumberGenerator) -> bool:
+	return true

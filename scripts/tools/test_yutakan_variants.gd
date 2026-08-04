@@ -48,6 +48,12 @@ func _run() -> void:
 			String(st.get("name", "?")), "O" if ok_bg else "X", lv, boss_id,
 			"O" if ok_boss else "X(%s)" % str(ids), "O" if ok_pool else "X",
 			" ⚠상속" if st.has("_inherited") else ""])
+	var kibo: Dictionary = Data.stage("510").get("enemies", [])[0]
+	var tubaro: Dictionary = Data.stage("511").get("enemies", [])[0]
+	if int(kibo.get("id", 0)) != 170 or int(kibo.get("asset_id", 0)) != 171:
+		print("  ✗ 키보 논리#170 → 스파인#171 매핑 실패"); fail += 1
+	if int(tubaro.get("id", 0)) != 171 or int(tubaro.get("asset_id", 0)) != 170:
+		print("  ✗ 투바로 논리#171 → 스파인#170 매핑 실패"); fail += 1
 
 	print("── 카데스 던전 ──")
 	var rng := RandomNumberGenerator.new()

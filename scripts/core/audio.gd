@@ -4,6 +4,7 @@ extends Node
 ## 오프라인 재구현 — 원작 음악은 로컬 소장용(푸시 금지, [[dv2-git-remote-policy]]).
 
 const DIR := "res://assets/music/%s.mp3"
+const LEGACY_DIR := "res://DV2/music/%s.mp3"
 const FADE := 0.6
 
 # ── 사용자 볼륨 (원작 SettingLayer 의 슬라이더 2개) ─────────────────────────
@@ -94,9 +95,20 @@ func _click_sfx() -> void:
 
 func _make_stream(track: String) -> AudioStream:
 	var path := DIR % track
+	var st: AudioStream
 	if not ResourceLoader.exists(path):
+		# 일부 원작 음원은 아직 DV2 원본 폴더에만 있다. 대표적으로
+		# InterFace::setCallHitSound가 번갈아 쓰는 effect_dragon_damaged_2.
+		path = LEGACY_DIR % track
+		if not FileAccess.file_exists(path):
+			return null
+		# 원본 폴더의 오래된 .import가 현재 .godot 캐시를 가리키지 않을 수 있으므로
+		# MP3 본문을 직접 읽는다. 음원 내용은 원작 파일 그대로이며 변환하지 않는다.
+		st = AudioStreamMP3.load_from_buffer(FileAccess.get_file_as_bytes(path))
+	else:
+		st = load(path)
+	if st == null:
 		return null
-	var st = load(path)
 	if st is AudioStreamMP3:
 		st.loop = true
 	return st as AudioStream

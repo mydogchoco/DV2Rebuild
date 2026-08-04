@@ -48,9 +48,12 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var shown: Array = adv.get("_party_cards")
 	var ok2b := shown.size() > 0
-	print("%-26s 배회중=%d · 선택지=%d  %s" % ["파티 카드 표시", hidden.size(), shown.size(),
-		_v(ok2a and ok2b)])
-	fails += 0 if (ok2a and ok2b) else 1
+	var ok2c := true
+	for card: Control in shown:
+		ok2c = ok2c and card.z_index == 400
+	print("%-26s 배회중=%d · 선택지=%d · z=400:%s  %s" % ["파티 카드 표시", hidden.size(), shown.size(),
+		str(ok2c), _v(ok2a and ok2b and ok2c)])
+	fails += 0 if (ok2a and ok2b and ok2c) else 1
 
 	# 3) 드리프트 가드 — 탐험 카드 vs 전투 카드
 	var uids: Array = adv.get("_run_party")
@@ -170,7 +173,13 @@ func _ready() -> void:
 		await get_tree().process_frame
 		var after := UserDB.item_count(pkey)
 		var hp_after := int((adv2.get("_params") as Dictionary).get("hp_state", {}).get(str(uid), 0))
-		ok5 = after == before - 1 and hp_after > int(full * 0.4)
+		# 이미 최대 HP에서는 눌러도 물약이 소모되지 않아야 한다.
+		adv2.set("_params", {"stage": "1", "region": "yutakan", "enc": 1, "hero": true,
+			"hp_state": {str(uid): full}})
+		var full_before := UserDB.item_count(pkey)
+		adv2.call("_use_heal_potion", uid, pkey)
+		var full_after := UserDB.item_count(pkey)
+		ok5 = after == before - 1 and hp_after > int(full * 0.4) and full_after == full_before
 		print("%-26s 물약 %d→%d · HP %d→%d(최대 %d)  %s"
 			% ["회복 물약 버튼", before, after, int(full * 0.4), hp_after, full, _v(ok5)])
 		# 검사용으로 넣은 물약은 되돌린다 — 안 그러면 돌릴 때마다 세이브에 4개씩 쌓인다.

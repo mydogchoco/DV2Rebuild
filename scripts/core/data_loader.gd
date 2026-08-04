@@ -53,6 +53,7 @@ var gems: Dictionary = {}            # 젬 14종×티어(일반/혼성/소울). 
 var titles: Dictionary = {}          # 칭호 149종(원작 AchieveTitleLayer/info_title_v). 아트=title/<no>_kr.png, 획득조건=자작.
 var icon_map: Dictionary = {}        # 논리키→원본 아이콘 프레임(build_item_icons.py). render 층(Icons)만 사용.
 var equipment: Dictionary = {}       # 장비(장신구/특수/아티팩트/편린) + 옵션표. 위키 전량(build_equipment.py), 슬롯·옵션스키마=클라복원.
+var item_descriptions: Dictionary = {} # 사용자 작성 장비별/젬 5분류 공유 설명(build_item_descriptions.py).
 var npc_lines_doc: Dictionary = {}   # 마을 NPC 이름/대사(원작 stringsData_KR.xml, build_npc_lines.py). 유실 아님.
 var drops: Dictionary = {}           # 젬·장비 획득처(탐험드롭/상점/가챠). 규칙=사용자확정+위키, 확률·가격=자작 노브. 로직=Drops.
 var shop: Dictionary = {}            # 상점(원작 ShopScene) 탭·NPC·재고. 구조=클라복원, 가격=Ref_shop 스크린샷 실측.
@@ -112,6 +113,7 @@ func _ready() -> void:
 	npc_lines_doc = _load_json("res://data/npc_lines.json")
 	gems = _load_json("res://data/gems.json")
 	equipment = _load_json("res://data/equipment.json")
+	item_descriptions = _load_json("res://data/item_descriptions.json")
 	drops = _load_json("res://data/drops.json")
 	icon_map = _load_json("res://data/icon_map.json")
 	titles = _load_json("res://data/titles.json")
@@ -149,6 +151,14 @@ func _load_json(path: String):
 	if f == null:
 		push_error("[Data] missing " + path); return {}
 	return JSON.parse_string(f.get_as_text())
+
+
+func equipment_description(catalog_key: String) -> String:
+	return String((item_descriptions.get("equipment", {}) as Dictionary).get(catalog_key, ""))
+
+
+func gem_description(category_key: String) -> String:
+	return String((item_descriptions.get("gem_categories", {}) as Dictionary).get(category_key, ""))
 
 func _load_dragons(path: String) -> void:
 	var arr = _load_json(path)
@@ -415,11 +425,9 @@ func exp_to_next(level: int) -> int:
 		return 0
 	return int(req[level - 1])
 
-## 레벨 상한(각성 시 확장). 없으면 45/50 기본.
-func level_cap(awakened := false) -> int:
-	if awakened:
-		return int(level_curve.get("cap_awakened", 50))
-	return int(level_curve.get("cap", 45))
+## 레벨 상한은 각성 여부와 무관하게 50. 인자는 기존 호출부 호환용이다.
+func level_cap(_awakened := false) -> int:
+	return int(level_curve.get("cap", 50))
 
 ## category(예: "food") 또는 subcategory(예: "feed")로 필터. offline 상태로도 필터 가능.
 func items_by(category := "", subcategory := "", offline := "") -> Array:
@@ -614,6 +622,9 @@ func story_battle_click_count(no: int) -> int:
 
 ## 월드맵 이벤트 마크를 찍을 필드 — 원작 `getEventMarkFieldValue` .rodata 표(회차 79~146).
 func story_mark_field(no: int) -> int:
+	var entry: Dictionary = story_subquest.get("entry_field", {})
+	if entry.has(str(no)):
+		return int(entry[str(no)])
 	return int(story_subquest.get("mark_field", {}).get(str(no), 0))
 
 ## 스토리 이벤트 전투 정의(키 = AdventureScene 이벤트 번호 26/27/29) — 원작 `getEventBattleData`.

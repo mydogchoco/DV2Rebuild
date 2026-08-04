@@ -34,6 +34,9 @@ const LETTER := {
 }
 const T := 0.1          # 원작 param_2 * 0.1
 const T2 := 0.05        # 원작 param_2 * 0.05
+## Cutin::show의 얼굴 시퀀스는 이 지연 뒤 전달받은 크리티컬 보이스를 재생한다
+## (Cutin.c:720-805, MakeInterface::showCutIn은 voice_critical 경로를 param_5로 전달).
+const VOICE_DELAY := T2
 const HOLD := 0.4       # 막 유지 = param_2 * 0.4
 const BAND_HOLD := 0.5  # 밴드 퇴장 시작 = param_2 * 0.5
 ## 컷인이 화면에서 완전히 걷히는 시각(= 레이어 정리 시각).

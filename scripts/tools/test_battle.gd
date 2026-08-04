@@ -6,6 +6,7 @@ func _init() -> void:
 	var fails := 0
 	var cfg := _load("res://data/combat.json")
 	var sdb := _load("res://data/skills.json")
+	var stages := _load("res://data/stages.json")
 
 	# 1) 속성 상성 배수(§K-3, §B)
 	fails += _eqf("aqua>fire", Battle.element_mult("aqua", "fire", cfg), 1.25)
@@ -21,12 +22,35 @@ func _init() -> void:
 	fails += _eqf("dark>aqua", Battle.element_mult("dark", "aqua", cfg), 1.25)
 	fails += _eqf("dark~holy", Battle.element_mult("dark", "holy", cfg), 1.0)   # 문헌상 dark는 holy에 무상성
 
-	# 2) 데미지식(§K-2): base 30
-	fails += _eq("dmg base", Battle.damage(100, 50, 0.0, 1.0, 1.0, 1.0, cfg), 60)        # 30*100/50
-	fails += _eq("dmg crit", Battle.damage(100, 50, 0.0, 1.0, 1.5, 1.0, cfg), 90)        # *1.5
-	fails += _eq("dmg elem", Battle.damage(100, 50, 0.0, 1.25, 1.0, 1.0, cfg), 75)       # *1.25
-	fails += _eq("dmg pen", Battle.damage(100, 50, 0.5, 1.0, 1.0, 1.0, cfg), 120)        # def_eff 25
-	fails += _eq("dmg def0", Battle.damage(100, 0, 0.0, 1.0, 1.0, 1.0, cfg), 3000)       # def_eff max(1,0)=1
+	# 1b) 영웅 난이도 스탯 배율 — 원작 영상 실측: 체력×3, 공격/방어×1.5.
+	var variant_rules: Dictionary = stages.get("_variant_rules", {})
+	var hero_mult := Battle.hero_stat_multipliers({}, variant_rules)
+	fails += _eqf("hero hp x3", float(hero_mult["hp"]), 3.0)
+	fails += _eqf("hero att x1.5", float(hero_mult["att"]), 1.5)
+	fails += _eqf("hero def x1.5", float(hero_mult["def"]), 1.5)
+	var black_island: Dictionary = (stages.get("stages", {}) as Dictionary).get("24", {})
+	var hero_override := Battle.hero_stat_multipliers(black_island, variant_rules)
+	fails += _eqf("hero stage scalar hp override", float(hero_override["hp"]), 1.0)
+	fails += _eqf("hero stage scalar att override", float(hero_override["att"]), 1.0)
+	fails += _eqf("hero stage scalar def override", float(hero_override["def"]), 1.0)
+
+	# 2) 데미지식(§K-2): 원작 영상 실측에 맞춘 공격×방어 포화 감쇠.
+	fails += _eq("dmg 100v100 anchor", Battle.damage(100, 100, 0.0, 1.0, 1.0, 1.0, cfg), 47)
+	fails += _eq("dmg 100v50", Battle.damage(100, 50, 0.0, 1.0, 1.0, 1.0, cfg), 64)
+	fails += _eq("dmg crit", Battle.damage(100, 50, 0.0, 1.0, 1.5, 1.0, cfg), 96)
+	fails += _eq("dmg elem", Battle.damage(100, 50, 0.0, 1.25, 1.0, 1.0, cfg), 80)
+	fails += _eq("dmg pen", Battle.damage(100, 50, 0.5, 1.0, 1.0, 1.0, cfg), 77)
+	fails += _eq("dmg def0", Battle.damage(100, 0, 0.0, 1.0, 1.0, 1.0, cfg), 94)
+	var low_ratio := Battle.damage(100, 50, 0.0, 1.0, 1.0, 1.0, cfg)
+	var high_ratio := Battle.damage(1000, 500, 0.0, 1.0, 1.0, 1.0, cfg)
+	var scale_ratio := float(high_ratio) / float(maxi(1, low_ratio))
+	fails += _eq("same ratio grows sublinearly", scale_ratio > 2.0 and scale_ratio < 3.0, true)
+	fails += _eq("measured 214v117", Battle.damage(214, 117, 0.0, 1.0, 1.0, 1.0, cfg), 93)
+	fails += _eq("measured 723v91", Battle.damage(723, 91, 0.0, 1.0, 1.0, 1.0, cfg), 360)
+	fails += _eq("def 117 to 126 delta under 10",
+		Battle.damage(214, 117, 0.0, 1.0, 1.0, 1.0, cfg) -
+		Battle.damage(214, 126, 0.0, 1.0, 1.0, 1.0, cfg) < 10, true)
+	fails += _eq("1300 atk over 864 def exceeds old sub-100", Battle.damage(1300, 864, 0.0, 1.0, 1.0, 1.0, cfg) > 100, true)
 	fails += _eq("dmg min1", Battle.damage(1, 9999, 0.0, 0.85, 1.0, 0.95, cfg), 1)       # 0 미만 → 1
 
 	# 3) 타겟팅(§K-6): (hp_max/4)+def 최대
@@ -47,7 +71,18 @@ func _init() -> void:
 	fails += _eq("double h1 nomiss", dev[1]["miss"], false)
 	fails += _eq("double sum=loss", int(dev[0]["damage"]) + int(dev[1]["damage"]), 100000 - int(ddef["hp"]))
 
-	# 3c) 각성기: 회피70%여도 무시하고 전체 타격, ×2 (fire>wind 1.25: 30*100/50*1.25*2*rand → 142~158)
+	# 3b-1) 피의 갈증(14): 연속공격에서도 행동당 1회, 실제 회복량을 이벤트에 기록한다.
+	var ls := Battle.make_combatant("LS", "ally", "fire",
+		{"hp": 2000, "att": 100, "def": 1, "cri": 0, "evd": 0, "blk": 0})
+	ls["hp"] = 1000
+	ls["effects"].append({"kind": "lifesteal", "pct": 10, "turns": 2, "source": 14})
+	var lst := Battle.make_combatant("LST", "enemy", "wind",
+		{"hp": 100000, "att": 1, "def": 50, "cri": 0, "evd": 0, "blk": 0})
+	var lsev := Battle.resolve_double(ls, lst, _rng(5), cfg)
+	fails += _eq("blood thirst double hp", int(ls["hp"]), 1010)
+	fails += _eq("blood thirst double once", int(lsev[1].get("lifesteal", 0)), 10)
+
+	# 3c) 각성기: 회피70%여도 무시하고 전체 타격, ×2.
 	var caster := Battle.make_combatant("CAST", "ally", "fire", {"hp": 1, "att": 100, "def": 1, "cri": 0, "evd": 0, "blk": 0})
 	var e1 := Battle.make_combatant("E1", "enemy", "wind", {"hp": 99999, "att": 1, "def": 50, "cri": 0, "evd": 70, "blk": 70})
 	var e2 := Battle.make_combatant("E2", "enemy", "wind", {"hp": 99999, "att": 1, "def": 50, "cri": 0, "evd": 70, "blk": 70})
@@ -56,7 +91,9 @@ func _init() -> void:
 	fails += _eq("awaken type", aev[0]["type"], "awaken")
 	fails += _eq("awaken ignore evade", aev[0]["miss"], false)
 	var ad := int(aev[0]["damage"])
-	fails += _eq("awaken x2 range", ad >= 142 and ad <= 158, true)
+	var ad_lo := Battle.damage(100, 50, 0.0, 1.25, 2.0, 0.95, cfg)
+	var ad_hi := Battle.damage(100, 50, 0.0, 1.25, 2.0, 1.05, cfg)
+	fails += _eq("awaken x2 range", ad >= ad_lo and ad <= ad_hi, true)
 
 	# === 스킬 엔진 (효과는 발동 확정 후 결정적 → 직접 호출로 검증) ===
 	# 패시브(90 신속이동 lv1): 회피 +7+1 상시
@@ -83,11 +120,13 @@ func _init() -> void:
 	fails += _eq("bone no_block", Battle._has_flag(en2, "no_block"), true)
 	# 방어 스킬(11 철갑방패 lv2): 피해 -20
 	fails += _eq("def reduce", int(Battle._defense_reduce(_cb("DF", "ally", "fire", 100, 100, []), {"id": 11, "level": 2}, 100, sdb)["dmg"]), 80)
-	# 공격 스킬(21 심판의날개): 평타식 ×6 (30*100/50*1.25*6*rand = 427~473)
+	# 공격 스킬(21 심판의날개): 평타식 ×6.
 	var ev21 := Battle._apply_skill_effect(_cb("A21", "ally", "fire", 100, 50, []), {"id": 21, "level": 1},
 		[], [_cb("D21", "enemy", "wind", 100, 50, [])], _rng(3), cfg, sdb)
 	var dmg21 := int(ev21[0]["damage"])
-	fails += _eq("wing x6 range", dmg21 >= 427 and dmg21 <= 473, true)
+	var dmg21_lo := Battle.damage(100, 50, 0.0, 1.25, 6.0, 0.95, cfg)
+	var dmg21_hi := Battle.damage(100, 50, 0.0, 1.25, 6.0, 1.05, cfg)
+	fails += _eq("wing x6 range", dmg21 >= dmg21_lo and dmg21 <= dmg21_hi, true)
 
 	# 망각의 망치(56): 무효화 + 보유자 횟수 차감
 	var owner := _cb("O", "enemy", "wind", 100, 100, [{"id": 56, "level": 1}])
@@ -97,9 +136,65 @@ func _init() -> void:
 	fails += _eq("oblivion nullified", int(iev["nullified_id"]), 36)
 	fails += _eq("oblivion use--", Battle._uses_left(owner, 56), 2)   # 3-1
 
+	# 같은 지속효과가 활성화된 동안에는 재발동 후보 자체에서 제외한다.
+	# 상처 파악(23)·신경독소(32)만 중첩/재시도 예외다.
+	var gate := _cb("GATE", "ally", "fire", 100, 100,
+		[{"id": 14, "level": 1}, {"id": 23, "level": 1}, {"id": 32, "level": 1}])
+	Battle._init_combatant_skills(gate, sdb, cfg)
+	gate["effects"].append({"kind": "lifesteal", "pct": 8, "turns": 2, "source": 14})
+	var gated := Battle._eligible_attack(gate, sdb, cfg, [gate], [en])
+	var gated_ids: Array = gated.map(func(s): return int((s as Dictionary)["id"]))
+	fails += _eq("active buff no retry", 14 in gated_ids, false)
+	fails += _eq("wound retry exception", 23 in gated_ids, true)
+	fails += _eq("neurotoxin retry exception", 32 in gated_ids, true)
+
+	# 피의 갈증 지속턴은 전역 라운드가 아니라 소유자의 행동 기준이다.
+	# 발동한 그 행동에서는 차감하지 않고, 다음 두 번의 자신 공격에서 회복한 뒤 사라진다.
+	var owner_turn := _cb("OWNER_TURN", "ally", "fire", 100, 100, [])
+	owner_turn["hp"] = 1000
+	var owner_foe := _cb("OWNER_FOE", "enemy", "wind", 1, 100, [])
+	owner_turn["cri"] = 0
+	owner_foe["evd"] = 0
+	owner_foe["blk"] = 0
+	Battle._mark_owner_effects(owner_turn)
+	Battle._apply_skill_effect(owner_turn, {"id": 14, "level": 1}, [owner_turn], [owner_foe], _rng(1), cfg, sdb)
+	var tick_events: Array = []
+	Battle._tick_owner_effects(owner_turn, tick_events, 1)
+	fails += _eq("blood thirst fresh keeps 2", int((owner_turn["effects"][0] as Dictionary)["turns"]), 2)
+	for turn in [2, 3]:
+		Battle._mark_owner_effects(owner_turn)
+		Battle.resolve_attack(owner_turn, owner_foe, _rng(turn), cfg, sdb)
+		Battle._tick_owner_effects(owner_turn, tick_events, turn)
+	fails += _eq("blood thirst heals two attacks", int(owner_turn["hp"]), 1016)
+	fails += _eq("blood thirst expires", Battle._lifesteal_pct(owner_turn), 0.0)
+	fails += _eq("blood thirst ui tick remove", int((tick_events[-1] as Dictionary).get("turns", -1)), 0)
+
+	# 망각의 망치(56)는 상대가 스킬을 고르고 발동 판정을 통과한 경로에서만 반응한다.
+	# 상대가 스킬 없는 평타를 치면 사용 횟수와 이벤트가 모두 그대로다.
+	var normal_actor := _cb("NORMAL", "ally", "fire", 100, 100, [])
+	var hammer_owner := _cb("HAMMER", "enemy", "wind", 100, 100, [{"id": 56, "level": 1}])
+	Battle._init_combatant_skills(normal_actor, sdb, cfg)
+	Battle._init_combatant_skills(hammer_owner, sdb, cfg)
+	var hammer_before := Battle._uses_left(hammer_owner, 56)
+	var normal_ev := Battle._act(normal_actor, [normal_actor], [hammer_owner], _rng(4), cfg, sdb)
+	var hammer_on_normal := false
+	for nev in normal_ev:
+		if int((nev as Dictionary).get("skill_id", 0)) == 56:
+			hammer_on_normal = true
+	fails += _eq("hammer skips normal attack", hammer_on_normal, false)
+	fails += _eq("hammer normal keeps uses", Battle._uses_left(hammer_owner, 56), hammer_before)
+
 	# 통합 시뮬: ally 신의분노(36) vs enemy 망각(56) — 크래시 없음 + 스킬 이벤트 발생
 	var sa := [_cb("ally1", "ally", "fire", 150, 80, [{"id": 36, "level": 5}])]
 	var sb := [_cb("enm1", "enemy", "wind", 150, 80, [{"id": 56, "level": 5}])]
+	# 상향된 평타 계수에서도 체력 조건 스킬(36)이 열릴 때까지 전투가 이어지게 한다.
+	for c in [sa[0], sb[0]]:
+		c["hp_max"] = 20000
+		c["hp"] = 20000
+		c["hp_base"] = 20000
+	# 신의 분노(36)는 원작 근거의 체력 조건 스킬이다. 저피해 공식에서도
+	# 통합 테스트가 발동 경로를 실제로 타도록 시전자만 50% 아래에서 시작한다.
+	sa[0]["hp"] = 9000
 	var sres := Battle.simulate(sa, sb, _rng(11), cfg, sdb)
 	fails += _eq("sim winner valid", sres["winner"] in ["ally", "enemy", "draw"], true)
 	var has_skill := false
@@ -168,6 +263,21 @@ func _init() -> void:
 	# 아수라일섬(30): 상대 base 방어 80 × 1.5 = 120 고정
 	var as30 := Battle._apply_skill_effect(_cb("AS","ally","fire",100,100,[]), {"id": 30, "level": 1}, [], [_cb("AT","enemy","wind",100,80,[])], _rng(1), cfg, sdb)
 	fails += _eq("asura def*1.5", int(as30[0]["damage"]), 120)
+	# 히든 밸런스 규칙: 모든 피해 보정 후에도 아수라일섬은 대상 최대 HP의 70%까지만 피해를 준다.
+	var as30_cap_caster := _cb("ASC", "ally", "fire", 100, 100, [])
+	as30_cap_caster["effects"].append({"kind": "dmg_deal", "pct": 200, "turns": -1})
+	var as30_cap_target := _cb("ATC", "enemy", "wind", 100, 80, [])
+	as30_cap_target["hp"] = 100
+	as30_cap_target["hp_max"] = 100
+	as30_cap_target["blk"] = 0
+	var as30_cap := Battle._apply_skill_effect(as30_cap_caster, {"id": 30, "level": 1}, [], [as30_cap_target], _rng(1), cfg, sdb)
+	fails += _eq("asura hidden max-hp 70% cap", int(as30_cap[0]["damage"]), 70)
+	var uncapped_target := _cb("UTC", "enemy", "wind", 100, 80, [])
+	uncapped_target["hp"] = 100
+	uncapped_target["hp_max"] = 100
+	uncapped_target["blk"] = 0
+	var uncapped := Battle._deal_attack(_cb("UAC", "ally", "fire", 100, 100, []), uncapped_target, 100, true, _rng(1), cfg, sdb)
+	fails += _eq("non-asura remains uncapped", int(uncapped["damage"]), 100)
 	# 거신의 돌격(53): caster hp 2000 × 17% × 0.7 = 238
 	var gi53 := Battle._apply_skill_effect(_cb("GI","ally","fire",100,100,[]), {"id": 53, "level": 1}, [], [_cb("GT","enemy","wind",100,50,[])], _rng(1), cfg, sdb)
 	fails += _eq("giant rush", int(gi53[0]["damage"]), 238)

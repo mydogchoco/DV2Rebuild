@@ -27,6 +27,8 @@
 extends CanvasLayer
 class_name StatusLayer
 
+const DragonAwakenSkillInfoPopup := preload("res://scripts/ui/dragon_awaken_skill_info.gd")
+
 ## host 가 처리할 심화 편집 요청. arg = 슬롯 index(없으면 -1).
 ## 동굴은 제자리에서 팝업을 열고, 메인 화면은 `Scenes.goto("cave", {"open": action})` 로 넘긴다.
 signal action_requested(action: String, arg: int)
@@ -133,6 +135,8 @@ func _portrait(id: int, stage: String, scale := 1.0, skin := 0) -> Sprite2D:
 	if not _man_portrait.has(dir):
 		_man_portrait[dir] = _load_manifest(dir)
 	var frame := "dragon_dragon_%d_box_%s" % [id, stage]
+	if not (_man_portrait[dir] as Dictionary).has(frame) and stage == "evolution":
+		frame = "dragon_dragon_%d_box_adult" % id
 	if skin > 0 and (_man_portrait[dir] as Dictionary).has("%s_skin%d" % [frame, skin]):
 		frame = "%s_skin%d" % [frame, skin]
 	return _spr(dir, frame, scale)
@@ -402,8 +406,11 @@ func _build_stage(a: Dictionary, stage_w: float, top: float, h: float, S: float)
 		return
 
 	# 원작과 같은 스파인 씬(동굴이 쓰는 것과 동일). 미빌드 종만 초상으로 폴백한다.
-	var stage_name := Growth.stage_for_level(lvl)
+	var stage_name := Growth.spine_stage(a)
 	var path := DRAGON_SCENE % [id, stage_name]
+	if bool(a.get("awakened", false)) and not ResourceLoader.exists(path):
+		stage_name = Growth.stage_for_level(lvl)
+		path = DRAGON_SCENE % [id, stage_name]
 	if ResourceLoader.exists(path):
 		var holder := Node2D.new()
 		holder.scale = Vector2.ONE * (1.9 * stand_w / 620.0)
@@ -415,7 +422,7 @@ func _build_stage(a: Dictionary, stage_w: float, top: float, h: float, S: float)
 		if ap != null and ap.has_animation("wait"):
 			ap.play("wait")
 	else:
-		var por := _portrait(id, stage_name, stand_w / 220.0, int(a.get("skin", 0)))
+		var por := _portrait(id, Growth.portrait_stage(a), stand_w / 220.0, int(a.get("skin", 0)))
 		por.position = origin
 		_root.add_child(por)
 		push_warning("[status] dragon %d(%s) 스파인 씬 미빌드 → 초상 폴백" % [id, stage_name])
@@ -461,7 +468,7 @@ func _build_panel(a: Dictionary, W: float, top: float, S: float) -> float:
 	var id := int(a.get("id", 1))
 	var lvl := int(a.get("level", 1))
 	var ddef: Dictionary = Data.get_dragon(id)
-	var stage_name := Growth.stage_for_level(lvl)
+	var stage_name := Growth.portrait_stage(a)
 
 	# ── 초상칸 `common/item_box2` @ (55, PH-70) ────────────────────────────────
 	var box_w := _cw("common_item_box2", 58.0) * S
@@ -604,14 +611,16 @@ func _group(pane: Control, at: Vector2, size: Vector2, title: String) -> Control
 	return g
 
 ## 칸 히트박스(원작 `CCMenuItemImageEx` + `setClickInfo`).
-func _hit(g: Control, center: Vector2, box: float, tip: String, cb: Callable) -> void:
+func _hit(g: Control, center: Vector2, box: float, tip: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.flat = true
 	b.tooltip_text = tip
 	b.size = Vector2(box, box)
 	b.position = center - Vector2(box, box) * 0.5
-	b.pressed.connect(cb)
+	if cb.is_valid():
+		b.pressed.connect(cb)
 	g.add_child(b)
+	return b
 
 func _icon(g: Control, tex: Texture2D, center: Vector2, scale: float) -> void:
 	if tex == null: return
@@ -732,7 +741,10 @@ func _build_skill_group(pane: Control, a: Dictionary, at: Vector2, size: Vector2
 		var aw_row: Dictionary = Data.skill_awaken_for(aw) if aw > 0 else {}
 		if not aw_row.is_empty():
 			aw_tip = String(aw_row.get("name", aw_tip))
-		_hit(g, ac, box * 0.9, aw_tip, func(): _act("awaken_skill"))
+		var aw_hit := _hit(g, ac, box * 0.9, aw_tip, Callable())
+		aw_hit.pressed.connect(func():
+			if aw > 0:
+				DragonAwakenSkillInfoPopup.open(self, aw_hit, aw))
 
 	var xs := ([size.x * 0.5, size.x * 5.0 / 6.0 - 4.0] if awakened
 		else [size.x * 0.5 - 5.0 - box * 0.5, size.x * 0.5 + 5.0 + box * 0.5])
@@ -817,7 +829,7 @@ func _build_strip(W: float, y: float, strip_h: float) -> void:
 		row.add_child(cell)
 		cell.add_child(_cspr("common_dragon_bg1" if sel else "common_dragon_bg2", S))
 		var por := _portrait(int(d.get("id", 1)),
-			Growth.stage_for_level(int(d.get("level", 1))), 0.9 * S, int(d.get("skin", 0)))
+			Growth.portrait_stage(d), 0.9 * S, int(d.get("skin", 0)))
 		por.position = Vector2(0, -7.5)                 # 원작 +(0,7.5), Godot 은 y 반대
 		cell.add_child(por)
 		cell.add_child(_cspr("common_dragon_cover1" if sel else "common_dragon_cover2", S))

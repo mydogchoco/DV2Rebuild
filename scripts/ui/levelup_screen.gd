@@ -973,6 +973,8 @@ func _lvup_fx_badge(fx: Dictionary, row: Dictionary) -> void:
 		tw.tween_property(bd, "scale", Vector2.ONE * 0.6, 0.2 * sp)
 		await tw.finished
 		if not is_instance_valid(bd): return
+		# 보유 원본 MAX 효과음. 배지가 능력치 옆 목표점에 닿는 바로 그 프레임에 재생한다.
+		Bgm.sfx("effect_max_fun")
 		_lvup_shake()          # 원작 +0.3s setShakeView — 착지 직후로 근사
 		var tw2 := bd.create_tween()
 		tw2.tween_property(bd, "scale", Vector2.ONE, 0.2 * sp)
@@ -989,6 +991,7 @@ func _lvup_fx_badge(fx: Dictionary, row: Dictionary) -> void:
 		tw.parallel().tween_property(bd, "scale", Vector2.ONE * 0.6, 0.2 * sp)
 		await tw.finished
 		if not is_instance_valid(bd) or _lvup_ctx.is_empty(): return
+		Bgm.sfx("effect_max_fun")
 		_lvup_fx_triple()
 		_lvup_shake()
 		var tw2 := bd.create_tween()
@@ -1008,7 +1011,6 @@ func _lvup_fx_triple() -> void:
 	if _lvup_ctx.is_empty(): return
 	var ddef: Dictionary = _lvup_ctx.get("ddef", {})
 	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
-	Bgm.sfx("effect_max_fun")
 	_lvup_dragon_voice()      # 원작은 크리티컬 보이스 — 보이스표 유실로 단계 보이스 근사
 	DragonCutin.show(self, {
 		"id": int(ddef.get("id", 0)),

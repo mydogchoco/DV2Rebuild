@@ -78,6 +78,9 @@ NIGHT_BOSS = [
      ["철갑 방패", "마비의 구름"]),
 ]
 NIGHT_LEVEL = 50   # 위키 §1.2 "모든 던전의 레벨이 50으로 상향조정 됐으며"
+# 2026-08-02 사용자 실기 검수: #170 스파인은 투바로, #171 스파인은 키보다.
+# 전투/드랍의 논리 id는 기존 170=키보, 171=투바로를 유지하고 렌더 asset만 교차시킨다.
+NIGHT_VISUAL_ASSET = {170: 171, 171: 170}
 
 # ── 카데스: 던전별 전용 보스 12종 (위키 §2.1.1~§2.1.4) ────────────────────────
 # 위키: "보스 빼고 몹들의 모습은 달라진 게 없다. 보스도 원래 몹에 색만 바꾼것뿐이다" ⇒
@@ -96,6 +99,7 @@ def _load(p: Path):
 def _enemy(asset_id, name, element, att, dfn, hp, level, skills, boss=True, weight=None):
     e = OrderedDict()
     e["id"] = asset_id
+    e["asset_id"] = NIGHT_VISUAL_ASSET.get(asset_id, asset_id)
     e["name"] = name
     e["level"] = level
     e["element"] = element
@@ -171,7 +175,7 @@ def build_stages(check: bool = False) -> int:
 def build_monsters(check: bool = False) -> int:
     d = _load(MONSTERS)
     lst = d["monsters"]
-    have = {int(m.get("asset_id", 0)) for m in lst}
+    have = {int(m.get("id", m.get("asset_id", 0))) for m in lst}
     rows = []
     for aid, name, form, size, el, att, dfn, hp, skills, _w in NIGHT_RANDOM:
         rows.append((aid, name, form, size, el, att, dfn, hp, skills, "yutakan_night"))
@@ -180,10 +184,13 @@ def build_monsters(check: bool = False) -> int:
     # ⚠️ 이미 있는 항목도 **이름은 맞춘다.** 종전에는 `if aid in have: continue` 로 통째 건너뛰어서
     #    이 표에서 이름을 고쳐도 monsters.json 이 낡은 채 남았다 —
     #    #175 가 stages.json 에선 '블랙 윗치', monsters.json 에선 '칼리고마가' 로 갈렸던 원인이다.
-    by_id = {int(m.get("asset_id", -1)): m for m in lst}
+    by_name = {str(m.get("name", "")): m for m in lst}
     renamed = 0
     for aid, name, *_rest in rows:
-        cur = by_id.get(aid)
+        cur = by_name.get(name)
+        if cur is not None:
+            cur["id"] = aid
+            cur["asset_id"] = NIGHT_VISUAL_ASSET.get(aid, aid)
         if cur is not None and str(cur.get("name", "")) != name:
             cur["name"] = name
             cur["_name_basis"] = "build_yutakan_variants.NIGHT_* 표가 이름의 단일 출처다."
@@ -195,6 +202,7 @@ def build_monsters(check: bool = False) -> int:
         if aid in have:
             continue
         m = OrderedDict()
+        m["id"] = aid
         m["name"] = name
         m["form"] = form
         m["size"] = size
@@ -204,7 +212,7 @@ def build_monsters(check: bool = False) -> int:
         m["hp"] = hp
         m["skills"] = list(skills)
         m["region"] = region
-        m["asset_id"] = aid
+        m["asset_id"] = NIGHT_VISUAL_ASSET.get(aid, aid)
         m["_source"] = WIKI
         lst.append(m)
         n += 1

@@ -20,6 +20,12 @@ func _ready() -> void:
 	fails += await _case("일반(hero=false)", {"stage": "1", "region": "yutakan", "hero": false}, 1, false)
 	# 영웅 난이도 — 3마리 + 편성창
 	fails += await _case("영웅(hero=true)", {"stage": "1", "region": "yutakan", "hero": true}, 3, true)
+	# 전투 뒤 같은 던전으로 복귀 — 최초에 확정한 편성을 유지하고 편성창을 다시 띄우지 않는다.
+	var carried: Array = []
+	for d in UserDB.dragons().slice(0, 3):
+		carried.append(int(d["uid"]))
+	fails += await _case("영웅 편성 이월", {"stage": "1", "region": "yutakan", "hero": true,
+		"enc": 1, "party_uids": carried, "party_ready": true}, 3, false, carried.size())
 	# 혼돈의 틈새(random_boss) — 3마리 + 편성창
 	fails += await _case("혼돈의 틈새(8)", {"stage": "8", "region": "yutakan", "hero": false}, 3, true)
 
@@ -41,21 +47,25 @@ func _ready() -> void:
 	# 1인 전투에서 파티 카드가 정확히 1장만 그려지는지(원작 setInterfaceDragon 배치는 1~3장 대응).
 	await get_tree().process_frame
 	var cards := 0
+	var card_z_ok := true
 	var stack: Array = [bs]
 	while not stack.is_empty():
 		var n = stack.pop_back()
 		if n == null: continue
-		if n.has_meta("party_card"): cards += 1
+		if n.has_meta("party_card"):
+			cards += 1
+			card_z_ok = card_z_ok and n.z_index == 400
 		for c in n.get_children(): stack.append(c)
-	var ok2 := cards == 1
-	print("%-22s 카드=%d(기대 1)  %s" % ["1인 전투 카드", cards, ("OK" if ok2 else "FAIL")])
+	var ok2 := cards == 1 and card_z_ok
+	print("%-22s 카드=%d(기대 1) z=400=%s  %s" % [
+		"1인 전투 카드", cards, card_z_ok, ("OK" if ok2 else "FAIL")])
 	if not ok2: fails += 1
 
 	print("결과: %s" % ("PASS" if fails == 0 else "FAIL(%d)" % fails))
 	get_tree().quit(0 if fails == 0 else 1)
 
 
-func _case(label: String, params: Dictionary, want_cap: int, want_popup: bool) -> int:
+func _case(label: String, params: Dictionary, want_cap: int, want_popup: bool, want_run := 1) -> int:
 	# adventure→adventure 전환은 막혀 있다(scene_manager REGISTRY) → 월드맵을 거친다.
 	Scenes.goto("worldmap", {})
 	await get_tree().process_frame
@@ -72,7 +82,7 @@ func _case(label: String, params: Dictionary, want_cap: int, want_popup: bool) -
 	for c in sc.get_children():
 		if c is CanvasLayer and (c as CanvasLayer).layer == 30:
 			popup = true
-	var ok := cap == want_cap and popup == want_popup and (want_popup or run.size() == 1)
+	var ok := cap == want_cap and popup == want_popup and run.size() == want_run
 	print("%-22s 정원=%d(기대 %d) 편성창=%s(기대 %s) 출전=%d  %s" % [
 		label, cap, want_cap, popup, want_popup, run.size(), ("OK" if ok else "FAIL")])
 	return 0 if ok else 1

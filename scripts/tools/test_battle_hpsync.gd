@@ -46,7 +46,7 @@ func _init() -> void:
 						" logic=", c["hp"], " alive=", c["alive"])
 	print("=== runs=", runs, "  mismatch entities=", bad)
 	print("이벤트 타입별 뷰 감산 횟수: ", causes)
-	quit(0)
+	quit(1 if bad > 0 else 0)
 
 ## battle.gd `_play_event` 가 뷰 HP 를 건드리는 지점만 그대로 옮긴 것.
 func _mirror_event(ev: Dictionary, m: Dictionary, causes: Dictionary) -> void:

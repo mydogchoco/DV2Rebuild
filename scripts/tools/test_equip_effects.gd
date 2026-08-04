@@ -179,7 +179,8 @@ func _test_d_batch(tbl: Dictionary, cfg: Dictionary) -> void:
 
 	# 번개고룡의 팬던트 — [심판의 날개](21) 을 쓸 때만 피해 200% 증가.
 	var bg := _mk("BG", "fire", {"att": 100}, ["exclusive:번개고룡의 팬던트"])
-	var tg := _mk("TG", "fire", {"hp": 999999, "def": 10}, [])
+	# 장비 배수만 검증하므로 기본 10% 방어율이 난수로 개입하지 않게 0으로 고정한다.
+	var tg := _mk("TG", "fire", {"hp": 999999, "def": 10, "cri": 0, "evd": 0, "blk": 0}, [])
 	EE.apply_battle([bg], [tg], tbl, {})
 	bg["_cast_skill_id"] = 21
 	_eq("심판의 날개면 3배", int(B._deal_attack(bg, tg, 1000, true, rng, cfg, {})["damage"]), 3000)
@@ -609,10 +610,13 @@ func _test_custom(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
 
 	# ── 샛별의 날개장식(666) ────────────────────────────────────────────────
 	# 1) 장착 스킬 레벨 합 × 4 만큼 받는 대미지 **정액** 감소(불나래와 같은 축).
-	var sb := _mk("SB", "chaos", {"hp": 9999, "skill_level_sum": 9},
+	# `make_combatant` 의 회피 기본값은 10 이다 — 장비 몫만 재려면 0 으로 깔고 시작한다
+	# (그러지 않아 "+33%p" 가 43 으로 나오던 것 2026-08-04 수정).
+	var sb := _mk("SB", "chaos", {"hp": 9999, "evd": 0, "skill_level_sum": 9},
 		["exclusive:샛별의 날개장식"])
 	var mate := _mk("MT", "fire", {"hp": 9999, "att": 100}, [])
 	EE.apply_battle([sb, mate], [], tbl, {})
+	_eq("샛별 — 회피율 +33%p", B._eff(sb, "evd"), 33)
 	_eq("샛별 — 레벨합 9 → 36 감소", int(B._apply_dmg(sb, 500)["dmg"]), 464)
 	# 2) [철갑 방패](11)와 중첩 — 출처가 다르면 정액 감소가 합산된다.
 	(sb["effects"] as Array).append({"kind": "dmg_taken_flat", "value": 35.0,
@@ -626,7 +630,12 @@ func _test_custom(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
 	_eq("장비가 없으면 그대로", B._dmg_deal_mult(solo), 1.0)
 
 	# ── 한울의 불꽃(777) ───────────────────────────────────────────────────
-	# 1) 스킬 발동 횟수 +2 (라 솔라의 불꽃과 같은 조항 — 같은 값이 나와야 한다).
+	# 1) 크리티컬 확률 +75%p.
+	var hc := _mk("HC", "wind", {"cri": 12, "evd": 7}, ["exclusive:한울의 불꽃"])
+	EE.apply_battle([hc], [], tbl, {})
+	_eq("한울 — 크리티컬 확률 +75%p", B._eff(hc, "cri"), 87)
+	_eq("한울 — 회피율 +25%p", B._eff(hc, "evd"), 32)
+	# 3) 스킬 발동 횟수 +2 (라 솔라의 불꽃과 같은 조항 — 같은 값이 나와야 한다).
 	#    ⚠️ 순서가 중요하다: `_init_combatant_skills` 가 한도를 굳힐 때 효과가 이미 심겨
 	#       있어야 한다(실전 순서도 apply_battle → simulate 다).
 	var sid := 0
@@ -644,14 +653,14 @@ func _test_custom(tbl: Dictionary, cfg: Dictionary, sdb: Dictionary) -> void:
 	_true("스킬 한도가 잡혔다 (%d)" % int(uses[0]), sid > 0 and int(uses[0]) > 0)
 	_eq("한울 — 스킬 발동 횟수 +2", int(uses[1]), int(uses[0]) + 2)
 	_eq("한울 — 라 솔라의 불꽃과 같은 값", int(uses[1]), int(uses[2]))
-	# 2) 크리티컬 발동 시 상대의 현재 방어력 절반 무시 — **크리일 때만** 걸린다.
+	# 4) 크리티컬 발동 시 상대의 현재 방어력 절반 무시 — **크리일 때만** 걸린다.
 	var c0 := _crit_dmg(tbl, cfg, [])
 	var c1 := _crit_dmg(tbl, cfg, ["exclusive:한울의 불꽃"])
 	_true("한울 — 크리 피해 증가 (%d → %d)" % [c0, c1], c1 > c0)
 	_eq("한울 — 엔투라스와 같은 값", c1, _crit_dmg(tbl, cfg, ["exclusive:엔투라스의 불꽃 주먹"]))
 	_eq("한울 — 논크리 평타는 그대로",
-		_duel(tbl, cfg, rng, ["exclusive:한울의 불꽃"], "wind"),
-		_duel(tbl, cfg, rng, [], "wind"))
+		_forced_noncrit_dmg(tbl, cfg, ["exclusive:한울의 불꽃"]),
+		_forced_noncrit_dmg(tbl, cfg, []))
 
 
 ## 크리 확정 상태에서의 피해 1회(고정 시드).
@@ -663,6 +672,17 @@ func _crit_dmg(tbl: Dictionary, cfg: Dictionary, keys: Array) -> int:
 	rng.seed = 4242
 	var ev := B.resolve_attack(a, d, rng, cfg, {})
 	return int(ev["damage"]) if bool(ev["crit"]) else -1
+
+
+## 장비가 크리 확률 자체도 올리므로 resolve_attack의 난수에 기대면 비교가 크리로 바뀔 수 있다.
+## 이 검증은 `_hit_damage(..., crit=false)`로 논크리 경로를 명시적으로 고정한다.
+func _forced_noncrit_dmg(tbl: Dictionary, cfg: Dictionary, keys: Array) -> int:
+	var rng := RandomNumberGenerator.new()
+	var a := _mk("A", "wind", {"att": 200, "def": 50, "cri": 0, "evd": 0, "blk": 0}, keys)
+	var d := _mk("D", "wind", {"hp": 999999, "att": 1, "def": 300, "cri": 0, "evd": 0, "blk": 0}, [])
+	EE.apply_battle([a], [d], tbl, {})
+	rng.seed = 4242
+	return B._hit_damage(a, d, false, false, rng, cfg)
 
 
 ## 연속공격 2타의 피해 합(고정 시드).

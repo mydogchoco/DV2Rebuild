@@ -51,6 +51,18 @@ const MODE_NAME := {"N": "일반", "H": "영웅"}
 
 
 # ══════════════════════════════════════════════════════════ 순수 규칙 (테이블을 받는다)
+## 실제 열람 가능한 회차인가. 제목만 복원돼 있어도 본문(`scenario.json` parts.lines)이
+## 없으면 구현 완료로 보지 않는다. `no_lines` 는 140~146화처럼 추출본에 본문이 없음을
+## 명시하는 마스터 플래그이며, 둘 중 하나라도 막히면 영구 잠금 대상이다.
+static func implemented_with(ep: Dictionary, scenario: Dictionary) -> bool:
+	if ep.is_empty() or bool(ep.get("no_lines", false)) or scenario.is_empty():
+		return false
+	for part in (scenario.get("parts", []) as Array):
+		if not ((part as Dictionary).get("lines", []) as Array).is_empty():
+			return true
+	return false
+
+
 ## 회차의 서브퀘스트 정의. 없으면 {}.
 ## `sq` = `data/story_subquest.json` 전체.
 ##

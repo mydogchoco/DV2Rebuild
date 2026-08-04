@@ -102,7 +102,7 @@ static func _tag(key: PackedByteArray, nonce: PackedByteArray, cipher: PackedByt
 
 ## 코드를 표에서 찾아 **복호한 보상 페이로드**를 돌려준다. 못 쓰는 코드면 빈 사전.
 ##   반환 = {"rewards": [{t,k,n}…], "msg": String, "once": bool}
-##   보상 종류(t) = item(k=아이템키) · gold · dia · egg(k=드래곤id) · dragon(k=드래곤id) ·
+##   보상 종류(t) = item(k=아이템키) · gold · dia · egg(k=드래곤id,g=강화등급) · dragon(k=드래곤id) ·
 ##                  flag(k=해시된 플래그 키)
 ## 지급은 하지 않는다 — **결과만 산출**하고 인벤/재화 반영은 호출측(render)이 한다(§8.3).
 static func lookup(code: String, table: Dictionary) -> Dictionary:

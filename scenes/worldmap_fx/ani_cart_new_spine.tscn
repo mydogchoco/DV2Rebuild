@@ -96,27 +96,27 @@ _data = {
 &"mine": SubResource("Animation_hbq7k")
 }
 
-[node name="Dragon_ani_cart_new_spine_scene" type="Node2D" unique_id=418568310]
+[node name="Dragon_ani_cart_new_spine_scene" type="Node2D" unique_id=1333469945]
 
-[node name="root" type="Node2D" parent="." unique_id=1779215531]
+[node name="root" type="Node2D" parent="." unique_id=1666907307]
 
-[node name="w_dwarf_mine_cart" type="Node2D" parent="root" unique_id=66349382]
+[node name="w_dwarf_mine_cart" type="Node2D" parent="root" unique_id=1341392797]
 position = Vector2(108.89, -118.44)
 rotation = 2.252173
 
-[node name="w_dwarf_mine_cart_slot_frame" type="Node2D" parent="root/w_dwarf_mine_cart" unique_id=333954253]
+[node name="w_dwarf_mine_cart_slot_frame" type="Node2D" parent="root/w_dwarf_mine_cart" unique_id=402057993]
 position = Vector2(95.5, 5.02)
 rotation = -2.252173
 
-[node name="w_dwarf_mine_cart_slot" type="Sprite2D" parent="root/w_dwarf_mine_cart/w_dwarf_mine_cart_slot_frame" unique_id=1466598066]
+[node name="w_dwarf_mine_cart_slot" type="Sprite2D" parent="root/w_dwarf_mine_cart/w_dwarf_mine_cart_slot_frame" unique_id=1112601171]
 material = SubResource("CanvasItemMaterial_8rbu1")
 position = Vector2(83.847275, -79.93079)
 scale = Vector2(1.3309091, 1.3321799)
 texture = SubResource("AtlasTexture_ixy4p")
 
-[node name="w_dwarf_mine_book_frame" type="Node2D" parent="root" unique_id=252170260]
+[node name="w_dwarf_mine_book_frame" type="Node2D" parent="root" unique_id=1572314336]
 
-[node name="w_dwarf_mine_book" type="Sprite2D" parent="root/w_dwarf_mine_book_frame" unique_id=1906019233]
+[node name="w_dwarf_mine_book" type="Sprite2D" parent="root/w_dwarf_mine_book_frame" unique_id=62046450]
 z_index = 1
 material = SubResource("CanvasItemMaterial_8rbu1")
 position = Vector2(0, 3.9965398)
@@ -124,5 +124,5 @@ rotation = 1.5707964
 scale = Vector2(1.3309091, 1.3321799)
 texture = SubResource("AtlasTexture_7erb7")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=44975176]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=957505811]
 libraries/ = SubResource("AnimationLibrary_aat1b")

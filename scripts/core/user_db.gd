@@ -63,7 +63,7 @@ func _new_dragon(id: int, level: int, stat_bonus: Dictionary) -> Dictionary:
 		"exp": 0,
 		"stat_bonus": stat_bonus,            # 기준선 대비 편차 {base/growth × hp/att/def}
 		"gain_log": [],          # 레벨업 롤 누적 [{hp,att,def} …] (§K-1 정정, 랜덤롤 모델). 불변식 level==1+size
-		"awakened": false,       # 각성 여부 → 레벨캡 45/50
+		"awakened": false,       # 각성 여부(레벨 상한은 각성 전후 모두 50)
 		# 각성 스킬 no (data/skill_awaken.json). 종족 고유라 각성 시 Data.awaken_skill_of 로 채운다.
 		# 0 = 미각성이거나 배정표에 아직 없는 종족.
 		"awaken_skill": 0,

@@ -179,7 +179,7 @@
       "_line_source": "docs/ref/orig_image/shop/상점_장비.webp",
       "extra": ["gem_gacha", "gem_shop", "equip_shop"],
       "_extra_note": "오프라인 재설계분(사용자 확정 2026-07-27)을 원작 탭 자리에 접어 넣었다. 원작 ITEM 탭이 이미 '장신구 뽑기'를 파는 자리라 여기 모은다: 낮은 성능 젬·장비는 골드 판매, 좋은 젬은 다이아 뽑기.",
-      "_gacha_source": "상품명·가격·아이콘은 docs/ref/orig_image/shop/상점_장비.webp 실측. 등급별 결과 풀은 data/drops.json `gacha.equip.grades`(위키 item.pdf §3 서술 기준).",
+      "_gacha_source": "일반·고급·전용 상품명·가격·아이콘은 docs/ref/orig_image/shop/상점_장비.webp 실측. 특수장비 뽑기(100다이아)는 사용자 확정(2026-08-02) 오프라인 수급처이며 전용 장비 뽑기와 같은 다이아 장비 가챠 아이콘을 쓴다. 등급별 결과 풀은 data/drops.json `gacha.equip.grades`.",
       "_gacha_cut": "~~전용 장신구 뽑기 컷~~ **2026-07-31 복구.** 컷 사유였던 아이콘 부재가 해소됐다 — 위키 PDF 표에서 전용 장비 95종 아이콘을 복원해(`extract_equip_icons.py`) 카탈로그에 올렸고, 가격은 위키 §3.1 확정치(30다이아 · x10 300다이아) 그대로다. 결과 풀 = drops.json `gacha.equip.grades.only`.",
       "gacha": [
         {
@@ -229,6 +229,15 @@
           "cur": "diamond",
           "n": 10,
           "grade": "only"
+        },
+        {
+          "id": "equip_special",
+          "label": "특수장비 뽑기",
+          "price": 100,
+          "cur": "diamond",
+          "n": 1,
+          "grade": "special",
+          "_icon": "전용 장비 뽑기와 같은 equip_gacha_diamond"
         }
       ],
       "_stock_note": "장비 옵션·귀속 소모품을 여기 둔다. 원작도 ITEM 탭이 장신구 자리다. 위키 item.pdf: 구드라의 지혜 = 상점 20다이아(확정값) / 기누의 동전 = '상점에서 다이아로 구매할 수도 있지만 개수 제한이 있다'(가격은 유실 → 등급 차등 자작).",
@@ -372,6 +381,12 @@
       "extra": ["cash"],
       "_extra_note": "원작 `PremiumShopScene`(실제 결제)은 CLAUDE.md §2-1 로 삭제하고 **골드↔다이아 환전소**로 재설계했다(사용자 확정 2026-07-27). 만물상 탭이 다이아 상품 자리라 여기 붙인다. 환율·보너스는 data/drops.json 의 `cash` 블록. 메인 HUD 의 ⊞ 버튼은 `{\"tab\":\"cash\"}` 로 이 탭을 연다.",
       "stock": [
+        {
+          "item": "dragon_enhance_ticket",
+          "price": 500,
+          "cur": "diamond",
+          "_source": "사용자 확정 2026-08-03: 285번 드래곤 강화권을 다이아 샵에서 개당 500 다이아에 판매"
+        },
         {
           "item": "jem_random",
           "price": 15,

@@ -19,6 +19,7 @@ var _event_open := false         # 이벤트(회복샘·보물·갈림길·상�
 # 원작 탐험 보행은 아바타 없이 1인칭 — 배경 사본이 확대·이동하며 전진한다(setAdventureWalk).
 var _cam: Camera2D               # setAllViewShake(Shake 액션) 전용 카메라
 var _walking := false
+var _walk_sfx: AudioStreamPlayer
 var _speed_btn: Button
 
 func enter(params: Dictionary = {}) -> void:
@@ -30,18 +31,10 @@ func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 	_adv = _man("adventure_ui")
-	# ⚠️ `_rebuild()` 가 레벨업 큐를 소비(`_params.erase("levelups")`)하므로 **먼저** 기억해 둔다.
-	var had_levelups := _params.has("levelups")
 	_rebuild()
-	# 원작 BattleTextBox: 스테이지 진입 스토리 대사. 대사 텍스트=유실(서버/시나리오 데이터) → stages.json "intro"
-	# (사용자 작성)가 있을 때만 첫 진입에 표시. 없으면 미표시(지어내지 않음, 원칙2).
-	# ⚠️ 레벨업 결과창·3인 편성창이 대기 중이면 인트로 대사를 띄우지 않는다 — 대사 레이어(80)의
-	#   전면 탭 캐처가 그 창들(30/31) 위를 덮어 **버튼이 안 눌리게 된다**(2026-08-01 실측 2건).
-	var party_pending := _party_capacity() == 3 and not bool(_params.get("party_ready", false))
-	if int(_params.get("enc", 0)) == 0 and not had_levelups and not party_pending:
-		var intro := String(_stage.get("intro", ""))
-		if intro != "":
-			_open_dialogue(intro)
+	# 진입 설명은 `_build_narration()`의 원작 BattleTextBox 한 곳에서만 표시한다.
+	# 종전 `_open_dialogue(intro)`는 같은 2번째 문장을 갈색 자작 대화창으로 한 번 더
+	# 쌓아 올려, 원작의 흰색 2줄 문구와 겹치게 하던 중복 호출이었다.
 
 ## 던전 탐험(비전투) BGM: stages.json "bgm"(명시 override) → **bg_<필드id>** → 지역 bgm → yutakan 폴백.
 ## 원작 음원 `music/bg_<n>.mp3` 는 배경 `scene/adventure/bg/<n>/bg.jpg` 와 **같은 번호 체계**다
@@ -126,6 +119,7 @@ var _rboss_enc := -1   # 랜덤 보스 스테이지: 이번 진입에 선택된 
 ## 이벤트 큐나 재추첨이 이걸 덮지 못하게 마지막에 다시 박는다.
 var _dk_pin := -1
 func _rebuild() -> void:
+	_stop_walk_sfx()
 	for c in get_children():
 		c.queue_free()
 	_done = false; _t = 0.0
@@ -200,7 +194,12 @@ func _rebuild() -> void:
 	# 출전 인원 확정 — 원작은 **입장 후**에 편성한다(월드맵 팝업에는 편성 단계가 없다).
 	#   1인 탐험: 리더(동굴 선택 드래곤) 그대로 시작.
 	#   3인 단계: 편성창을 띄우고, 확정 전까지 보행을 멈춘다.
-	_run_party = _leader_party()
+	# 전투가 끝나 AdventureScene 이 다시 만들어져도 이번 던전에서 최초 1회 확정한
+	# 편성을 그대로 이어받는다. `party_uids` 가 없는 최초 입장만 리더로 시작한다.
+	var carried_party: Array = (_params.get("party_uids", []) as Array).duplicate()
+	_run_party = carried_party if not carried_party.is_empty() else _leader_party()
+	if not carried_party.is_empty():
+		_params["party_ready"] = true
 	# 허기(FOOD) 소진 게이트 — 전투마다 줄고, 이 씬은 전투가 끝날 때마다 다시 지어지므로
 	# (`battle.gd` → `Scenes.goto("adventure")`) 여기가 매 조우 뒤 통과하는 지점이다.
 	# 🟠 2026-08-01 정정(사용자 지적): 종전엔 **무조건 쫓아냈는데**, 원작은 가방에 먹을 수 있는
@@ -276,9 +275,9 @@ func _play_event(ev: Dictionary) -> bool:
 			return true
 		# ⚫ AdventureRun.TREASURE(0x15) 는 **풀에서 뺐다** — data/adventure_events.json
 		#   `steps._cut_treasure`. 종착지(seek)가 유실돼 입구만 열어 둘 수 없다. 아래 §CUT 주석 참조.
-		AdventureRun.CHOICE:
-			_open_choice(_event_rng("choice"))
-			return true
+		# ⚫ AdventureRun.CHOICE(0x1b) 도 같은 이유로 뺐다 — `steps._cut_choice`
+		#   (사용자 확인 2026-08-01). 서버가 고르던 4변형과 choice_up/pass/drink/open
+		#   프레임이 유실됐고, 종전의 '안전한 길/위험한 길'은 자작 문구·규칙이었다.
 		AdventureRun.SHOP:
 			_open_shop(_event_rng("shop"))
 			return true
@@ -324,10 +323,21 @@ func _begin_walk() -> void:
 	if _done:
 		return
 	_walking = true
+	_stop_walk_sfx()
+	_walk_sfx = Bgm.loop_sfx("effect_walk")
+	if _walk_sfx:
+		add_child(_walk_sfx)
 	# 원작 `setAllHideUiButton` — 전진 애니 동안은 하단 파티 카드를 감춘다
 	# (레퍼런스 `docs/ref/adventure/배회1~5.png` 에 카드가 없다). 조우 선택지에서 다시 뜬다.
 	_hide_party_cards()
 	_start_walk_cycle()
+
+## 원작 보행 효과음은 걷는 액션 구간에만 루프하고, 이벤트·조우에서는 즉시 멈춘다.
+func _stop_walk_sfx() -> void:
+	if is_instance_valid(_walk_sfx):
+		_walk_sfx.stop()
+		_walk_sfx.queue_free()
+	_walk_sfx = null
 
 ## 출전 인원 중 굶은 드래곤이 있으면 원작대로 **먹이기 팝업**으로 잇는다. 흐름을 가로챘으면 true.
 ## 원작 = `checkNightHungry` → `setDragonFoodWithSelectedDragon`(문구 `<CaveDragonFoodMsg_Ad_*>`)
@@ -664,88 +674,6 @@ func _open_shop(r: RandomNumberGenerator) -> void:
 		if is_instance_valid(layer): layer.queue_free()
 		_step_done())
 	layer.add_child(leave)
-
-## 원작 setEventDungeonChoice(0x1b): 갈림길. 두 길 중 선택 → 즉시 결과.
-## 등장 확률은 `data/adventure_events.json`(해골요새 전용, 다른 이벤트와 배타 추첨).
-## ⚠️ 원작의 4변형(사다리/물약/샘/상자 + 성공·실패 문구 `AdventureDungeonChoice1~4`)은
-##   버튼 라벨 프레임(`choice_up/pass/drink/open`)이 추출 에셋에 없어 아직 이식하지 못했다 —
-##   아래 '안전한 길/위험한 길'은 **자작**이다(포팅 카드 AdventureEventFlow.md §4).
-
-func _open_choice(r: RandomNumberGenerator) -> void:
-	_event_open = true
-	var vis := _vis()
-	var layer := CanvasLayer.new(); layer.layer = 20; add_child(layer)
-	var dim := ColorRect.new(); dim.color = Color(0, 0, 0, 0.72); dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(dim)
-	var title := Label.new(); title.text = "갈림길  —  어느 길로 갈까요?"
-	title.add_theme_font_size_override("font_size", 24); title.add_theme_color_override("font_color", Color(1, 0.95, 0.7))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.size = Vector2(vis.x, 34); title.position = Vector2(0, vis.y * 0.2)
-	layer.add_child(title)
-	# 두 길: 안전(작은 확정 보상) vs 위험(큰 확률 보상 or 꽝). 결과는 시드로 미리 롤.
-	var paths := [
-		{"name": "안전한 길", "desc": "확정 소량 보상", "col": Color(0.4, 0.7, 0.9)},
-		{"name": "위험한 길", "desc": "큰 보상 or 꽝", "col": Color(0.9, 0.5, 0.4)},
-	]
-	# 원작 버튼 프레임: `scene/adventure/btn1.png` / `btn2.png` (262x94).
-	# 근거: AdventureScene.c 리터럴 + docs/ref/orig_image/battle/화면 캡처 2026-07-26 024440.png
-	# (탐험 중 "그만하기"(적)/"계속하기"(녹) 2버튼). 자작 StyleBox 박스를 원작 프레임으로 교체.
-	var BTN_W := 262.0
-	var BTN_H := 94.0
-	for i in 2:
-		var p: Dictionary = paths[i]
-		var holder := Control.new()
-		holder.size = Vector2(BTN_W, BTN_H)
-		holder.position = Vector2(vis.x * 0.5 + (-BTN_W - 24.0 if i == 0 else 24.0), vis.y * 0.40)
-		layer.add_child(holder)
-		var frame := _spr("adventure_ui", "scene_adventure_btn%d" % (2 if i == 0 else 1), _adv, 1.0)
-		if frame:
-			frame.position = Vector2(BTN_W * 0.5, BTN_H * 0.5)
-			holder.add_child(frame)
-		var lb := Label.new()
-		lb.text = String(p["name"])
-		lb.add_theme_font_size_override("font_size", 26)
-		lb.add_theme_color_override("font_color", Color.WHITE)
-		lb.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0, 0.9))
-		lb.add_theme_constant_override("outline_size", 4)
-		lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lb.size = Vector2(BTN_W, 30); lb.position = Vector2(0, 16)
-		holder.add_child(lb)
-		var sub := Label.new()
-		sub.text = String(p["desc"])
-		sub.add_theme_font_size_override("font_size", 15)
-		sub.add_theme_color_override("font_color", Color(1, 0.97, 0.85, 0.92))
-		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		sub.size = Vector2(BTN_W, 22); sub.position = Vector2(0, 50)
-		holder.add_child(sub)
-		var hit := Button.new(); hit.flat = true
-		hit.size = Vector2(BTN_W, BTN_H)
-		holder.add_child(hit)
-		hit.pressed.connect(_choose_path.bind(i, r, title, layer))
-
-func _choose_path(idx: int, r: RandomNumberGenerator, title: Label, layer: CanvasLayer) -> void:
-	if not is_instance_valid(layer): return
-	var msg := ""
-	if idx == 0:   # 안전: 확정 소량 골드
-		var g := _grant_gold(60 + r.randi() % 90)
-		msg = "안전한 길 — +골드 %d" % g
-	else:   # 위험: 60% 큰 보상, 40% 꽝
-		if r.randf() < 0.6:
-			var g := _grant_gold(200 + r.randi() % 300)
-			var pool: Array = Data.items_by("consumable") + Data.items_by("material")
-			var it := ""
-			if not pool.is_empty():
-				var key: String = pool[r.randi() % pool.size()]
-				UserDB.add_item(key, 1); it = " / %s" % Data.item_name(key)
-			Bgm.sfx("effect_coin"); msg = "위험한 길 — 대박!  +골드 %d%s" % [g, it]
-		else:
-			msg = "위험한 길 — 아무것도 없었다…"
-	title.text = msg
-	# 버튼 제거(하위 Button만)
-	for c in layer.get_children():
-		if c is Button: c.queue_free()
-	get_tree().create_timer(1.2).timeout.connect(func():
-		if is_instance_valid(layer): layer.queue_free()
-		_step_done())
 
 ## ⚫ **CUT — 보물지도 조우(원작 `setEventTreasure` 0x15)** (사용자 확정 2026-07-31)
 ##
@@ -1414,19 +1342,23 @@ func _attach_cure_button(card: Control, pd: Dictionary) -> void:
 ## ⚠️ 회복 결과는 **이번 탐험의 hp_state** 에 얹는다(전투가 그걸 읽어 시작 HP 를 잡는다).
 ##   원작의 다이아 결제 갈래는 §2-1 로 ⚫CUT — 보유 물약이 없으면 아무 일도 하지 않는다.
 func _use_heal_potion(uid: int, key: String) -> void:
-	if not UserDB.use_item(key, 1):
-		return
 	var hp_state: Dictionary = (_params.get("hp_state", {}) as Dictionary).duplicate()
 	var uids: Array = _run_party if not _run_party.is_empty() else _leader_party()
 	var party := PartyStats.summary(uids, _is_kades(), _field_element_key(), hp_state)
+	var healed := 0
 	for pd: Dictionary in party:
 		if int(pd.get("uid", 0)) != uid:
 			continue
 		var hp := int(pd.get("hp", 0))
 		var hp_max := int(pd.get("hp_max", 1))
-		hp_state[str(uid)] = clampi(hp + ItemEffect.heal_amount(Data.item_effects, hp, hp_max),
-			0, hp_max)
+		healed = ItemEffect.heal_amount(Data.item_effects, hp, hp_max)
+		if healed > 0:
+			hp_state[str(uid)] = clampi(hp + healed, 0, hp_max)
 		break
+	# 원작 응답도 `new_hp - current_hp`가 실제 회복량이다. 대상이 없거나 이미
+	# 최대 HP면 물약을 소모하지 않는다.
+	if healed <= 0 or not UserDB.use_item(key, 1):
+		return
 	_params["hp_state"] = hp_state
 	# 원작 setRecoverItemHeal: 카드 중앙에 particle/scene/adventure/skill_29.plist + 효과음.
 	for i in mini(_party_cards.size(), uids.size()):
@@ -1597,9 +1529,13 @@ func _process(delta: float) -> void:
 	if _event_open:                        # 이벤트 진행 중 = 보행 정지
 		if is_instance_valid(_walk_tw) and _walk_tw.is_running():
 			_walk_tw.pause()
+		if is_instance_valid(_walk_sfx) and _walk_sfx.playing:
+			_walk_sfx.stop()
 		return
 	if is_instance_valid(_walk_tw) and not _walk_tw.is_running():
 		_walk_tw.play()
+	if is_instance_valid(_walk_sfx) and not _walk_sfx.playing:
+		_walk_sfx.play()
 	_t += delta * _speed
 
 ## 몬스터 조우 연출 — 원작 3단 구성 축자 이식.
@@ -1625,6 +1561,7 @@ func _monster_meet() -> void:
 	var is_boss := (total > 0 and enc + 1 >= total) or _rboss_enc >= 0   # 랜덤보스=보스취급
 	# 보행 정지 — 전진하던 배경 사본을 정리한다.
 	_walking = false
+	_stop_walk_sfx()
 	if is_instance_valid(_walk_tw): _walk_tw.kill()
 	if is_instance_valid(_walk_layer):
 		var wl := _walk_layer
@@ -1706,6 +1643,10 @@ func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
 		mnode = _spr("adventure_ui", "scene_adventure_shadow", _adv, 2.0)
 	if mnode == null:
 		_show_battle_ready(is_boss); return
+	# 원작 setNormalBossShowEffect는 보스 조우 연출이다. 보스 스파인 등장과 동시에 시작하고,
+	# 전투를 선택한 뒤의 battle 씬에서는 다시 재생하지 않는다.
+	if is_boss:
+		_boss_show_effect()
 	# ── showMonsterShadow: 지면 그림자 + 숨쉬는 스케일 루프
 	var sbase := 1.5 * (1.3 if is_boss else 1.0)
 	var sh := _spr("adventure_ui", "scene_adventure_shadow", _adv, sbase)
@@ -1720,7 +1661,15 @@ func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
 	var p0 := Vector2(cx, cy + 30.0)          # 순 이동 +30(위) 를 상쇄한 시작점
 	mnode.position = p0
 	mnode.scale = full
-	Bgm.sfx("effect_monster_in")              # 원작 music/effect_monster_in.mp3
+	# 일반 조우는 showMonster 시작과 동시에 monster_in을 재생한다. 보스는 원작
+	# setNormalBossShowEffect의 effect_cut_in이 먼저 울리고, 이후 showMonster 콜백에서
+	# monster_in이 재생된다. 같은 프레임에 겹치면 보스 글자 등장음이 묻힌다.
+	if is_boss:
+		get_tree().create_timer(0.6).timeout.connect(func():
+			if is_inside_tree():
+				Bgm.sfx("effect_monster_in"))
+	else:
+		Bgm.sfx("effect_monster_in")
 	var t := meet.create_tween()
 	t.tween_property(mnode, "scale", full * 1.2, 0.3)
 	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -130.0), 0.3)
@@ -1730,10 +1679,46 @@ func _show_monster(mid: int, is_boss: bool, vis: Vector2) -> void:
 		_arrive_impact(cx, cy, is_boss))
 	t.tween_property(mnode, "scale", full, 0.2)
 	t.parallel().tween_property(mnode, "position", p0 + Vector2(0, -30.0), 0.2)
-	t.tween_interval(0.55)
+	# 보스 글자의 마지막 착지(1.5+0.8s)와 잔상까지 끝난 뒤 선택지를 띄운다.
+	# 일반 조우는 종전 원작 착지 호흡 0.55s를 유지한다.
+	t.tween_interval(2.05 if is_boss else 0.55)
 	# 원작은 몬스터가 착지한 **뒤** `setReadyFight`(0x17) → `setBattleReady` 로 선택지를 띄운다.
 	# 전투는 '싸운다'를 눌러야 시작된다(포팅 카드 AdventureEventFlow.md §2).
 	t.tween_callback(_show_battle_ready.bind(is_boss))
+
+## 원작 `AdventureScene::setNormalBossShowEffect` @00c7d0d8.
+## `txt_boss1~4_kr`가 보스 스파인과 함께 날아오며, 리터럴 효과음은 effect_cut_in 하나다.
+const _BOSS_GLYPH_DELAY: Array[float] = [0.6, 0.9, 1.2, 1.5]
+const _BOSS_GLYPH_DX: Array[float] = [-260.0, -110.0, 110.0, 260.0]
+func _boss_show_effect() -> void:
+	var vis := _vis()
+	var S := Design.ASSET_SCALE
+	var cx := vis.x * 0.5
+	var y := Design.flip_y(vis.y * 0.75, vis.y)
+	var layer := Node2D.new()
+	layer.z_index = 130
+	add_child(layer)
+	Bgm.sfx("effect_cut_in")
+	var starts := [
+		Vector2(-300.0 - vis.x, y),
+		Vector2(vis.x * 0.35, y - 300.0),
+		Vector2(vis.x * 0.7, y - 300.0),
+		Vector2(vis.x + 300.0, y),
+	]
+	for i in 4:
+		var g := _spr("adventure_ui", "scene_adventure_txt_boss%d_kr" % (i + 1), _adv, 2.0 * S)
+		if g == null:
+			continue
+		g.position = starts[i]
+		layer.add_child(g)
+		var t := g.create_tween()
+		t.tween_interval(_BOSS_GLYPH_DELAY[i])
+		t.tween_property(g, "scale", Vector2.ONE * S, 0.75)
+		t.parallel().tween_property(g, "position", Vector2(cx + _BOSS_GLYPH_DX[i], y), 0.8) \
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	var tl := layer.create_tween()
+	tl.tween_interval(2.7)
+	tl.tween_callback(layer.queue_free)
 
 # ---------- 조우 전 선택지 — 원작 setBattleReady ----------
 #
@@ -1821,16 +1806,10 @@ func _on_choice_fight() -> void:
 	_clear_battle_ready()
 	_go_battle()
 
-## 원작 onClickRun(→ setEventRun 0x9). 성공하면 전투 없이 이번 조우를 넘기고,
-## 실패하면 그대로 싸운다. 성공률은 서버 소유였다 → `data/adventure_events.json` `run`(자작).
-func _on_choice_run(is_boss: bool) -> void:
+## 원작 onClickRun(→ setEventRun 0x9). 클라이언트에는 성공/실패 난수 판정이 없고 곧바로
+## 런 이벤트를 요청한다. 오프라인판에서는 사용자 확정 규칙대로 항상 탐험을 끝내 월드맵으로 돌아간다.
+func _on_choice_run(_is_boss: bool) -> void:
 	_clear_battle_ready()
-	var r := _event_rng("run")
-	if not AdventureRun.run_succeeds(Data.adventure_events, is_boss, r):
-		_narrate("도망치지 못했다!")
-		get_tree().create_timer(1.0).timeout.connect(_go_battle)
-		return
-	# 도망 성공 = 탐험 종료(월드맵 복귀). 원작 setEventRun 도 런을 끝낸다.
 	_narrate("무사히 도망쳤다.")
 	get_tree().create_timer(1.2).timeout.connect(func():
 		if is_instance_valid(self):
@@ -1997,7 +1976,7 @@ func _go_battle() -> void:
 		elite = er.randf() < 0.10
 	Scenes.goto("battle", {"stage": String(_params.get("stage", "")),
 		"region": _params.get("region", "yutakan"), "enc": enc, "elite": elite,
-		"hp_state": hp_state, "streak": int(_params.get("streak", 0)),
+		"hp_state": hp_state,
 		# 이번 탐험의 출전 인원 — 일반은 리더 1마리, 3인 단계는 편성 결과.
 		# 전투가 전역 UserDB.party() 를 다시 읽으면 1인 탐험에서도 3마리가 나온다.
 		# 카데스의 공간 여부는 스테이지 id(601+)로 이미 정해지지만, 전투가 다시 계산하지 않도록
@@ -2022,13 +2001,13 @@ func _pick_weighted(rows: Array, rr: RandomNumberGenerator) -> int:
 			return i
 	return rows.size() - 1
 
-## 현 조우(enc)의 몬스터 asset id. 랜덤 보스면 선택된 보스, 아니면 stage.enemies[enc].id.
+## 현 조우(enc)의 몬스터 렌더 asset id. 논리 id와 그림이 다르면 stage의 asset_id가 우선한다.
 func _enemy_id_for_enc() -> int:
 	var enemies: Array = _stage.get("enemies", [])
 	if enemies.is_empty(): return 1
 	var enc := _rboss_enc if _rboss_enc >= 0 else clampi(int(_params.get("enc", 0)), 0, enemies.size() - 1)
 	var e: Dictionary = enemies[enc]
-	var eid: Variant = e.get("id", 1)
+	var eid: Variant = e.get("asset_id", e.get("id", 1))
 	return int(eid) if eid != null else 1
 
 ## 원작 BattleTextBox 1:1: 하단 대화상자 — dialogue_box 9patch + 타자기 텍스트 + next 화살표 + 탭 진행.

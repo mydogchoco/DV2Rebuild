@@ -22,6 +22,14 @@
 class_name Gem
 extends RefCounted
 
+## 가방 설명 CSV의 공유 설명 키. 샌즈 2종은 각각 혼성/소울 계열에서 분리한다.
+static func description_category(name: String, table: Dictionary) -> String:
+	if name == "샌즈의 젬":
+		return "sands"
+	if name == "샌즈의 소울젬":
+		return "sands_soul"
+	return String(gem_def(name, table).get("category", ""))
+
 const SLOTS := 3           # 원작 젬 슬롯 수(Dragon.c 3칸)
 const FLAT_KEYS := ["hp", "att", "def"]
 const PCT_KEYS := ["hp_pct", "att_pct", "def_pct"]

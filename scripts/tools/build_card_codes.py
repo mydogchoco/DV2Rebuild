@@ -50,6 +50,8 @@ OUT_PATH = REPO / "data/card_codes.json"
 ITEMS_PATH = REPO / "data/items.json"
 GEMS_PATH = REPO / "data/gems.json"
 DRAGONS_PATH = REPO / "data/dragons.json"
+EQUIPMENT_PATH = REPO / "data/equipment.json"
+LABORATORY_PATH = REPO / "data/laboratory.json"
 
 # `--csv` / `--out` 으로 갈아 끼운다. 회귀 테스트용 픽스처
 # (`scripts/tools/fixtures/card_codes_test.csv` → `card_codes_test.json`)를 굽는 데 쓴다 —
@@ -172,6 +174,10 @@ def flag_key(name: str) -> str:
 _ITEMS: dict | None = None
 _GEMS: dict | None = None
 _DRAGON_IDS: set | None = None
+_EQUIPMENT: dict | None = None
+_EGG_GRADES: set[int] | None = None
+
+RARITY_NAMES = {"일반": 0, "매직": 1, "레어": 2, "유니크": 3, "에픽": 4, "초월": 5}
 
 
 def _nrm_name(s: str) -> str:
@@ -180,16 +186,46 @@ def _nrm_name(s: str) -> str:
 
 
 def _load_masters() -> None:
-    global _ITEMS, _GEMS, _DRAGON_IDS
+    global _ITEMS, _GEMS, _DRAGON_IDS, _EQUIPMENT, _EGG_GRADES
     if _ITEMS is not None:
         return
     _ITEMS = json.loads(ITEMS_PATH.read_text(encoding="utf-8"))
     _GEMS = json.loads(GEMS_PATH.read_text(encoding="utf-8")).get("gems", {})
+    _EQUIPMENT = json.loads(EQUIPMENT_PATH.read_text(encoding="utf-8"))
+    laboratory = json.loads(LABORATORY_PATH.read_text(encoding="utf-8"))
+    grade_table = laboratory.get("egg_upgrade", {}).get("grades", {})
+    _EGG_GRADES = {0, *(int(g) for g in grade_table)}
     try:
         dragons = json.loads(DRAGONS_PATH.read_text(encoding="utf-8"))
         _DRAGON_IDS = {int(d["id"]) for d in dragons if isinstance(d, dict) and "id" in d}
     except Exception:
         _DRAGON_IDS = set()
+
+
+def resolve_egg_reward(text: str) -> tuple[int, int]:
+    """알 보상키 자연어 → (드래곤 id, 강화 등급).
+
+    기존 숫자 표기(`777`)를 그대로 지원하면서 `777 알+4강화`, `777알 +4강`처럼
+    사람이 시트에 쓰는 표기도 받는다. 등급은 `laboratory.json`에 정의된 것만 허용한다.
+    제작 상한은 3강이지만 4강은 이벤트 전용 등급으로 정의되어 카드 코드 지급이 가능하다.
+    """
+    m = re.fullmatch(
+        r"(?P<did>\d+)\s*(?:알)?\s*(?:\+\s*(?P<grade>\d+)\s*강(?:화)?)?\s*",
+        unicodedata.normalize("NFC", text),
+    )
+    if m is None:
+        raise ValueError(
+            f"알은 보상키를 '드래곤 id' 또는 '드래곤 id 알+N강화'로 적어야 합니다: '{text}'"
+        )
+    did = int(m.group("did"))
+    grade = int(m.group("grade") or 0)
+    _load_masters()
+    if _DRAGON_IDS and did not in _DRAGON_IDS:
+        raise ValueError(f"드래곤 id {did} 가 data/dragons.json 에 없습니다")
+    if _EGG_GRADES is not None and grade not in _EGG_GRADES:
+        allowed = ", ".join(str(g) for g in sorted(_EGG_GRADES))
+        raise ValueError(f"알 강화 등급 {grade}은 정의되지 않았습니다(허용: {allowed})")
+    return did, grade
 
 
 def _item_by_name(text: str) -> str | None:
@@ -236,6 +272,49 @@ def _gem_by_name(text: str) -> str | None:
     return None
 
 
+def _equipment_catalog_names() -> dict[str, str]:
+    """장비 표시명 → `Equipment.catalog()` 카탈로그 키.
+
+    게임 쪽 `scripts/systems/equipment.gd::catalog`과 같은 키 규칙만 옮긴다. 카드 코드가
+    장비를 지급할 때 `equip:` 인벤 키를 만들려면 표시명이 아니라 이 키가 필요하다.
+    """
+    _load_masters()
+    out: dict[str, str] = {}
+    for kind, spec in _EQUIPMENT.get("basic", {}).items():
+        for grade in spec.get("grades", []):
+            out[_nrm_name(str(grade.get("name", "")))] = f"basic:{kind}:{int(grade['grade'])}"
+    for row in _EQUIPMENT.get("event", []):
+        if row.get("implemented", True):
+            name = str(row.get("name", ""))
+            out[_nrm_name(name)] = f"event:{name}"
+    for family, spec in _EQUIPMENT.get("special", {}).items():
+        if not spec.get("implemented", True):
+            continue
+        for row in spec.get("items", []):
+            name = str(row.get("name", ""))
+            out[_nrm_name(name)] = f"special:{family}:{name}"
+    for row in _EQUIPMENT.get("exclusive", {}).get("list", []):
+        if row.get("implemented", False):
+            name = str(row.get("name", ""))
+            out[_nrm_name(name)] = f"exclusive:{name}"
+    artifacts = _EQUIPMENT.get("artifacts", {})
+    for art in artifacts.get("types", []):
+        for grade_i, grade in enumerate(artifacts.get("grades", [])):
+            display = f"{grade} {art['name']}"
+            out[_nrm_name(display)] = f"artifact:{art['name']}:{grade_i}"
+    return out
+
+
+def resolve_equipment(text: str) -> tuple[str, int] | None:
+    """`장비 이름[희귀도]` → (카탈로그 키, 희귀도 인덱스)."""
+    raw = unicodedata.normalize("NFC", text).strip()
+    m = re.fullmatch(r"(.+?)\s*[\[［(（]\s*(일반|매직|레어|유니크|에픽|초월)\s*[\]］)）]", raw)
+    name = m.group(1).strip() if m else raw
+    rarity = RARITY_NAMES[m.group(2)] if m else 0
+    key = _equipment_catalog_names().get(_nrm_name(name))
+    return (key, rarity) if key else None
+
+
 def resolve_item_key(text: str) -> str:
     """자연어 보상키 → 인벤토리 키. 못 찾으면 ValueError."""
     _load_masters()
@@ -261,7 +340,7 @@ TEMPLATE_NOTE = [
     "#   아이템 → 보상키 = 게임에 보이는 이름(예: 데르사의 축복) 또는 data/items.json 키",
     "#           젬은 '<젬 이름> <티어>' (예: 방어의 소울젬 10등급 / 샌즈의 젬 80/15/15)",
     "#   골드·다이아 → 보상키는 비우고 개수만",
-    "#   알 → 보상키 = 드래곤 id (가방에 egg:<id> 로 들어갑니다)",
+    "#   알 → 보상키 = 드래곤 id 또는 '<id> 알+N강화' (예: 777 알+4강화 → egg:777#4)",
     "#   드래곤 → 보상키 = 드래곤 id (레벨1 개체로 지급)",
     "#   플래그 → 보상키 = 플래그 이름 (빌드에는 해시만 실립니다)",
     "# 사용제한: 1(기본) / N=N번까지 / 무제한",
@@ -321,7 +400,15 @@ def parse_reward(row: dict) -> tuple[dict | None, str]:
         n = 1
     if kind in ("gold", "dia"):
         return {"t": kind, "n": n}, ""
-    if kind in ("egg", "dragon"):
+    if kind == "egg":
+        did, grade = resolve_egg_reward(key)
+        reward = {"t": "egg", "k": did, "n": n}
+        if grade > 0:
+            reward["g"] = grade
+        note = "" if grade == 0 and key.isdigit() else \
+            f"{key} → egg:{did}" + (f"#{grade}" if grade > 0 else "")
+        return reward, note
+    if kind == "dragon":
         if not key.isdigit():
             raise ValueError(f"{raw_kind} 는 보상키가 드래곤 id(숫자)여야 합니다: '{key}'")
         _load_masters()
@@ -334,6 +421,11 @@ def parse_reward(row: dict) -> tuple[dict | None, str]:
         return {"t": "flag", "k": flag_key(key)}, ""
     if not key:
         raise ValueError("아이템 이름/키가 비었습니다")
+    equip = resolve_equipment(key)
+    if equip:
+        catalog_key, rarity = equip
+        return {"t": "equipment", "k": catalog_key, "r": rarity, "n": n}, \
+            f"{key} → equip:r{rarity}@{catalog_key}"
     resolved = resolve_item_key(key)
     return {"t": "item", "k": resolved, "n": n}, ("" if resolved == key else f"{key} → {resolved}")
 

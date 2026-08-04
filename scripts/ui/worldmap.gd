@@ -100,6 +100,12 @@ func _launch_scenario_if_available() -> void:
 	var ep := StoryProgress.next_episode()
 	if ep <= 0 or StoryProgress.seen(ep) or not StoryProgress.unlocked(ep):
 		return
+	# 정확한 던전 필드가 있는 회차는 원작 ! 마커를 눌러 진입한다.
+	# 즉시/마을/특수 회차는 복구된 표에 던전 필드가 없으므로
+	# launchScenarioIfAvailable 경로를 유지한다.
+	var mark := StoryProgress.mark_field()
+	if mark > 0 and mark < 999:
+		return
 	if Data.scenario_flow_of(ep).is_empty():
 		return
 	Scenes.goto("story", {"no": ep, "part": 0, "back": "worldmap",
@@ -412,7 +418,8 @@ func _build_region_native(region: Dictionary) -> void:
 	_content.add_child(_backdrop)
 	var bgname := String(nat.get("background", ""))
 	var bgp := "res://assets/converted/worldmap_maps/%s.jpg" % bgname
-	if bgname != "" and ResourceLoader.exists(bgp):
+	# 디버그: 바다층을 생략하면 최하단의 마젠타 판이 투명 슬롯을 그대로 드러낸다.
+	if bgname != "" and ResourceLoader.exists(bgp) and not Engine.has_meta("wm_no_ocean"):
 		var bg := Sprite2D.new()
 		bg.texture = load(bgp)
 		bg.centered = false
@@ -450,6 +457,9 @@ func _build_region_native(region: Dictionary) -> void:
 		var spr := _sprite_native(frame, dir, man, S)
 		if spr:
 			spr.position = d
+			# 특정 지형 조각이 내부 슬롯 z를 가진 Spine까지 가려야 할 때 쓰는 데이터 주도 순서.
+			# 기본값 0은 기존 배열/형제 순서를 그대로 보존한다.
+			spr.z_index = int(p.get("z_index", 0))
 			_content.add_child(spr)
 			_tintables.append(spr)
 		var lbl := String(p.get("label", ""))
@@ -556,14 +566,22 @@ func _play_field_fx(field: int) -> void:
 	var e: Dictionary = _field_fx.get(field, {})
 	if e.is_empty() or _field_fx_ctx.is_empty():
 		return
-	var snd := String(e.get("sound", ""))
-	if snd != "":
-		Bgm.sfx(snd)
+	var sounds: Array = e.get("sounds", [])
+	if sounds.is_empty():
+		var snd := String(e.get("sound", ""))
+		if snd != "":
+			sounds = [snd]
+	for snd in sounds:
+		if String(snd) != "":
+			Bgm.sfx(String(snd))
 	# 원작 case 0xd 처럼 **이미 떠 있는 앰비언트 스파인의 동작을 바꾸는** 연출.
 	# 새 노드를 띄우는 게 아니라서 _field_fx_nodes 에도 넣지 않는다(제거 대상이 아니다).
 	var touch_id := String(e.get("ambient_touch", ""))
 	if touch_id == "veti":
 		_veti_touch()
+	elif touch_id != "":
+		_play_ambient_touch(touch_id, String(e.get("anim", "")))
+		return
 	if String(e.get("kind", "")) == "sound":
 		return
 	# 빛의 탑은 애니 이름이 지금 속성을 따른다(원작 setMapAnimation case 15 의 중첩 switch).
@@ -585,6 +603,27 @@ func _clear_field_fx() -> void:
 		if is_instance_valid(n):
 			(n as Node).queue_free()
 	_field_fx_nodes.clear()
+
+## 원작의 getChildByTag 경로처럼 상시 스파인을 직접 재생하고, 종료 뒤 setup 포즈로 돌린다.
+func _play_ambient_touch(id: String, anim: String) -> void:
+	var inst := _ambient_by_id.get(id) as Node2D
+	if inst == null or not is_instance_valid(inst):
+		return
+	var ap := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if ap == null or anim == "" or not ap.has_animation(anim):
+		return
+	var token := int(inst.get_meta("touch_token", 0)) + 1
+	inst.set_meta("touch_token", token)
+	var clip := ap.get_animation(anim)
+	if clip:
+		clip.loop_mode = Animation.LOOP_NONE
+	ap.stop()
+	ap.play(anim)
+	ap.animation_finished.connect(func(done: StringName):
+		if is_instance_valid(inst) and int(inst.get_meta("touch_token", 0)) == token \
+				and String(done) == anim:
+			ap.stop()
+			ap.seek(0.0, true), CONNECT_ONE_SHOT)
 
 # ── 빛의 탑 속성 회전 ─────────────────────────────────────────────────────────
 # 원작 `WorldMapYutakanLayer::showLightTower` @01b3a710. 흔치 않게 **유실분이 없다** —
@@ -1185,9 +1224,29 @@ func _add_ambient(entries: Array, nat: Dictionary, dir: String, man: Dictionary,
 		bg_design: Vector2, bg_tex: Vector2, S: float) -> Array:
 	var made: Array = []
 	var prefix := String(nat.get("ambient_prefix", ""))
+	var coord: Dictionary = nat.get("coord", {})
 	for a in entries:
-		var pos: Array = a["pos"]
-		var d := bg_design + (Vector2(float(pos[0]), float(pos[1])) - bg_tex) * S
+		if not bool(a.get("enabled", true)):
+			continue
+		var d := Vector2.ZERO
+		# 엘리시움·메탈타워 initAnimation 좌표는 배경과 같은 원작 레이어의 절대좌표다.
+		# 종전에는 initBG bbox의 최소corner를 조각 중심으로 오인한 어파인으로 pos를 미리 구워
+		# 모든 효과가 우하단으로 밀렸다. layer_pos는 원작 값을 보존하고, bbox 중심으로 검증한
+		# coord.ambient 변환(contentScaleFactor 이론축척 0.75)을 런타임에 한 번만 적용한다.
+		if a.has("layer_pos"):
+			var lp: Array = a["layer_pos"]
+			var A: Dictionary = coord.get("ambient", {})
+			if lp.size() < 2 or A.is_empty():
+				continue
+			var ascale := float(A.get("s", 0.75))
+			var bgpx := Vector2(ascale * float(lp[0]) + float(A.get("tx", 0.0)),
+				-ascale * float(lp[1]) + float(A.get("ty", 0.0)))
+			d = bg_design + (bgpx - bg_tex) * S
+		else:
+			var pos: Array = a.get("pos", [])
+			if pos.size() < 2:
+				continue
+			d = bg_design + (Vector2(float(pos[0]), float(pos[1])) - bg_tex) * S
 		# `design_offset` = 원작 유도값을 보존한 채 눈으로 맞추는 보정(디자인 px). 잔차가 큰
 		# 오버레이 조각(빛의 탑 등)용 — `pos` 는 원작 근거 그대로 두고 여기만 만진다.
 		if a.has("design_offset"):
@@ -1199,9 +1258,9 @@ func _add_ambient(entries: Array, nat: Dictionary, dir: String, man: Dictionary,
 			# 원작 WorldMapYutakanLayer/ElfLayer/DwarfLayer::initAnimation은 이 앰비언트들을
 			# CCSkeletonAnimation(스파인)으로 띄운다. spine_export --scene 으로 변환
 			# → scenes/worldmap_fx/*.tscn.
-			# 좌표: elf/dwarf 는 원작 절대좌표를 조각(map001~005) 어파인으로 옮긴 실측값
-			# (잔차 0.05px, docs/ref/porting/WorldMapAmbient_ElfDwarf.md). yutakan 은 아직
-			# ASSUMPTION(대응 던전 조각 위치).
+			# 좌표: elf/dwarf 는 원작 절대좌표(layer_pos)를 bbox 중심으로 검증한
+			# coord.ambient 어파인으로 옮긴다(docs/ref/porting/WorldMapAmbient_ElfDwarf.md).
+			# yutakan 은 아직 ASSUMPTION(대응 던전 조각 위치).
 			var sp := "res://scenes/worldmap_fx/%s.tscn" % String(a.get("scene", ""))
 			if not ResourceLoader.exists(sp):
 				continue
@@ -1209,16 +1268,16 @@ func _add_ambient(entries: Array, nat: Dictionary, dir: String, man: Dictionary,
 			if inst == null:
 				continue
 			inst.position = d
-			# 🔴 스파인은 **원작 레이어 공간**에서 저작됐다 — 우리 bg-아틀라스 공간은 그보다
-			# 작으므로(dwarf 0.743배·elf 0.692배) 지역 축척을 함께 곱해야 한다.
+			# 🔴 스파인은 **원작 레이어 공간**에서 저작됐다 — 우리 bg-아틀라스 공간은
+			# contentScaleFactor 519/692 = 0.75배이므로 지역 축척을 함께 곱해야 한다.
 			# 빠뜨리면 맵과 정확히 겹치도록 만들어진 바닥판 슬롯
 			# (예 ani_cart_new 의 `w_dwarf_mine_book` = 페이지 전체 283×275)이 어긋나
 			# **불투명 사각형으로 드러난다**(2026-07-27 실측으로 확인).
 			# 기본값 = 그 지역의 **레이어 포인트 → bg-아틀라스 px** 배율(`coord.layer.s`, 이론값 0.75).
-			# elf/dwarf/uno 는 항목마다 실측 배율을 명시해 두었으므로 그대로 쓰인다(기본값 1.0 경로).
+			# elf/dwarf 는 올바른 이론값 0.75를 항목마다 명시한다(기본값 1.0 경로).
 			# 🔴 유타칸은 이 곱이 빠져 스파인이 **33% 크게** 그려지고 있었다(2026-07-29 사용자 지적:
 			#    빛의 탑 터치 연출이 조각과 안 맞음).
-			var lay_s := float((nat.get("coord", {}) as Dictionary).get("layer", {}).get("s", 1.0))
+			var lay_s := float(coord.get("layer", {}).get("s", 1.0))
 			var a_scale := float(a.get("scale", lay_s))
 			inst.scale = Vector2(S * a_scale, S * a_scale)
 			# 🟡 배경판(`*_book`) 슬롯 숨김 — 원작 대비 의도적 이탈, 근거를 남긴다.
@@ -1241,6 +1300,10 @@ func _add_ambient(entries: Array, nat: Dictionary, dir: String, man: Dictionary,
 				inst.set_meta("veti_home", d)
 			var ap := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
 			if ap:
+				if not bool(a.get("autoplay", true)):
+					ap.stop()
+					ap.seek(0.0, true)
+					continue
 				# `cycle` = 원작이 이 스파인에만 붙여 둔 전용 안무. 없으면 종전대로 무한루프 1종.
 				match String(a.get("cycle", "")):
 					"flash":
@@ -1264,6 +1327,31 @@ func _add_ambient(entries: Array, nat: Dictionary, dir: String, man: Dictionary,
 					if anim:
 						anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
 					ap.play(an)
+					var remove_after := float(a.get("remove_after", 0.0))
+					if remove_after > 0.0:
+						var cleanup := inst.create_tween()
+						cleanup.tween_interval(remove_after)
+						cleanup.tween_property(inst, "modulate:a", 0.0, 0.5)
+						cleanup.tween_callback(inst.queue_free)
+			continue
+		if kind == "sprite":
+			var spr := _sprite_native(prefix + String(a.get("base", "")), dir, man, S)
+			if spr == null:
+				continue
+			spr.position = d
+			_content.add_child(spr)
+			made.append(spr)
+			spr.modulate.a = 0.0
+			var tw := spr.create_tween()
+			var fade_in := float(a.get("fade_in", 0.5))
+			var fade_out := float(a.get("fade_out", 0.5))
+			var pulses := maxi(1, int(a.get("pulses", 1)))
+			for _i in range(pulses):
+				tw.tween_property(spr, "modulate:a", 1.0, fade_in)
+				if pulses == 1:
+					tw.tween_interval(float(a.get("hold", 0.0)))
+				tw.tween_property(spr, "modulate:a", 0.0, fade_out)
+			tw.tween_callback(spr.queue_free)
 			continue
 		if kind == "flip":
 			var n := int(a.get("n", 1))
@@ -1728,33 +1816,18 @@ func _process(dt: float) -> void:
 ##    (회차 79~145, 32건) 추출해 `data/story_subquest.json` 에 넣었다. 그 회차가 진행 중이면
 ##    **정확한 던전**을 가리킬 수 있다(아래 `_mark_story_field`). 표에 없는 회차만 종전 추정이다.
 func _story_objective_active() -> bool:
-	var eps: Array = Data.story_episodes()
-	for no in eps:
-		if not StoryProgress.seen(int(no)):
-			return StoryProgress.unlocked(int(no)) or StoryProgress.spec(int(no)).size() > 0
-	return false   # 전 회차 관람 완료 → 목표 없음
+	var no := StoryProgress.next_episode()
+	if no <= 0 or StoryProgress.seen(no):
+		return false   # 구현된 전 회차 관람 완료 → 목표 없음
+	return StoryProgress.unlocked(no) or StoryProgress.spec(no).size() > 0
 
 func _mark_objective(battle_nodes: Array, S := 0.72) -> void:
 	if not _story_objective_active():
 		return   # 원작 getScenarioMark == 0 자리 — 진행 중인 스토리 목표가 없다
-	# ① 목표 조각 고르기 — **원작 표가 있으면 그것이 정답**이다.
-	#    `ScenarioSubQuestData::getScenarioSubQuestFiled` 가 진행 회차의 던전을 알려 준다
-	#    (`StoryProgress.mark_field()`, 회차 79~146 중 32건). 표에 없으면 종전 추정
-	#    (미클리어 최저레벨 던전)으로 넘어간다.
+	# 목표 조각은 원작 `getScenarioMark(false)`가 반환한 정확한 field만 쓴다.
 	var best: Dictionary = _story_field_node(battle_nodes)
 	if best.is_empty():
-		var best_lv := 1 << 30
-		for bn in battle_nodes:
-			var sid: String = bn["stage"]
-			if bool(UserDB.get_progress("cleared_" + sid, false)):
-				continue   # 이미 클리어 → 목표 아님
-			var st: Dictionary = Data.stage(sid)
-			var ens: Array = st.get("enemies", [])
-			var lv := int(ens[0].get("level", 999)) if not ens.is_empty() else 999
-			if lv < best_lv:
-				best_lv = lv; best = bn
-	if best.is_empty():
-		return   # 전 던전 클리어 → 마커 없음
+		return
 	var d: Vector2 = best["d"]
 	# 조각 **아트 위쪽**에 띄운다. 종전엔 조각 중심에서 고정 −54 라 큰 조각(불의 산 172px)에서는
 	# 마커가 산 한가운데 얹혀 네임택까지 가렸다(사용자 지적 2026-07-29).
@@ -2109,6 +2182,8 @@ func _goto_target(target: String) -> bool:
 		# 던전 입장: 원작은 클릭 시 **던전 정보 팝업**(WorldMapPopupLayer)이 뜬다.
 		# 거기서 일반/영웅을 고르면 출전 드래곤 선택(Select3DragonsLayer) → adventure.
 		var sid := target.substr(7)
+		if _open_marked_story(sid):
+			return true
 		# 밤에는 빛의 탑(필드 15) 진입 불가 — 원작 문자열 `WorldmapAdventureMsg1`.
 		if _mode == "yutakan" and sid == "15" and _yutakan_phase(_region_native()) == "night":
 			_notice("밤에는 빛의 탑에 진입할 수 없습니다.")
@@ -2133,6 +2208,24 @@ func _goto_target(target: String) -> bool:
 	else:
 		push_warning("[WorldMap] 미지원 타깃: " + target)
 		return false
+	return true
+
+## 원작 WorldMapScene::setScenario는 마커 필드를 선택하면 makeScenarioLayer(-1,false)를
+## 표시한다. 999/1002+는 던전이 아닌 특수 이벤트 코드이므로 여기서 처리하지 않는다.
+func _open_marked_story(stage_id: String) -> bool:
+	var no := StoryProgress.active_episode()
+	if no <= 0 or StoryProgress.seen(no) or not StoryProgress.unlocked(no):
+		return false
+	if Data.scenario_flow_of(no).is_empty():
+		return false
+	var want := StoryProgress.mark_field()
+	if want <= 0 or want >= 999:
+		return false
+	var st: Dictionary = Data.stage(stage_id)
+	if st.is_empty() or DungeonBG.base_field(DungeonBG.field_id(st)) != want:
+		return false
+	Scenes.goto("story", {"no": no, "part": 0, "back": "worldmap",
+		"back_params": {"region": _mode}})
 	return true
 
 # ---------- HUD ----------

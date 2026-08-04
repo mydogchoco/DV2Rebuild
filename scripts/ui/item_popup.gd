@@ -12,7 +12,7 @@ extends Control
 ## |---|---|
 ## | `ItemPopup::create(Dragon*, int slotIdx)` | `open(parent, uid, slot_id, on_change)` |
 ## | `setEquipList()` = `AccountManager::getEquip()` 중 `equip+0x11c == slot+1` | 인벤 `equip:` 키 중 `Equipment.can_equip(it, slot_id)` |
-## | 정렬 `Equip::getSortNo` | 희귀도 내림차순 → 이름 (sortNo 는 서버 값이라 유실) |
+## | 정렬 `Equip::getSortNo` | 장착중 → 희귀도 내림차순 → 전용/특수/일반/아티팩트 → 이름 |
 ##
 ## 원작은 **낀 장비도 같은 목록에 들어 있다**(`getDragonTag()` 로 구분) — 우리 모델은
 ## 낀 것이 인벤이 아니라 `dragon["equip"].slots` 에 있으므로, 그 한 개를 index 0 에
@@ -266,8 +266,8 @@ func _make_button(center_bottom: Vector2, text: String, cb: Callable) -> Control
 # ------------------------------------------------------------ 목록 (원작 setEquipList)
 
 ## 원작 `setEquipList` — 그 칸에 맞는 장비 전량 + `getSortNo` 정렬.
-## 우리는 **낀 장비 1개를 index 0 에 합성**하고(원작은 같은 배열에 이미 들어 있다),
-## 나머지는 보유 인벤에서 희귀도 내림차순 → 이름으로 세운다(sortNo 는 서버 유실).
+## 우리는 **낀 장비 1개를 목록에 합성**하고(원작은 같은 배열에 이미 들어 있다),
+## Equipment 공통 규칙으로 정렬한다(sortNo 는 서버 값이라 유실).
 func _reload() -> void:
 	_list = []
 	_sel = -1
@@ -299,13 +299,8 @@ func _reload() -> void:
 			continue
 		rest.append({"cat": ck, "it": it0, "worn": false, "inv": String(ik), "n": n,
 			"meta": Equipment.item_key_meta(String(ik))})
-	rest.sort_custom(func(a, b):
-		var ra := int((a["meta"] as Dictionary).get("rarity", 0))
-		var rb := int((b["meta"] as Dictionary).get("rarity", 0))
-		if ra != rb:
-			return ra > rb
-		return String((a["it"] as Dictionary)["name"]) < String((b["it"] as Dictionary)["name"]))
 	_list.append_array(rest)
+	_list.sort_custom(Equipment.display_sort_less)
 
 	if not _list.is_empty():
 		_sel = 0
@@ -518,6 +513,9 @@ func _comment(r: Dictionary) -> String:
 		var st_txt := EquipEffect.status_text(String(it.get("key", "")), Data.equip_effects)
 		if st_txt != "":
 			out.append(st_txt)
+	var custom_desc := Data.equipment_description(String(r.get("cat", "")))
+	if custom_desc != "":
+		out.append(custom_desc)
 
 	# 원작 <CaveItemEquipMsg1>/<Msg2> — 장착하면 귀속되는가.
 	var bel := int(meta.get("belong", 0))

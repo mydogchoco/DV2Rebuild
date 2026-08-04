@@ -19,7 +19,7 @@ static func exp_to_next(curve: Dictionary, level: int) -> int:
 static func cap_for(curve: Dictionary, awakened: bool) -> int:
 	if awakened:
 		return int(curve.get("cap_awakened", 50))
-	return int(curve.get("cap", 45))
+	return int(curve.get("cap", 50))
 
 # ======================================================================
 # 레벨업 스탯 롤 엔진 (레퍼런스: docs/ref/orig_image/levelup, 사용자 명세 2026-07-26)

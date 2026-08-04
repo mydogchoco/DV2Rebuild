@@ -96,6 +96,22 @@ func _ready() -> void:
 		_true("N회는 1회성이 아니다", not bool(kr.get("once", true)))
 	_eq("구분자 없이도 같은 코드", str(CardCode.lookup("테스트한글코드다", table) == kr), "true")
 
+	# 3-3) 알 보상키 자연어의 강화 등급이 암호화 페이로드까지 보존되는가.
+	#      지급부는 이 g=4를 `EggItem.key("egg:1", 4)`에 넘겨 별도 인벤 스택으로 만든다.
+	var egg4 := CardCode.lookup("EGG-GRADE-TEST", table)
+	_true("4강 알 코드 인식", not egg4.is_empty())
+	if not egg4.is_empty():
+		var er: Array = egg4.get("rewards", [])
+		_eq("4강 알 보상 수", str(er.size()), "1")
+		if er.size() == 1:
+			var e0: Dictionary = er[0]
+			_eq("4강 알 종류", String(e0.get("t", "")), "egg")
+			_eq("4강 알 드래곤 id", str(int(e0.get("k", 0))), "1")
+			_eq("4강 알 강화 등급", str(int(e0.get("g", 0))), "4")
+			_eq("4강 알 수량", str(int(e0.get("n", 0))), "2")
+			_eq("4강 알 인벤 키", EggItem.key("egg:%d" % int(e0.get("k", 0)),
+				int(e0.get("g", 0))), "egg:1#4")
+
 	# 4) 틀린 코드는 빈 사전
 	_true("없는 코드 거부", CardCode.lookup("AAAA-BBBB-CCCC-DDDD", table).is_empty())
 	_true("빈 입력 거부", CardCode.lookup("", table).is_empty())

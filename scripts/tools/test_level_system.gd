@@ -145,7 +145,7 @@ func _init() -> void:
 		var real: Dictionary = JSON.parse_string(f.get_as_text())
 		var req: Array = real.get("req", [])
 		fails += _eq("real req size(49)", req.size(), 49)
-		fails += _eq("real cap", int(real.get("cap", 0)), 45)
+		fails += _eq("real cap", int(real.get("cap", 0)), 50)
 		fails += _eq("real cap_awakened", int(real.get("cap_awakened", 0)), 50)
 		fails += _eq("real next(1)", LevelSystem.exp_to_next(real, 1), 40)
 		var cum := 0

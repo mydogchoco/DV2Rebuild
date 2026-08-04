@@ -173,55 +173,55 @@ _data = {
 &"kal": SubResource("Animation_04d7r")
 }
 
-[node name="Dragon_ani_snow_spine_scene" type="Node2D" unique_id=1345562903]
+[node name="Dragon_ani_snow_spine_scene" type="Node2D" unique_id=190459343]
 
-[node name="root" type="Node2D" parent="." unique_id=39902939]
+[node name="root" type="Node2D" parent="." unique_id=74970524]
 scale = Vector2(0.5, 0.5)
 
-[node name="01" type="Node2D" parent="root" unique_id=1559103860]
+[node name="01" type="Node2D" parent="root" unique_id=1031404455]
 position = Vector2(142.32, -401.62)
 rotation = 2.2933626
 
-[node name="worldmap_kal01_frame" type="Node2D" parent="root/01" unique_id=2128686693]
+[node name="worldmap_kal01_frame" type="Node2D" parent="root/01" unique_id=994539583]
 position = Vector2(-0.16, 0.23)
 rotation = -2.2933626
 scale = Vector2(0.515, 0.515)
 
-[node name="worldmap_kal01" type="Sprite2D" parent="root/01/worldmap_kal01_frame" unique_id=385356436]
+[node name="worldmap_kal01" type="Sprite2D" parent="root/01/worldmap_kal01_frame" unique_id=1470797014]
 material = SubResource("CanvasItemMaterial_4auek")
 rotation = 1.5707964
 scale = Vector2(1.3333334, 1.3283582)
 texture = SubResource("AtlasTexture_3imxs")
 
-[node name="02" type="Node2D" parent="root" unique_id=505826877]
+[node name="02" type="Node2D" parent="root" unique_id=1465347863]
 position = Vector2(164.45, -382.86)
 rotation = 0.9086184
 
-[node name="worldmap_kal02_frame" type="Node2D" parent="root/02" unique_id=1192904537]
+[node name="worldmap_kal02_frame" type="Node2D" parent="root/02" unique_id=347754257]
 position = Vector2(-0.52, -0.46)
 rotation = -0.9086184
 scale = Vector2(0.431, 0.431)
 
-[node name="worldmap_kal02" type="Sprite2D" parent="root/02/worldmap_kal02_frame" unique_id=1113533477]
+[node name="worldmap_kal02" type="Sprite2D" parent="root/02/worldmap_kal02_frame" unique_id=768112956]
 z_index = 1
 material = SubResource("CanvasItemMaterial_4auek")
 scale = Vector2(1.3392857, 1.3333334)
 texture = SubResource("AtlasTexture_pvouc")
 
-[node name="03" type="Node2D" parent="root" unique_id=157626288]
+[node name="03" type="Node2D" parent="root" unique_id=906501801]
 position = Vector2(144.47, -373.43)
 rotation = 1.6571901
 
-[node name="worldmap_kal03_frame" type="Node2D" parent="root/03" unique_id=313057923]
+[node name="worldmap_kal03_frame" type="Node2D" parent="root/03" unique_id=336800549]
 position = Vector2(-0.68, 0.28)
 rotation = -1.6571901
 scale = Vector2(0.591, 0.591)
 
-[node name="worldmap_kal03" type="Sprite2D" parent="root/03/worldmap_kal03_frame" unique_id=293345013]
+[node name="worldmap_kal03" type="Sprite2D" parent="root/03/worldmap_kal03_frame" unique_id=616085055]
 z_index = 2
 material = SubResource("CanvasItemMaterial_4auek")
 scale = Vector2(1.3278688, 1.3278688)
 texture = SubResource("AtlasTexture_cahld")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=58579200]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1318800674]
 libraries/ = SubResource("AnimationLibrary_mrj0d")

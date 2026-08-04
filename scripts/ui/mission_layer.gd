@@ -408,10 +408,14 @@ func _story_banner(win: Control, no: int) -> void:
 	# 개방조건(원작 MissionMsg2).
 	var sub := ""
 	var need := int(ep.get("unlock_level", 0))
-	if need > 0:
+	if not StoryProgress.implemented(no):
+		sub = "현재 미구현: 영구 잠금"
+	elif need > 0:
 		sub = "개방조건: 드래곤 %d레벨" % need
-	elif no > 1:
-		sub = "개방조건: %d화 관람" % (no - 1)
+	else:
+		var prev := StoryProgress.previous_episode(no)
+		if prev > 0:
+			sub = "개방조건: %d화 관람" % prev
 	var sl := Label.new()
 	sl.text = sub
 	sl.add_theme_font_size_override("font_size", 16)
@@ -449,10 +453,10 @@ func _story_banner(win: Control, no: int) -> void:
 	else:
 		pb.text = "▶"
 	var epn := no
-	var no_lines := bool(ep.get("no_lines", false))
 	pb.pressed.connect(func():
-		if no_lines:
-			Toast.show(get_tree().current_scene, "이 회차 대사가 추출본에 없습니다 (%d화)" % epn)
+		# disabled 버튼은 정상 경로에서 호출되지 않지만, 스크립트 직접 호출에도 영구 잠금을 지킨다.
+		if not StoryProgress.implemented(epn):
+			Toast.show(get_tree().current_scene, "현재 구현되지 않은 스토리입니다 (%d화)" % epn)
 			return
 		var play := func() -> void:
 			var back := _back

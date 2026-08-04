@@ -197,8 +197,9 @@ func _build_profile(_vis_size: Vector2) -> void:
 	var a := UserDB.active_dragon()
 	if not a.is_empty():
 		var did := int(a.get("id", 1))
-		var lvl := int(a.get("level", 1))
-		var por := _portrait(did, Growth.stage_for_level(lvl), int(a.get("skin", 0)))
+		# 상태창·편성·전투와 같은 성장 단계 판정을 쓴다. 레벨만 보면 각성 드래곤도
+		# box_adult로 고정되므로 반드시 저장 레코드의 awakened 플래그까지 넘겨야 한다.
+		var por := _portrait(did, profile_portrait_stage(a), int(a.get("skin", 0)))
 		if por != null:
 			# 원작: 초상 폭을 90 포인트에 맞춘다(scale = 90 / boundingBox.width).
 			var pw: float = maxf(1.0, float(por.texture.get_width()))
@@ -629,6 +630,10 @@ func _manifest(dir: String) -> Dictionary:
 	var d = JSON.parse_string(f.get_as_text())
 	return d if d is Dictionary else {}
 
+## 메인 HUD 대표 초상도 상태창·편성·전투와 동일한 성장 단계 판정을 사용한다.
+static func profile_portrait_stage(dragon: Dictionary) -> String:
+	return Growth.portrait_stage(dragon)
+
 func _spr(dir: String, key: String, man: Dictionary, scale := 1.0) -> Sprite2D:
 	var p := "res://assets/converted/%s/%s.tres" % [dir, key]
 	if not ResourceLoader.exists(p):
@@ -649,6 +654,9 @@ func _portrait(id: int, stage: String, skin: int) -> Sprite2D:
 	var frame := "dragon_dragon_%d_box_%s" % [id, stage]
 	if skin > 0 and (_portrait_man[dir] as Dictionary).has("%s_skin%d" % [frame, skin]):
 		frame = "%s_skin%d" % [frame, skin]
+	# 각성 단계가 저장돼 있어도 해당 드래곤에 box_evolution 에셋이 없는 예외만 성체로 폴백한다.
+	if not (_portrait_man[dir] as Dictionary).has(frame):
+		frame = "dragon_dragon_%d_box_adult" % id
 	return _spr(dir, frame, _portrait_man[dir], 1.0)
 
 func _label(text: String, size: int, color: Color, pos: Vector2, dim: Vector2,

@@ -1,0 +1,283 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_skill_38_spine/skill_38_spine.png" id="1_canoo"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_n54wg"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k50cn"]
+atlas = ExtResource("1_canoo")
+region = Rect2(360, 2, 200, 88)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gf0ku"]
+atlas = ExtResource("1_canoo")
+region = Rect2(2, 2, 170, 106)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ldxhk"]
+atlas = ExtResource("1_canoo")
+region = Rect2(562, 2, 58, 74)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wtw4p"]
+atlas = ExtResource("1_canoo")
+region = Rect2(174, 2, 92, 104)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rhk4d"]
+atlas = ExtResource("1_canoo")
+region = Rect2(268, 2, 90, 104)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_33u6j"]
+length = 1.3333
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone2:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.2333, 0.3666, 0.4, 0.4666),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-2.49, -282.99), Vector2(-2.49, -74.14), Vector2(-2.49, -94.08), Vector2(-2.49, -89)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone3:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.4666, 0.6, 0.6333, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-7.49, -221.98), Vector2(-7.49, -77.28), Vector2(-7.49, -93.51), Vector2(-7.49, -85.99)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone4:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.7, 0.8333, 0.8666, 0.9333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(15.49, -255.99), Vector2(15.49, -52.57), Vector2(15.49, -101.7), Vector2(15.49, -88.99)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone1:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1333, 0.1666, 0.2333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-1.49, -341.99), Vector2(-1.49, -68.99), Vector2(-1.49, -103.65), Vector2(-1.49, -75.98)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone4/bone4_slot_frame/bone4_slot:visible")
+tracks/4/interp = 0
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, true, false, true, false, true, false, true, false]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone4/bone4_slot_frame/bone4_slot:modulate")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.7, 0.8333, 1.2665, 1.2666),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.48235294, 0.48235294, 0.48235294, 0.48235294), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bone4/skill_fortress4_frame/skill_fortress4:visible")
+tracks/6/interp = 0
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.7, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, true, false, true, false, true, false, true, false]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bone4/skill_fortress4_frame/skill_fortress4:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0.7, 0.8333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.4509804, 0.4509804, 0.4509804, 0.4509804), Color(1, 1, 1, 1)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bone3/skill_fortress3_frame/skill_fortress3:visible")
+tracks/8/interp = 0
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.4666, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bone3/skill_fortress3_frame/skill_fortress3:modulate")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0.4666, 0.6, 1.2665, 1.2666, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.5019608, 0.5019608, 0.5019608, 0.5019608), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/bone2/skill_fortress2_frame/skill_fortress2:visible")
+tracks/10/interp = 0
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.2333, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/bone2/skill_fortress2_frame/skill_fortress2:modulate")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0.2333, 0.3666, 1.2665, 1.2666, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.5058824, 0.5058824, 0.5058824, 0.5058824), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/bone1/skill_fortress1_frame/skill_fortress1:visible")
+tracks/12/interp = 0
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 1.3333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/bone1/skill_fortress1_frame/skill_fortress1:modulate")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.1, 1.2665, 1.2666, 1.3333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.34901962, 0.34901962, 0.34901962, 0.34901962), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hgeke"]
+_data = {
+&"animation": SubResource("Animation_33u6j")
+}
+
+[node name="Dragon_skill_38_spine_scene" type="Node2D" unique_id=792497346]
+
+[node name="root" type="Node2D" parent="." unique_id=1372701504]
+position = Vector2(0.99, 25)
+
+[node name="bone1" type="Node2D" parent="root" unique_id=509995749]
+position = Vector2(-1.49, -74.99)
+rotation = -1.5707964
+
+[node name="skill_fortress1_frame" type="Node2D" parent="root/bone1" unique_id=375892161]
+rotation = 1.5470599
+
+[node name="skill_fortress1" type="Sprite2D" parent="root/bone1/skill_fortress1_frame" unique_id=436444295]
+z_index = 4
+material = SubResource("CanvasItemMaterial_n54wg")
+position = Vector2(1.3348624, 125.333336)
+scale = Vector2(1.3348624, 1.3333334)
+texture = SubResource("AtlasTexture_k50cn")
+
+[node name="bone2" type="Node2D" parent="root" unique_id=750136808]
+position = Vector2(-2.49, -89.99)
+rotation = -1.5707964
+
+[node name="skill_fortress2_frame" type="Node2D" parent="root/bone2" unique_id=1874125969]
+rotation = 1.5549139
+
+[node name="skill_fortress2" type="Sprite2D" parent="root/bone2/skill_fortress2_frame" unique_id=1513664889]
+z_index = 3
+material = SubResource("CanvasItemMaterial_n54wg")
+position = Vector2(4.004587, 58.666668)
+scale = Vector2(1.3348624, 1.3333334)
+texture = SubResource("AtlasTexture_gf0ku")
+
+[node name="bone3" type="Node2D" parent="root" unique_id=619199553]
+position = Vector2(-7.49, -91.99)
+rotation = -1.5707964
+
+[node name="skill_fortress3_frame" type="Node2D" parent="root/bone3" unique_id=118201854]
+rotation = 1.5707964
+
+[node name="skill_fortress3" type="Sprite2D" parent="root/bone3/skill_fortress3_frame" unique_id=1376685898]
+z_index = 2
+material = SubResource("CanvasItemMaterial_n54wg")
+position = Vector2(-53.394497, -29.333334)
+rotation = 1.5707964
+scale = Vector2(1.3348624, 1.3333334)
+texture = SubResource("AtlasTexture_ldxhk")
+
+[node name="bone4" type="Node2D" parent="root" unique_id=936081883]
+position = Vector2(15.49, -88.99)
+rotation = -1.5707964
+
+[node name="bone4_slot_frame" type="Node2D" parent="root/bone4" unique_id=1631137208]
+rotation = 1.6201892
+
+[node name="bone4_slot" type="Sprite2D" parent="root/bone4/bone4_slot_frame" unique_id=1899891843]
+material = SubResource("CanvasItemMaterial_n54wg")
+position = Vector2(52.05963, -68)
+scale = Vector2(1.3348624, 1.3333334)
+texture = SubResource("AtlasTexture_wtw4p")
+
+[node name="skill_fortress4_frame" type="Node2D" parent="root/bone4" unique_id=1062363428]
+rotation = 1.6179202
+scale = Vector2(1.009, 1.009)
+
+[node name="skill_fortress4" type="Sprite2D" parent="root/bone4/skill_fortress4_frame" unique_id=981352394]
+z_index = 1
+material = SubResource("CanvasItemMaterial_n54wg")
+position = Vector2(50.72477, -68)
+scale = Vector2(1.3348624, 1.3333334)
+texture = SubResource("AtlasTexture_rhk4d")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=4398847]
+libraries/ = SubResource("AnimationLibrary_hgeke")

@@ -4,6 +4,10 @@ extends Node
 #   godot --path . -- --shot=<key> --out=<png> --wait=<sec>
 
 func _ready() -> void:
+	# 월드맵 조각의 투명 슬롯을 검사할 때 바다층을 마젠타 판으로 대체한다.
+	# 오토로드가 WorldMap보다 먼저 준비되므로 맵 생성 전에 메타를 세팅할 수 있다.
+	if "--no-ocean=1" in OS.get_cmdline_user_args():
+		Engine.set_meta("wm_no_ocean", true)
 	# ⚠️ 2026-07-30: `--shot=` 인자가 **없으면 아무것도 하지 않는다**.
 	#   종전엔 shot 기본값이 "battle" 이라, 오토로드가 등록된 채로 게임을 그냥 실행하면
 	#   전투로 끌고 가 스크린샷을 찍고 **`get_tree().quit()` 으로 창을 닫아 버렸다**
@@ -97,15 +101,14 @@ func _ready() -> void:
 			# 갈아 끼우지 트리 루트 씬을 바꾸지 않는다. 메서드를 가진 노드를 직접 찾는다.
 			var bs2 := _node_with_method(get_tree().root, "_bicon_add")
 			if bs2:
+				# 전투 재생 코루틴을 무효화해 몬스터 사망/화면 전환이 검수 아이콘을 지우지 못하게 한다.
+				bs2.set("_gen", int(bs2.get("_gen")) + 1)
 				var views: Dictionary = bs2.get("_views")
-				# 적에 디버프 3종, 아군 카드에 버프 2종 — 바탕/폰트 두 갈래를 한 화면에서 본다.
-				# 아군 카드에 디버프 2 + 버프 2 — 바탕(buff/debuff)과 폰트(heal/total) 두 갈래를 한 화면에.
-				# (적은 몇 초 만에 쓰러져 setRemoveAllBicon 으로 걷히므로 검수엔 안 쓴다.)
-				# 전투가 몇 초 만에 끝나 캡처 타이밍이 흔들린다 → 캡처 시점까지 계속 다시 붙인다.
-				for rep in 8:
-					for pair in [[11, false, 3], [20, false, 2], [12, true, 5], [26, true, 9]]:
-						bs2.call("_bicon_add", views.get("A0", {}), pair[0], pair[1], pair[2])
-					await get_tree().create_timer(0.35).timeout
+				# 상처 파악(23)·신경독소(32)는 시전자가 아니라 **적**에게 귀속되는 디버프다.
+				for pair in [[23, false, 3], [32, false, 2], [140, false, 4]]:
+					bs2.call("_bicon_add", views.get("E0", {}), pair[0], pair[1], pair[2])
+				for pair in [[14, true, 2], [60, true, 3]]:
+					bs2.call("_bicon_add", views.get("A0", {}), pair[0], pair[1], pair[2])
 		"teambuff":
 			# 조합 팀버프 연출(원작 CombineElementsLayer) 통합 검수 — **전투 씬 안에서** 확인한다.
 			# 보유 드래곤 중 아이콘 있는 버프를 발동시키는 3마리를 골라 party_uids 로 넘긴다.
@@ -2260,7 +2263,7 @@ func _ready() -> void:
 			var cv2 := _find_method_node(get_tree().root, "_open_levelup")
 			if cv2 != null: cv2.call("_open_levelup")
 			else: print("SHOT: _open_levelup 노드 없음")
-		"awaken":
+		"awakenevol":
 			# 각성(원작 '진화') 결과 연출 = EvolLayer 이식 검증.
 			# `--at=<초>` 로 시퀀스의 특정 시점을 잡는다(날개가 솟는 구간은 2~4초).
 			# ⚠️ begin_batch = 디스크 미기록(검증용 각성이 세이브에 남지 않게).

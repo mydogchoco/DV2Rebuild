@@ -19,8 +19,8 @@ build_level_curve.py — 드래곤 레벨업 경험치 곡선 생성 → data/le
 import json
 import os
 
-CAP = 45            # 일반 레벨 상한 (docs/game_design.md §B)
-CAP_AWAKENED = 50   # 각성 시 상한
+CAP = 50            # 원작 최대 레벨(각성 조건도 Lv.50)
+CAP_AWAKENED = 50   # 하위호환 필드: 각성 전후 상한은 동일
 ANCHOR_LEVEL = 50
 ANCHOR_CUM_EXP = 1_625_625   # 관측값(reverse_engineering.md)
 EXPONENT = 2.0

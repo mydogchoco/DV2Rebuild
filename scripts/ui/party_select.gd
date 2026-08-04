@@ -12,15 +12,15 @@ extends RefCounted
 ##     + `common/shadow` + 이름 Thonburi 22 + LV(subtitle BMFont 0.75)
 ##     + 스탯 2열(라벨 x=77 우정렬, y = h−225/−252/−279 — subtitle 라벨 + font_common 값)
 ##     + 스킬 슬롯(`common/skill_*_bg` + 스킬 아이콘 + `common/lock`) — updateDragonBtn
-##   · 상단 `전투 시작` 버튼(9patch bar1 — 얇아서 9patch/box1 로 대체) + 우상단 X
+##   · 상단 `전투 시작` 버튼(`9patch/bar1`, 보유) + 우상단 X
 ##   · 하단 전폭 텍스트박스 `<AdventureAddDragonHardDungeon>`
 ##     "추가로 전투에 참가할 드래곤을 최대 3마리 선택할 수 있습니다."
 ##
 ## ⚫ CUT(§2-1 온라인): 좌상단 `S용병 💎x1`(AdventureSpecialMercenary) · `용병 🪙x1200` —
 ##   친구/서버 용병 소환이라 만들지 않는다.
-## ⚫ 전투력 숫자(레퍼런스 좌상단 주황 "8.3", `font_rating` + `Dragon::getRating`):
-##   **값이 서버 소유다** — 클라에는 `setRating(float)` 세터뿐, 계산식이 없다(레코드로 내려옴).
-##   수치를 지어내지 않는다(HARD RULE 6) → 표기 생략. 공식이 확보되면 `_card` 의 rating 자리부터.
+## 전투력 숫자(레퍼런스 좌상단 주황 "8.3", `font_rating` + `Dragon::getRating`)는 드래곤
+## 등급 표시다. 원작 서버값 대신 프로젝트 전역에서 확정해 쓰는 같은 파생 등급
+## `Growth.compute_grade`(동굴 HUD·상태창·전투 데이터와 동일)를 표시한다.
 ##
 ## 미보유 자산 대체(CLAUDE.md §10 `common/bg/` 행): 카드 패널 `info_bg*` → `9patch/list_bg2`.
 ##
@@ -29,10 +29,11 @@ extends RefCounted
 ##   `PartySelect.open(host)` — 편성만(둥지 등). 닫기 전용.
 
 const LIST_BG := "res://assets/converted/ninepatch_ui/9patch_list_bg2.tres"
-const BOX1 := "res://assets/converted/ninepatch_ui/9patch_box1.tres"
+const BAR1 := "res://assets/converted/ninepatch_ui/9patch_bar1.tres"
 const DIALOG := "res://assets/converted/ninepatch_ui/9patch_dialogue_box.tres"
 const CLOSE_BTN := "res://assets/converted/common_ui/common_close_btn.tres"
 const FONT_SUB := "res://assets/converted/font_ui/font_subtitle.fnt"
+const FONT_RATING := "res://assets/converted/font_ui/font_rating.fnt"
 
 const MAX_PARTY := 3
 const CARD_W := 250.0
@@ -71,11 +72,11 @@ static func _spr(dir: String, key: String, scale: float, pma: CanvasItemMaterial
 	return s
 
 ## subtitle BMFont 라벨(비트맵 — fixed_size_scale_mode 규약, CLAUDE.md §10).
-static func _bmf(text: String, size: int) -> Label:
+static func _bmf(text: String, size: int, font_path := FONT_SUB) -> Label:
 	var l := Label.new()
 	l.text = text
-	if ResourceLoader.exists(FONT_SUB):
-		l.add_theme_font_override("font", load(FONT_SUB))
+	if ResourceLoader.exists(font_path):
+		l.add_theme_font_override("font", load(font_path))
 	l.add_theme_font_size_override("font_size", size)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -146,8 +147,7 @@ static func _bounds(n: Node, xf: Transform2D) -> Rect2:
 	return out
 
 static func _stage_of(d: Dictionary) -> String:
-	var lv := int(d.get("level", 1))
-	return "adult" if lv >= 25 else ("child" if lv >= 10 else "baby")
+	return Growth.spine_stage(d)
 
 
 static func _build(host: Node, current: Array, on_confirm: Callable, require_confirm: bool,
@@ -182,14 +182,44 @@ static func _build(host: Node, current: Array, on_confirm: Callable, require_con
 	strip.add_theme_constant_override("separation", 14)
 	scroll.add_child(strip)
 
+	# 원작은 셀을 선택하는 즉시 `setInterfaceDragon` 카드가 하단에 나타난다
+	# (`docs/ref/adventure/3.png` → `4_전투시작.png`). 선택 표시는 카드에 자작 문구를
+	# 얹지 않고, AddDragonCell::setSelected 가 info_bg3 의 z를 올리던 방식처럼 판만 바꾼다.
+	# 람다는 바깥 지역변수를 값으로 캡처하므로, 갱신되는 카드 배열은 한 칸짜리 상태 컨테이너에 둔다.
+	var selected_state: Array = [[]]
+	var go_state: Array = [null, null]
+	var refresh_selected := func():
+		var selected_cards: Array = selected_state[0]
+		for old in selected_cards:
+			if is_instance_valid(old):
+				if old.get_parent() == overlay:
+					overlay.remove_child(old)
+				old.queue_free()
+		selected_cards.clear()
+		if not picked.is_empty():
+			var party := PartyStats.summary(picked, false, "", {})
+			selected_cards = PartyCardView.build_row(host, overlay, party, vis, pma)
+		selected_state[0] = selected_cards
+		for pc in selected_cards:
+			if is_instance_valid(pc):
+				pc.z_index = 20
+		var gb = go_state[0]
+		var gp = go_state[1]
+		if gb is Button:
+			(gb as Button).disabled = picked.is_empty()
+		if gp is NinePatchRect:
+			# bar1 자체가 원작의 빨간 버튼. 미선택 상태만 레퍼런스처럼 어둡게 한다.
+			(gp as NinePatchRect).modulate = Color(0.24, 0.22, 0.22, 0.92) \
+				if picked.is_empty() else Color.WHITE
+
 	var repaint_all := func():
 		for c in strip.get_children():
 			if c.has_meta("paint"):
 				(c.get_meta("paint") as Callable).call()
+		refresh_selected.call()
 
 	for d in UserDB.dragons():
-		strip.add_child(_card(d, picked, pma, repaint_all))
-	repaint_all.call()
+		strip.add_child(_card(host, d, picked, pma, repaint_all))
 
 	var dismiss := func(commit: bool):
 		if commit:
@@ -201,19 +231,18 @@ static func _build(host: Node, current: Array, on_confirm: Callable, require_con
 		if commit and on_confirm.is_valid():
 			on_confirm.call(picked.duplicate())
 
-	# ── 상단: 전투 시작(레퍼런스 우상단 어두운 판) + X ────────────────────────
+	# ── 상단: 전투 시작(원작 9patch/bar1) + X ─────────────────────────────────
 	# ⚫ 좌상단 S용병/용병 버튼은 온라인 용병 소환이라 CUT(§2-1) — 헤더 주석 참조.
 	var go := Button.new()
 	go.flat = true
 	var go_np := NinePatchRect.new()
-	if ResourceLoader.exists(BOX1):
-		go_np.texture = load(BOX1)
+	if ResourceLoader.exists(BAR1):
+		go_np.texture = load(BAR1)
 	go_np.patch_margin_left = 12; go_np.patch_margin_right = 12
-	go_np.patch_margin_top = 12; go_np.patch_margin_bottom = 12
-	go_np.size = Vector2(176.0, 56.0)
+	go_np.patch_margin_top = 8; go_np.patch_margin_bottom = 8
+	# AdventureScene::setAddDragonPopupLayer: contentSize(150, 60).
+	go_np.size = Vector2(150.0, 60.0)
 	go_np.position = Vector2(vis.x * 0.72, vis.y * 0.075)
-	# 레퍼런스의 전투 시작 = **어두운 반투명 판** + 흰 글씨.
-	go_np.modulate = Color(0.32, 0.28, 0.25, 0.95)
 	overlay.add_child(go_np)
 	var gl := _ttf("전투 시작", 28, Color.WHITE)
 	gl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
@@ -225,6 +254,9 @@ static func _build(host: Node, current: Array, on_confirm: Callable, require_con
 	go.size = go_np.size
 	go.pressed.connect(func(): dismiss.call(true))
 	go_np.add_child(go)
+	go_state[0] = go
+	go_state[1] = go_np
+	repaint_all.call()
 
 	# 우상단 X — 원작 `newCommon/pss_btn_x`(미보유) → 보유 `common/close_btn`(붉은 X).
 	# 던전 편성(run)에서도 원작처럼 X 를 둔다 — 현재 선택 그대로 시작(리더 혼자 포함).
@@ -255,7 +287,7 @@ static func _build(host: Node, current: Array, on_confirm: Callable, require_con
 
 
 ## 카드 1장(원작 AddDragonCell). 좌표는 셀 로컬(카드 좌상단 원점).
-static func _card(d: Dictionary, picked: Array, pma: CanvasItemMaterial,
+static func _card(host: Node, d: Dictionary, picked: Array, pma: CanvasItemMaterial,
 		repaint_all: Callable) -> Control:
 	var S := Design.ASSET_SCALE
 	var uid := int(d["uid"])
@@ -277,11 +309,23 @@ static func _card(d: Dictionary, picked: Array, pma: CanvasItemMaterial,
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(bg)
 
-	# 이름 — 원작 Thonburi 22 @ (w*0.5, h−40) 중앙. (전투력 숫자는 서버 유실 → 생략, 헤더 참조)
+	# 등급 — AddDragonCell::initWithSize: `Dragon::getRating` → "%.1f" → font_rating,
+	# anchor(0,1) @ (25,h-19). 값은 프로젝트가 확정한 파생 등급을 같은 입력으로 계산한다.
+	var grade := Growth.compute_grade(ddef, Data.stat_table, d.get("stat_bonus", {}),
+		d.get("gain_log", []), Data.level_curve.get("grade", {}))
+	var rating := _bmf("%.1f" % grade, 27, FONT_RATING)
+	rating.add_theme_color_override("font_color", Color(1.0, 0.62, 0.10))
+	rating.add_theme_color_override("font_outline_color", Color(0.20, 0.10, 0.0, 0.9))
+	rating.add_theme_constant_override("outline_size", 3)
+	rating.position = Vector2(16.0, 6.0)
+	rating.size = Vector2(62.0, 32.0)
+	cell.add_child(rating)
+
+	# 이름 — 원작 Thonburi 22 @ (w*0.5, h−40), 등급 오른쪽.
 	var nm := _ttf(Icons.name_of(d), 21, Color(0.2, 0.14, 0.05))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nm.position = Vector2(10.0, 10.0)
-	nm.size = Vector2(CARD_W - 20.0, 26.0)
+	nm.position = Vector2(74.0, 10.0)
+	nm.size = Vector2(CARD_W - 84.0, 26.0)
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	cell.add_child(nm)
 
@@ -364,9 +408,36 @@ static func _card(d: Dictionary, picked: Array, pma: CanvasItemMaterial,
 
 	# ── 스킬 슬롯(원작 updateDragonBtn — skill_*_bg + 아이콘 + lock) ──────────
 	var slot_y := CARD_H - 62.0
+	var slot_types := Loadout.slot_types(d)
+	var slot_frame := {"tri": "triangle", "sq": "square", "cir": "circle", "star": "star"}
+	var awakened := bool(d.get("awakened", false))
+	var shown_slots := Loadout.SKILL_SLOTS + (1 if awakened else 0)
+	var slot_x := func(i: int) -> float:
+		return CARD_W * 0.5 + (float(i) - float(shown_slots - 1) * 0.5) * 92.0
+	# AddDragonCell::updateDragonBtn 는 각성 시 common/skill_evolution +
+	# skill/evolution/<icon> 을 배열 첫 칸에 넣고, 일반 스킬 두 칸을 뒤에 배치한다.
+	if awakened:
+		var ax: float = slot_x.call(0)
+		var abg := _spr("common_ui", "common_skill_evolution_bg", 0.62 * S, pma)
+		if abg:
+			abg.position = Vector2(ax, slot_y)
+			cell.add_child(abg)
+		var awaken_no := int(d.get("awaken_skill", ddef.get("awaken_skill", 0)))
+		var awaken_icon := Data.awaken_skill_icon(awaken_no) if awaken_no > 0 else 0
+		var atex := _tex("skill_evolution", "skill_evolution_%d" % awaken_icon) \
+			if awaken_icon > 0 else null
+		if atex:
+			var aic := Sprite2D.new()
+			aic.texture = atex
+			aic.material = pma
+			aic.scale = Vector2.ONE * (0.5 * S)
+			aic.position = Vector2(ax, slot_y)
+			cell.add_child(aic)
 	for si in Loadout.SKILL_SLOTS:
-		var sx := CARD_W * 0.5 + (float(si) - float(Loadout.SKILL_SLOTS - 1) * 0.5) * 92.0
-		var sbg := _spr("common_ui", "common_skill_circle_bg", 0.62 * S, pma)
+		var sx: float = slot_x.call(si + (1 if awakened else 0))
+		var stype := String(slot_types[si]) if si < slot_types.size() else "star"
+		var shape := String(slot_frame.get(stype, "star"))
+		var sbg := _spr("common_ui", "common_skill_%s_bg" % shape, 0.62 * S, pma)
 		if sbg:
 			sbg.position = Vector2(sx, slot_y)
 			cell.add_child(sbg)
@@ -395,34 +466,26 @@ static func _card(d: Dictionary, picked: Array, pma: CanvasItemMaterial,
 		slv.size = Vector2(24.0, 18.0)
 		cell.add_child(slv)
 
-	# 출전 순번 뱃지(우상단) + 선택/비활성 칠.
-	var mark := _ttf("", 20, Color(1.0, 0.62, 0.10))
-	mark.add_theme_color_override("font_outline_color", Color(0.25, 0.1, 0.0, 0.9))
-	mark.add_theme_constant_override("outline_size", 5)
-	mark.position = Vector2(10.0, 34.0)
-	mark.size = Vector2(CARD_W - 20.0, 24.0)
-	cell.add_child(mark)
-
 	var paint := func():
-		if down:
-			mark.text = "행동불능 — %s" % Incapacitation.remain_text(
-				UserDB.cure_time(uid), int(Time.get_unix_time_from_system()))
-			cell.modulate = Color(0.55, 0.47, 0.47)
+		if UserDB.is_down(uid):
+			# 원작은 셀 위에 상태 문구나 별도 색을 그리지 않고, 클릭 결과 코드 1로
+			# 회복 팝업을 연다. 선택 배경만 원상태로 둔다.
+			cell.modulate = Color.WHITE
+			bg.modulate = Color.WHITE
 			return
 		var at := picked.find(uid)
-		mark.text = ("출전 %d" % (at + 1)) if at >= 0 else ""
-		# 레퍼런스 파티편성_용병.png — 선택 카드는 테두리가 밝고, 비선택은 흰 판 그대로.
+		# 레퍼런스 3.png/파티편성_용병.png — 선택 카드만 푸른 info_bg3 판이 앞으로 온다.
 		cell.modulate = Color(1, 1, 1)
-		bg.modulate = Color(1.0, 0.95, 0.72) if at >= 0 else Color(1, 1, 1)
+		bg.modulate = Color(0.72, 0.84, 1.0) if at >= 0 else Color.WHITE
 	cell.set_meta("paint", paint)
 
 	if down:
-		# 행동불능 드래곤은 고를 수 없다(원작 AddDragonCell 도 `Dragon::isStun` 검사).
 		picked.erase(uid)
-		cell.disabled = true
-		return cell
 
 	cell.pressed.connect(func():
+		if UserDB.is_down(uid):
+			_open_recover_popup(host, uid, repaint_all)
+			return
 		var at := picked.find(uid)
 		if at >= 0:
 			picked.remove_at(at)
@@ -430,3 +493,23 @@ static func _card(d: Dictionary, picked: Array, pma: CanvasItemMaterial,
 			picked.append(uid)
 		repaint_all.call())
 	return cell
+
+
+## 행동불능 셀 클릭 — 원작 AddDragonCell::setCheckEnableBattle 결과 1(isStun)을
+## `WorldMapScene::setDragonStun` 과 같은 PopupType 흐름으로 잇는다.
+static func _open_recover_popup(host: Node, uid: int, repaint_all: Callable) -> void:
+	var now := int(Time.get_unix_time_from_system())
+	var ct := UserDB.cure_time(uid)
+	var cost := Incapacitation.instant_cost(Data.incapacitation, ct, now)
+	var msg := "회복까지 %s 남았습니다.\n드래곤을 즉시 부활시키겠습니까?" \
+		% Incapacitation.remain_clock(ct, now)
+	PopupType.open(host, "행동불능", msg,
+		func():
+			if not UserDB.spend("diamond", cost):
+				PopupType.open(host, "행동불능", "다이아가 부족합니다.", func(): pass,
+					"확인", "")
+				return
+			UserDB.set_cure_time(uid, 0)
+			Bgm.sfx("effect_button")
+			repaint_all.call(),
+		"확인", "취소", 0, cost)

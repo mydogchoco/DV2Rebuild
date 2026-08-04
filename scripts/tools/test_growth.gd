@@ -55,16 +55,20 @@ func _init() -> void:
 	fails += _eqf("nest + amor", Growth.compute_grade(dragon, table, nest, amor), 7.9)
 
 	# 5) 레벨캡 / next_level / 단계
-	fails += _eq("cap normal", Growth.level_cap(false), 45)
+	fails += _eq("cap normal", Growth.level_cap(false), 50)
 	fails += _eq("cap awakened", Growth.level_cap(true), 50)
-	fails += _eq("next at cap", Growth.next_level(45), 45)
-	fails += _eq("next awakened", Growth.next_level(45, true), 46)
+	fails += _eq("next normal at 45", Growth.next_level(45), 46)
+	fails += _eq("next awakened at 45", Growth.next_level(45, true), 46)
+	fails += _eq("next at cap", Growth.next_level(50), 50)
 	# 경계값 = 원작 Dragon.c 실측(10 / 25). 레벨 20은 **아직 성장기**다(예전 오답: adult).
 	fails += _eq("stage baby", Growth.stage_for_level(9), "baby")
 	fails += _eq("stage child", Growth.stage_for_level(10), "child")
 	fails += _eq("stage child@20", Growth.stage_for_level(20), "child")
 	fails += _eq("stage child@24", Growth.stage_for_level(24), "child")
 	fails += _eq("stage adult", Growth.stage_for_level(25), "adult")
+	fails += _eq("normal spine stage", Growth.spine_stage({"level": 50}), "adult")
+	fails += _eq("awakened spine stage", Growth.spine_stage({"level": 50, "awakened": true}), "e")
+	fails += _eq("awakened portrait stage", Growth.portrait_stage({"level": 50, "awakened": true}), "evolution")
 
 	# 7) 누락 티어 → 0 스탯(안전)
 	fails += _eq("missing tier hp", Growth.compute_stats({"type": "x", "stat_tier": "9"}, table, 5)["hp"], 0)

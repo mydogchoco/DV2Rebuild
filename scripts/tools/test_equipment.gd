@@ -5,11 +5,28 @@ extends SceneTree
 
 const E := preload("res://scripts/systems/equipment.gd")
 const B := preload("res://scripts/systems/battle.gd")
+const G := preload("res://scripts/systems/gem.gd")
 
 func _init() -> void:
 	var fails := 0
 	var table = JSON.parse_string(FileAccess.open("res://data/equipment.json", FileAccess.READ).get_as_text())
 	var cat := E.catalog(table)
+
+	# 표시 정렬 — 장착중 우선, 희귀도 내림차순, 같은 희귀도는 전용→특수→일반→아티팩트.
+	var display_rows: Array = [
+		{"it": {"name": "일반", "group": "basic"}, "meta": {"rarity": 4}, "worn": false},
+		{"it": {"name": "아티팩트", "group": "artifact"}, "meta": {"rarity": 4}, "worn": false},
+		{"it": {"name": "특수", "group": "special:test"}, "meta": {"rarity": 4}, "worn": false},
+		{"it": {"name": "전용", "group": "exclusive"}, "meta": {"rarity": 4}, "worn": false},
+		{"it": {"name": "낮은등급장착", "group": "basic"}, "meta": {"rarity": 0}, "worn": true},
+		{"it": {"name": "유니크", "group": "exclusive"}, "meta": {"rarity": 3}, "worn": false},
+	]
+	display_rows.sort_custom(E.display_sort_less)
+	var display_names: PackedStringArray = []
+	for row in display_rows:
+		display_names.append(String(((row as Dictionary)["it"] as Dictionary)["name"]))
+	fails += _eq("장비 표시 정렬",
+		"/".join(display_names), "낮은등급장착/전용/특수/일반/아티팩트/유니크")
 
 	# 0) 카탈로그 — 일반 6종(등급 7·7·**6**·6·6·6=38) + 이벤트 **25** + 특수 **12** + 아티팩트 6×6=36.
 	#    부적이 6등급인 근거: 위키 §2.1 등급표의 아만타 칸이 `-` + 아틀라스 talisman1..6 (2026-07-27 정정).
@@ -21,6 +38,18 @@ func _init() -> void:
 	#    2026-08-01: 전용 95 → **97**. 커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비가
 	#    위키 밖에서 추가됐다(build_equipment.py EXCLUSIVE_EXTRA, 그림은 원작 에셋 차용).
 	fails += _eq("카탈로그 크기", cat.size(), 38 + 25 + 12 + 36 + 97)
+	var descriptions = JSON.parse_string(
+		FileAccess.open("res://data/item_descriptions.json", FileAccess.READ).get_as_text())
+	fails += _eq("장비 설명 시트가 카탈로그 전량 포함",
+		(descriptions.get("equipment", {}) as Dictionary).size(), cat.size())
+	var gem_desc: Dictionary = descriptions.get("gem_categories", {})
+	fails += _eq("젬 공유 설명 5분류", gem_desc.size(), 5)
+	for gem_category in ["normal", "hybrid", "soul", "sands", "sands_soul"]:
+		fails += _true("젬 설명 분류 존재: %s" % gem_category, gem_desc.has(gem_category))
+	var gems = JSON.parse_string(FileAccess.open("res://data/gems.json", FileAccess.READ).get_as_text())
+	fails += _eq("샌즈 젬 설명 분리", G.description_category("샌즈의 젬", gems), "sands")
+	fails += _eq("샌즈 소울젬 설명 분리", G.description_category("샌즈의 소울젬", gems), "sands_soul")
+	fails += _eq("일반 젬 설명 공유", G.description_category("공격의 젬", gems), "normal")
 	fails += _true("전용 장비가 카탈로그에 있다", cat.has("exclusive:고대신룡의 금관"))
 	# 커스텀 2종도 같은 규약(주 능력치 없음 + 대상 드래곤 제한)이어야 한다.
 	for row in [["exclusive:샛별의 날개장식", 666], ["exclusive:한울의 불꽃", 777]]:
@@ -298,6 +327,15 @@ func _init() -> void:
 			pure_even += 1
 	fails += _true("편향이 균등보다 관통을 많이 띄운다 (%d vs %d)" % [pure_biased, pure_even],
 		pure_biased > pure_even * 2)
+
+	# 13e) 아티팩트 합성 재료 — 대상과 종류뿐 아니라 아티팩트 등급도 같아야 한다.
+	var mix_base := "artifact:이그니스:2"
+	fails += _true("합성 재료: 같은 종류·등급 허용",
+		E.artifact_mix_material_ok(table, mix_base, "artifact:이그니스:2"))
+	fails += _true("합성 재료: 같은 종류·다른 등급 거부",
+		not E.artifact_mix_material_ok(table, mix_base, "artifact:이그니스:1"))
+	fails += _true("합성 재료: 다른 종류·같은 등급 거부",
+		not E.artifact_mix_material_ok(table, mix_base, "artifact:루멘:2"))
 
 	# 11) 장비 없으면 종전과 완전히 동일(회귀 방지).
 	rng.seed = 999

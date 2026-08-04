@@ -63,6 +63,10 @@ static func _card(parent: Node, idx: int, pd: Dictionary, x: float, y: float,
 	var S := Design.ASSET_SCALE
 	var card := Control.new()
 	card.set_meta("party_card", true)
+	# AdventureScene::setInterfaceDragon 는 세 장 모두 z=400으로 붙인다
+	# (docs/ref/orig_code/decomp/AdventureScene.c:50024-50110). 몬스터 Spine의
+	# 슬롯 draw-order(z=1..108)가 카드 위로 새지 않도록 원작 z 값을 그대로 쓴다.
+	card.z_index = 400
 	card.position = Vector2(x, y)
 	card.size = Vector2(w, ch)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -83,8 +87,10 @@ static func _card(parent: Node, idx: int, pd: Dictionary, x: float, y: float,
 		pbg.position = ppos; card.add_child(pbg)
 	# 초상(box 이미지) — 원작 setScale(0x3f2147ae = 0.63), InterFace.c:535.
 	var id := int(pd.get("id", 0))
-	var stage := Growth.stage_for_level(int(pd.get("level", 1)))
+	var stage := Growth.portrait_stage(pd)
 	var por := _spr("portrait_%d" % id, "dragon_dragon_%d_box_%s" % [id, stage], 0.63 * S, pma)
+	if por == null and stage == "evolution":
+		por = _spr("portrait_%d" % id, "dragon_dragon_%d_box_adult" % id, 0.63 * S, pma)
 	if por:
 		por.position = ppos; card.add_child(por)
 	# 레벨 — BMFont(subtitle, 0.75) 앵커(0,0) @ (profile_bg.x+40, h*0.5+22).

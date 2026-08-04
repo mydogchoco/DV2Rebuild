@@ -120,15 +120,11 @@ func _init() -> void:
 	fails += _eq("요새는 '포기한다'", A.escape_frame(true), "scene_adventure_choice_giveup_KR")
 	fails += _eq("그 밖은 '도망간다'", A.escape_frame(false), "scene_adventure_choice_run_KR")
 
-	# 8) 도망 성공률 — 보스가 더 어렵다.
+	# 8) 도망은 일반/보스 모두 확정 성공(클라에 성공률 판정 없음, 사용자 확정).
 	var rr := RandomNumberGenerator.new(); rr.seed = 101
-	var ok_n := 0
-	var ok_b := 0
 	for _i in N:
-		if A.run_succeeds(cfg, false, rr): ok_n += 1
-		if A.run_succeeds(cfg, true, rr): ok_b += 1
-	fails += _true("도망이 성공하긴 한다", ok_n > 0)
-	fails += _true("보스 도망이 더 어렵다", ok_b < ok_n)
+		fails += _true("일반 조우 확정 탈출", A.run_succeeds(cfg, false, rr))
+		fails += _true("보스 조우 확정 탈출", A.run_succeeds(cfg, true, rr))
 
 	# ── 유타칸 밤 = **1회 조우 후 종료** (사용자 확정 2026-07-31) ──────────────
 	# 원작 문구 확인: <NightTutorial_talk10> "강력한 만큼 긴 전투 때문에 탐험은 단 한번!

@@ -2,11 +2,25 @@ extends Control
 ## 게임 진입점(render/app 최상위). 부팅 시 새 게임을 보장하고 초기 씬으로 전환한다.
 ## render→logic(NewGame)→data(Data) 단방향만 사용. (CLAUDE.md §10.2)
 
+const FOREGROUND_FPS := 60
+const BACKGROUND_FPS := 15
+
 func _ready() -> void:
+	_apply_focus_fps(DisplayServer.window_is_focused())
 	Scenes.bind_root($SceneRoot)
 	# 부팅 첫 화면 = **타이틀**(원작 `IntroScene` — 타이틀 스파인 + `music/bg_intro.mp3`).
 	# 화면을 누르면 인트로가 `begin_new_game()` 을 부른다(원작 ccTouchBegan → LoadingLayer 자리).
 	Scenes.goto("intro")
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			_apply_focus_fps(true)
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			_apply_focus_fps(false)
+
+func _apply_focus_fps(focused: bool) -> void:
+	Engine.max_fps = FOREGROUND_FPS if focused else BACKGROUND_FPS
 
 ## 게임 시작 절차 = 초기 로드아웃 → **닉네임(최초 1회)** → (새 세이브면 프롤로그) → 메인 화면.
 ##

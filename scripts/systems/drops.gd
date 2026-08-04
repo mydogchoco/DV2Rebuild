@@ -128,6 +128,85 @@ static func roll_essence(table: Dictionary, item_defs: Dictionary, stage_element
 	var lo := int(c.get("min", 1))
 	return {"key": key, "count": rng.randi_range(lo, maxi(lo, int(c.get("max", 1))))}
 
+# --- 희귀 속성 드랍(신성·혼돈·그림자) ----------------------------------------
+#
+# 🟦 사용자 확정 2026-08-04. 지역 속성은 6종뿐이라 위의 `roll_essence`/`roll_food` 로는
+# 신성·혼돈·그림자가 **영원히 나오지 않는다**(수급처 전수 대조 2026-08-04). 그래서 지역
+# 속성이 아니라 **난이도**에 붙는 별도 드랍을 하나 둔다:
+#   일반(·밤) = 보스 처치 · 영웅 = 전투 승리 · 카데스 = 전투 승리 → 25% 로 풀에서 1종.
+# 표 = `data/drops.json` `rare_element`(자작 노브).
+
+## 이 난이도·이 전투에서 희귀 속성 드랍을 굴릴 자격이 있는가.
+## `modes` 값 "any" = 모든 승리, "boss" = 보스 처치만, 그 밖/부재 = 안 나온다.
+static func rare_element_allowed(table: Dictionary, mode: String, boss: bool) -> bool:
+	var cfg: Dictionary = table.get("rare_element", {})
+	if cfg.is_empty():
+		return false
+	match String((cfg.get("modes", {}) as Dictionary).get(mode, "")):
+		"any": return true
+		"boss": return boss
+	return false
+
+## 희귀 속성 드랍 판정 → {key, count} 또는 {} (드롭 없음).
+static func roll_rare_element(table: Dictionary, mode: String, boss: bool,
+		rng: RandomNumberGenerator) -> Dictionary:
+	if not rare_element_allowed(table, mode, boss):
+		return {}
+	var cfg: Dictionary = table.get("rare_element", {})
+	var pool: Array = cfg.get("pool", [])
+	if pool.is_empty():
+		return {}
+	if rng.randf() >= float(cfg.get("chance", 0.0)):
+		return {}
+	var row: Dictionary = pool[rng.randi() % pool.size()]
+	var lo := int(row.get("min", 1))
+	return {"key": String(row.get("key", "")),
+		"count": rng.randi_range(lo, maxi(lo, int(row.get("max", 1))))}
+
+# --- 드링크(버프 물약) 드랍 --------------------------------------------------
+#
+# 🟦 사용자 확정 2026-08-04: 상점이 3단계만 팔아서 1·2단계가 어디서도 안 나왔다 →
+# **모든 전투 승리**에서 10% 로 1·2단계 중 한 종. 표 = `data/drops.json` `drink`.
+# 품목은 `items.json` 에서 파생한다(§8.1 정의 단일 출처) — tier 가 없는 자양강장제는 빠진다.
+
+## 드랍 대상 드링크 키 목록(정렬 — 같은 시드면 같은 결과, §4).
+static func drink_pool(table: Dictionary, item_defs: Dictionary) -> Array:
+	var cfg: Dictionary = table.get("drink", {})
+	if cfg.is_empty():
+		return []
+	var tiers: Array = cfg.get("tiers", [])
+	var out: Array = []
+	for k in item_defs:
+		if typeof(item_defs[k]) != TYPE_DICTIONARY:
+			continue
+		var v: Dictionary = item_defs[k]
+		if String(v.get("subcategory", "")) != "drink":
+			continue
+		if not v.has("tier"):
+			continue                      # 자양강장제 — 단계가 없다
+		for t in tiers:
+			if int(t) == int(v.get("tier", 0)):
+				out.append(String(k))
+				break
+	out.sort()
+	return out
+
+## 드링크 판정 → {key, count} 또는 {} (드롭 없음).
+static func roll_drink(table: Dictionary, item_defs: Dictionary,
+		rng: RandomNumberGenerator) -> Dictionary:
+	var cfg: Dictionary = table.get("drink", {})
+	if cfg.is_empty():
+		return {}
+	if rng.randf() >= float(cfg.get("chance", 0.0)):
+		return {}
+	var pool := drink_pool(table, item_defs)
+	if pool.is_empty():
+		return {}
+	var c: Dictionary = cfg.get("count", {})
+	var lo := int(c.get("min", 1))
+	return {"key": String(pool[rng.randi() % pool.size()]),
+		"count": rng.randi_range(lo, maxi(lo, int(c.get("max", 1))))}
+
 # --- 탐험 특수 드랍(지역 전용 표) --------------------------------------------
 #
 # 표 = `stages.json` 의 그 지역 `drops` 이고, 사용자가 CSV 로 채운다
@@ -762,8 +841,23 @@ static func roll_gem_box_many(table: Dictionary, gem_table: Dictionary,
 static func _exclusive_pool(equip_table: Dictionary) -> Array:
 	var out: Array = []
 	for x in (equip_table.get("exclusive", {}).get("list", []) as Array):
-		if bool((x as Dictionary).get("implemented", false)):
-			out.append(x)
+		var item := x as Dictionary
+		if not bool(item.get("implemented", false)):
+			continue
+		if bool(item.get("gacha_excluded", false)):
+			continue
+		out.append(item)
+	return out
+
+## 구현 대상 특수 장비 목록. 항목은 `{family, item}` — 카탈로그 키를 정확히 복원한다.
+static func _special_pool(equip_table: Dictionary) -> Array:
+	var out: Array = []
+	for family in (equip_table.get("special", {}) as Dictionary):
+		var family_def: Dictionary = equip_table["special"][family]
+		if not bool(family_def.get("implemented", false)):
+			continue
+		for item in (family_def.get("items", []) as Array):
+			out.append({"family": String(family), "item": item})
 	return out
 
 
@@ -776,6 +870,7 @@ static func _exclusive_pool(equip_table: Dictionary) -> Array:
 ##   "normal" 일반 장신구 뽑기(5000골드) — 하위 등급 일반 장비만, 희귀도 일반 100%
 ##   "high"   고급 장신구 뽑기(15다이아) — 상위 등급 일반 장비 + 이벤트 장비, 레어~에픽
 ##   "only" 전용 장신구 뽑기(30다이아) — 결과는 전용 장비. 🟢 2026-07-31 복구(아이콘 확보).
+##   "special" 특수장비 뽑기(100다이아) — 해골요새·발록·피오드 특수 장비 12종.
 ## 표는 `data/drops.json` `gacha.equip.grades[grade]`. 없는 등급이면 빈 문자열(= 지급 없음).
 static func roll_equip_gacha(table: Dictionary, equip_table: Dictionary,
 		rng: RandomNumberGenerator, grade_id: String = "high") -> String:
@@ -791,16 +886,30 @@ static func roll_equip_gacha(table: Dictionary, equip_table: Dictionary,
 	# 일반/이벤트 풀과 섞이지 않는다(사용자 확정 2026-07-31, data/drops.json `grades.only`).
 	var excl: Array = _exclusive_pool(equip_table)
 	var xw := float(g.get("exclusive_weight", 0)) if not excl.is_empty() else 0.0
-	if ew + bw + xw <= 0.0:
+	# 특수장비 뽑기(`special`) — 구현·아이콘이 확보된 특수 장비만 별도 풀에서 뽑는다.
+	var special: Array = _special_pool(equip_table)
+	var sw := float(g.get("special_weight", 0)) if not special.is_empty() else 0.0
+	var total := ew + bw + xw + sw
+	if total <= 0.0:
 		return ""
-	if xw > 0.0 and rng.randf() * (ew + bw + xw) < xw:
+	var pick := rng.randf() * total
+	if sw > 0.0 and pick < sw:
+		var inst_sp := Equipment.roll_instance(String(g.get("rarity_source", "shop_gacha")),
+			rng, equip_table)
+		var sp: Dictionary = special[rng.randi() % special.size()]
+		var spi: Dictionary = sp["item"]
+		return Equipment.item_key("special:%s:%s" % [String(sp["family"]),
+			String(spi.get("name", ""))], inst_sp)
+	pick -= sw
+	if xw > 0.0 and pick < xw:
 		var inst0 := Equipment.roll_instance(String(g.get("rarity_source", "shop_gacha")),
 			rng, equip_table)
 		var x: Dictionary = excl[rng.randi() % excl.size()]
 		return Equipment.item_key("exclusive:%s" % String(x.get("name", "")), inst0)
+	pick -= xw
 	# 희귀도표(사용자 확정 2026-07-29) = 골드 상품 일반100 / 다이아 상품 레어60:유니크30:에픽10.
 	var inst := Equipment.roll_instance(String(g.get("rarity_source", "shop_gacha")), rng, equip_table)
-	if rng.randf() * (ew + bw) < ew:
+	if pick < ew:
 		var e: Dictionary = events[rng.randi() % events.size()]
 		return Equipment.item_key("event:%s" % String(e.get("name", "")), inst)
 	var kinds: Array = table.get("exploration", {}).get("equip_kinds", [])

@@ -78,7 +78,11 @@ var _name_label: Label
 var _arrow: Sprite2D
 var _typing := false
 var _timer: Timer
-var _npc_node: Node2D
+var _arrow_tween: Tween
+## 원작은 Character_Pos 1/2/3마다 NpcManager를 하나씩 유지한다. 한 노드로 갈아 끼우면
+## 좌우 대화가 전부 중앙에 뜨고, 상대 화자가 말할 때마다 이전 초상이 사라진다.
+var _npc_slots: Dictionary = {}       # {1:left, 2:right, 3:center} -> NpcPortrait
+var _active_npc: Node2D
 
 ## 연출용 — 텍스트박스(암전/섬광이 아래로 밀어낸다) · 화면 전체 색막 · 제목 카드 레이어.
 var _box: NinePatchRect
@@ -104,10 +108,16 @@ func _rebuild() -> void:
 	_no = int(_params.get("no", 1))
 	_part = int(_params.get("part", 0))
 	_idx = 0
+	# 목록/UI 우회 진입도 막는다. 제목만 있고 본문이 없는 회차는 씬 진입점에서도 차단한다.
+	if not StoryProgress.implemented(_no):
+		_build_unavailable()
+		return
 	var sc: Dictionary = Data.scenario_def(str(_no))
 	var parts: Array = sc.get("parts", [])
 	_flow = Data.scenario_flow_of(_no)
 	_flow_i = 0
+	_npc_slots.clear()
+	_active_npc = null
 	_lines = []
 	if _flow.is_empty():
 		if _part >= 0 and _part < parts.size():
@@ -140,6 +150,29 @@ func _rebuild() -> void:
 		_show_line_text("(이 시나리오의 대사가 없습니다 — data/scenario.json 확인)")
 	else:
 		_show_line(0)
+
+
+## 미구현 회차가 저장 데이터/개발자 호출로 직접 들어왔을 때의 안전 화면.
+## 정상 UI에서는 재생 버튼 자체가 비활성화되므로 이 경로는 방어선이다.
+func _build_unavailable() -> void:
+	var back := ColorRect.new()
+	back.color = Color(0.04, 0.03, 0.06)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(back)
+	var msg := Label.new()
+	msg.text = "%d화는 현재 구현되지 않아 열람할 수 없습니다." % _no
+	msg.add_theme_font_size_override("font_size", 26)
+	msg.add_theme_color_override("font_color", Color.WHITE)
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	msg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.add_child(msg)
+	var leave := Button.new()
+	leave.text = "돌아가기"
+	leave.size = Vector2(180.0, 56.0)
+	leave.position = Vector2((_vis().x - leave.size.x) * 0.5, _vis().y * 0.65)
+	leave.pressed.connect(_leave)
+	back.add_child(leave)
 
 ## 배경. 원작은 두 곳에서 정한다:
 ##   ① 회차가 열릴 때 `ScenarioLayer::initWidget` 의 sn switch 가 한 장 깐다 → `initial_bg`
@@ -294,7 +327,7 @@ func _play_flow() -> void:
 				_name_label.text = Data.npc_name(folder) if folder != "" else ""
 				if folder != "":
 					# state = 표정(= 파츠 번호). 원작 setTalker 가 eye/mouth/양팔에 같은 값을 넘긴다.
-					_show_npc(folder, 1, int(o.get("state", 0)))
+					_show_npc(folder, 1, int(o.get("state", 0)), int(o.get("pos", 3)))
 				_next_line()
 				return
 			"setTalker":
@@ -303,7 +336,8 @@ func _play_flow() -> void:
 				var f2 := _str(o, "npc_name")
 				_name_label.text = Data.npc_name(f2) if f2 != "" else ""
 				if f2 != "":
-					_show_npc(f2)
+					_show_npc(f2, maxi(int(o.get("body", 1)), 1),
+						maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)))
 				_next_line()
 				return
 			"setTalk":
@@ -316,9 +350,9 @@ func _play_flow() -> void:
 					# `body`/`state` 는 **`setTalker` 로 합류한 스텝에만** 있다(`via` 참조).
 					# 나머지 다섯 함수는 그 인자를 받지 않으므로 원작도 초상을 바꾸지 않는다
 					# — 그 NPC 가 이미 서 있으면 **그대로 둔다**(자세·표정 유지).
-					if o.has("body") or o.has("state"):
+					if o.get("body") != null or o.get("state") != null:
 						_show_npc(f3, maxi(int(o.get("body", 1)), 1),
-							maxi(int(o.get("state", 1)), 1))
+							maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)))
 					else:
 						_keep_or_show_npc(f3)
 				_line_by_key(_str(o, "key"))
@@ -336,7 +370,7 @@ func _play_flow() -> void:
 				if is_instance_valid(_illust):
 					_illust.visible = false
 			"setOutTalker":
-				_hide_npc()
+				_hide_npc(int(o.get("talker", 0)), int(o.get("n", 0)))
 			"playBackGroundFieldMusic":
 				# 원작 `ScenarioSupport::playBackGroundFieldMusic(int)` — 번호→트랙 표는
 				# 디컴프에서 그대로 뽑아 `scenario_flow.json` `bgm` 에 있다.
@@ -833,10 +867,15 @@ func _apply_illust(no: int, kind: int) -> void:
 	_illust.texture = load(p)
 	_illust.visible = true
 
-func _hide_npc() -> void:
-	if is_instance_valid(_npc_node):
-		_npc_node.queue_free()
-		_npc_node = null
+func _hide_npc(pos := 0, mode := 0) -> void:
+	var which: Array = _npc_slots.keys() if pos <= 0 else [clampi(pos, 1, 3)]
+	for k in which:
+		var p: Node2D = _npc_slots.get(int(k))
+		_npc_slots.erase(int(k))
+		if is_instance_valid(p):
+			_exit_npc(p, int(k), mode)
+	if not is_instance_valid(_active_npc) or pos <= 0 or int(_active_npc.get_meta("story_pos", 0)) == pos:
+		_active_npc = null
 
 func _show_line(i: int) -> void:
 	_idx = i
@@ -852,6 +891,7 @@ func _show_line_text(text: String) -> void:
 	_label.text = text
 	_label.visible_characters = 0
 	_typing = true
+	_stop_arrow_tween()
 	if _arrow: _arrow.visible = false
 	if is_instance_valid(_timer): _timer.queue_free()
 	_timer = Timer.new()
@@ -870,9 +910,17 @@ func _reveal_all() -> void:
 	if is_instance_valid(_timer): _timer.stop()
 	if _arrow:
 		_arrow.visible = true
-		var t := _arrow.create_tween().set_loops()
-		t.tween_property(_arrow, "position:y", BOX_H * 0.5 + 6.0, 0.4)
-		t.tween_property(_arrow, "position:y", BOX_H * 0.5, 0.4)
+		_stop_arrow_tween()
+		_arrow_tween = _arrow.create_tween().set_loops()
+		_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5 + 6.0, 0.4)
+		_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5, 0.4)
+
+func _stop_arrow_tween() -> void:
+	if _arrow_tween != null and _arrow_tween.is_valid():
+		_arrow_tween.kill()
+	_arrow_tween = null
+	if is_instance_valid(_arrow):
+		_arrow.position.y = BOX_H * 0.5
 
 ## 탭: 타이핑 중이면 전체표시, 완료면 다음 줄. 마지막이면 종료.
 func _advance() -> void:
@@ -1014,28 +1062,116 @@ func _cast_npc(no: int, part: int, k: int) -> String:
 ## 원작은 이미 서 있는 화자를 앞으로 세울 뿐 초상을 새로 만들지 않는다 —
 ## 같은 NPC 면 그대로 두고, 아직 없으면 기본 자세로 세운다.
 func _keep_or_show_npc(npc: String) -> void:
-	if is_instance_valid(_npc_node) and String(_npc_node.get_meta("npc", "")).begins_with(npc + "|"):
-		return
-	_show_npc(npc, 1, 1)
+	for p in _npc_slots.values():
+		if is_instance_valid(p) and String(p.get_meta("npc", "")).begins_with(npc + "|"):
+			_active_npc = p
+			p.z_index = 5
+			for other in _npc_slots.values():
+				if is_instance_valid(other) and other != p:
+					other.z_index = 4
+			return
+	# setReorderTalker 등 위치 인자가 없는 호출은 앞선 원작 스텝에서 그 NPC의 슬롯을 찾는다.
+	# 전투 복귀처럼 노드를 재구성해야 할 때만 조용히 복원한다.
+	_show_npc(npc, 1, 1, _flow_pos_for_npc(npc), false)
 
-func _show_npc(npc: String, body := 1, state := 1) -> void:
+func _show_npc(npc: String, body := 1, state := 1, pos := 3, animate := true) -> void:
+	pos = clampi(pos, 1, 3)
 	var want := "%s|%d|%d" % [npc, body, state]
-	if is_instance_valid(_npc_node) and _npc_node.get_meta("npc", "") == want:
+	var old: Node2D = _npc_slots.get(pos)
+	if is_instance_valid(old) and old.get_meta("npc", "") == want:
+		_active_npc = old
 		return
-	if is_instance_valid(_npc_node):
-		_npc_node.queue_free()
+	# 원본 화자 ID 100은 폴더명이 `who`, 표시명은 `???`지만 대응 초상 에셋이 없다.
+	# 빈 NpcPortrait를 만들면 매니페스트 경고와 투명 화자 노드만 남으므로 이름/대사만 표시한다.
+	var manifest := "res://assets/converted/npc_%s/_manifest.json" % npc
+	if not FileAccess.file_exists(manifest):
+		if is_instance_valid(old):
+			_exit_npc(old, pos, 2)
+		_npc_slots.erase(pos)
+		if _active_npc == old:
+			_active_npc = null
+		return
+	if is_instance_valid(old):
+		_exit_npc(old, pos, 2)
 	var p := NpcPortrait.create(npc, maxi(state, 1), body)
 	if p == null:
-		_npc_node = null
+		_npc_slots.erase(pos)
 		return
-	_npc_node = p
+	_npc_slots[pos] = p
+	_active_npc = p
 	p.set_meta("npc", want)
-	# 원작 대화 초상은 하단 대화상자 위에 발밑을 붙인다(몸통 앵커 (0.5,0)).
-	p.position = Vector2(_vis().x * 0.5, _vis().y - BOX_H)
-	p.z_index = 4
+	p.set_meta("story_pos", pos)
+	# 원작 NpcManager::getDefaultNpcPos — 발밑은 화면 하단, 대화상자가 위 레이어에서 덮는다.
+	var home := _npc_home(p, pos)
+	p.position = home
+	for other in _npc_slots.values():
+		if is_instance_valid(other) and other != p:
+			other.z_index = 4
+	p.z_index = 5
 	add_child(p)
-	p.modulate.a = 0.0
-	p.create_tween().tween_property(p, "modulate:a", 1.0, 0.2)
+	if animate:
+		_enter_npc(p, pos, home)
+
+## `NpcManager::getDefaultNpcPos(1/2/3)`의 화면 기준 배치.
+func _npc_home(p: Node2D, pos: int) -> Vector2:
+	var vis := _vis()
+	# p 가 Node2D 로 타입 지정돼 있어 동적 메서드 반환형을 추론할 수 없다.
+	# 명시 변환이 없으면 스크립트 전체가 파싱 실패해 스토리 진입 시 이전 회색 딤만 남는다.
+	var w: float = float(p.call("body_width")) if p.has_method("body_width") else 0.0
+	match pos:
+		1: return Vector2(w * 0.5, vis.y)
+		2: return Vector2(vis.x - w * 0.5, vis.y)
+		_: return Vector2(vis.x * 0.5, vis.y)
+
+## 원작 `ScenarioLayer::setTalker`: 좌우 BackOut 0.5초, 중앙 ExpoInOut 1.25초.
+func _enter_npc(p: Node2D, pos: int, home: Vector2) -> void:
+	var vis := _vis()
+	var t := p.create_tween()
+	if pos == 1:
+		p.position = home - Vector2(vis.x * 0.5, 0.0)
+		t.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(p, "position", home, 0.5)
+	elif pos == 2:
+		p.position = home + Vector2(vis.x * 0.5, 0.0)
+		t.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(p, "position", home, 0.5)
+	else:
+		p.position = home + Vector2(0.0, vis.y)
+		t.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(p, "position", home, 1.25)
+
+## 원작 `setOutTalker`: mode1=FadeOut(0.5), mode2=위치별 바깥 이동(0.5).
+func _exit_npc(p: Node2D, pos: int, mode: int) -> void:
+	if mode <= 0:
+		p.queue_free()
+		return
+	var vis := _vis()
+	var t := p.create_tween()
+	if mode == 1:
+		t.tween_property(p, "modulate:a", 0.0, 0.5)
+	else:
+		var dst := p.position
+		if pos == 1: dst -= Vector2(vis.x * 0.5, 0.0)
+		elif pos == 2: dst += Vector2(vis.x * 0.5, 0.0)
+		else: dst += Vector2(0.0, vis.y)
+		t.set_trans(Tween.TRANS_EXPO if pos == 3 else Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		t.tween_property(p, "position", dst, 0.5)
+	t.tween_callback(func():
+		if is_instance_valid(p):
+			p.queue_free())
+
+## 위치 없는 setReorderTalker/복귀 재구성용. 앞선 원작 스텝에서 같은 NPC의 마지막 pos를 찾는다.
+func _flow_pos_for_npc(npc: String) -> int:
+	for i in range(mini(_flow_i, _flow.size()) - 1, -1, -1):
+		var o: Dictionary = _flow[i]
+		if not o.has("pos"):
+			continue
+		if String(o.get("npc_name", "")) == npc:
+			return clampi(int(o.get("pos", 3)), 1, 3)
+		if String(o.get("op", "")) == "setNpcTalk" \
+				and Data.scenario_npc_folder(int(o.get("npc", 0))) == npc:
+			return clampi(int(o.get("pos", 3)), 1, 3)
+	return 3 # 102화 이상 서버 유실 폴백만 중앙(기존 동작)
 
 # ---------- 헬퍼 ----------
 func _vis() -> Vector2:

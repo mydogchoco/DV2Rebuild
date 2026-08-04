@@ -20,6 +20,7 @@ func _init() -> void:
 
 	# 1) 종류 상한 — 상한 초과는 여전히 막는다(원작 MasicStoneErroMsg_4).
 	var kinds := AwakenStone.max_kinds(cfg)
+	fails += _eq("배치 알 종류 상한", kinds, 10)
 	var over_kinds: Array = []
 	for i in kinds + 1:
 		over_kinds.append({"star": 5, "count": 1})

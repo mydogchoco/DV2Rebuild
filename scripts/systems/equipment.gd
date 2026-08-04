@@ -91,6 +91,7 @@ static func catalog(table: Dictionary) -> Dictionary:
 				"slot_class": _slot_of(it.get("main", {}), table),
 				"stat_main": _int_dict(it.get("main", {})),
 				"bonus": String(it.get("bonus", "")),
+				"acquire": String(famd.get("acquire", "")),
 			}
 	# 전용 장비 — 🟦 사용자 확정 2026-07-31: **주 능력치가 없는 것이 원작 사양**이다.
 	# 대응하는 드래곤에게만 장착되고 조건부 효과(effect)만 갖는다.
@@ -109,6 +110,7 @@ static func catalog(table: Dictionary) -> Dictionary:
 			"dragon_id": int(xd.get("dragon_id", 0)),
 			"dragon": String(xd.get("dragon", "")),
 			"bonus": String(xd.get("effect", "")),
+			"acquire": String(xd.get("acquire", "")),
 		}
 	var art: Dictionary = table.get("artifacts", {})
 	for a in (art.get("types", []) as Array):
@@ -122,6 +124,46 @@ static func catalog(table: Dictionary) -> Dictionary:
 				"artifact_skills": a.get("skills", []),
 			}
 	return out
+
+
+## 장비 목록 공통 정렬 규칙(가방/칸별 장비 선택창).
+##   1) 장착 중인 개체
+##   2) 희귀도 내림차순(에픽→유니크→레어→일반; 초월이 있으면 에픽보다 앞)
+##   3) 같은 희귀도 안에서 전용→특수→일반→아티팩트
+##   4) 이름/키(결정적 순서)
+## row = {it: 카탈로그 항목, meta: {rarity}, worn: bool, inv/cat: String}.
+static func display_sort_less(a: Dictionary, b: Dictionary) -> bool:
+	var aw := bool(a.get("worn", false))
+	var bw := bool(b.get("worn", false))
+	if aw != bw:
+		return aw
+	var ar := int((a.get("meta", {}) as Dictionary).get("rarity", 0))
+	var br := int((b.get("meta", {}) as Dictionary).get("rarity", 0))
+	if ar != br:
+		return ar > br
+	var ai: Dictionary = a.get("it", {})
+	var bi: Dictionary = b.get("it", {})
+	var ag := display_group_rank(ai)
+	var bg := display_group_rank(bi)
+	if ag != bg:
+		return ag < bg
+	var an := String(ai.get("name", ""))
+	var bn := String(bi.get("name", ""))
+	if an != bn:
+		return an < bn
+	return String(a.get("inv", a.get("cat", ""))) < String(b.get("inv", b.get("cat", "")))
+
+
+## 사용자가 보는 장비 분류 순서. event/basic 및 그 밖의 장비는 모두 "일반장비"다.
+static func display_group_rank(item: Dictionary) -> int:
+	var group := String(item.get("group", ""))
+	if group == "exclusive":
+		return 0
+	if group.begins_with("special:"):
+		return 1
+	if group == "artifact":
+		return 3
+	return 2
 
 ## 주 능력 스탯으로 어느 슬롯 칸에 붙는지 판정(위키 §2 슬롯 표).
 static func _slot_of(main: Dictionary, table: Dictionary) -> String:
@@ -814,7 +856,7 @@ static func artifact_mix_upgradable(table: Dictionary, base_key: String) -> bool
 	return int(a["grade"]) + 1 < grades.size() \
 		and artifact_mix_unit_cost(table, base_key) > 0
 
-## 재료로 쓸 수 있나. `same_type_required` 면 대상과 같은 종류여야 한다(자작 규칙).
+## 재료로 쓸 수 있나. 대상과 같은 종류·아티팩트 등급이어야 한다(자작 규칙).
 ## 대상 그 자체(같은 인벤 키의 같은 개체)는 호출부가 수량으로 걸러야 한다.
 static func artifact_mix_material_ok(table: Dictionary, base_key: String, mat_key: String) -> bool:
 	var b := artifact_of(base_key)
@@ -822,7 +864,11 @@ static func artifact_mix_material_ok(table: Dictionary, base_key: String, mat_ke
 	if b.is_empty() or m.is_empty():
 		return false
 	if bool(artifact_mix_cfg(table).get("same_type_required", true)):
-		return String(m["type"]) == String(b["type"])
+		if String(m["type"]) != String(b["type"]):
+			return false
+	if bool(artifact_mix_cfg(table).get("same_grade_required", true)):
+		if int(m["grade"]) != int(b["grade"]):
+			return false
 	return true
 
 ## 합성 결과 인벤 키(등급 +1). 대상의 개체 정보(귀속·강화·옵션)는 그대로 승계한다.

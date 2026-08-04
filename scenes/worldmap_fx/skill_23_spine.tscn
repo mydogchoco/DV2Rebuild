@@ -1,0 +1,173 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_skill_23_spine/skill_23_spine.png" id="1_e1nrt"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_mairv"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0qe5w"]
+atlas = ExtResource("1_e1nrt")
+region = Rect2(2, 2, 212, 231)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ehchh"]
+atlas = ExtResource("1_e1nrt")
+region = Rect2(2, 2, 212, 231)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_57b1h"]
+length = 0.3333
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone1:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-0.3216641811425549, -0.3216641811425549, -0.3216641811425549]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone1:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1.5, -7), Vector2(1.5, -7), Vector2(1.5, -7)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone1:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1666, 0.3332, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.75, 0.75), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone1-copy:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-0.3216641811425549, -0.3216641811425549, -0.3216641811425549]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone1-copy:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1.5, -7), Vector2(1.5, -7), Vector2(1.5, -7)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone1-copy:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.1666, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0.75, 0.75), Vector2(1, 1), Vector2(1.5, 1.5)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bone1/skill_rapture1_frame/skill_rapture1:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.1666),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.5686275, 0.5686275, 0.5686275, 0.5686275), Color(1, 1, 1, 1)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bone1-copy/skill_rapture1-copy_frame/skill_rapture1-copy:visible")
+tracks/7/interp = 0
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bone1-copy/skill_rapture1-copy_frame/skill_rapture1-copy:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.1666, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0.5411765, 0.5411765, 0.5411765, 0.5411765), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_mbiwb"]
+_data = {
+&"animation": SubResource("Animation_57b1h")
+}
+
+[node name="Dragon_skill_23_spine_scene" type="Node2D" unique_id=786569422]
+
+[node name="root" type="Node2D" parent="." unique_id=1441161363]
+scale = Vector2(0.777, 0.777)
+
+[node name="bone1" type="Node2D" parent="root" unique_id=348336675]
+position = Vector2(1.5, -7)
+rotation = -0.32166418
+
+[node name="skill_rapture1_frame" type="Node2D" parent="root/bone1" unique_id=12880440]
+rotation = 0.32166418
+
+[node name="skill_rapture1" type="Sprite2D" parent="root/bone1/skill_rapture1_frame" unique_id=1536443245]
+material = SubResource("CanvasItemMaterial_mairv")
+position = Vector2(10.647887, 6.6608996)
+scale = Vector2(1.3309859, 1.3321799)
+texture = SubResource("AtlasTexture_0qe5w")
+
+[node name="bone1-copy" type="Node2D" parent="root" unique_id=333750940]
+position = Vector2(1.5, -7)
+rotation = -0.32166418
+
+[node name="bone2" type="Node2D" parent="root/bone1-copy" unique_id=774249545]
+position = Vector2(-7.49, 6.99)
+rotation = 0.32166418
+
+[node name="skill_rapture1-copy_frame" type="Node2D" parent="root/bone1-copy" unique_id=1579527248]
+rotation = 0.32166418
+
+[node name="skill_rapture1-copy" type="Sprite2D" parent="root/bone1-copy/skill_rapture1-copy_frame" unique_id=145935919]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_mairv")
+position = Vector2(10.647887, 6.6608996)
+scale = Vector2(1.3309859, 1.3321799)
+texture = SubResource("AtlasTexture_ehchh")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=741499149]
+libraries/ = SubResource("AnimationLibrary_mbiwb")

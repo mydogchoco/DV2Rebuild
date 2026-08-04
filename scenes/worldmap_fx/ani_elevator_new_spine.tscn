@@ -183,42 +183,42 @@ _data = {
 &"elevator": SubResource("Animation_kej48")
 }
 
-[node name="Dragon_ani_elevator_new_spine_scene" type="Node2D" unique_id=1740412548]
+[node name="Dragon_ani_elevator_new_spine_scene" type="Node2D" unique_id=1141828377]
 
-[node name="root" type="Node2D" parent="." unique_id=1876575391]
+[node name="root" type="Node2D" parent="." unique_id=379356658]
 
-[node name="w_dwarf_elevator00" type="Node2D" parent="root" unique_id=1930781576]
+[node name="w_dwarf_elevator00" type="Node2D" parent="root" unique_id=66876088]
 position = Vector2(-25.49, -111)
 rotation = 1.5549139
 
-[node name="w_dwarf_elevator00_slot_frame" type="Node2D" parent="root/w_dwarf_elevator00" unique_id=1529081331]
+[node name="w_dwarf_elevator00_slot_frame" type="Node2D" parent="root/w_dwarf_elevator00" unique_id=1120018701]
 position = Vector2(111.39, -23.73)
 rotation = -1.5549139
 
-[node name="w_dwarf_elevator00_slot" type="Sprite2D" parent="root/w_dwarf_elevator00/w_dwarf_elevator00_slot_frame" unique_id=916987099]
+[node name="w_dwarf_elevator00_slot" type="Sprite2D" parent="root/w_dwarf_elevator00/w_dwarf_elevator00_slot_frame" unique_id=480942633]
 material = SubResource("CanvasItemMaterial_t2png")
 position = Vector2(-21.298014, -97.333336)
 scale = Vector2(1.3311259, 1.3333334)
 texture = SubResource("AtlasTexture_02hhm")
 
-[node name="w_dwarf_elevator_mineral_frame" type="Node2D" parent="root/w_dwarf_elevator00" unique_id=190039083]
+[node name="w_dwarf_elevator_mineral_frame" type="Node2D" parent="root/w_dwarf_elevator00" unique_id=1478274861]
 position = Vector2(111.39, -23.73)
 rotation = -1.5549139
 
-[node name="w_dwarf_elevator_mineral" type="Sprite2D" parent="root/w_dwarf_elevator00/w_dwarf_elevator_mineral_frame" unique_id=1724967485]
+[node name="w_dwarf_elevator_mineral" type="Sprite2D" parent="root/w_dwarf_elevator00/w_dwarf_elevator_mineral_frame" unique_id=1727852058]
 z_index = 1
 material = SubResource("CanvasItemMaterial_t2png")
 position = Vector2(-21.298014, -116)
 scale = Vector2(1.3311259, 1.3333334)
 texture = SubResource("AtlasTexture_vqwd3")
 
-[node name="w_dwarf_elevator_highright01" type="Node2D" parent="root" unique_id=389511883]
+[node name="w_dwarf_elevator_highright01" type="Node2D" parent="root" unique_id=1329867183]
 position = Vector2(-33.49, -146)
 
-[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright01_frame" type="Node2D" parent="root/w_dwarf_elevator_highright01" unique_id=1153819205]
+[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright01_frame" type="Node2D" parent="root/w_dwarf_elevator_highright01" unique_id=295015480]
 position = Vector2(33.49, 146)
 
-[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright01" type="Sprite2D" parent="root/w_dwarf_elevator_highright01/w_dwarf_elevator_highright01__w_dwarf_elevator_highright01_frame" unique_id=2061250190]
+[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright01" type="Sprite2D" parent="root/w_dwarf_elevator_highright01/w_dwarf_elevator_highright01__w_dwarf_elevator_highright01_frame" unique_id=933600960]
 visible = false
 z_index = 2
 material = SubResource("CanvasItemMaterial_t2png")
@@ -227,24 +227,24 @@ rotation = 1.5707964
 scale = Vector2(1.3311259, 1.3333334)
 texture = SubResource("AtlasTexture_68yfa")
 
-[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright02_frame" type="Node2D" parent="root/w_dwarf_elevator_highright01" unique_id=359792309]
+[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright02_frame" type="Node2D" parent="root/w_dwarf_elevator_highright01" unique_id=1770259096]
 position = Vector2(33.49, 146)
 
-[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright02" type="Sprite2D" parent="root/w_dwarf_elevator_highright01/w_dwarf_elevator_highright01__w_dwarf_elevator_highright02_frame" unique_id=1335076735]
+[node name="w_dwarf_elevator_highright01__w_dwarf_elevator_highright02" type="Sprite2D" parent="root/w_dwarf_elevator_highright01/w_dwarf_elevator_highright01__w_dwarf_elevator_highright02_frame" unique_id=861828149]
 z_index = 2
 material = SubResource("CanvasItemMaterial_t2png")
 position = Vector2(-37.271523, -148)
 scale = Vector2(1.3311259, 1.3333334)
 texture = SubResource("AtlasTexture_po7qi")
 
-[node name="w_dwarf_elevator_book_frame" type="Node2D" parent="root" unique_id=1956388530]
+[node name="w_dwarf_elevator_book_frame" type="Node2D" parent="root" unique_id=1766305426]
 
-[node name="w_dwarf_elevator_book" type="Sprite2D" parent="root/w_dwarf_elevator_book_frame" unique_id=884980395]
+[node name="w_dwarf_elevator_book" type="Sprite2D" parent="root/w_dwarf_elevator_book_frame" unique_id=789566351]
 z_index = 3
 material = SubResource("CanvasItemMaterial_t2png")
 position = Vector2(-19.966887, 0)
 scale = Vector2(1.3311259, 1.3333334)
 texture = SubResource("AtlasTexture_t2rt2")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=2020069289]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1140704457]
 libraries/ = SubResource("AnimationLibrary_1bek3")

@@ -23,6 +23,8 @@ func _init() -> void:
 		quit(1)
 		return
 	var sq: Dictionary = JSON.parse_string(f.get_as_text())
+	var story: Dictionary = _json("res://data/story.json")
+	var scenario: Dictionary = _json("res://data/scenario.json")
 
 	# ── ① 추출표가 원작 축자값과 일치하는가 ────────────────────────────────────
 	fails += _eq("80화 탐험 클릭 수(0x27)", int(sq["click_count"]["80"]), 39)
@@ -33,6 +35,9 @@ func _init() -> void:
 	fails += _eq("마크필드 90화", int(sq["mark_field"]["90"]), 24)
 	fails += _eq("마크필드 146화", int(sq["mark_field"]["146"]), 999)
 	fails += _eq("마크필드 엔트리 수(0x44)", (sq["mark_field"] as Dictionary).size(), 68)
+	fails += _eq("2화 진입 필드(WorldMapScene getScenarioMark)", int(sq["entry_field"]["2"]), 1)
+	fails += _eq("8화 진입 필드(WorldMapScene getScenarioMark)", int(sq["entry_field"]["8"]), 3)
+	fails += _eq("46화 진입 필드(WorldMapScene getScenarioMark)", int(sq["entry_field"]["46"]), 15)
 
 	var f80: Dictionary = sq["subquest_field"]["80"]
 	fails += _eq("80화 서브퀘 필드", int(f80["field"]), 4)
@@ -63,6 +68,16 @@ func _init() -> void:
 	fails += _eq("78화 젬 색", String(((sr["78"] as Dictionary)["gem_colors"] as Array)[1]), "R")
 	fails += _eq("78화 보상 원문",
 		String((sr["78"] as Dictionary)["raw"]), "DRAGON:105:50:3:114:114:152:R:R:Y:29_2,32_2,101_2")
+
+	# 45화는 본문 23줄이 있어 열람 가능해야 한다. 제목만 복원된 140~146화는 영구 잠금한다.
+	var episodes: Dictionary = story.get("episodes", {})
+	var scenarios: Dictionary = scenario.get("scenarios", {})
+	fails += _true("45화 구현됨(회색 화면 회귀)", SQ.implemented_with(episodes["45"], scenarios["45"]))
+	fails += _eq("45화 대사 수", ((scenarios["45"] as Dictionary)["parts"][0]["lines"] as Array).size(), 23)
+	fails += _true("139화 구현됨", SQ.implemented_with(episodes["139"], scenarios["139"]))
+	for no in range(140, 147):
+		fails += _true("%d화 미구현 영구 잠금" % no,
+			not SQ.implemented_with(episodes[str(no)], scenarios.get(str(no), {})))
 
 	# ── ② 순수 규칙 ────────────────────────────────────────────────────────────
 	var sp80 := SQ.spec_of(sq, 80)
@@ -97,6 +112,14 @@ func _init() -> void:
 
 	print("\n[test_story_quest] ", "PASS" if fails == 0 else "FAIL %d건" % fails)
 	quit(1 if fails > 0 else 0)
+
+
+func _json(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	return parsed if parsed is Dictionary else {}
 
 
 func _eq(what: String, got, want) -> int:

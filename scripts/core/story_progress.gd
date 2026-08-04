@@ -51,29 +51,55 @@ static func max_dragon_level() -> int:
 	return best
 
 
+## 제목만 있고 본문이 없는 회차는 목록에 남기되 영구 잠금한다.
+## 현재 마스터 기준 140~146화가 해당한다.
+static func implemented(no: int) -> bool:
+	return SQ.implemented_with(Data.story_episode(no), Data.scenario_def(str(no)))
+
+
+## no 바로 앞의 **열람 가능한** 회차. 중간에 미구현 회차가 생겨도 건너뛴다.
+static func previous_episode(no: int) -> int:
+	var prev := 0
+	for candidate in Data.story_episodes():
+		var n := int(candidate)
+		if n >= no:
+			break
+		if implemented(n):
+			prev = n
+	return prev
+
+
 ## 해금 판정 = 레벨 게이트(또는 직전 회차 관람) **AND** 서브퀘스트 완료.
 ## 레벨 게이트는 `data/story.json` `_unlock`(ASSUMPTION — 원작 `info_scenario_v2.min_lv` 유실),
 ## 서브퀘스트는 원작 하드코딩 수치(`data/story_subquest.json`).
 static func unlocked(no: int) -> bool:
 	var ep := Data.story_episode(no)
-	if ep.is_empty():
+	if not implemented(no):
 		return false
 	var need := int(ep.get("unlock_level", 0))
 	if need > 0:
 		if max_dragon_level() < need:
 			return false
-	elif not (no <= 1 or seen(no - 1)):
-		return false
+	else:
+		var prev := previous_episode(no)
+		if prev > 0 and not seen(prev):
+			return false
 	return gate_cleared(no)
 
 
-## "다음에 볼 회차" = 아직 안 본 것 중 가장 앞. 전부 봤으면 마지막.
+## "다음에 볼 회차" = 구현된 회차 중 아직 안 본 것의 최앞.
+## 미구현 회차는 영구 잠금이므로 건너뛰고, 전부 봤으면 마지막 구현 회차를 돌려준다.
 static func next_episode() -> int:
 	var eps := Data.story_episodes()
+	var last_implemented := 0
 	for no in eps:
-		if not seen(int(no)):
-			return int(no)
-	return int(eps[-1]) if not eps.is_empty() else 1
+		var n := int(no)
+		if not implemented(n):
+			continue
+		last_implemented = n
+		if not seen(n):
+			return n
+	return last_implemented
 
 
 ## 지금 진행 중인 회차 = 다음에 볼 회차. 원작 `ScenarioManager+0x168`(sn) 자리.
@@ -109,14 +135,14 @@ static func note_adventure(field_no: int, is_night := false, variant: Dictionary
 
 
 ## 월드맵 이벤트 마크를 찍을 필드 — 원작 `getEventMarkFieldValue(sn, isNight)`.
-## 0 이면 마크 없음. 서브퀘스트를 이미 채웠으면 마크를 지운다.
+## 0 이면 마크 없음. 진행 중 서브퀘스트는 그 탐험 필드, 완료 뒤에는 회차의 진입 필드다.
 static func mark_field() -> int:
 	var no := active_episode()
-	if gate_cleared(no):
-		return 0
 	var sp := SQ.spec_of(Data.story_subquest, no)
-	if not sp.is_empty():
+	if not sp.is_empty() and not gate_cleared(no):
 		return int(sp["field"])
+	# WorldMapScene::getScenarioMark(false): once its subquest is clear, the
+	# episode's event-mark field remains the click target for setScenario().
 	return Data.story_mark_field(no)
 
 

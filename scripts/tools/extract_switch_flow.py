@@ -75,7 +75,8 @@ TALK_FNS = {"setTalk", "setTalker", "setReorderTalker", "setMoveTalker",
 OFF_NAME, OFF_KEY = 0x1d8, 0x1f0
 
 ## 🔴 여섯 함수 중 **`setTalker` 만** 몸통·표정을 인자로 받는다. 원형(디컴프 주석 전수):
-##     setTalker(bool, string, int body, int state, float×4, int, bool×10)   ← w3=body w4=state
+##     setTalker(bool, string, int body, int state, float×4, int pos, bool×10)
+##       ← w3=body · w4=state · w5=Character_Pos(1왼쪽/2오른쪽/3가운데)
 ##     setTalk(bool) · setTalkForNotClick() · setTalkForTalker()             ← 인자 없음
 ##     setReorderTalker(int, bool, bool, bool) · setMoveTalker(int, int, InfoEventData*, bool)
 ## 종전엔 여섯 개 전부에서 w3/w4 를 body/state 로 실었다. 나머지 다섯에서는 그 레지스터가
@@ -96,6 +97,7 @@ def talk_op(fn: str, key, name, regs: dict) -> dict:
     if fn in BODY_STATE_FNS:
         op["body"] = regs.get("w3")
         op["state"] = regs.get("w4")
+        op["pos"] = regs.get("w5")
     return op
 
 ## 한 case 블록에서 따라갈 최대 명령 수 / 범위 탐색 상한.
@@ -976,9 +978,11 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     return ops
                 if talker_addrs and a in talker_addrs:
                     # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
+                    # · s0~s3=float 4개 · w5=Character_Pos.
                     ops.append({"op": "setTalker",
                                 "npc_name": xstr.get("x2", last_str),
-                                "body": regs.get("w3"), "state": regs.get("w4")})
+                                "body": regs.get("w3"), "state": regs.get("w4"),
+                                "pos": regs.get("w5")})
                     return ops
                 fl = cur.getFlows()
                 callee = fm.getFunctionAt(fl[0]) if fl else None
@@ -1004,7 +1008,9 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                         _side({"op": "drawIllust",
                                "illust": regs.get("w1"), "kind": regs.get("w2")})
                     elif "setOutTalker" in nm:
-                        _side({"op": "setOutTalker"})
+                        # AAPCS: x0=this · w1=화자 슬롯 · w2=퇴장 방식 · w3=완료 후 진행.
+                        _side({"op": "setOutTalker", "talker": regs.get("w1"),
+                               "n": regs.get("w2"), "b1": bool(regs.get("w3", 0))})
             mn = cur.getMnemonicString()
             if mn == "b":
                 fl = cur.getFlows()

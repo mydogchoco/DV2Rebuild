@@ -44,6 +44,7 @@ var _box: NinePatchRect
 var _name: Label
 var _label: Label
 var _arrow: Sprite2D
+var _arrow_tween: Tween
 var _portrait: Node2D
 var _choice_row: Control
 var _full := ""
@@ -142,6 +143,7 @@ func set_text(text: String) -> void:
 	_shown = 0.0
 	_typing = true
 	_label.text = ""
+	_stop_arrow_tween()
 	if _arrow != null:
 		_arrow.visible = false
 
@@ -189,11 +191,18 @@ func _process(delta: float) -> void:
 	if n >= _full.length():
 		_typing = false
 		if _arrow != null:
+			_stop_arrow_tween()
 			_arrow.visible = true
-			var tw := _arrow.create_tween().set_loops()
-			var y0 := _arrow.position.y
-			tw.tween_property(_arrow, "position:y", y0 + 6.0, 0.4).set_trans(Tween.TRANS_SINE)
-			tw.tween_property(_arrow, "position:y", y0, 0.4).set_trans(Tween.TRANS_SINE)
+			_arrow_tween = _arrow.create_tween().set_loops()
+			_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5 + 6.0, 0.4).set_trans(Tween.TRANS_SINE)
+			_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5, 0.4).set_trans(Tween.TRANS_SINE)
+
+func _stop_arrow_tween() -> void:
+	if _arrow_tween != null and _arrow_tween.is_valid():
+		_arrow_tween.kill()
+	_arrow_tween = null
+	if is_instance_valid(_arrow):
+		_arrow.position.y = BOX_H * 0.5
 
 ## 탭 — 원작 `ScenarioTextBox::ccTouchBegan`: 타이핑 중이면 전체 표시, 끝났으면 다음.
 func _tap() -> void:
@@ -201,6 +210,7 @@ func _tap() -> void:
 		_typing = false
 		_label.text = _full
 		if _arrow != null:
+			_stop_arrow_tween()
 			_arrow.visible = true
 		return
 	if _choice_row != null and is_instance_valid(_choice_row):

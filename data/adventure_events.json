@@ -34,12 +34,6 @@
     "_note": "원작 setEventHealArea(true) — 성스러운 샘(effect_holy_well_2, 흰 틴트). 더 드물다."
    },
    {
-    "type": "choice",
-    "weight": 12,
-    "fortress_only": true,
-    "_note": "원작 setEventDungeonChoice(0x1b) = 해골요새 전용(서버 API game_skullfortress/choice_road.hb). 원작 4변형의 버튼 프레임(choice_up/pass/drink/open)은 추출 에셋에 없다 — CLAUDE.md §10 표."
-   },
-   {
     "type": "shop",
     "weight": 10,
     "fortress_only": true,
@@ -52,6 +46,7 @@
     "_note": "원작 setEventDungeonCardGame1/2(0x18/0x19). 어느 쪽인지도 서버가 정했다(유실) → 반반."
    }
   ],
+  "_cut_choice": "⚫ CUT(사용자 확인 2026-08-01) — 원작 setEventDungeonChoice(0x1b)는 존재하지만 서버가 고르던 4변형과 choice_up/pass/drink/open 프레임이 유실됐다. 종전의 '안전한 길/위험한 길', '확정 소량 보상/큰 보상 or 꽝'은 자작 문구와 규칙이므로 이벤트 풀에서 뺐다.",
   "_cut_treasure": "⚫ CUT(사용자 확정 2026-07-31) — 보물지도 조우(원작 setEventTreasure 0x15)를 탐험 이벤트 풀에서 **뺐다**. 이유: 원작의 이 이벤트는 '보물지도를 줍는다'이고, 주운 지도는 미니맵 아이콘 → use_map.hb → '보물찾기 시작!' 으로 이어져 결국 **seek(탐색)** 로 간다. 그런데 seek 은 칸별 배치를 서버가 정하던 시스템이라 규칙이 유실됐고(avail_way/quest_goal), UI 자산(newScene/seek/·new9patch/st_*)도 통째로 없다. 종착지가 없는 입구를 열어 두지 않는다. 종전 weight=22. 되살리려면 이 항목을 events 로 되돌리고 adventure.gd 에 핸들러를 다시 만든다 (원작 연출은 docs/ref/porting/AdventureScene.md §5 에 전부 기록해 뒀다)."
  },
  "night": {

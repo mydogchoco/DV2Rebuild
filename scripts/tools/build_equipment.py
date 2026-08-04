@@ -125,6 +125,7 @@ SPECIAL = {
     "skull": {
         "name": "해골요새 장비",
         "_source": "위키 §2.3.1. '모든 장비의 주 능력이 방어 관통 대미지 +40'.",
+        "acquire": "상점 '특수장비 뽑기'에서 1회 100다이아로 무작위 획득",
         "items": [
             {"name": "엘더 블랙퀸의 스태프", "main": {"pure": 40},
              "bonus": "체방형 드래곤을 공격 시 25% 추가 대미지, 방어형 드래곤이 장착 시 회피율 10% 상승"},
@@ -143,6 +144,7 @@ SPECIAL = {
     "balrog": {
         "name": "발록 장비",
         "_source": "위키 §2.3.2.",
+        "acquire": "상점 '특수장비 뽑기'에서 1회 100다이아로 무작위 획득",
         "items": [
             {"name": "카이저 발록의 투구", "main": {"pure": 40},
              "bonus": "공격 시 상대 드래곤 남은 체력의 5%에 비례하는 추가 대미지(최대 300)"},
@@ -155,6 +157,7 @@ SPECIAL = {
     "fiod": {
         "name": "피오드 장비",
         "_source": "위키 §2.3.3. 2020 크리스마스 업데이트.",
+        "acquire": "상점 '특수장비 뽑기'에서 1회 100다이아로 무작위 획득",
         "items": [
             {"name": "피오드의 부서진 낙인", "main": {"evd": 13},
              "bonus": "착용한 드래곤의 스킬 효과 +1"},
@@ -220,6 +223,7 @@ ARTIFACT_MIX = {
     "materials": 3,
     "cost_per_material": [9375, 18750, 37500, 75000, 150000, 0],
     "same_type_required": True,
+    "same_grade_required": True,
     "success_pct": [100, 100, 100, 100, 100, 0],
 }
 ARTIFACT_MIX_NOTE = (
@@ -227,8 +231,8 @@ ARTIFACT_MIX_NOTE = (
     "배열 = 대상 아티팩트 등급 6단(파손된→전설의)의 **재료 1개당 골드**이고, 실제 비용은 "
     "`단가 × 채운 재료 수`(원작 ArtifactMix::setGold 그대로). index 4(위대한)=150000 은 "
     "docs/ref/uno/아티팩트합성3~5.png 실측이고 나머지는 거기서 ×2 등비. index 5(전설의)는 "
-    "더 올릴 등급이 없어 0(합성 불가). same_type_required/success_pct 도 자작 — 참조 영상에서는 "
-    "같은 종류 재료 3개로 위대한→전설의 승급이 한 번에 성공했다. 튜닝 노브 = "
+    "더 올릴 등급이 없어 0(합성 불가). same_type_required/same_grade_required/success_pct 도 자작 — "
+    "참조 영상에서는 같은 종류·등급 재료 3개로 위대한→전설의 승급이 한 번에 성공했다. 튜닝 노브 = "
     "build_equipment.py ARTIFACT_MIX."
 )
 ARTIFACT_POWER_NOTE = (
@@ -622,15 +626,19 @@ DRAGON_X = 240          # 드래곤 열 오른쪽 경계 — 그 오른쪽은 �
 # 바꾸려면 여기 한 곳 + EXCLUSIVE_ALIAS 키 + build_equip_effects.py EXCLUSIVE 키를 함께 고친다.
 EXCLUSIVE_EXTRA = [
     {"name": "샛별의 날개장식", "dragon": "샛별", "_icon_from": "루시퍼의 날개장식",
-     "effect": "스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소, "
+     "gacha_excluded": True, "acquire": "점술집 카드 코드 전용",
+     "effect": "회피율 33% 증가, 스킬 슬롯에 착용 중인 스킬의 레벨합 × 4만큼 자신이 받는 대미지 감소, "
                "철갑방패와 중첩 가능, 아군이 주는 데미지 30% 증가"},
     {"name": "한울의 불꽃", "dragon": "한울", "_icon_from": "라 솔라의 불꽃",
-     "effect": "자신의 스킬 발동 횟수 +2, 크리티컬 발동 시 상대의 현재 방어력 절반 무시"},
+     "gacha_excluded": True, "acquire": "점술집 카드 코드 전용",
+     "effect": "크리티컬 확률 75% 증가, 회피율 25% 증가, 자신의 스킬 발동 횟수 +2, "
+               "크리티컬 발동 시 상대의 현재 방어력 절반 무시"},
 ]
 EXCLUSIVE_EXTRA_NOTE = (
     "커스텀 드래곤(666 샛별 · 777 한울)의 전용 장비 2벌은 위키에 없다 — 원작에 없는 "
     "드래곤이라 **사용자가 정한 것**이다(효과 문구·아이콘 출처 모두 사용자 확정 2026-08-01). "
     "아이콘은 드래곤 그림과 같은 규칙으로 원작 에셋을 빌린다(샛별←루시퍼 · 한울←라 솔라). "
+    "두 장비는 전용장비 가챠에서 제외하고 점술집 카드 코드로만 획득한다(사용자 확정 2026-08-03). "
     "노브 = build_equipment.py EXCLUSIVE_EXTRA."
 )
 
@@ -680,6 +688,8 @@ def extra_exclusive(dragons: dict) -> list[dict]:
             "_dragon_ids": None,
             "_authored": EXCLUSIVE_EXTRA_NOTE,
             "_icon_from": e["_icon_from"],
+            "gacha_excluded": bool(e.get("gacha_excluded", False)),
+            "acquire": e.get("acquire", ""),
         })
     return out
 
@@ -835,7 +845,8 @@ def build() -> dict:
         ),
         "_offline_cuts": (
             "피오드 장비는 원작에서 원정 상점(ExpeditionShopScene) 전용 — 원정=온라인 CUT(CLAUDE.md §1). "
-            "발록 장비는 길드 토벌전 산출 — 길드 CUT. 두 계열은 데이터로 두되 획득처는 솔로 레이드 재설계 대상."
+            "발록 장비는 길드 토벌전 산출 — 길드 CUT. 원작 획득처를 대신해 특수 장비 12종은 "
+            "상점 '특수장비 뽑기'(1회 100다이아)에서 획득한다."
         ),
         "stat_keys": STAT_KEYS,
         "slots": SLOTS,

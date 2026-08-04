@@ -35,6 +35,7 @@ var _label: Label
 var _arrow: Sprite2D
 var _typing := false
 var _timer: Timer
+var _arrow_tween: Tween
 var _monster: Sprite2D
 var _pma: CanvasItemMaterial
 
@@ -220,6 +221,7 @@ func _show_text(text: String) -> void:
 	_label.text = text
 	_label.visible_characters = 0
 	_typing = true
+	_stop_arrow_tween()
 	if _arrow: _arrow.visible = false
 	if is_instance_valid(_timer): _timer.queue_free()
 	_timer = Timer.new()
@@ -239,9 +241,17 @@ func _reveal_all() -> void:
 	if is_instance_valid(_timer): _timer.stop()
 	if _arrow:
 		_arrow.visible = true
-		var t := _arrow.create_tween().set_loops()
-		t.tween_property(_arrow, "position:y", BOX_H * 0.5 + 6.0, 0.4)
-		t.tween_property(_arrow, "position:y", BOX_H * 0.5, 0.4)
+		_stop_arrow_tween()
+		_arrow_tween = _arrow.create_tween().set_loops()
+		_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5 + 6.0, 0.4)
+		_arrow_tween.tween_property(_arrow, "position:y", BOX_H * 0.5, 0.4)
+
+func _stop_arrow_tween() -> void:
+	if _arrow_tween != null and _arrow_tween.is_valid():
+		_arrow_tween.kill()
+	_arrow_tween = null
+	if is_instance_valid(_arrow):
+		_arrow.position.y = BOX_H * 0.5
 
 
 func _advance() -> void:

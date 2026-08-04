@@ -4,15 +4,16 @@
 
 왜
 --
-원작 울음소리 배정은 서버 `info_dragon_v2` 의 voice 컬럼이라 유실됐다(`Dragon.c:13478-13526`).
+원작 울음소리 배정은 서버 `info_dragon_v2` 의 voice와 voice_critical_no 컬럼이라 유실됐다
+(`Dragon.c:13321, 13478-13526`).
 우리는 지금 `data/dragon_voices.json` 으로 **임시 배정**(성체=id순 블록 순차 · 해치/해츨링=시드
 난수)해 두고 쓰고 있는데, 사용자가 그것을 눈으로 검수하려면 표에 값이 보여야 한다.
 
 무엇을
 ------
-종전 `dragon voice` 한 칸을 **성장 단계 3칸**으로 바꾸고 현재 배정값을 채워 넣는다:
+종전 `dragon voice` 한 칸을 성장 단계 3칸과 원작의 별도 크리티컬 보이스 칸으로 바꾼다:
 
-    voice_해치(baby) · voice_해츨링(child) · voice_성체(adult)
+    voice_해치(baby) · voice_해츨링(child) · voice_성체(adult) · voice_크리티컬(critical)
 
 값은 `assets/music/voiceN.mp3` 의 N(원작 `Bgm.sfx("voice%d")`). 고칠 칸만 고치면 되고,
 비우면 그 단계는 소리 없음으로 처리된다.
@@ -31,6 +32,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -48,8 +50,11 @@ COLS = {
     "baby": "voice_해치(baby)",
     "child": "voice_해츨링(child)",
     "adult": "voice_성체(adult)",
+    "critical": "voice_크리티컬(critical)",
 }
-STAGES = ["baby", "child", "adult"]
+STAGES = ["baby", "child", "adult", "critical"]
+# 사용자 지정(2026-08-01): 크리티컬 보이스 매핑이 유실된 드래곤은 이 번호에서 랜덤 배정.
+CRITICAL_RANDOM_POOL = [12, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41]
 
 
 def read_csv() -> tuple[list[str], list[dict]]:
@@ -88,6 +93,8 @@ def fill() -> int:
 
     filled = 0
     kept = 0
+    critical_random = 0
+    secure_rng = random.SystemRandom()
     for r in rows:
         did = (r.get("id") or "").strip()
         v: dict = voices.get(did, {})
@@ -98,6 +105,9 @@ def fill() -> int:
                 kept += 1
                 continue
             n = v.get(s)
+            if s == "critical" and n in (None, ""):
+                n = secure_rng.choice(CRITICAL_RANDOM_POOL)
+                critical_random += 1
             r[col] = str(int(n)) if n not in (None, "") else ""
             if r[col]:
                 filled += 1
@@ -105,6 +115,7 @@ def fill() -> int:
     write_csv(new_fields, rows)
     print(f"시트 갱신: {CSV_PATH.relative_to(ROOT)}")
     print(f"  드래곤 {len(rows)}행 · 임시 배정 채움 {filled}칸 · 사용자 기입 보존 {kept}칸")
+    print(f"  크리티컬 보이스 신규 랜덤 배정 {critical_random}칸 · 후보 {CRITICAL_RANDOM_POOL}")
     print(f"  열: {' · '.join(COLS[s] for s in STAGES)}  (값 = assets/music/voiceN.mp3 의 N)")
     return 0
 
@@ -136,9 +147,10 @@ def apply() -> int:
         print("⚠️ 숫자가 아닌 칸 — 건너뜀:", *bad, sep="\n   ")
     doc["voices"] = out
     doc["_re_basis"] = (
-        "유실(원작은 info_dragon_v2 의 voice 컬럼, Dragon.c:13478-13526). "
-        "값은 docs/input/dragons/dragons.csv 의 voice_해치/해츨링/성체 열 = **사용자 검수분**이다"
-        "(빈 칸은 그 단계 소리 없음). 채우기·반영 도구 = scripts/tools/build_dragon_voice_sheet.py. "
+        "유실(원작은 info_dragon_v2 의 voice/voice_critical_no 컬럼, Dragon.c:13321,13478-13526). "
+        "해치/해츨링/성체 값은 docs/input/dragons/dragons.csv 의 사용자 검수분이고, "
+        "크리티컬 빈 칸은 사용자 지정 후보 12,31,32,33,34,35,36,37,38,39,41 중 랜덤 배정했다. "
+        "채우기·반영 도구 = scripts/tools/build_dragon_voice_sheet.py. "
         "pools/anchors 는 최초 임시 배정에 쓴 입력이라 참고용으로 남겨 둔다."
     )
     VOICES.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")

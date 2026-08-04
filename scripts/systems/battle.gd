@@ -282,6 +282,18 @@ static func _lifesteal_pct(c: Dictionary) -> float:
 			pct += float(e["pct"])
 	return pct
 
+## 피의 갈증(14) 회복을 한 곳에서 처리한다. 반환값은 최대체력 초과분을 뺀 **실제 회복량**이다.
+## 원작 `checkVampSkillInfo` 는 평타 종류를 확인한 뒤 `setVampImpact` 를 호출하므로, 일반공격과
+## 연속공격 모두 이 통로를 타야 한다. 종전 `resolve_double` 에 이 호출이 빠져 간헐적으로 미적용됐다.
+static func _apply_lifesteal(c: Dictionary) -> int:
+	var pct := _lifesteal_pct(c)
+	if pct <= 0.0 or not bool(c.get("alive", false)):
+		return 0
+	var before := int(c.get("hp", 0))
+	var heal := maxi(0, int(round(float(_eff(c, "att")) * pct / 100.0)))
+	c["hp"] = mini(int(c.get("hp_max", before)), before + heal)
+	return maxi(0, int(c["hp"]) - before)
+
 ## 해로운 효과 전부 제거(정화 26). 이로운 효과(양수 stat·lifesteal·survive_once·패시브)는 유지.
 static func _cleanse(c: Dictionary) -> void:
 	var keep: Array = []
@@ -334,12 +346,44 @@ static func element_mult(att_el: String, def_el: String, cfg: Dictionary) -> flo
 		return float(e.get("bad_mult", 0.85))
 	return float(e.get("neutral_mult", 1.0))
 
+## 영웅 난이도 몬스터 배율. 전역값은 스탯별 Dictionary이고, 검은 섬처럼 스테이지가
+## 숫자 하나를 덮어쓰는 기존 예외는 세 스탯 공통 배율로 해석한다.
+static func hero_stat_multipliers(stage: Dictionary, variant_rules: Dictionary) -> Dictionary:
+	var raw: Variant = stage.get("hero_stat_mult", variant_rules.get("hero_stat_mult", 1.0))
+	if raw is Dictionary:
+		var src := raw as Dictionary
+		return {
+			"hp": maxf(0.0, float(src.get("hp", 1.0))),
+			"att": maxf(0.0, float(src.get("att", 1.0))),
+			"def": maxf(0.0, float(src.get("def", 1.0))),
+		}
+	var common := maxf(0.0, float(raw))
+	return {"hp": common, "att": common, "def": common}
+
 ## 데미지(§K-2). def_eff=max(1, def*(1-관통)).
+## 원작 전투 공식은 서버 권한이라 유실되었다. 고정 base는 두지 않는다. 사용자 원작 영상 실측
+## 두 점(214/117→88~96, 723/91→약360)에 동시에 맞춘 포화식이다. 고방어 PvP에서 방어형이
+## 관통 피해에 묻히지 않도록 감쇠항에 완만한 지수(현재 1.2)를 쓰되, pivot/scale을 두 실측점으로
+## 다시 풀어 두 기준 피해는 바뀌지 않는다.
+## 같은 공방 비율에서 절대 스탯이 오르면 피해도 증가하지만, 방어도 함께 커지므로 선형보다 훨씬
+## 완만하게 증가한다. 종전 지수식의 방어 지수 1.7은 고스탯 방어를 과대평가했다.
 static func damage(att: int, def: int, pen: float, elem_mult: float, crit_mult: float, rand_factor: float, cfg: Dictionary) -> int:
 	var d: Dictionary = cfg.get("damage", {})
-	var base := float(d.get("base", 30))
 	var def_eff := maxf(1.0, float(def) * (1.0 - clampf(pen, 0.0, 1.0)))   # ASSUMPTION: 0 division 방지 최소 1
-	var raw := (base * float(att) / def_eff) * elem_mult * crit_mult * rand_factor
+	var attack_scale := maxf(0.0, float(d.get("attack_scale", 1.0)))
+	var pivot := maxf(1.0, float(d.get("stat_pivot", 100.0)))
+	var defense_exponent := maxf(0.01, float(d.get("defense_exponent", 1.0)))
+	var guard_exponent := maxf(0.0, float(d.get("guard_exponent", 0.0)))
+	var attack := maxf(1.0, float(att))
+	var defense_factor := pow(pivot / (pivot + def_eff), defense_exponent)
+	# 방어가 공격보다 높은 탱커 구간만 추가 감쇠한다. 중간 방어 수치까지 과보정하지 않도록
+	# 포화 기준의 2.5배부터 3.5배 사이에서 보정 강도가 0→1로 증가한다. 공격 우세인 원작
+	# 영상 실측점과 1300/864 사례에는 전혀 개입하지 않는다.
+	if def_eff > attack and guard_exponent > 0.0:
+		var guard_strength := clampf(def_eff / pivot - 2.5, 0.0, 1.0)
+		defense_factor *= pow(attack / def_eff, guard_exponent * guard_strength)
+	var raw := attack_scale * attack * defense_factor \
+		* elem_mult * crit_mult * rand_factor
 	return maxi(1, int(round(raw)))   # ASSUMPTION: 최소 1 데미지
 
 ## 타겟팅(§K-6): 적 생존자 중 (hp_max/4)+def 최대.
@@ -391,7 +435,7 @@ static func _enter_phase2_if_needed(c: Dictionary) -> bool:
 	c["phase"] = 2
 	return true
 
-static func _apply_dmg(defender: Dictionary, dmg: int) -> Dictionary:
+static func _apply_dmg(defender: Dictionary, dmg: int, hit_cap_pct := 0.0) -> Dictionary:
 	var scaled := float(dmg) * _dmg_taken_mult(defender) * _phase_taken_mult(defender)
 	var f := maxi(1, int(round(scaled - _dmg_taken_flat(defender))))
 	# 52 뼈갑옷 "(감소된 최소 피해량 30)" — 정액 감소는 이 바닥 아래로 못 깎는다.
@@ -405,6 +449,10 @@ static func _apply_dmg(defender: Dictionary, dmg: int) -> Dictionary:
 	var cap_pct := _dmg_cap_pct(defender)
 	if cap_pct > 0.0:
 		f = mini(f, maxi(1, int(round(float(defender["hp_max"]) * cap_pct / 100.0))))
+	# 스킬별 히든 상한. 방어·막기·장비 추가피해·주는/받는 피해 보정을 모두 계산한
+	# 최종 실피해에 적용한다. floor를 써서 반올림 때문에 설정 비율을 넘지 않게 한다.
+	if hit_cap_pct > 0.0:
+		f = mini(f, maxi(1, int(floor(float(defender["hp_max"]) * hit_cap_pct / 100.0))))
 	if f >= int(defender["hp"]) and _has_flag(defender, "survive_once"):
 		var taken := maxi(0, int(defender["hp"]) - 1)
 		defender["hp"] = 1
@@ -464,7 +512,7 @@ static func _hit_damage(attacker: Dictionary, defender: Dictionary, crit: bool, 
 
 ## 공격 1회의 피해 적용(평타·스킬공격 공통): 피격 방어스킬(is_skill 구분) + 취약/생존 + 반사.
 ## 반환 이벤트 조각 {damage, dead, [def_skill], [survived], [reflect], [reflect_dead]}.
-static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: int, is_skill: bool, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary) -> Dictionary:
+static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: int, is_skill: bool, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary, hit_cap_pct := 0.0) -> Dictionary:
 	# 주는 피해 배수(각성스킬 "입히는 데미지 N% 증가")는 평타·스킬이 공통으로 지나는 여기서 곱한다.
 	raw_dmg = maxi(1, int(round(float(raw_dmg) * _dmg_deal_mult(attacker)
 		* _dmg_deal_vs_mult(attacker, defender))))
@@ -493,7 +541,7 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		if not is_equal_approx(sm, 1.0):
 			raw_dmg = maxi(1, int(round(float(raw_dmg) * sm)))
 	var dres := _defense_skill_onhit(defender, rng, raw_dmg, is_skill, cfg, skills_db)
-	var ap := _apply_dmg(defender, int(dres["dmg"]))
+	var ap := _apply_dmg(defender, int(dres["dmg"]), hit_cap_pct)
 	var out := {"damage": int(ap["dmg"]), "dead": bool(ap["dead"])}
 	if ap.has("phase2"):
 		out["phase2"] = true          # 이 타격으로 보스가 2페이즈에 들어갔다(render 가 연출)
@@ -576,12 +624,10 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	_aw_on_attack_done(attacker, defender, rng, int(res.get("damage", 0)))
 	for k in res:
 		ev[k] = res[k]
-	# 흡혈(피의 갈증 14)
-	var ls := _lifesteal_pct(attacker)
-	if ls > 0.0 and not ev["miss"] and attacker["alive"]:
-		var heal := maxi(0, int(round(float(_eff(attacker, "att")) * ls / 100.0)))
+	# 흡혈(피의 갈증 14). 표시량도 실제 HP 증가량만 보낸다.
+	if not ev["miss"]:
+		var heal := _apply_lifesteal(attacker)
 		if heal > 0:
-			attacker["hp"] = mini(int(attacker["hp_max"]), int(attacker["hp"]) + heal)
 			ev["lifesteal"] = heal
 	return ev
 
@@ -619,6 +665,10 @@ static func resolve_double(attacker: Dictionary, defender: Dictionary, rng: Rand
 		dealt += int(ap["dmg"])
 		out.append(_double_ev(attacker, defender, i, false, block, crit, int(ap["dmg"]), bool(ap["dead"])))
 	_aw_on_double(attacker, dealt)   # 80 원투박치기 · 세크라포의 어깨보호대(준 피해만큼 회복)
+	# 피의 갈증은 공격 행동 1회당 한 번 회복한다. 연속공격도 원작의 공격 종류 판정을 통과한다.
+	var heal := _apply_lifesteal(attacker)
+	if heal > 0 and not out.is_empty():
+		(out[out.size() - 1] as Dictionary)["lifesteal"] = heal
 	return out
 
 
@@ -798,7 +848,29 @@ static func _hp_gate_ok(c: Dictionary, skill_id: int, cfg: Dictionary) -> bool:
 	var thr := float(g.get("threshold_pct", 50)) + float(_art(c, "req_hp_relax_pct", skill_id))
 	return hp_pct <= minf(100.0, thr)
 
-static func _eligible_attack(c: Dictionary, skills_db: Dictionary, cfg: Dictionary = {}) -> Array:
+## 같은 스킬이 만든 지속효과가 전장에 남아 있는가. 상처 파악(23)·신경독소(32)는 원작상
+## 중첩/재시도가 허용되는 예외라 여기서 막지 않는다.
+static func _same_skill_effect_active(caster: Dictionary, skill_id: int, sdef: Dictionary,
+		allies: Array, enemies: Array) -> bool:
+	if skill_id in [23, 32]:
+		return false
+	# 자기 버프는 자기에게, 아군 전체 버프는 아군에게, 적 디버프는 적에게 남아 있는지만 본다.
+	# 반대편이 우연히 같은 스킬을 쓰고 있다는 이유로 이쪽 시전까지 막아서는 안 된다.
+	var target := String(sdef.get("target", ""))
+	var cat := String(sdef.get("category", ""))
+	var scope: Array = [caster]
+	if cat == "debuff" or target in ["single", "enemy", "enemy_all", "all_enemies"]:
+		scope = enemies
+	elif target in ["ally", "ally_all", "party", "all_allies"]:
+		scope = allies
+	for member in scope:
+		for effect in (member as Dictionary).get("effects", []):
+			if int((effect as Dictionary).get("source", 0)) == skill_id:
+				return true
+	return false
+
+static func _eligible_attack(c: Dictionary, skills_db: Dictionary, cfg: Dictionary = {},
+		allies: Array = [], enemies: Array = []) -> Array:
 	var out: Array = []
 	for s in c.get("skills", []):
 		var sdef: Dictionary = skills_db.get(str(s["id"]), {})
@@ -811,6 +883,9 @@ static func _eligible_attack(c: Dictionary, skills_db: Dictionary, cfg: Dictiona
 			continue
 		# 체력 조건 스킬은 체력이 문턱 아래로 내려가야 후보가 된다(마리스가 문턱을 올려 준다).
 		if not _hp_gate_ok(c, int(s["id"]), cfg):
+			continue
+		# 이미 같은 버프/디버프가 활성화 중이면 후보에서 빼서 발동 확률조차 굴리지 않는다.
+		if _same_skill_effect_active(c, int(s["id"]), sdef, allies, enemies):
 			continue
 		out.append(s)
 	return out
@@ -841,7 +916,7 @@ static func _act(actor: Dictionary, party_a: Array, party_b: Array, rng: RandomN
 	# 51 빛의 환희 "아군에 [신성] 속성 드래곤이 있으면, 자신은 공격을 하지 않는다".
 	if _has_flag(actor, "no_attack"):
 		return []
-	var elig := _eligible_attack(actor, skills_db, cfg)
+	var elig := _eligible_attack(actor, skills_db, cfg, allies, enemies)
 	if not elig.is_empty():
 		var s: Dictionary = elig[rng.randi_range(0, elig.size() - 1)]   # 다중 보유 시 둘 중 랜덤
 		var sdef: Dictionary = skills_db.get(str(s["id"]), {})
@@ -965,7 +1040,8 @@ static func _apply_skill_effect(caster: Dictionary, s: Dictionary, allies: Array
 		30:  # 아수라일섬: 상대 순수(base) 방어력 × 1.5 고정 피해
 			var t30 := pick_target(enemies, cfg)
 			if t30.is_empty(): return []
-			var r30 := _deal_attack(caster, t30, maxi(1, int(round(float(t30["def"]) * 1.5))), true, rng, cfg, skills_db)
+			var cap30 := float((cfg.get("skill_damage_cap_pct", {}) as Dictionary).get(str(id), 0.0))
+			var r30 := _deal_attack(caster, t30, maxi(1, int(round(float(t30["def"]) * 1.5))), true, rng, cfg, skills_db, cap30)
 			r30["target"] = t30["name"]
 			return [_merge(ev, r30)]
 		36:  # 신의 분노: 공×방×|공-방|×(0.45+0.02L)  (사용자 공식)
@@ -1241,8 +1317,49 @@ static func _decide_lead(rng: RandomNumberGenerator, last_lead: String, streak: 
 		return _other(last_lead)
 	return "ally" if rng.randf() < 0.5 else "enemy"
 
-## 라운드 끝 처리: DoT·지연폭탄(timed) 발동 + 지속턴 1 감소(영구 -1 제외).
-## ASSUMPTION: 원작은 공격 시 지속차감이나 v1은 라운드 단위.
+## 해당 전투원이 행동하기 전에 이미 붙어 있던 버프·디버프만 표시해 둔다.
+## 원작 `AdventureScene::setDiscountBuff` → `InterFace::discountSelectedBuffDebuff`는 행동한
+## InterFace의 버프와 디버프를 각각 차감한다(AdventureScene.c:57041-57086).
+## 이 표시를 쓰면 방금 발동한 스킬이 같은 행동 끝에 즉시 1턴 깎이지 않는다.
+const _OWNER_TURN_MARK := "_owner_turn_mark"
+
+static func _mark_owner_effects(c: Dictionary) -> void:
+	for e in (c.get("effects", []) as Array):
+		var effect := e as Dictionary
+		var kind := String(effect.get("kind", ""))
+		if kind not in ["dot", "timed"] and int(effect.get("turns", -1)) > 0:
+			effect[_OWNER_TURN_MARK] = true
+
+## 행동 전에 표시한 효과만 1턴 차감하고, 화면 Bicon이 같은 숫자를 보도록
+## `effect_tick`을 남긴다. 같은 출처의 복합 효과(예: 공·방 동시 버프)는 아이콘 하나다.
+static func _tick_owner_effects(c: Dictionary, events: Array, round: int) -> void:
+	var keep: Array = []
+	var touched := {}
+	for e in (c.get("effects", []) as Array):
+		var effect := e as Dictionary
+		if not bool(effect.get(_OWNER_TURN_MARK, false)):
+			keep.append(effect)
+			continue
+		effect.erase(_OWNER_TURN_MARK)
+		var source := int(effect.get("source", 0))
+		if source > 0:
+			touched[source] = true
+		var turns := int(effect.get("turns", 0)) - 1
+		if turns > 0:
+			effect["turns"] = turns
+			keep.append(effect)
+	c["effects"] = keep
+	for source in touched:
+		var remaining := 0
+		for e in keep:
+			var effect := e as Dictionary
+			if int(effect.get("source", 0)) == int(source) and int(effect.get("turns", -1)) > 0:
+				remaining = maxi(remaining, int(effect.get("turns", 0)))
+		events.append({"type": "effect_tick", "target": c["name"], "source": int(source),
+			"turns": remaining, "round": round})
+
+## 라운드 끝 처리: DoT·지연폭탄(timed)만 라운드 기준으로 발동/차감한다.
+## 일반 버프·디버프는 원작처럼 소유자 행동 후 `_tick_owner_effects`가 담당한다.
 static func _round_end(party_a: Array, party_b: Array, events: Array, round: int) -> void:
 	for side in [party_a, party_b]:
 		for c in side:
@@ -1271,13 +1388,7 @@ static func _round_end(party_a: Array, party_b: Array, events: Array, round: int
 					else:
 						e["turns"] = t2; keep.append(e)
 				else:
-					var tt := int(e.get("turns", -1))
-					if tt < 0:
-						keep.append(e)
-					else:
-						tt -= 1
-						if tt > 0:
-							e["turns"] = tt; keep.append(e)
+					keep.append(e)
 			c["effects"] = keep
 
 ## 전투 시뮬레이션. party_a/b = make_combatant 배열(가변). skills_db=data/skills.json.
@@ -1303,6 +1414,7 @@ static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator,
 		for actor in actors:   # 주도 진영만 행동, 상대는 피격(방어스킬은 _deal_attack에서)
 			if not actor["alive"]:
 				continue
+			_mark_owner_effects(actor)
 			if _has_flag(actor, "stun"):   # 행동불가(암흑의 사슬 등) → 턴 소모
 				# 🔴 2026-07-29 정정: 여기서 장비 `cure`(부적)로 stun 을 풀고 있었다.
 				#   사용자 확정(open_questions.csv)에 따르면 부적의 '행동불능 치유 확률'은
@@ -1311,12 +1423,14 @@ static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator,
 				#   → 그쪽은 `Incapacitation` + `battle.gd::_apply_defeat_incapacitation` 담당.
 				events.append({"type": "status_skip", "actor": actor["name"], "round": rounds, "lead": lead,
 					"source": _flag_source(actor, "stun"), "turns": _flag_turns(actor, "stun")})   # 원작 Bicon 아이콘용 출처 스킬
+				_tick_owner_effects(actor, events, rounds)
 				continue
 			var evs := _act(actor, party_a, party_b, rng, cfg, skills_db)
 			for ev in evs:
 				ev["round"] = rounds
 				ev["lead"] = lead
 				events.append(ev)
+			_tick_owner_effects(actor, events, rounds)
 			if _alive_count(party_a) == 0 or _alive_count(party_b) == 0:
 				break
 		_round_end(party_a, party_b, events, rounds)

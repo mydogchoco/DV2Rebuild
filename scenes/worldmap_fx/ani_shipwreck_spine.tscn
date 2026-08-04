@@ -272,19 +272,19 @@ _data = {
 &"shiptouch": SubResource("Animation_wwb0j")
 }
 
-[node name="Dragon_ani_shipwreck_spine_scene" type="Node2D" unique_id=891285829]
+[node name="Dragon_ani_shipwreck_spine_scene" type="Node2D" unique_id=1003170977]
 
-[node name="root" type="Node2D" parent="." unique_id=2108300644]
+[node name="root" type="Node2D" parent="." unique_id=1319338146]
 
-[node name="worldmap_ship_left" type="Node2D" parent="root" unique_id=685871049]
+[node name="worldmap_ship_left" type="Node2D" parent="root" unique_id=79093917]
 position = Vector2(-124.67, -28.18)
 rotation = -2.2425735
 
-[node name="worldmap_ship_left_slot_frame" type="Node2D" parent="root/worldmap_ship_left" unique_id=1270667696]
+[node name="worldmap_ship_left_slot_frame" type="Node2D" parent="root/worldmap_ship_left" unique_id=2074144657]
 position = Vector2(25.02, -0.46)
 rotation = 2.2425735
 
-[node name="worldmap_ship_left_slot" type="Sprite2D" parent="root/worldmap_ship_left/worldmap_ship_left_slot_frame" unique_id=1749193976]
+[node name="worldmap_ship_left_slot" type="Sprite2D" parent="root/worldmap_ship_left/worldmap_ship_left_slot_frame" unique_id=375785451]
 z_index = 4
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(0, 1.3265306)
@@ -292,15 +292,15 @@ rotation = 1.5707964
 scale = Vector2(1.3269231, 1.3265306)
 texture = SubResource("AtlasTexture_mdkui")
 
-[node name="worldmap_ship_right" type="Node2D" parent="root" unique_id=1152821183]
+[node name="worldmap_ship_right" type="Node2D" parent="root" unique_id=356681475]
 position = Vector2(-140.61, -34.89)
 rotation = -0.6216863
 
-[node name="worldmap_ship_right_slot_frame" type="Node2D" parent="root/worldmap_ship_right" unique_id=1984748244]
+[node name="worldmap_ship_right_slot_frame" type="Node2D" parent="root/worldmap_ship_right" unique_id=549604756]
 position = Vector2(11.2, 5.96)
 rotation = 0.6216863
 
-[node name="worldmap_ship_right_slot" type="Sprite2D" parent="root/worldmap_ship_right/worldmap_ship_right_slot_frame" unique_id=1492417107]
+[node name="worldmap_ship_right_slot" type="Sprite2D" parent="root/worldmap_ship_right/worldmap_ship_right_slot_frame" unique_id=1217411066]
 z_index = 5
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(0, 1.3269231)
@@ -308,61 +308,61 @@ rotation = 1.5707964
 scale = Vector2(1.3181819, 1.3269231)
 texture = SubResource("AtlasTexture_di8q5")
 
-[node name="worldmap_ship_under" type="Node2D" parent="root" unique_id=744931819]
+[node name="worldmap_ship_under" type="Node2D" parent="root" unique_id=389342085]
 position = Vector2(-128.87, 2.01)
 rotation = 1.5468854
 
-[node name="worldmap_ship_under_slot_frame" type="Node2D" parent="root/worldmap_ship_under" unique_id=1104516960]
+[node name="worldmap_ship_under_slot_frame" type="Node2D" parent="root/worldmap_ship_under" unique_id=1552640265]
 position = Vector2(-8.34, -1.87)
 rotation = -1.5468854
 
-[node name="worldmap_ship_under_slot" type="Sprite2D" parent="root/worldmap_ship_under/worldmap_ship_under_slot_frame" unique_id=2132422490]
+[node name="worldmap_ship_under_slot" type="Sprite2D" parent="root/worldmap_ship_under/worldmap_ship_under_slot_frame" unique_id=1184502698]
 z_index = 3
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(-2.673913, 1.3255814)
 scale = Vector2(1.3369565, 1.3255814)
 texture = SubResource("AtlasTexture_74e6t")
 
-[node name="worldmap_ship_wave01" type="Node2D" parent="root" unique_id=1627889350]
+[node name="worldmap_ship_wave01" type="Node2D" parent="root" unique_id=846943807]
 position = Vector2(-125.51, -12.24)
 rotation = -1.5313519
 
-[node name="worldmap_ship_wave01_slot_frame" type="Node2D" parent="root/worldmap_ship_wave01" unique_id=832777904]
+[node name="worldmap_ship_wave01_slot_frame" type="Node2D" parent="root/worldmap_ship_wave01" unique_id=1348371352]
 position = Vector2(31.72, -4.6)
 rotation = 1.5313519
 
-[node name="worldmap_ship_wave01_slot" type="Sprite2D" parent="root/worldmap_ship_wave01/worldmap_ship_wave01_slot_frame" unique_id=1811088017]
+[node name="worldmap_ship_wave01_slot" type="Sprite2D" parent="root/worldmap_ship_wave01/worldmap_ship_wave01_slot_frame" unique_id=949170153]
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(0, 1.3333334)
 rotation = 1.5707964
 scale = Vector2(1.3369565, 1.3333334)
 texture = SubResource("AtlasTexture_nopsl")
 
-[node name="worldmap_ship_wave02" type="Node2D" parent="root" unique_id=192992943]
+[node name="worldmap_ship_wave02" type="Node2D" parent="root" unique_id=776364853]
 position = Vector2(100.17, 64.94)
 rotation = -1.5631169
 
-[node name="worldmap_ship_wave02_slot_frame" type="Node2D" parent="root/worldmap_ship_wave02" unique_id=1018885734]
+[node name="worldmap_ship_wave02_slot_frame" type="Node2D" parent="root/worldmap_ship_wave02" unique_id=401774434]
 position = Vector2(26.89, 5.67)
 rotation = 1.5631169
 
-[node name="worldmap_ship_wave02_slot" type="Sprite2D" parent="root/worldmap_ship_wave02/worldmap_ship_wave02_slot_frame" unique_id=217042527]
+[node name="worldmap_ship_wave02_slot" type="Sprite2D" parent="root/worldmap_ship_wave02/worldmap_ship_wave02_slot_frame" unique_id=147602304]
 z_index = 1
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(-9.358696, 6.6666665)
 scale = Vector2(1.3369565, 1.3333334)
 texture = SubResource("AtlasTexture_1xchy")
 
-[node name="worldmap_ship_wave03" type="Node2D" parent="root" unique_id=1319904264]
+[node name="worldmap_ship_wave03" type="Node2D" parent="root" unique_id=356695933]
 position = Vector2(-60.07, 75.01)
 rotation = -1.5627679
 
-[node name="worldmap_ship_wave012_frame" type="Node2D" parent="root/worldmap_ship_wave03" unique_id=1252030712]
+[node name="worldmap_ship_wave012_frame" type="Node2D" parent="root/worldmap_ship_wave03" unique_id=1901867532]
 position = Vector2(25.17, 0.64)
 rotation = 1.6144296
 scale = Vector2(-1.114, 0.737)
 
-[node name="worldmap_ship_wave012" type="Sprite2D" parent="root/worldmap_ship_wave03/worldmap_ship_wave012_frame" unique_id=223871057]
+[node name="worldmap_ship_wave012" type="Sprite2D" parent="root/worldmap_ship_wave03/worldmap_ship_wave012_frame" unique_id=832201957]
 z_index = 2
 material = SubResource("CanvasItemMaterial_dv6ci")
 position = Vector2(0, 1.3333334)
@@ -370,5 +370,5 @@ rotation = 1.5707964
 scale = Vector2(1.3369565, 1.3333334)
 texture = SubResource("AtlasTexture_ry2m8")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1177130763]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1358223692]
 libraries/ = SubResource("AnimationLibrary_q8dyb")

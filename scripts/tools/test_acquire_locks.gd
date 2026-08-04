@@ -77,17 +77,28 @@ func _equipment_icons() -> int:
 	fails += _eq("장신구 뽑기 3000회 중 카탈로그 밖 = 0", ghost, 0)
 	# 전용 장신구 뽑기(30다이아) — 🟢 2026-07-31 복구. 결과는 **전용 장비만** 나와야 하고,
 	# 반대로 일반/고급 상품에는 전용 장비가 섞이면 안 된다(풀이 갈려 있다).
+	var exclusive_pool := DR._exclusive_pool(Data.equipment)
+	var exclusive_names: Array = []
+	for x in exclusive_pool:
+		exclusive_names.append(String((x as Dictionary).get("name", "")))
+	fails += _eq("전용 뽑기 풀은 원작 전용 장비 95종", exclusive_pool.size(), 95)
+	fails += _true("샛별 장비는 전용 뽑기 제외", not exclusive_names.has("샛별의 날개장식"))
+	fails += _true("한울 장비는 전용 뽑기 제외", not exclusive_names.has("한울의 불꽃"))
 	var only_bad := 0
 	var only_ok := 0
+	var custom_leak := 0
 	for _i in 500:
 		var ck2 := EQ.parse_item_key(DR.roll_equip_gacha(Data.drops, Data.equipment, rng, "only"))
 		var it2: Dictionary = cat.get(ck2, {})
 		if String(it2.get("group", "")) == "exclusive":
 			only_ok += 1
+			if ck2 in ["exclusive:샛별의 날개장식", "exclusive:한울의 불꽃"]:
+				custom_leak += 1
 		else:
 			only_bad += 1
 	fails += _eq("전용 뽑기 500회가 전부 전용 장비", only_bad, 0)
 	fails += _true("전용 뽑기가 실제로 나온다 (%d건)" % only_ok, only_ok > 0)
+	fails += _eq("전용 뽑기에 샛별·한울 장비 누출 = 0", custom_leak, 0)
 	var leak := 0
 	for _i in 1000:
 		for gid in ["normal", "high"]:
@@ -143,6 +154,25 @@ func _grade_split(cat: Dictionary, rng: RandomNumberGenerator) -> int:
 			if String((g as Dictionary).get("grade", "")) == "only":
 				only_left += 1
 	fails += _eq("상점에 전용 뽑기 상품 2개", only_left, 2)
+	# 특수장비 뽑기는 100다이아짜리 단일 상품이고, 12종 특수 장비만 반환한다.
+	var special_bad := 0
+	for _i in 500:
+		var ck4 := EQ.parse_item_key(DR.roll_equip_gacha(Data.drops, Data.equipment, rng, "special"))
+		if not String((cat.get(ck4, {}) as Dictionary).get("group", "")).begins_with("special:"):
+			special_bad += 1
+	fails += _eq("특수장비 뽑기 500회가 전부 특수 장비", special_bad, 0)
+	var special_stock: Array = []
+	for t in (Data.shop.get("tabs", []) as Array):
+		for g in ((t as Dictionary).get("gacha", []) as Array):
+			if String((g as Dictionary).get("grade", "")) == "special":
+				special_stock.append(g)
+	fails += _eq("상점에 특수장비 뽑기 상품 1개", special_stock.size(), 1)
+	if special_stock.size() == 1:
+		fails += _eq("특수장비 뽑기 가격", int((special_stock[0] as Dictionary).get("price", 0)), 100)
+		# `_eq` 는 int 전용이다 — 문자열 비교는 `_true` 로 낸다(종전 여기서 파스 에러가 나
+		# 이 파일 **전체**가 안 돌고 있었다, 2026-08-04 수정).
+		fails += _true("특수장비 뽑기 재화 = diamond",
+			String((special_stock[0] as Dictionary).get("cur", "")) == "diamond")
 	return fails
 
 # ── ② 커스텀 세대 = 지정 획득처 전용 ─────────────────────────────────────────

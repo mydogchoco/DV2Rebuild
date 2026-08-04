@@ -1,5 +1,5 @@
 {
- "_re_basis": "유실(원작은 info_dragon_v2 의 voice 컬럼, Dragon.c:13478-13526). 값은 docs/input/dragons/dragons.csv 의 voice_해치/해츨링/성체 열 = **사용자 검수분**이다(빈 칸은 그 단계 소리 없음). 채우기·반영 도구 = scripts/tools/build_dragon_voice_sheet.py. pools/anchors 는 최초 임시 배정에 쓴 입력이라 참고용으로 남겨 둔다.",
+ "_re_basis": "유실(원작은 info_dragon_v2 의 voice/voice_critical_no 컬럼, Dragon.c:13321,13478-13526). 해치/해츨링/성체 값은 docs/input/dragons/dragons.csv 의 사용자 검수분이고, 크리티컬 빈 칸은 사용자 지정 후보 12,31,32,33,34,35,36,37,38,39,41 중 랜덤 배정했다. 채우기·반영 도구 = scripts/tools/build_dragon_voice_sheet.py. pools/anchors 는 최초 임시 배정에 쓴 입력이라 참고용으로 남겨 둔다.",
  "pools": {
   "adult": [
    1,
@@ -80,1857 +80,2297 @@
   "1": {
    "baby": 21,
    "child": 17,
-   "adult": 11
+   "adult": 11,
+   "critical": 31
   },
   "2": {
    "baby": 21,
    "child": 15,
-   "adult": 33
+   "adult": 33,
+   "critical": 35
   },
   "3": {
    "baby": 50,
    "child": 56,
-   "adult": 34
+   "adult": 34,
+   "critical": 37
   },
   "4": {
    "baby": 58,
    "child": 57,
-   "adult": 33
+   "adult": 33,
+   "critical": 41
   },
   "5": {
    "baby": 18,
    "child": 17,
-   "adult": 33
+   "adult": 33,
+   "critical": 38
   },
   "6": {
    "baby": 26,
    "child": 54,
-   "adult": 33
+   "adult": 33,
+   "critical": 31
   },
   "7": {
    "baby": 13,
    "child": 62,
-   "adult": 33
+   "adult": 33,
+   "critical": 37
   },
   "8": {
    "baby": 22,
    "child": 25,
-   "adult": 33
+   "adult": 33,
+   "critical": 35
   },
   "9": {
    "baby": 21,
    "child": 29,
-   "adult": 33
+   "adult": 33,
+   "critical": 33
   },
   "10": {
    "baby": 14,
    "child": 14,
-   "adult": 51
+   "adult": 51,
+   "critical": 32
   },
   "11": {
    "baby": 49,
    "child": 22,
-   "adult": 33
+   "adult": 33,
+   "critical": 37
   },
   "12": {
    "baby": 21,
    "child": 52,
-   "adult": 33
+   "adult": 33,
+   "critical": 33
   },
   "13": {
    "baby": 19,
    "child": 19,
-   "adult": 33
+   "adult": 33,
+   "critical": 31
   },
   "14": {
    "baby": 19,
    "child": 18,
-   "adult": 33
+   "adult": 33,
+   "critical": 41
   },
   "15": {
    "baby": 15,
    "child": 25,
-   "adult": 33
+   "adult": 33,
+   "critical": 36
   },
   "16": {
    "baby": 21,
    "child": 56,
-   "adult": 34
+   "adult": 34,
+   "critical": 36
   },
   "17": {
    "baby": 21,
    "child": 15,
-   "adult": 51
+   "adult": 51,
+   "critical": 31
   },
   "18": {
    "baby": 53,
    "child": 62,
-   "adult": 51
+   "adult": 51,
+   "critical": 12
   },
   "19": {
    "baby": 28,
    "child": 29,
-   "adult": 34
+   "adult": 34,
+   "critical": 12
   },
   "20": {
    "baby": 54,
    "child": 28,
-   "adult": 34
+   "adult": 34,
+   "critical": 31
   },
   "21": {
    "baby": 26,
    "child": 61,
-   "adult": 51
+   "adult": 51,
+   "critical": 35
   },
   "22": {
    "baby": 18,
    "child": 51,
-   "adult": 34
+   "adult": 34,
+   "critical": 31
   },
   "23": {
    "baby": 19,
    "child": 53,
-   "adult": 34
+   "adult": 34,
+   "critical": 34
   },
   "24": {
    "baby": 42,
    "child": 64,
-   "adult": 34
+   "adult": 34,
+   "critical": 31
   },
   "25": {
    "baby": 65,
    "child": 18,
-   "adult": 34
+   "adult": 34,
+   "critical": 39
   },
   "26": {
    "baby": 22,
    "child": 22,
-   "adult": 34
+   "adult": 34,
+   "critical": 37
   },
   "27": {
    "baby": 46,
    "child": 19,
-   "adult": 34
+   "adult": 34,
+   "critical": 36
   },
   "28": {
    "baby": 16,
    "child": 17,
-   "adult": 34
+   "adult": 34,
+   "critical": 12
   },
   "29": {
    "baby": 28,
    "child": 61,
-   "adult": 34
+   "adult": 34,
+   "critical": 38
   },
   "30": {
    "baby": 65,
    "child": 22,
-   "adult": 34
+   "adult": 34,
+   "critical": 35
   },
   "31": {
    "baby": 64,
    "child": 61,
-   "adult": 35
+   "adult": 35,
+   "critical": 31
   },
   "32": {
    "baby": 26,
    "child": 63,
-   "adult": 35
+   "adult": 35,
+   "critical": 35
   },
   "33": {
    "baby": 19,
    "child": 58,
-   "adult": 35
+   "adult": 35,
+   "critical": 33
   },
   "34": {
    "baby": 53,
    "child": 63,
-   "adult": 35
+   "adult": 35,
+   "critical": 36
   },
   "35": {
    "baby": 16,
    "child": 55,
-   "adult": 35
+   "adult": 35,
+   "critical": 35
   },
   "36": {
    "baby": 51,
    "child": 51,
-   "adult": 35
+   "adult": 35,
+   "critical": 36
   },
   "37": {
    "baby": 45,
    "child": 53,
-   "adult": 35
+   "adult": 35,
+   "critical": 41
   },
   "38": {
    "baby": 30,
    "child": 65,
-   "adult": 35
+   "adult": 35,
+   "critical": 41
   },
   "39": {
    "baby": 65,
    "child": 26,
-   "adult": 35
+   "adult": 35,
+   "critical": 32
   },
   "40": {
    "baby": 45,
    "child": 57,
-   "adult": 51
+   "adult": 51,
+   "critical": 33
   },
   "41": {
    "baby": 26,
    "child": 65,
-   "adult": 35
+   "adult": 35,
+   "critical": 33
   },
   "42": {
    "baby": 46,
    "child": 59,
-   "adult": 35
+   "adult": 35,
+   "critical": 12
   },
   "43": {
    "baby": 55,
    "child": 26,
-   "adult": 35
+   "adult": 35,
+   "critical": 33
   },
   "44": {
    "baby": 64,
    "child": 30,
-   "adult": 35
+   "adult": 35,
+   "critical": 12
   },
   "45": {
    "baby": 48,
    "child": 55,
-   "adult": 35
+   "adult": 35,
+   "critical": 33
   },
   "46": {
    "baby": 17,
    "child": 26,
-   "adult": 36
+   "adult": 36,
+   "critical": 41
   },
   "47": {
    "baby": 13,
    "child": 50,
-   "adult": 36
+   "adult": 36,
+   "critical": 12
   },
   "48": {
    "baby": 21,
    "child": 15,
-   "adult": 36
+   "adult": 36,
+   "critical": 34
   },
   "49": {
    "baby": 26,
    "child": 22,
-   "adult": 36
+   "adult": 36,
+   "critical": 37
   },
   "50": {
    "baby": 17,
    "child": 29,
-   "adult": 36
+   "adult": 36,
+   "critical": 37
   },
   "51": {
    "baby": 41,
    "child": 60,
-   "adult": 36
+   "adult": 36,
+   "critical": 12
   },
   "52": {
    "baby": 27,
    "child": 27,
-   "adult": 36
+   "adult": 36,
+   "critical": 38
   },
   "53": {
    "baby": 42,
    "child": 22,
-   "adult": 36
+   "adult": 36,
+   "critical": 38
   },
   "54": {
    "baby": 20,
    "child": 26,
-   "adult": 51
+   "adult": 51,
+   "critical": 34
   },
   "55": {
    "baby": 61,
    "child": 57,
-   "adult": 36
+   "adult": 36,
+   "critical": 12
   },
   "56": {
    "baby": 57,
    "child": 54,
-   "adult": 36
+   "adult": 36,
+   "critical": 32
   },
   "57": {
    "baby": 60,
    "child": 26,
-   "adult": 36
+   "adult": 36,
+   "critical": 37
   },
   "58": {
    "baby": 57,
    "child": 29,
-   "adult": 36
+   "adult": 36,
+   "critical": 39
   },
   "59": {
    "baby": 45,
    "child": 52,
-   "adult": 36
+   "adult": 36,
+   "critical": 32
   },
   "60": {
    "baby": 53,
    "child": 59,
-   "adult": 36
+   "adult": 36,
+   "critical": 12
   },
   "61": {
    "baby": 54,
    "child": 25,
-   "adult": 51
+   "adult": 51,
+   "critical": 38
   },
   "62": {
    "baby": 56,
    "child": 60,
-   "adult": 37
+   "adult": 37,
+   "critical": 33
   },
   "63": {
    "baby": 60,
    "child": 54,
-   "adult": 37
+   "adult": 37,
+   "critical": 12
   },
   "64": {
    "baby": 17,
    "child": 65,
-   "adult": 12
+   "adult": 12,
+   "critical": 34
   },
   "65": {
    "baby": 50,
    "child": 27,
-   "adult": 3
+   "adult": 3,
+   "critical": 39
   },
   "66": {
    "baby": 16,
    "child": 52,
-   "adult": 3
+   "adult": 3,
+   "critical": 36
   },
   "67": {
    "baby": 16,
    "child": 15,
-   "adult": 37
+   "adult": 37,
+   "critical": 33
   },
   "68": {
    "baby": 50,
    "child": 61,
-   "adult": 37
+   "adult": 37,
+   "critical": 35
   },
   "69": {
    "baby": 52,
    "child": 65,
-   "adult": 37
+   "adult": 37,
+   "critical": 32
   },
   "70": {
    "baby": 60,
    "child": 26,
-   "adult": 37
+   "adult": 37,
+   "critical": 41
   },
   "71": {
    "baby": 13,
    "child": 17,
-   "adult": 37
+   "adult": 37,
+   "critical": 41
   },
   "72": {
    "baby": 16,
    "child": 28,
-   "adult": 37
+   "adult": 37,
+   "critical": 33
   },
   "73": {
    "baby": 52,
    "child": 64,
-   "adult": 37
+   "adult": 37,
+   "critical": 34
   },
   "74": {
    "baby": 18,
    "child": 25,
-   "adult": 37
+   "adult": 37,
+   "critical": 31
   },
   "75": {
    "baby": 55,
    "child": 16,
-   "adult": 37
+   "adult": 37,
+   "critical": 38
   },
   "76": {
    "baby": 30,
    "child": 18,
-   "adult": 38
+   "adult": 38,
+   "critical": 12
   },
   "77": {
    "baby": 28,
    "child": 52,
-   "adult": 38
+   "adult": 38,
+   "critical": 33
   },
   "78": {
    "baby": 29,
    "child": 59,
-   "adult": 38
+   "adult": 38,
+   "critical": 36
   },
   "79": {
    "baby": 61,
    "child": 53,
-   "adult": 51
+   "adult": 51,
+   "critical": 38
   },
   "80": {
    "baby": 48,
    "child": 28,
-   "adult": 38
+   "adult": 38,
+   "critical": 35
   },
   "81": {
    "baby": 42,
    "child": 55,
-   "adult": 38
+   "adult": 38,
+   "critical": 38
   },
   "82": {
    "baby": 42,
    "child": 63,
-   "adult": 38
+   "adult": 38,
+   "critical": 12
   },
   "83": {
    "baby": 17,
    "child": 15,
-   "adult": 38
+   "adult": 38,
+   "critical": 38
   },
   "84": {
    "baby": 18,
    "child": 30,
-   "adult": 38
+   "adult": 38,
+   "critical": 39
   },
   "85": {
    "baby": 53,
    "child": 18,
-   "adult": 38
+   "adult": 38,
+   "critical": 32
   },
   "86": {
    "baby": 15,
    "child": 63,
-   "adult": 38
+   "adult": 38,
+   "critical": 12
   },
   "87": {
    "baby": 25,
    "child": 52,
-   "adult": 38
+   "adult": 38,
+   "critical": 39
   },
   "88": {
    "baby": 13,
    "child": 22,
-   "adult": 38
+   "adult": 38,
+   "critical": 38
   },
   "89": {
    "baby": 42,
    "child": 59,
-   "adult": 12
+   "adult": 12,
+   "critical": 37
   },
   "90": {
    "baby": 65,
    "child": 17,
-   "adult": 12
+   "adult": 12,
+   "critical": 12
   },
   "91": {
    "baby": 13,
    "child": 64,
-   "adult": 39
+   "adult": 39,
+   "critical": 35
   },
   "92": {
    "baby": 45,
    "child": 51,
-   "adult": 39
+   "adult": 39,
+   "critical": 41
   },
   "93": {
    "baby": 52,
    "child": 56,
-   "adult": 39
+   "adult": 39,
+   "critical": 34
   },
   "94": {
    "baby": 14,
    "child": 29,
-   "adult": 39
+   "adult": 39,
+   "critical": 41
   },
   "95": {
    "baby": 26,
    "child": 61,
-   "adult": 39
+   "adult": 39,
+   "critical": 33
   },
   "96": {
    "baby": 15,
    "child": 26,
-   "adult": 39
+   "adult": 39,
+   "critical": 36
   },
   "100": {
    "baby": 45,
    "child": 53,
-   "adult": 39
+   "adult": 39,
+   "critical": 41
   },
   "101": {
    "baby": 29,
    "child": 18,
-   "adult": 39
+   "adult": 39,
+   "critical": 32
   },
   "102": {
    "baby": 27,
    "child": 29,
-   "adult": 39
+   "adult": 39,
+   "critical": 37
   },
   "103": {
    "baby": 27,
    "child": 54,
-   "adult": 39
+   "adult": 39,
+   "critical": 31
   },
   "104": {
    "baby": 55,
    "child": 26,
-   "adult": 12
+   "adult": 12,
+   "critical": 34
   },
   "105": {
    "baby": 59,
    "child": 25,
-   "adult": 39
+   "adult": 39,
+   "critical": 38
   },
   "106": {
    "baby": 13,
    "child": 63,
-   "adult": 39
+   "adult": 39,
+   "critical": 37
   },
   "107": {
    "baby": 64,
    "child": 17,
-   "adult": 39
+   "adult": 39,
+   "critical": 36
   },
   "108": {
    "baby": 13,
    "child": 52,
-   "adult": 39
+   "adult": 39,
+   "critical": 38
   },
   "115": {
    "baby": 30,
    "child": 30,
-   "adult": 40
+   "adult": 40,
+   "critical": 41
   },
   "116": {
    "baby": 21,
    "child": 15,
-   "adult": 40
+   "adult": 40,
+   "critical": 37
   },
   "117": {
    "baby": 13,
    "child": 19,
-   "adult": 40
+   "adult": 40,
+   "critical": 33
   },
   "118": {
    "baby": 46,
    "child": 60,
-   "adult": 40
+   "adult": 40,
+   "critical": 12
   },
   "119": {
    "baby": 22,
    "child": 27,
-   "adult": 51
+   "adult": 51,
+   "critical": 38
   },
   "120": {
    "baby": 58,
    "child": 52,
-   "adult": 40
+   "adult": 40,
+   "critical": 12
   },
   "121": {
    "baby": 17,
    "child": 61,
-   "adult": 40
+   "adult": 40,
+   "critical": 41
   },
   "122": {
    "baby": 57,
    "child": 16,
-   "adult": 51
+   "adult": 51,
+   "critical": 31
   },
   "123": {
    "baby": 18,
    "child": 27,
-   "adult": 40
+   "adult": 40,
+   "critical": 34
   },
   "124": {
    "baby": 14,
    "child": 26,
-   "adult": 40
+   "adult": 40,
+   "critical": 35
   },
   "125": {
    "baby": 46,
    "child": 18,
-   "adult": 40
+   "adult": 40,
+   "critical": 12
   },
   "129": {
    "baby": 13,
    "child": 19,
-   "adult": 40
+   "adult": 40,
+   "critical": 36
   },
   "133": {
    "baby": 52,
    "child": 25,
-   "adult": 40
+   "adult": 40,
+   "critical": 41
   },
   "137": {
    "baby": 58,
    "child": 17,
-   "adult": 40
+   "adult": 40,
+   "critical": 38
   },
   "141": {
    "baby": 30,
    "child": 63,
-   "adult": 40
+   "adult": 40,
+   "critical": 32
   },
   "145": {
    "baby": 19,
    "child": 55,
-   "adult": 1
+   "adult": 1,
+   "critical": 37
   },
   "167": {
    "baby": 29,
    "child": 25,
-   "adult": 1
+   "adult": 1,
+   "critical": 37
   },
   "168": {
    "baby": 65,
    "child": 56,
-   "adult": 1
+   "adult": 1,
+   "critical": 34
   },
   "169": {
    "baby": 16,
    "child": 51,
-   "adult": 1
+   "adult": 1,
+   "critical": 36
   },
   "170": {
    "baby": 58,
    "child": 59,
-   "adult": 1
+   "adult": 1,
+   "critical": 12
   },
   "171": {
    "baby": 56,
    "child": 57,
-   "adult": 57
+   "adult": 57,
+   "critical": 39
   },
   "172": {
    "baby": 30,
    "child": 29,
-   "adult": 1
+   "adult": 1,
+   "critical": 31
   },
   "173": {
    "baby": 53,
    "child": 22,
-   "adult": 1
+   "adult": 1,
+   "critical": 36
   },
   "174": {
    "baby": 59,
    "child": 56,
-   "adult": 1
+   "adult": 1,
+   "critical": 39
   },
   "175": {
    "baby": 60,
    "child": 61,
-   "adult": 1
+   "adult": 1,
+   "critical": 33
   },
   "176": {
    "baby": 55,
    "child": 64,
-   "adult": 1
+   "adult": 1,
+   "critical": 33
   },
   "177": {
    "baby": 30,
    "child": 57,
-   "adult": 1
+   "adult": 1,
+   "critical": 41
   },
   "178": {
    "baby": 15,
    "child": 52,
-   "adult": 1
+   "adult": 1,
+   "critical": 35
   },
   "179": {
    "baby": 51,
    "child": 60,
-   "adult": 1
+   "adult": 1,
+   "critical": 35
   },
   "180": {
    "baby": 60,
    "child": 65,
-   "adult": 1
+   "adult": 1,
+   "critical": 38
   },
   "181": {
    "baby": 58,
    "child": 59,
-   "adult": 2
+   "adult": 2,
+   "critical": 39
   },
   "182": {
    "baby": 13,
    "child": 50,
-   "adult": 2
+   "adult": 2,
+   "critical": 39
   },
   "183": {
    "baby": 49,
    "child": 64,
-   "adult": 2
+   "adult": 2,
+   "critical": 41
   },
   "184": {
    "baby": 60,
    "child": 16,
-   "adult": 2
+   "adult": 2,
+   "critical": 33
   },
   "185": {
    "baby": 22,
    "child": 54,
-   "adult": 2
+   "adult": 2,
+   "critical": 41
   },
   "186": {
    "baby": 55,
    "child": 27,
-   "adult": 2
+   "adult": 2,
+   "critical": 37
   },
   "187": {
    "baby": 22,
    "child": 55,
-   "adult": 2
+   "adult": 2,
+   "critical": 12
   },
   "188": {
    "baby": 29,
    "child": 53,
-   "adult": 2
+   "adult": 2,
+   "critical": 38
   },
   "189": {
    "baby": 13,
    "child": 22,
-   "adult": 2
+   "adult": 2,
+   "critical": 41
   },
   "195": {
    "baby": 51,
    "child": 28,
-   "adult": 2
+   "adult": 2,
+   "critical": 12
   },
   "196": {
    "baby": 53,
    "child": 52,
-   "adult": 2
+   "adult": 2,
+   "critical": 41
+  },
+  "1001": {
+   "critical": 32
+  },
+  "1008": {
+   "critical": 34
+  },
+  "1020": {
+   "critical": 34
   },
   "3001": {
    "baby": 52,
    "child": 22,
-   "adult": 5
+   "adult": 5,
+   "critical": 36
   },
   "3002": {
    "baby": 30,
    "child": 52,
-   "adult": 41
+   "adult": 41,
+   "critical": 34
   },
   "3003": {
    "baby": 14,
    "child": 27,
-   "adult": 2
+   "adult": 2,
+   "critical": 31
   },
   "3004": {
    "baby": 59,
    "child": 15,
-   "adult": 2
+   "adult": 2,
+   "critical": 34
   },
   "3005": {
    "baby": 21,
    "child": 64,
-   "adult": 3
+   "adult": 3,
+   "critical": 41
   },
   "3006": {
    "baby": 28,
    "child": 58,
-   "adult": 4
+   "adult": 4,
+   "critical": 33
   },
   "3007": {
    "baby": 14,
    "child": 51,
-   "adult": 3
+   "adult": 3,
+   "critical": 34
   },
   "3008": {
    "baby": 13,
    "child": 52,
-   "adult": 3
+   "adult": 3,
+   "critical": 39
   },
   "3009": {
    "baby": 30,
    "child": 54,
-   "adult": 3
+   "adult": 3,
+   "critical": 38
   },
   "3010": {
    "baby": 20,
    "child": 58,
-   "adult": 3
+   "adult": 3,
+   "critical": 37
   },
   "3011": {
    "baby": 20,
    "child": 60,
-   "adult": 3
+   "adult": 3,
+   "critical": 37
   },
   "3012": {
    "baby": 13,
    "child": 53,
-   "adult": 3
+   "adult": 3,
+   "critical": 33
   },
   "3013": {
    "baby": 42,
    "child": 57,
-   "adult": 4
+   "adult": 4,
+   "critical": 35
   },
   "3014": {
    "baby": 27,
    "child": 29,
-   "adult": 3
+   "adult": 3,
+   "critical": 34
   },
   "3015": {
    "baby": 60,
    "child": 56,
-   "adult": 3
+   "adult": 3,
+   "critical": 32
   },
   "3016": {
    "baby": 56,
    "child": 53,
-   "adult": 3
+   "adult": 3,
+   "critical": 41
   },
   "3017": {
    "baby": 25,
    "child": 56,
-   "adult": 4
+   "adult": 4,
+   "critical": 38
   },
   "3018": {
    "baby": 15,
    "child": 28,
-   "adult": 3
+   "adult": 3,
+   "critical": 36
   },
   "3019": {
    "baby": 65,
    "child": 56,
-   "adult": 3
+   "adult": 3,
+   "critical": 41
   },
   "3020": {
    "baby": 17,
    "child": 15,
-   "adult": 4
+   "adult": 4,
+   "critical": 35
   },
   "3021": {
    "baby": 58,
    "child": 50,
-   "adult": 4
+   "adult": 4,
+   "critical": 32
   },
   "3022": {
    "baby": 18,
    "child": 27,
-   "adult": 4
+   "adult": 4,
+   "critical": 38
   },
   "3023": {
    "baby": 30,
    "child": 27,
-   "adult": 4
+   "adult": 4,
+   "critical": 39
   },
   "3024": {
    "baby": 53,
    "child": 15,
-   "adult": 4
+   "adult": 4,
+   "critical": 36
   },
   "3025": {
    "baby": 26,
    "child": 26,
-   "adult": 4
+   "adult": 4,
+   "critical": 31
   },
   "3026": {
    "baby": 27,
    "child": 29,
-   "adult": 4
+   "adult": 4,
+   "critical": 34
   },
   "3027": {
    "baby": 51,
    "child": 16,
-   "adult": 4
+   "adult": 4,
+   "critical": 41
   },
   "3028": {
    "baby": 17,
    "child": 61,
-   "adult": 4
+   "adult": 4,
+   "critical": 34
   },
   "3029": {
    "baby": 58,
    "child": 17,
-   "adult": 4
+   "adult": 4,
+   "critical": 41
   },
   "3030": {
    "baby": 51,
    "child": 15,
-   "adult": 4
+   "adult": 4,
+   "critical": 31
   },
   "3031": {
    "baby": 51,
    "child": 15,
-   "adult": 4
+   "adult": 4,
+   "critical": 33
   },
   "3032": {
    "baby": 19,
    "child": 64,
-   "adult": 4
+   "adult": 4,
+   "critical": 41
   },
   "3033": {
    "baby": 13,
    "child": 60,
-   "adult": 4
+   "adult": 4,
+   "critical": 34
   },
   "3034": {
    "baby": 19,
    "child": 18,
-   "adult": 4
+   "adult": 4,
+   "critical": 12
   },
   "3035": {
    "baby": 55,
    "child": 16,
-   "adult": 5
+   "adult": 5,
+   "critical": 33
   },
   "3036": {
    "baby": 24,
    "child": 30,
-   "adult": 5
+   "adult": 5,
+   "critical": 34
   },
   "3037": {
    "baby": 19,
    "child": 61,
-   "adult": 5
+   "adult": 5,
+   "critical": 37
   },
   "3038": {
    "baby": 13,
    "child": 59,
-   "adult": 5
+   "adult": 5,
+   "critical": 31
   },
   "3039": {
    "baby": 28,
    "child": 57,
-   "adult": 5
+   "adult": 5,
+   "critical": 31
   },
   "3040": {
    "baby": 51,
    "child": 19,
-   "adult": 5
+   "adult": 5,
+   "critical": 37
   },
   "3041": {
    "baby": 53,
    "child": 17,
-   "adult": 51
+   "adult": 51,
+   "critical": 37
   },
   "3042": {
    "baby": 19,
    "child": 27,
-   "adult": 5
+   "adult": 5,
+   "critical": 32
   },
   "4000": {
    "baby": 65,
    "child": 27,
-   "adult": 51
+   "adult": 51,
+   "critical": 32
   },
   "4001": {
    "baby": 22,
    "child": 25,
-   "adult": 5
+   "adult": 5,
+   "critical": 38
   },
   "4002": {
    "baby": 64,
    "child": 63,
-   "adult": 5
+   "adult": 5,
+   "critical": 32
   },
   "4003": {
    "baby": 52,
    "child": 57,
-   "adult": 5
+   "adult": 5,
+   "critical": 35
   },
   "4004": {
    "baby": 29,
    "child": 55,
-   "adult": 5
+   "adult": 5,
+   "critical": 31
   },
   "4005": {
    "baby": 15,
    "child": 60,
-   "adult": 5
+   "adult": 5,
+   "critical": 12
   },
   "4006": {
    "baby": 13,
    "child": 50,
-   "adult": 5
+   "adult": 5,
+   "critical": 33
   },
   "4007": {
    "baby": 65,
    "child": 52,
-   "adult": 6
+   "adult": 6,
+   "critical": 33
   },
   "4008": {
    "baby": 17,
    "child": 61,
-   "adult": 6
+   "adult": 6,
+   "critical": 36
   },
   "4009": {
    "baby": 42,
    "child": 65,
-   "adult": 6
+   "adult": 6,
+   "critical": 36
   },
   "4010": {
    "baby": 20,
    "child": 56,
-   "adult": 51
+   "adult": 51,
+   "critical": 32
   },
   "4011": {
    "baby": 41,
    "child": 18,
-   "adult": 51
+   "adult": 51,
+   "critical": 41
   },
   "4012": {
    "baby": 18,
    "child": 28,
-   "adult": 6
+   "adult": 6,
+   "critical": 41
   },
   "4013": {
    "baby": 50,
    "child": 17,
-   "adult": 6
+   "adult": 6,
+   "critical": 39
   },
   "4014": {
    "baby": 21,
    "child": 27,
-   "adult": 6
+   "adult": 6,
+   "critical": 34
   },
   "4015": {
    "baby": 14,
    "child": 54,
-   "adult": 6
+   "adult": 6,
+   "critical": 38
   },
   "4016": {
    "baby": 22,
    "child": 27,
-   "adult": 6
+   "adult": 6,
+   "critical": 34
   },
   "4017": {
    "baby": 42,
    "child": 22,
-   "adult": 6
+   "adult": 6,
+   "critical": 32
   },
   "4018": {
    "baby": 5,
    "child": 8,
-   "adult": 2
+   "adult": 2,
+   "critical": 36
   },
   "4019": {
    "baby": 26,
    "child": 65,
-   "adult": 6
+   "adult": 6,
+   "critical": 41
   },
   "4020": {
    "baby": 51,
    "child": 53,
-   "adult": 6
+   "adult": 6,
+   "critical": 31
   },
   "4021": {
    "baby": 46,
    "child": 28,
-   "adult": 6
+   "adult": 6,
+   "critical": 39
   },
   "4022": {
    "baby": 49,
    "child": 28,
-   "adult": 7
+   "adult": 7,
+   "critical": 37
   },
   "4023": {
    "baby": 17,
    "child": 17,
-   "adult": 7
+   "adult": 7,
+   "critical": 35
   },
   "4024": {
    "baby": 27,
    "child": 28,
-   "adult": 7
+   "adult": 7,
+   "critical": 32
   },
   "4025": {
    "baby": 53,
    "child": 30,
-   "adult": 7
+   "adult": 7,
+   "critical": 31
   },
   "4026": {
    "baby": 54,
    "child": 57,
-   "adult": 7
+   "adult": 7,
+   "critical": 36
   },
   "4027": {
    "baby": 21,
    "child": 30,
-   "adult": 7
+   "adult": 7,
+   "critical": 37
   },
   "4028": {
    "baby": 28,
    "child": 25,
-   "adult": 7
+   "adult": 7,
+   "critical": 35
   },
   "4029": {
    "baby": 30,
    "child": 51,
-   "adult": 7
+   "adult": 7,
+   "critical": 39
   },
   "4030": {
    "baby": 64,
    "child": 61,
-   "adult": 7
+   "adult": 7,
+   "critical": 41
   },
   "4031": {
    "baby": 15,
    "child": 64,
-   "adult": 7
+   "adult": 7,
+   "critical": 37
   },
   "4032": {
    "baby": 19,
    "child": 30,
-   "adult": 7
+   "adult": 7,
+   "critical": 38
   },
   "4033": {
    "baby": 47,
    "child": 30,
-   "adult": 7
+   "adult": 7,
+   "critical": 35
   },
   "4034": {
    "baby": 56,
    "child": 15,
-   "adult": 7
+   "adult": 7,
+   "critical": 32
   },
   "4035": {
    "baby": 18,
    "child": 58,
-   "adult": 7
+   "adult": 7,
+   "critical": 38
   },
   "4036": {
    "baby": 53,
    "child": 52,
-   "adult": 12
+   "adult": 12,
+   "critical": 34
   },
   "4037": {
    "baby": 24,
    "child": 22,
-   "adult": 8
+   "adult": 8,
+   "critical": 38
   },
   "4038": {
    "baby": 29,
    "child": 25,
-   "adult": 8
+   "adult": 8,
+   "critical": 36
   },
   "4039": {
    "baby": 52,
    "child": 61,
-   "adult": 8
+   "adult": 8,
+   "critical": 36
   },
   "4040": {
    "baby": 54,
    "child": 50,
-   "adult": 8
+   "adult": 8,
+   "critical": 35
   },
   "4041": {
    "baby": 47,
    "child": 59,
-   "adult": 8
+   "adult": 8,
+   "critical": 39
   },
   "4042": {
    "baby": 51,
    "child": 58,
-   "adult": 8
+   "adult": 8,
+   "critical": 39
   },
   "4043": {
    "baby": 16,
    "child": 22,
-   "adult": 8
+   "adult": 8,
+   "critical": 33
   },
   "4044": {
    "baby": 48,
    "child": 17,
-   "adult": 8
+   "adult": 8,
+   "critical": 41
   },
   "4045": {
    "baby": 41,
    "child": 22,
-   "adult": 8
+   "adult": 8,
+   "critical": 36
   },
   "4046": {
    "baby": 22,
    "child": 50,
-   "adult": 8
+   "adult": 8,
+   "critical": 38
   },
   "4047": {
    "baby": 59,
    "child": 59,
-   "adult": 8
+   "adult": 8,
+   "critical": 31
   },
   "4048": {
    "baby": 14,
    "child": 64,
-   "adult": 8
+   "adult": 8,
+   "critical": 34
   },
   "4049": {
    "baby": 50,
    "child": 59,
-   "adult": 8
+   "adult": 8,
+   "critical": 36
   },
   "4050": {
    "baby": 13,
    "child": 29,
-   "adult": 8
+   "adult": 8,
+   "critical": 35
   },
   "4051": {
    "baby": 51,
    "child": 58,
-   "adult": 8
+   "adult": 8,
+   "critical": 35
   },
   "4052": {
    "baby": 27,
    "child": 50,
-   "adult": 9
+   "adult": 9,
+   "critical": 41
   },
   "4053": {
    "baby": 27,
    "child": 57,
-   "adult": 9
+   "adult": 9,
+   "critical": 34
   },
   "4055": {
    "baby": 22,
    "child": 53,
-   "adult": 9
+   "adult": 9,
+   "critical": 35
   },
   "4056": {
    "baby": 13,
    "child": 28,
-   "adult": 9
+   "adult": 9,
+   "critical": 38
   },
   "4057": {
    "baby": 56,
    "child": 52,
-   "adult": 9
+   "adult": 9,
+   "critical": 33
   },
   "4058": {
    "baby": 28,
    "child": 29,
-   "adult": 9
+   "adult": 9,
+   "critical": 37
   },
   "4059": {
    "baby": 20,
    "child": 63,
-   "adult": 9
+   "adult": 9,
+   "critical": 31
+  },
+  "4060": {
+   "critical": 36
   },
   "4061": {
    "baby": 57,
    "child": 52,
-   "adult": 9
+   "adult": 9,
+   "critical": 38
   },
   "4062": {
    "baby": 50,
    "child": 16,
-   "adult": 9
+   "adult": 9,
+   "critical": 41
   },
   "4064": {
    "baby": 50,
    "child": 19,
-   "adult": 9
+   "adult": 9,
+   "critical": 39
   },
   "4065": {
    "baby": 57,
    "child": 27,
-   "adult": 9
+   "adult": 9,
+   "critical": 41
   },
   "4066": {
    "baby": 27,
    "child": 63,
-   "adult": 9
+   "adult": 9,
+   "critical": 12
   },
   "4067": {
    "baby": 58,
    "child": 61,
-   "adult": 9
+   "adult": 9,
+   "critical": 35
   },
   "4068": {
    "baby": 13,
    "child": 63,
-   "adult": 9
+   "adult": 9,
+   "critical": 39
   },
   "4069": {
    "baby": 14,
    "child": 50,
-   "adult": 9
+   "adult": 9,
+   "critical": 39
   },
   "4070": {
    "baby": 49,
    "child": 51,
-   "adult": 10
+   "adult": 10,
+   "critical": 35
   },
   "4071": {
    "baby": 64,
    "child": 27,
-   "adult": 10
+   "adult": 10,
+   "critical": 38
   },
   "4072": {
    "baby": 61,
    "child": 64,
-   "adult": 10
+   "adult": 10,
+   "critical": 34
   },
   "4073": {
    "baby": 18,
    "child": 30,
-   "adult": 10
+   "adult": 10,
+   "critical": 38
   },
   "4075": {
    "baby": 29,
    "child": 17,
-   "adult": 10
+   "adult": 10,
+   "critical": 35
   },
   "4083": {
    "baby": 47,
    "child": 19,
-   "adult": 10
+   "adult": 10,
+   "critical": 41
+  },
+  "4096": {
+   "critical": 41
   },
   "4097": {
    "baby": 13,
    "child": 16,
-   "adult": 10
+   "adult": 10,
+   "critical": 12
   },
   "4098": {
    "baby": 53,
    "child": 25,
-   "adult": 10
+   "adult": 10,
+   "critical": 41
   },
   "4099": {
    "baby": 50,
    "child": 58,
-   "adult": 10
+   "adult": 10,
+   "critical": 31
   },
   "4100": {
    "baby": 14,
    "child": 58,
-   "adult": 10
+   "adult": 10,
+   "critical": 41
   },
   "4101": {
    "baby": 13,
    "child": 54,
-   "adult": 10
+   "adult": 10,
+   "critical": 37
   },
   "4102": {
    "baby": 13,
    "child": 58,
-   "adult": 10
+   "adult": 10,
+   "critical": 33
   },
   "4103": {
    "baby": 45,
    "child": 18,
-   "adult": 10
+   "adult": 10,
+   "critical": 32
   },
   "4104": {
    "baby": 52,
    "child": 51,
-   "adult": 10
+   "adult": 10,
+   "critical": 34
   },
   "4105": {
    "baby": 42,
    "child": 65,
-   "adult": 10
+   "adult": 10,
+   "critical": 38
   },
   "4106": {
    "baby": 53,
    "child": 25,
-   "adult": 11
+   "adult": 11,
+   "critical": 41
   },
   "4107": {
    "baby": 65,
    "child": 17,
-   "adult": 11
+   "adult": 11,
+   "critical": 33
   },
   "4108": {
    "baby": 18,
    "child": 27,
-   "adult": 11
+   "adult": 11,
+   "critical": 31
   },
   "4109": {
    "baby": 13,
    "child": 52,
-   "adult": 11
+   "adult": 11,
+   "critical": 35
   },
   "4110": {
    "baby": 16,
    "child": 56,
-   "adult": 11
+   "adult": 11,
+   "critical": 38
   },
   "4111": {
    "baby": 59,
    "child": 26,
-   "adult": 12
+   "adult": 12,
+   "critical": 41
   },
   "4112": {
    "baby": 54,
    "child": 51,
-   "adult": 11
+   "adult": 11,
+   "critical": 32
   },
   "4113": {
    "baby": 20,
    "child": 59,
-   "adult": 11
+   "adult": 11,
+   "critical": 31
   },
   "4114": {
    "baby": 26,
    "child": 30,
-   "adult": 11
+   "adult": 11,
+   "critical": 38
   },
   "4115": {
    "baby": 51,
    "child": 30,
-   "adult": 11
+   "adult": 11,
+   "critical": 32
   },
   "4116": {
    "baby": 13,
    "child": 16,
-   "adult": 11
+   "adult": 11,
+   "critical": 37
   },
   "4117": {
    "baby": 52,
    "child": 60,
-   "adult": 11
+   "adult": 11,
+   "critical": 32
   },
   "4118": {
    "baby": 49,
    "child": 64,
-   "adult": 11
+   "adult": 11,
+   "critical": 33
   },
   "4119": {
    "baby": 22,
    "child": 26,
-   "adult": 11
+   "adult": 11,
+   "critical": 34
   },
   "4120": {
    "baby": 21,
    "child": 64,
-   "adult": 11
+   "adult": 11,
+   "critical": 12
   },
   "4121": {
    "baby": 42,
    "child": 22,
-   "adult": 12
+   "adult": 12,
+   "critical": 32
   },
   "4122": {
    "baby": 29,
    "child": 55,
-   "adult": 12
+   "adult": 12,
+   "critical": 33
   },
   "4123": {
    "baby": 30,
    "child": 15,
-   "adult": 12
+   "adult": 12,
+   "critical": 37
   },
   "4124": {
    "baby": 42,
    "child": 51,
-   "adult": 12
+   "adult": 12,
+   "critical": 41
   },
   "4125": {
    "baby": 64,
    "child": 60,
-   "adult": 12
+   "adult": 12,
+   "critical": 41
   },
   "4126": {
    "baby": 50,
    "child": 58,
-   "adult": 12
+   "adult": 12,
+   "critical": 12
   },
   "4127": {
    "baby": 21,
    "child": 17,
-   "adult": 12
+   "adult": 12,
+   "critical": 36
   },
   "4128": {
    "baby": 53,
    "child": 61,
-   "adult": 12
+   "adult": 12,
+   "critical": 33
   },
   "4129": {
    "baby": 26,
    "child": 60,
-   "adult": 12
+   "adult": 12,
+   "critical": 33
   },
   "4130": {
    "baby": 25,
    "child": 65,
-   "adult": 12
+   "adult": 12,
+   "critical": 35
   },
   "4131": {
    "baby": 41,
    "child": 59,
-   "adult": 12
+   "adult": 12,
+   "critical": 32
   },
   "4132": {
    "baby": 16,
    "child": 24,
-   "adult": 12
+   "adult": 12,
+   "critical": 36
   },
   "4135": {
    "baby": 16,
    "child": 65,
-   "adult": 12
+   "adult": 12,
+   "critical": 39
   },
   "4136": {
    "baby": 20,
    "child": 18,
-   "adult": 12
+   "adult": 12,
+   "critical": 32
   },
   "4137": {
    "baby": 17,
    "child": 15,
-   "adult": 12
+   "adult": 12,
+   "critical": 38
   },
   "4138": {
    "baby": 60,
    "child": 64,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4139": {
    "baby": 64,
    "child": 63,
-   "adult": 31
+   "adult": 31,
+   "critical": 32
   },
   "4140": {
    "baby": 56,
    "child": 27,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4141": {
    "baby": 27,
    "child": 17,
-   "adult": 31
+   "adult": 31,
+   "critical": 34
   },
   "4142": {
    "baby": 13,
    "child": 55,
-   "adult": 31
+   "adult": 31,
+   "critical": 37
   },
   "4143": {
    "baby": 57,
    "child": 65,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4144": {
    "baby": 53,
    "child": 53,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4145": {
    "baby": 21,
    "child": 51,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4146": {
    "baby": 46,
    "child": 52,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4147": {
    "baby": 59,
    "child": 27,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4148": {
    "baby": 13,
    "child": 27,
-   "adult": 31
+   "adult": 31,
+   "critical": 38
   },
   "4149": {
    "baby": 53,
    "child": 18,
-   "adult": 31
+   "adult": 31,
+   "critical": 31
   },
   "4150": {
    "baby": 65,
    "child": 57,
-   "adult": 31
+   "adult": 31,
+   "critical": 39
   },
   "4151": {
    "baby": 57,
    "child": 15,
-   "adult": 31
+   "adult": 31,
+   "critical": 34
   },
   "4152": {
    "baby": 21,
    "child": 57,
-   "adult": 31
+   "adult": 31,
+   "critical": 37
   },
   "4153": {
    "baby": 30,
    "child": 57,
-   "adult": 32
+   "adult": 32,
+   "critical": 37
   },
   "4154": {
    "baby": 56,
    "child": 63,
-   "adult": 32
+   "adult": 32,
+   "critical": 39
   },
   "4155": {
    "baby": 41,
    "child": 29,
-   "adult": 11
+   "adult": 11,
+   "critical": 38
   },
   "4156": {
    "baby": 56,
    "child": 15,
-   "adult": 51
+   "adult": 51,
+   "critical": 31
   },
   "4157": {
    "baby": 55,
    "child": 55,
-   "adult": 32
+   "adult": 32,
+   "critical": 32
   },
   "4158": {
    "baby": 29,
    "child": 25,
-   "adult": 32
+   "adult": 32,
+   "critical": 32
   },
   "4159": {
    "baby": 22,
    "child": 30,
-   "adult": 32
+   "adult": 32,
+   "critical": 41
   },
   "4160": {
    "baby": 13,
    "child": 29,
-   "adult": 32
+   "adult": 32,
+   "critical": 35
   },
   "4161": {
    "baby": 27,
    "child": 55,
-   "adult": 32
+   "adult": 32,
+   "critical": 12
   },
   "4162": {
    "baby": 65,
    "child": 27,
-   "adult": 32
+   "adult": 32,
+   "critical": 39
   },
   "4163": {
    "baby": 18,
    "child": 27,
-   "adult": 32
+   "adult": 32,
+   "critical": 33
   },
   "4164": {
    "baby": 55,
    "child": 26,
-   "adult": 32
+   "adult": 32,
+   "critical": 41
   },
   "4165": {
    "baby": 13,
    "child": 50,
-   "adult": 32
+   "adult": 32,
+   "critical": 31
   },
   "4166": {
    "baby": 54,
    "child": 51,
-   "adult": 32
+   "adult": 32,
+   "critical": 41
   },
   "4173": {
    "baby": 59,
    "child": 28,
-   "adult": 32
+   "adult": 32,
+   "critical": 37
   },
   "4174": {
    "baby": 59,
    "child": 27,
-   "adult": 33
+   "adult": 33,
+   "critical": 41
   },
   "4175": {
    "baby": 65,
    "child": 58,
-   "adult": 33
+   "adult": 33,
+   "critical": 38
   },
   "4176": {
    "baby": 30,
    "child": 17,
-   "adult": 33
+   "adult": 33,
+   "critical": 36
   },
   "4177": {
    "baby": 16,
    "child": 29,
-   "adult": 33
+   "adult": 33,
+   "critical": 34
   },
   "4178": {
    "baby": 42,
    "child": 25,
-   "adult": 33
+   "adult": 33,
+   "critical": 41
   },
   "4179": {
    "baby": 56,
    "child": 17,
-   "adult": 33
+   "adult": 33,
+   "critical": 33
   },
   "4180": {
    "baby": 16,
    "child": 52,
-   "adult": 51
+   "adult": 51,
+   "critical": 38
   },
   "4181": {
    "baby": 52,
    "child": 65,
-   "adult": 33
+   "adult": 33,
+   "critical": 33
   },
   "4182": {
    "baby": 46,
    "child": 29,
-   "adult": 33
+   "adult": 33,
+   "critical": 31
   },
   "4183": {
    "baby": 28,
    "child": 15,
-   "adult": 33
+   "adult": 33,
+   "critical": 36
   },
   "4184": {
    "baby": 13,
    "child": 30,
-   "adult": 33
+   "adult": 33,
+   "critical": 41
   },
   "4185": {
    "baby": 65,
    "child": 50,
-   "adult": 33
+   "adult": 33,
+   "critical": 37
   },
   "4186": {
    "baby": 55,
    "child": 58,
-   "adult": 33
+   "adult": 33,
+   "critical": 34
   },
   "4187": {
    "baby": 56,
    "child": 27,
-   "adult": 33
+   "adult": 33,
+   "critical": 39
   },
   "4188": {
    "baby": 13,
    "child": 29,
-   "adult": 33
+   "adult": 33,
+   "critical": 33
   },
   "4189": {
    "baby": 21,
    "child": 17,
-   "adult": 34
+   "adult": 34,
+   "critical": 39
   },
   "4190": {
    "baby": 42,
    "child": 29,
-   "adult": 51
+   "adult": 51,
+   "critical": 12
   },
   "4191": {
    "baby": 46,
    "child": 57,
-   "adult": 34
+   "adult": 34,
+   "critical": 32
   },
   "4192": {
    "baby": 27,
    "child": 65,
-   "adult": 34
+   "adult": 34,
+   "critical": 33
   },
   "4193": {
    "baby": 15,
    "child": 65,
-   "adult": 34
+   "adult": 34,
+   "critical": 34
   },
   "4194": {
    "baby": 13,
    "child": 15,
-   "adult": 34
+   "adult": 34,
+   "critical": 35
   },
   "4195": {
    "baby": 53,
    "child": 53,
-   "adult": 34
+   "adult": 34,
+   "critical": 34
   },
   "4196": {
    "baby": 26,
    "child": 29,
-   "adult": 34
+   "adult": 34,
+   "critical": 35
   },
   "4197": {
    "baby": 30,
    "child": 27,
-   "adult": 34
+   "adult": 34,
+   "critical": 34
   },
   "4198": {
    "baby": 61,
    "child": 27,
-   "adult": 34
+   "adult": 34,
+   "critical": 33
   },
   "4199": {
    "baby": 17,
    "child": 27,
-   "adult": 34
+   "adult": 34,
+   "critical": 36
   },
   "4200": {
    "baby": 14,
    "child": 52,
-   "adult": 34
+   "adult": 34,
+   "critical": 38
   },
   "4201": {
    "baby": 17,
    "child": 50,
-   "adult": 34
+   "adult": 34,
+   "critical": 41
   },
   "4202": {
    "baby": 13,
    "child": 51,
-   "adult": 34
+   "adult": 34,
+   "critical": 35
   },
   "4203": {
    "baby": 47,
    "child": 59,
-   "adult": 34
+   "adult": 34,
+   "critical": 33
   },
   "4204": {
    "baby": 49,
    "child": 64,
-   "adult": 35
+   "adult": 35,
+   "critical": 36
   },
   "4205": {
    "baby": 58,
    "child": 53,
-   "adult": 35
+   "adult": 35,
+   "critical": 36
   },
   "4206": {
    "baby": 13,
    "child": 61,
-   "adult": 35
+   "adult": 35,
+   "critical": 37
   },
   "4207": {
    "baby": 14,
    "child": 59,
-   "adult": 35
+   "adult": 35,
+   "critical": 41
   },
   "4208": {
    "baby": 51,
    "child": 27,
-   "adult": 36
+   "adult": 36,
+   "critical": 37
   },
   "4209": {
    "baby": 22,
    "child": 60,
-   "adult": 35
+   "adult": 35,
+   "critical": 39
   },
   "4210": {
    "baby": 58,
    "child": 19,
-   "adult": 35
+   "adult": 35,
+   "critical": 35
   },
   "4211": {
    "baby": 45,
    "child": 53,
-   "adult": 35
+   "adult": 35,
+   "critical": 36
   },
   "4212": {
    "baby": 64,
    "child": 57,
-   "adult": 35
+   "adult": 35,
+   "critical": 32
+  },
+  "9001": {
+   "critical": 34
+  },
+  "9002": {
+   "critical": 35
+  },
+  "9003": {
+   "critical": 41
+  },
+  "9004": {
+   "critical": 12
+  },
+  "9005": {
+   "critical": 12
+  },
+  "9006": {
+   "critical": 35
+  },
+  "9007": {
+   "critical": 33
+  },
+  "9008": {
+   "critical": 39
+  },
+  "9009": {
+   "critical": 39
+  },
+  "9010": {
+   "critical": 12
+  },
+  "9011": {
+   "critical": 37
+  },
+  "9012": {
+   "critical": 31
+  },
+  "9013": {
+   "critical": 41
+  },
+  "9014": {
+   "critical": 36
+  },
+  "9998": {
+   "critical": 32
+  },
+  "9999": {
+   "critical": 41
   },
   "666": {
    "baby": 52,
    "child": 22,
-   "adult": 5
+   "adult": 5,
+   "critical": 36
   },
   "777": {
    "baby": 47,
    "child": 30,
-   "adult": 4
+   "adult": 4,
+   "critical": 35
+  },
+  "600": {
+   "critical": 39
+  },
+  "700": {
+   "critical": 31
   }
  }
 }

@@ -28,7 +28,7 @@ static func egg_points(cfg: Dictionary, star: int) -> int:
 
 ## 한 번에 넣을 수 있는 알 **종류** 수 상한(원작 `MasicStoneErroMsg_4`).
 static func max_kinds(cfg: Dictionary) -> int:
-	return int(_sc(cfg).get("max_egg_kinds_per_batch", 5))
+	return int(_sc(cfg).get("max_egg_kinds_per_batch", 10))
 
 ## 이번 배치가 주는 포인트 합. entries = [{"star": int, "count": int}, …]
 static func batch_points(cfg: Dictionary, entries: Array) -> int:

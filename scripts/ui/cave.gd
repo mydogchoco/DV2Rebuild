@@ -2,6 +2,8 @@ extends Control
 ## Cave (메인 로비). 참고: docs/ref/orig_image/old_screenshots/Cave.png
 ## 기능: 드래곤 육성·관리, 인벤토리 확인/사용, 도감 열람, 배경 스킨 변경.
 
+const DragonAwakenSkillInfoPopup := preload("res://scripts/ui/dragon_awaken_skill_info.gd")
+
 const UI := "res://assets/converted/cave_ui/%s.tres"
 const STAND := "res://assets/converted/stand_ui/stand_stand%d.tres"
 const BG := "res://assets/converted/cave_bg/cavebg%d.jpg"
@@ -27,6 +29,7 @@ var _slot_layer: Control            # 하단 장착 슬롯(아이템·젬·스�
 var _overlay: Control
 var _overlay_layer: CanvasLayer   # 오버레이를 드래곤 spine보다 위에 그리기 위한 레이어
 var _skill_modal: CanvasLayer     # 스킬 스크롤 습득 모달(인벤토리 위 layer 20)
+var _equip_pop: MultyEquipPop     # 장비 4칸 창 — ItemPopup 닫을 때 새로 만들지 않고 이 창을 갱신한다
 var _params: Dictionary = {}      # 진입 params — `open` 이 있으면 빌드 후 해당 팝업을 연다
 
 ## 씬 전환 진입점. ⚠️ `Scenes.goto` 는 **트리 편입 전에** 이걸 부른다
@@ -77,7 +80,7 @@ func _open_requested() -> void:
 		"bag": _open_inventory()
 		"quests": _open_quests()
 		"titles": _open_titles()
-		"rename", "equip", "gem", "skill", "awaken_skill", "levelup", \
+		"rename", "equip", "gem", "skill", "levelup", \
 		"awaken_dex", "skin", "storage":
 			_on_status_action(what, int(_params.get("arg", -1)))
 
@@ -528,13 +531,17 @@ func _open_equipment() -> void:
 	var a := _active()
 	if a.is_empty(): return
 	var uid := int(a["uid"])
-	var pop := MultyEquipPop.open(self, uid, "equip", func(sid: String, unlocked: bool):
+	if is_instance_valid(_equip_pop):
+		_equip_pop.close()
+	_equip_pop = MultyEquipPop.open(self, uid, "equip", func(sid: String, unlocked: bool):
 		if not unlocked:
 			# 원작 <MultyEquip_Lock>. 확장은 연구소 '드래곤 강화'에서 한다.
 			_toast("%s  (연구소 '드래곤 강화')" % MultyEquipPop.S_LOCK)
 			return
 		_open_item_popup(sid))
-	pop.closed.connect(_refresh_stats)
+	_equip_pop.closed.connect(func():
+		_equip_pop = null
+		_refresh_stats())
 
 
 ## 칸 클릭 → 원작 `MultyEquipPop::onClickItemBox` → `ItemPopup::create(dragon, slotIdx)`.
@@ -545,8 +552,14 @@ func _open_equipment() -> void:
 func _open_item_popup(slot_id: String) -> void:
 	var a := _active()
 	if a.is_empty(): return
-	var p := ItemPopup.open(self, int(a["uid"]), slot_id, func(): _refresh_stats())
-	p.closed.connect(func(): _refresh_stats(); _open_equipment())
+	var refresh_equipment := func():
+		_refresh_stats()
+		if is_instance_valid(_equip_pop):
+			_equip_pop.rebuild()
+	var p := ItemPopup.open(self, int(a["uid"]), slot_id, refresh_equipment)
+	# 원작은 ItemPopup의 close target으로 기존 MultyEquipPop을 갱신한다. 종전처럼 새 창을
+	# 하나 더 열면 X를 누를 때 장착 전 4칸 창으로 초기화된 것처럼 보이고 창도 닫히지 않는다.
+	p.closed.connect(refresh_equipment)
 
 
 ## `slot_id` 칸의 주 능력 중 **다른 칸과 겹치는** 것들의 한글 이름.
@@ -721,7 +734,6 @@ func _on_status_action(action: String, arg: int) -> void:
 			if arg >= 0 and arg < en.size() and en[arg] != null: _confirm_unequip_gem(arg)
 			else: _open_gem_tab()
 		"skill": _open_skill_select(maxi(arg, 0))
-		"awaken_skill": _open_awaken_skill()
 		"levelup": _open_levelup()
 		"awaken_dex": _open_awaken_dex()
 		"skin": _open_dragon_skin()
@@ -835,7 +847,7 @@ func _open_dragon_select(title: String, on_select: Callable, disable_filter := C
 func _dragon_select_cell(d: Dictionary, cm: Dictionary, on_select: Callable, disable_filter: Callable) -> Control:
 	var cell := Control.new(); cell.custom_minimum_size = Vector2(150, 170)
 	var disabled := disable_filter.is_valid() and bool(disable_filter.call(d))
-	var por := _portrait_sprite(int(d["id"]), Growth.stage_for_level(int(d["level"])), 0.66, int(d.get("skin", 0)))
+	var por := _portrait_sprite(int(d["id"]), Growth.portrait_stage(d), 0.66, int(d.get("skin", 0)))
 	if por:
 		por.position = Vector2(75, 64)
 		if disabled: por.modulate = Color(0.35, 0.35, 0.4, 1)
@@ -1205,7 +1217,7 @@ func _awaken_cell(d: Dictionary, cm: Dictionary) -> Control:
 	# common/element_bg(속성 배경틀). 각성=선명, 미각성=흐림.
 	var ebg := _atlas_sprite("common_ui", "common_element_bg", cm, 0.66)
 	if ebg: ebg.position = Vector2(70, 66); ebg.modulate = Color(1, 1, 1, 1) if awk else Color(0.6, 0.6, 0.65, 0.9); cell.add_child(ebg)
-	var por := _portrait_sprite(int(d["id"]), Growth.stage_for_level(int(d["level"])), 0.62, int(d.get("skin", 0)))
+	var por := _portrait_sprite(int(d["id"]), Growth.portrait_stage(d), 0.62, int(d.get("skin", 0)))
 	if por:
 		por.position = Vector2(70, 62)
 		if not awk:
@@ -1476,17 +1488,19 @@ func _slot_icon(parent: Control, tex: Texture2D, scale: float) -> void:
 	parent.add_child(s)
 
 ## 칸 클릭 히트박스(원작 CCMenuItemImageEx 자리).
-func _slot_hit(bar: Control, x: float, cb: Callable, tip := "", guide := "") -> void:
+func _slot_hit(bar: Control, x: float, cb: Callable, tip := "", guide := "") -> Button:
 	var b := Button.new()
 	b.flat = true
 	b.position = Vector2(x, SLOT_Y)
 	b.size = Vector2(SLOT_BOX, SLOT_BOX)
 	if tip != "":
 		b.tooltip_text = tip
-	b.pressed.connect(cb)
+	if cb.is_valid():
+		b.pressed.connect(cb)
 	bar.add_child(b)
 	if guide != "":
 		_guide_targets[guide] = b      # 튜토리얼 안내 화살표 대상
+	return b
 
 ## 아이템(장비) 칸 — 원작 `onClickItem` → `MultyEquipPop`.
 ## ⚠️ 후기판은 `MultyEquipView`(140×140, 앵커로 2×2 4칸)를 쓰는데 그 배경 프레임
@@ -1630,7 +1644,8 @@ func _build_skill_slots(bar: Control, a: Dictionary) -> void:
 		var row_aw: Dictionary = Data.skill_awaken_for(aw) if aw > 0 else {}
 		if not row_aw.is_empty():
 			tip_aw += "\n%s" % String(row_aw.get("name", ""))
-		_slot_hit(bar, SLOT_X_AWAKEN, _open_awaken_skill, tip_aw)
+		var aw_hit := _slot_hit(bar, SLOT_X_AWAKEN, Callable(), tip_aw)
+		aw_hit.pressed.connect(func(): _open_awaken_skill(aw_hit))
 
 ## common_ui 아틀라스 텍스처(논리키). 없으면 null.
 func _common_tex(key: String) -> Texture2D:
@@ -1657,9 +1672,9 @@ func _open_skill_select(slot: int) -> void:
 	var p := SkillsPopup.open(self, int(a["uid"]), slot, func(): _refresh(); _refresh_stats())
 	p.closed.connect(func(): _refresh(); _refresh_stats())
 
-## 각성스킬 칸 클릭 — 표시정보는 `data/skill_awaken.json`(원작 info_skill_awaken).
-## 행값이 서버 유실이라 비어 있을 수 있다 → 그때는 안내만 한다(docs/input/review/skill_awaken_sheet.md).
-func _open_awaken_skill() -> void:
+## 원작 `CharacterInfoPopup::onclickAwakenSkill` → `DragonAwakenSkill_Info::create(no, W/3, slot)`.
+## 중앙 확인 모달이 아니라 클릭 슬롯 바로 위에 붙는 `Window` 툴팁이며 이름·comment만 표시한다.
+func _open_awaken_skill(anchor: Control) -> void:
 	var a := _active()
 	if a.is_empty(): return
 	var no := int(a.get("awaken_skill", 0))
@@ -1667,21 +1682,7 @@ func _open_awaken_skill() -> void:
 	if row.is_empty():
 		_toast("각성 스킬 정보가 아직 없습니다 (docs/input/review/skill_awaken_sheet.md)")
 		return
-	# 효과가 실제로 전투에 실리는지 정직하게 알린다 — 설명만 있고 안 도는 것이 아직 많다
-	# (data/skill_awaken.json `effect.impl`, 진행도는 같은 파일 `_effect_progress`).
-	var eff: Dictionary = row.get("effect", {})
-	var tail := ""
-	if not bool(eff.get("impl", false)):
-		tail = "\n\n(효과 미이식 — 표시만 됩니다)"
-	else:
-		# 조항이 여러 개인 스킬은 일부만 도는 수가 있다 — 무엇이 아직인지 그대로 알린다.
-		var partial: Array = eff.get("partial", [])
-		if not partial.is_empty():
-			tail = "\n\n(아직 적용되지 않는 부분)"
-			for line in partial:
-				tail += "\n· %s" % String(line)
-	_open_popup_type("각성 스킬", "%s\n\n%s%s" % [String(row.get("name", "")),
-		String(row.get("comment", "")), tail], Callable(), "확인", "")
+	DragonAwakenSkillInfoPopup.open(self, anchor, no)
 
 func _build_menu() -> void:
 	# 우측 메뉴 — 원작 CaveScene::init 1:1 (근거 CaveScene.c:18894-19013):
@@ -1863,14 +1864,21 @@ func _refresh_dragon() -> void:
 	_build_stamina_gauge()
 	# 원작 오라(발광 이펙트) — 드래곤 뒤에 렌더.
 	# 🔴 2026-07-30 게이트 추가(사용자 지적): 종전엔 오라를 고르기만 하면 **성체에도** 구형 번개
-	#   이펙트가 붙었다. 원작은 **오라성체(Lv.45 = 만렙)** 만 이펙트를 갖고, 성체는 스파인만이다.
+	#   이펙트가 붙었다. 원작은 **오라성체(Lv.45 이상)** 만 이펙트를 갖고, 성체는 스파인만이다.
 	#   근거 = `Growth.AURA_ADULT_LEVEL`(클라 `Dragon.c:8265` 의 `level < 0x2d` 분기 + 회복물약
 	#   레벨대 표기 "Lv.45~50(오라 성체)").
 	# 오라성체 이펙트 = **그 드래곤의 속성 오라**(선택 기능은 위 주석대로 삭제됨).
+	var awakened := bool(a.get("awakened", false))
 	var _el := String(Data.get_dragon(int(a["id"])).get("element", ""))
-	_apply_aura(_el if Growth.is_aura_adult(int(a["level"])) else "")
-	var stage_name := Growth.stage_for_level(int(a["level"]))
+	# 원작 Dragon::getImagePathSpineJson은 각성 플래그가 켜지면 전용 `e` 경로를
+	# 고르고, 오라성체용 속성 오라는 더 이상 붙이지 않는다.
+	_apply_aura(_el if not awakened and Growth.is_aura_adult(int(a["level"])) else "")
+	var stage_name := Growth.spine_stage(a)
 	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
+	# 각성 가능 종의 전용 씬이 누락된 개발 빌드만 성체로 안전 대체한다.
+	if awakened and not ResourceLoader.exists(path):
+		stage_name = Growth.stage_for_level(int(a["level"]))
+		path = DRAGON_SCENE % [int(a["id"]), stage_name]
 	if ResourceLoader.exists(path):
 		var holder := Node2D.new()
 		holder.scale = Vector2(1.9, 1.9)
@@ -1993,7 +2001,7 @@ func _on_dragon_clicked() -> void:
 		# 원작도 터치 시 모션 + 보이스다(`CaveScene::onClickDragon` → `Dragon::getDragonVoiceDelay`).
 		var a := _active()
 		if not a.is_empty() and not UserDB.is_egg(a):
-			_play_dragon_voice(int(a["id"]), int(a.get("level", 1)))
+			_play_dragon_voice_delayed(int(a["id"]), int(a.get("level", 1)))
 
 func _on_dragon_anim_finished(anim: StringName) -> void:
 	# love 등 1회성 모션이 끝나면 대기로 복귀
@@ -2269,7 +2277,10 @@ func _dragon_slot(id: int, level: int, uid: int, is_active: bool) -> Control:
 	cell.add_child(_atlas_sprite("common_ui",
 		"common_dragon_bg1" if is_active else "common_dragon_bg2", cm, S))
 	# 단계 썸네일 ×0.9, 중심에서 7.5pt 위(원작 +(0,7.5) → Godot 은 y 반대)
-	var por := _portrait_sprite(id, Growth.stage_for_level(level), 0.9 * S)
+	var slot_dragon := UserDB.get_dragon(uid)
+	var por := _portrait_sprite(id,
+		Growth.portrait_stage(slot_dragon) if not slot_dragon.is_empty() else Growth.stage_for_level(level),
+		0.9 * S)
 	por.position = Vector2(0, -7.5)
 	cell.add_child(por)
 	# 액자 테두리(초상 위) — 원작 addChild(cover, z=1, tag=6)
@@ -3052,6 +3063,13 @@ func _play_dragon_voice(dragon_id: int, level: int) -> void:
 	var n := _dragon_voice_no(dragon_id, level)
 	if n > 0:
 		Bgm.sfx("voice%d" % n)
+
+
+## The cave touch motion starts first; its matching voice follows 0.5s later.
+func _play_dragon_voice_delayed(dragon_id: int, level: int) -> void:
+	await get_tree().create_timer(0.5).timeout
+	if is_inside_tree():
+		_play_dragon_voice(dragon_id, level)
 
 
 # ---------- 원작 BMFont 라벨(레벨업 화면에서 함께 옮겨온 뒤 동굴에도 남긴 공용 서식) ----------
@@ -5242,6 +5260,9 @@ func _inv_detail_equip(panel: Control, key: String, item: Dictionary) -> Array:
 		lines.append(String(item["artifact_effect"]))
 	if String(item.get("bonus", "")) != "":
 		lines.append(String(item["bonus"]))
+	var custom_desc := Data.equipment_description(Equipment.parse_item_key(key))
+	if custom_desc != "":
+		lines.append(custom_desc)
 	lines.append(String(item.get("desc", "")))
 	return lines
 
@@ -5681,9 +5702,9 @@ func _bag_reroll(inv_key: String) -> void:
 # ========================= 가방 소모품 사용 =========================
 ## 이 아이템이 가방에서 어떤 사용 흐름을 갖는가. ""=사용 흐름 없음(선택만).
 ##
-## 원작 근거: 축복·레벨 아이템은 가방이 아니라 **훈련/레벨업 화면에서 대상 드래곤을 받아** 쓴다
-##   (`TrainingSelectLayer` = `setTarget` + `setItem` + CCTableView + `item/item_small.img_plist`).
-##   우리도 대상 드래곤을 고르게 한 뒤 기존 레벨업 롤(`LevelSystem.roll_level`)을 그대로 태운다.
+## 원작 근거: `BagPopup` 은 별도 드래곤 선택창을 열지 않고 가방이 보유한 현재 선택 드래곤
+##   (`BagPopup+0x2c8`, `AccountManager::getDragonSelected`)을 대상으로 아이템을 사용한다.
+##   축복·레벨 아이템도 현재 선택 드래곤에 기존 레벨업 롤(`LevelSystem.roll_level`)을 태운다.
 ## ⚠️ items.json 의 `offline` 이 "impl" 인 것만 배선한다 — stub/todo 는 규칙이 유실됐거나
 ##   미설계라 여기서 지어내지 않는다(HARD RULE 6).
 func _consumable_action(key: String, item: Dictionary) -> String:
@@ -5740,7 +5761,13 @@ func _use_consumable(key: String, kind: String) -> void:
 		_toast("보유하지 않은 아이템입니다"); return
 	match kind:
 		"levelup", "leveldown":
-			_open_consumable_target(key, kind)
+			# 원작 `BagPopup`: 현재 선택 드래곤을 바로 대상으로 삼는다. 종전의
+			# `_open_consumable_target` 호출은 원작에 없는 드래곤 선택 모달이었다.
+			var d := _active()
+			if d.is_empty() or UserDB.is_egg(d):
+				_toast("사용할 수 없는 대상입니다") # <CaveBagMsg3>
+				return
+			_apply_consumable(key, kind, int(d["uid"]))
 		"holynest":
 			# 영구 적용(원작 `User::getNestLevel()` 계정 상태) — 정식 획득처는 상점 ETC 탭
 			# 300다이아 1회 구매(shop.json `once`)다. 이 분기는 **구판 세이브의 인벤 잔여분**
@@ -5771,10 +5798,18 @@ func _use_consumable(key: String, kind: String) -> void:
 				UserDB.use_item(key, 1)
 				_refresh()
 				_toast("닉네임을 '%s' 으로 바꿨습니다" % nick))
-		"ascension", "bridle", "rename", "gemslot", "skillslot", "geminit":
+		"gemslot", "skillslot":
+			# 샌즈의 비약/다이즈의 호신부는 현재 선택 드래곤을 대상으로 곧바로
+			# ItemCommentPopup(사용 확인창)으로 간다. 별도 드래곤 선택창은 원작에 없다.
+			var d := _active()
+			if d.is_empty() or UserDB.is_egg(d):
+				_toast("사용할 수 없는 대상입니다") # <CaveBagMsg3>
+				return
+			_apply_consumable(key, kind, int(d["uid"]))
+		"ascension", "bridle", "rename", "geminit":
 			_open_consumable_target(key, kind)
 
-## 대상 드래곤 선택 → 아이템 적용. 원작 TrainingSelectLayer 의 `setTarget` 자리.
+## 대상 드래곤 선택 → 아이템 적용. 승천·고삐·이름변경처럼 대상을 따로 골라야 하는 기능용.
 ## 스킬 스크롤 모달(_skill_modal_*)을 그대로 재사용한다 — 같은 "대상 고르기" UI다.
 func _open_consumable_target(key: String, kind: String) -> void:
 	_close_skill_modal()
@@ -5785,8 +5820,7 @@ func _open_consumable_target(key: String, kind: String) -> void:
 	dim.color = Color(0, 0, 0, 0.55)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_skill_modal.add_child(dim)
-	var titles := {"levelup": "레벨을 올릴 드래곤", "leveldown": "레벨을 내릴 드래곤",
-		"ascension": "승천시킬 드래곤 (삭제)", "bridle": "보관할 드래곤",
+	var titles := {"ascension": "승천시킬 드래곤 (삭제)", "bridle": "보관할 드래곤",
 		"rename": "이름을 바꿀 드래곤",
 		"gemslot": "젬 슬롯을 변경할 드래곤", "skillslot": "스킬 슬롯을 변경할 드래곤",
 		"geminit": "젬 슬롯을 초기화할 드래곤", "cure": "행동불능을 풀 드래곤"}
@@ -6287,7 +6321,19 @@ func _inventory_items_for_tab(tab_id: String) -> Array:
 	for key in UserDB.inventory().keys():
 		if _inventory_tab_for_item(String(key)) == tab_id:
 			out.append(String(key))
-	out.sort()
+	if tab_id == "gear":
+		var cat := Equipment.catalog(Data.equipment)
+		var rows: Array = []
+		for key in out:
+			var ck := Equipment.parse_item_key(String(key))
+			rows.append({"inv": String(key), "cat": ck, "it": cat.get(ck, {}),
+				"meta": Equipment.item_key_meta(String(key)), "worn": false})
+		rows.sort_custom(Equipment.display_sort_less)
+		out.clear()
+		for row in rows:
+			out.append(String((row as Dictionary).get("inv", "")))
+	else:
+		out.sort()
 	return out
 
 ## 아이템 → 가방 탭. 원작 BagPopup 탭 코드와 1:1
@@ -6610,6 +6656,9 @@ func _inventory_item_desc(key: String, item: Dictionary) -> String:
 		#   같은 말을 두 번 하는 자작 줄이었다. 원작 상세창엔 comment 한 줄뿐이다.
 		# 위키 gems.pdf 툴팁 그대로. 전 티어 수치가 data/gems.json 에 들어 있다.
 		parts.append("효과: %s" % Gem.effect_text(gn2, gt2, Data.gems))
+		var gem_desc := Data.gem_description(Gem.description_category(gn2, Data.gems))
+		if gem_desc != "":
+			parts.append(gem_desc)
 	elif String(item.get("category", "")) == "equipment":
 		var mparts: PackedStringArray = []
 		for st: String in (item.get("stat_main", {}) as Dictionary):
@@ -6620,6 +6669,9 @@ func _inventory_item_desc(key: String, item: Dictionary) -> String:
 			parts.append("효과: %s" % String(item["artifact_effect"]))
 		if String(item.get("bonus", "")) != "":
 			parts.append("부가: %s" % String(item["bonus"]))
+		var equip_desc := Data.equipment_description(Equipment.parse_item_key(key))
+		if equip_desc != "":
+			parts.append(equip_desc)
 	if item.has("dragon_id"):
 		parts.append("드래곤 ID: %d" % int(item["dragon_id"]))
 	# ⚠️ `use`(용도) 는 **표시하지 않는다** — 원작 상세창엔 `Item::getComment()` 한 줄뿐이고,

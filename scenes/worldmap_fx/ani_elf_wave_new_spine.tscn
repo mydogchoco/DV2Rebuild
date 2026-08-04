@@ -178,63 +178,63 @@ _data = {
 &"animation": SubResource("Animation_x5f4b")
 }
 
-[node name="Dragon_ani_elf_wave_new_spine_scene" type="Node2D" unique_id=249557103]
+[node name="Dragon_ani_elf_wave_new_spine_scene" type="Node2D" unique_id=1263684082]
 
-[node name="root" type="Node2D" parent="." unique_id=427614488]
+[node name="root" type="Node2D" parent="." unique_id=1656837133]
 
-[node name="leaf01" type="Node2D" parent="root" unique_id=1624919608]
+[node name="leaf01" type="Node2D" parent="root" unique_id=2031729501]
 position = Vector2(-147.76, -237.28)
 rotation = 1.1620402
 
-[node name="w_elf_riverdust_leaf01_frame" type="Node2D" parent="root/leaf01" unique_id=415136140]
+[node name="w_elf_riverdust_leaf01_frame" type="Node2D" parent="root/leaf01" unique_id=1185709411]
 position = Vector2(10.17, 2.36)
 rotation = -1.1620402
 
-[node name="w_elf_riverdust_leaf01" type="Sprite2D" parent="root/leaf01/w_elf_riverdust_leaf01_frame" unique_id=763355678]
+[node name="w_elf_riverdust_leaf01" type="Sprite2D" parent="root/leaf01/w_elf_riverdust_leaf01_frame" unique_id=682502120]
 material = SubResource("CanvasItemMaterial_ujmwm")
 position = Vector2(2.6666667, -1.3333334)
 scale = Vector2(1.3333334, 1.3333334)
 texture = SubResource("AtlasTexture_4y7ak")
 
-[node name="leaf02" type="Node2D" parent="root" unique_id=1822019481]
+[node name="leaf02" type="Node2D" parent="root" unique_id=40085956]
 position = Vector2(-25.41, -235.41)
 rotation = 0.7466518
 
-[node name="w_elf_riverdust_leaf02_frame" type="Node2D" parent="root/leaf02" unique_id=906658635]
+[node name="w_elf_riverdust_leaf02_frame" type="Node2D" parent="root/leaf02" unique_id=1955317354]
 position = Vector2(9.97, -1.59)
 rotation = -0.7466518
 
-[node name="w_elf_riverdust_leaf02" type="Sprite2D" parent="root/leaf02/w_elf_riverdust_leaf02_frame" unique_id=222944198]
+[node name="w_elf_riverdust_leaf02" type="Sprite2D" parent="root/leaf02/w_elf_riverdust_leaf02_frame" unique_id=450483976]
 z_index = 1
 material = SubResource("CanvasItemMaterial_ujmwm")
 position = Vector2(-1.35, -2.6956522)
 scale = Vector2(1.35, 1.3478261)
 texture = SubResource("AtlasTexture_8mbl5")
 
-[node name="leaf03" type="Node2D" parent="root" unique_id=807683766]
+[node name="leaf03" type="Node2D" parent="root" unique_id=1307125396]
 position = Vector2(-282.26, -39.27)
 rotation = -0.6986553
 
-[node name="w_elf_riverdust_leaf03_frame" type="Node2D" parent="root/leaf03" unique_id=1449857290]
+[node name="w_elf_riverdust_leaf03_frame" type="Node2D" parent="root/leaf03" unique_id=1631476532]
 position = Vector2(6.52, -1.32)
 rotation = 0.6986553
 
-[node name="w_elf_riverdust_leaf03" type="Sprite2D" parent="root/leaf03/w_elf_riverdust_leaf03_frame" unique_id=649711312]
+[node name="w_elf_riverdust_leaf03" type="Sprite2D" parent="root/leaf03/w_elf_riverdust_leaf03_frame" unique_id=2089608809]
 z_index = 2
 material = SubResource("CanvasItemMaterial_ujmwm")
 position = Vector2(-1.3333334, 1.3142858)
 scale = Vector2(1.3333334, 1.3142858)
 texture = SubResource("AtlasTexture_c845k")
 
-[node name="w_elf_riverdustbook_frame" type="Node2D" parent="root" unique_id=327215051]
+[node name="w_elf_riverdustbook_frame" type="Node2D" parent="root" unique_id=1037195495]
 position = Vector2(-136.89, -10.95)
 
-[node name="w_elf_riverdustbook" type="Sprite2D" parent="root/w_elf_riverdustbook_frame" unique_id=978626464]
+[node name="w_elf_riverdustbook" type="Sprite2D" parent="root/w_elf_riverdustbook_frame" unique_id=941292742]
 z_index = 3
 material = SubResource("CanvasItemMaterial_ujmwm")
 rotation = 1.5707964
 scale = Vector2(1.3333334, 1.3307692)
 texture = SubResource("AtlasTexture_xvjwt")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=879400080]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=766577733]
 libraries/ = SubResource("AnimationLibrary_lnw1w")

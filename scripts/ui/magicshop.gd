@@ -147,7 +147,7 @@ const POTION_ANIM := {
 }
 var _summon_uid := 0
 var _summon_species := Summon.SPECIES_DEF
-## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, opts}.
+## 이번 지급에서 **공개할 알** 대기열(`EggResultPopup`). 한 칸 = {did, grade, opts}.
 var _egg_reveal: Array = []
 ## 커스텀 종의 표시 이름 — 마스터 데이터에 이름이 없다(플레이어 선택권 드래곤).
 const SPECIES_LABEL := {Summon.SPECIES_DEF: "수비형", Summon.SPECIES_ATK: "공격형"}
@@ -648,22 +648,35 @@ func _redeem_code(code: String) -> Dictionary:
 	return res
 
 ## 코드 보상 1건 지급. 종류는 `build_card_codes.py` 의 CSV `보상종류` 열과 1:1이다.
-##   item(k=아이템키) · gold · dia · egg(k=드래곤id) · dragon(k=드래곤id) · flag(k=해시된 키)
+##   item(k=아이템키) · equipment(k=카탈로그키,r=희귀도) · gold · dia · egg(k=드래곤id,g=강화등급)
+##   · dragon(k=드래곤id) · flag(k=해시된 키)
 func _grant_card_reward(r: Dictionary) -> void:
 	var n := maxi(1, int(r.get("n", 1)))
 	match String(r.get("t", "")):
 		"item":
 			UserDB.add_item(String(r.get("k", "")), n)
+		"equipment":
+			# CSV의 `장비명[에픽]`처럼 희귀도가 명시된 지급. 등급에 따른 옵션 개수·수치 롤은
+			# 다른 장비 획득과 같은 Equipment 규칙을 쓴다.
+			var rarity := clampi(int(r.get("r", 0)), 0, 5)
+			var rng := RandomNumberGenerator.new()
+			rng.randomize()
+			for i in n:
+				var meta := {"rarity": rarity,
+					"options": Equipment.roll_options(rarity, rng, Data.equipment)}
+				UserDB.add_item(Equipment.item_key(String(r.get("k", "")), meta), 1)
 		"gold":
 			UserDB.add_currency("gold", n)
 		"dia":
 			UserDB.add_currency("diamond", n)
 		"egg":
 			# 뽑기 알과 같은 가상 인벤 키 — 가방에서 개봉한다([[dv2-gacha-egg-mechanic]]).
-			UserDB.add_item("egg:%d" % int(r.get("k", 0)), n)
+			var did := int(r.get("k", 0))
+			var grade := maxi(0, int(r.get("g", 0)))
+			UserDB.add_item(EggItem.key("egg:%d" % did, grade), n)
 			# 알은 토스트로 흘리지 않고 뽑기 알 개봉과 **같은 공개 연출**을 준다(사용자 요청).
 			for i in n:
-				_egg_reveal.append({"did": int(r.get("k", 0)), "opts": {}})
+				_egg_reveal.append({"did": did, "grade": grade, "opts": {}})
 		"dragon":
 			for i in n:
 				UserDB.add_dragon(int(r.get("k", 0)))
@@ -676,7 +689,7 @@ func _grant_card_reward(r: Dictionary) -> void:
 ## 여러 개면 확인할 때마다 하나씩 이어서 보여 주고, 마지막이 닫히면 화면을 갱신한다.
 ## 알이 없으면 아무것도 하지 않고 곧바로 갱신한다(호출부가 분기하지 않게).
 ##
-## `_egg_reveal` 한 칸 = `{"did": 드래곤id, "opts": {name/art_id/element}}`.
+## `_egg_reveal` 한 칸 = `{"did": 드래곤id, "grade": 강화등급, "opts": {name/art_id/element}}`.
 ## opts 는 **마스터에 값이 없는 커스텀 종(600/700)** 용이다 — 이름·속성·그림을 재료에게서
 ## 물려받으므로(`Summon.plan` inherit) 소환이 채워 넣는다. 일반 종은 비워 두면 된다.
 func _reveal_eggs(msg_fmt: String) -> void:
@@ -686,12 +699,17 @@ func _reveal_eggs(msg_fmt: String) -> void:
 	var e: Dictionary = _egg_reveal.pop_front()
 	var did := int(e.get("did", 0))
 	var opts: Dictionary = e.get("opts", {})
+	var grade := maxi(0, int(e.get("grade", 0)))
 	# 문구에 들어갈 이름 — 이름표와 같은 순서로 떨어진다(빈 이름이면 "%s의" 가 뻥 뚫린다).
 	var nm := String(opts.get("name", ""))
 	if nm == "":
 		var mn = Data.get_dragon(did).get("name")
 		nm = String(mn) if typeof(mn) == TYPE_STRING and String(mn) != "" else "새로운 알"
-	var pop := EggResultPopup.open(self, did, "", msg_fmt % nm, opts)
+	var shown_name := "+%d %s" % [grade, nm] if grade > 0 else nm
+	var shown_opts := opts.duplicate()
+	if grade > 0:
+		shown_opts["name"] = shown_name
+	var pop := EggResultPopup.open(self, did, "", msg_fmt % shown_name, shown_opts)
 	pop.closed.connect(func(): _reveal_eggs(msg_fmt))
 
 ## 원작 `DrinkCraftLayer`(드링크 강화) — 물약에 **정기**를 넣어 다음 단계로 올린다.

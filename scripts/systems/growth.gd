@@ -10,10 +10,10 @@ const BASE_GRADE := 7.0                          # 기준선표 = grade 7.0 (§K
 ## 근거(서로 독립된 두 경로가 같은 임계값을 쓴다):
 ##   · `Dragon::getImagePathSpineJson` (Dragon.c:9285/9298) — `level < 10` baby / `< 0x19(25)` child / else adult
 ##   · 초상 경로 `box_baby|box_child|box_adult` (Dragon.c:8235/8248/8264) — 같은 10 / 0x19 분기
-## (두 경로 모두 그 위에 `< 0x2d(45)` 로 성체↔각성체 스파인을 한 번 더 가른다 = level_cap 45/50과 일치)
+## (두 경로 모두 그 위에 `< 0x2d(45)` 로 성체↔오라성체 표시를 한 번 더 가른다.)
 const STAGE_BREAKS := {"baby": 9, "child": 24}   # <=9 baby, <=24 child, else adult
 
-## **오라성체** 임계 레벨 = 45(= 일반 만렙). 사용자 확정(2026-07-30) + 클라 근거 일치:
+## **오라성체** 임계 레벨 = 45. 사용자 확정(2026-07-30) + 클라 근거 일치:
 ##   · `Dragon.c:8265` 초상 경로가 성체 위에 `level < 0x2d(45)` 분기를 한 번 더 둔다
 ##     (45 미만 = `box_adult` / 45+ 는 플래그에 따라 갈린다) — `getImagePathSpineJson` 도 같다.
 ##   · `data/items.json` 의 회복물약 3단 `use`(사용자 기입)가 레벨대를 직접 적는다:
@@ -26,9 +26,11 @@ const AURA_ADULT_LEVEL := 45
 static func is_aura_adult(level: int) -> bool:
 	return level >= AURA_ADULT_LEVEL
 
-## 레벨 상한: 일반 45, 각성 시 50 (§B).
-static func level_cap(awakened := false) -> int:
-	return 50 if awakened else 45
+## 레벨 상한은 각성 여부와 무관하게 50. 원작 각성 조건도 Lv.50이며, 각성 전후
+## 레퍼런스 카드가 모두 Lv.50이다(`data/awaken.json::_level_cap_note`).
+## `awakened` 인자는 기존 호출부 호환을 위해 유지한다.
+static func level_cap(_awakened := false) -> int:
+	return 50
 
 ## 레벨 → 성장 단계(에셋 단계 키와 동일: baby/child/adult).
 static func stage_for_level(level: int) -> String:
@@ -37,6 +39,14 @@ static func stage_for_level(level: int) -> String:
 	if level <= STAGE_BREAKS["child"]:
 		return "child"
 	return "adult"
+
+## 원작 Dragon::getImagePathSpineJson / getImagePathBox의 각성 분기.
+## 스파인 파일 접미사는 `e`, box 아틀라스 프레임 접미사는 `evolution`으로 서로 다르다.
+static func spine_stage(dragon: Dictionary) -> String:
+	return "e" if bool(dragon.get("awakened", false)) else stage_for_level(int(dragon.get("level", 1)))
+
+static func portrait_stage(dragon: Dictionary) -> String:
+	return "evolution" if bool(dragon.get("awakened", false)) else stage_for_level(int(dragon.get("level", 1)))
 
 ## (전투유형 × 티어) 기준선 base/growth 행을 표에서 룩업. 없으면 {}.
 static func _tier_row(dragon_def: Dictionary, stat_table: Dictionary) -> Dictionary:

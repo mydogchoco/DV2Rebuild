@@ -650,16 +650,6 @@
     },
     {
      "id": 3,
-     "name": "숲 고릴라",
-     "level": 1,
-     "element": "none",
-     "hp_max": 78,
-     "att": 22,
-     "def": 12,
-     "boss": false
-    },
-    {
-     "id": 4,
      "name": "닌자 사슴",
      "level": 1,
      "element": "none",
@@ -670,6 +660,16 @@
      "skills": [
       100
      ]
+    },
+    {
+     "id": 4,
+     "name": "숲 고릴라",
+     "level": 1,
+     "element": "none",
+     "hp_max": 78,
+     "att": 22,
+     "def": 12,
+     "boss": false
     },
     {
      "id": 5,
@@ -1872,6 +1872,7 @@
     "enemies": [
      {
       "id": 170,
+      "asset_id": 171,
       "name": "키보 (Kibo)",
       "level": 50,
       "element": "wind",
@@ -2110,6 +2111,7 @@
     "enemies": [
      {
       "id": 171,
+      "asset_id": 170,
       "name": "투바로 (Tubaro)",
       "level": 50,
       "element": "chaos",
@@ -4245,7 +4247,7 @@
     "power": 2
    },
    "hero_stat_mult": 1.0,
-   "_hero_stat_mult_basis": "🟦 사용자 확정 2026-07-31: **검은 섬만 영웅과 일반의 적 스탯이 같다** — 전역 `_variant_rules.hero_stat_mult`(×5)를 여기서 1.0 으로 덮어쓴다. 이 던전의 난이도는 위 `scale_by_party_count`(인원²)가 담당하고, 둘을 겹치면 영웅 3마리에서 ×45(체 543→24,435)가 된다. 영웅의 다른 차이(`skills_hero` 철갑 방패 · `drops` 아니마 15~20)는 위키 확정이라 그대로 둔다.",
+   "_hero_stat_mult_basis": "🟦 사용자 확정 2026-07-31: **검은 섬만 영웅과 일반의 적 스탯이 같다** — 전역 `_variant_rules.hero_stat_mult`(체력×3·공격/방어×1.5, 원작 영상 실측 2026-08-02)를 여기서 숫자 1.0으로 덮어써 세 스탯 모두 ×1로 만든다. 이 던전의 난이도는 위 `scale_by_party_count`(인원²)가 담당한다. 영웅의 다른 차이(`skills_hero` 철갑 방패 · `drops` 아니마 15~20)는 위키 확정이라 그대로 둔다.",
    "_scale_basis": "🟦 **사용자 확정 2026-07-30**: 기본 스탯(체 543 / 공 180 / 방 130) × (출전 드래곤 수)². 1마리=×1 · 2마리=×4 · 3마리=×9 ⇒ 위키 §4.1 의 '여러 마리를 쓰면 난이도가 급등' · '한 마리만 쓰는 하메' 서술과 일치한다. ⚠️ 종전의 `scale_to_party`(파티 평균 스탯 × 자작 계수)는 위키 서술('드래곤의 스펙에 의해 스탯이 결정')을 우리가 파티 **스탯** 연동으로 해석한 자작이었다 — 실제 규칙은 **마리 수** 제곱이다. 구현 = `battle.gd::_apply_party_count_scaling`.",
    "_skills_basis": "🟦 사용자 확정 2026-07-30: **영웅 난이도에서만** 철갑 방패(skills.json id 11)를 쓴다. 위키 §4.1 표기도 '철갑 방패[영웅]' 이다 ⇒ `skills_hero` = 영웅 진입(`hero` 파라미터)일 때만 실리는 스킬 목록.",
    "once_per_day": true,
@@ -4418,10 +4420,14 @@
  "_variant_basis": "유타칸 밤(501~514)·카데스(601~614) 편성 = scripts/tools/build_yutakan_variants.py 가 기입. 각 스테이지의 night/kades 블록 참조. 변형이 있는 필드는 1~14 중 6·8 을 뺀 12종뿐이다.",
  "_monster_skills_basis": "몬스터 보유 스킬 = 위키 dungeon_*.pdf(data/monsters.json) 를 이름으로 조인해 skills.json 의 스킬 id 로 옮긴 것. 원작 근거 = BattleMonster::setReadySkill/callReadySkill/setAnimatedReadySkill + FightManager::getActorSkillNumber(진영 무관). 생성 도구 = scripts/tools/build_monster_skills.py. # ASSUMPTION: 몬스터 스킬 **레벨**은 원작 표가 서버와 함께 유실됐다 → 전투에서 1로 쓴다(scripts/ui/battle.gd `_enemy_skills`).",
  "_variant_rules": {
-  "hero_stat_mult": 5.0,
-  "_hero_stat_mult_basis": "🟦 사용자 확정 2026-07-31: **영웅 난이도 적 스탯 = 일반 난이도의 5배**. 원작 영웅 배율은 서버 소유(info_field 의 난이도별 몬스터 레코드)라 유실됐고 위키에도 수치가 없다 → 밸런스 노브. 적용 = battle.gd 가 hp/att/def 에 곱한다(레벨은 그대로 — 위키가 영웅에서 레벨이 오른다고 적지 않는다). 파티 인원 배수(scale_by_party_count)·정예(×1.5)·카데스 배수는 **이 값 위에** 다시 곱해진다.",
+  "hero_stat_mult": {
+   "hp": 3.0,
+   "att": 1.5,
+   "def": 1.5
+  },
+  "_hero_stat_mult_basis": "🟦 사용자 원작 영상 실측 2026-08-02: 영웅 난이도 적은 일반 대비 **체력만 3배, 공격력·방어력은 1.5배**. 적용 = battle.gd 가 hp/att/def 에 각각 곱한다. 레벨은 그대로이며 파티 인원 배수(scale_by_party_count)·정예·카데스 배수는 이 값 위에 다시 곱해진다.",
   "night_min_level": 50,
-  "_night_min_level_basis": "원작 문자열 <AdventureNightMinLv>('선택한 드래곤의 레벨이 부족하여 진입할 수 없습니다')의 기준값. 위키 dungeon_1.pdf 목차 §1.2.1~1.2.12 가 밤 던전 12종을 **전부 Lv.50** 으로 적고 (낮은 Lv.1~45), 사용자도 '밤은 레벨제한 일괄 50레벨'로 확정했다(2026-07-30). 참고: 일반 레벨상한 45 · 각성 50(Growth.level_cap) 이므로 밤은 사실상 각성 드래곤 전용이다."
+  "_night_min_level_basis": "원작 문자열 <AdventureNightMinLv>('선택한 드래곤의 레벨이 부족하여 진입할 수 없습니다')의 기준값. 위키 dungeon_1.pdf 목차 §1.2.1~1.2.12 가 밤 던전 12종을 **전부 Lv.50** 으로 적고 (낮은 Lv.1~45), 사용자도 '밤은 레벨제한 일괄 50레벨'로 확정했다(2026-07-30). 참고: 드래곤 최대 레벨은 각성 전후 모두 50이며, 밤 입장 조건 자체가 각성을 요구하지는 않는다."
  },
  "_drops_basis": "탐험 특수 드랍표. `drops` = {난이도: [항목]} — normal/hero/night/kades 로 **풀이 나뉜다** (사용자 확정 2026-07-31). 원작은 이 표가 서버 소유였다(initJsonReward 에 확률이 없다) → 사용자가 docs/input/sheets/adventure_drop_pool.csv 에 채우고 scripts/tools/build_adventure_drops.py --import 로 반영한다. 그 밖의 탐험 드랍(알/일반젬/먹이/속성정기/장비)은 표가 아니라 규칙이다 — scripts/systems/drops.gd 화이트리스트 참조."
 }
