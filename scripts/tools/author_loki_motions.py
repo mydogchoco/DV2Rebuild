@@ -26,7 +26,7 @@ import json, math, os, sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(REPO)
 DIR = "assets/converted/dragon_800"
-STAGES = ["baby", "child", "adult", "aura", "e"]
+STAGES = ["baby", "child", "adult", "aura", "e", "advent"]
 
 D = math.radians          # 도 → 라디안 (Godot 회전값 단위)
 
@@ -61,7 +61,8 @@ BODY_PREF = ("ctr", "all", "bone", "body1")
 FX_BONE = ("portal", "smoke", "feather", "effect", "shadow", "bird")
 
 ## 원본 스켈레톤 높이 — 안무 진폭을 크기에 비례시킨다(포팅 카드 §1).
-SKEL_H = {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 798.0}
+SKEL_H = {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 798.0,
+          "advent": 491.0}
 
 
 def _body_bone(data: dict) -> str | None:
@@ -107,6 +108,49 @@ def _slot_hold(data: dict) -> dict:
         if held:
             out[sprite] = held
     return out
+
+
+# ── 눈 감김 ──────────────────────────────────────────────────────────────────
+#
+# 🟦 사용자 확정 2026-08-04: **저작 모션(`love`/`attack`)은 눈을 감은 얼굴로 간다.**
+# 원본 아틀라스의 eye 리전을 여섯 단계 나란히 뽑아 확인한 규약(자작 그림 아님):
+#   `eye1` = 뜬 눈 · `eye2` = 반쯤 감은 눈 · `eye3` = 완전히 감은 눈(속눈썹 호)
+#   단 child/adult 는 눈이 **두 개**라 슬롯이 갈린다 — 가까운 눈 슬롯의 감은 변형이 `eye4`,
+#   `eye2` 슬롯은 먼 쪽 눈(항상 호 한 줄)이라 건드리지 않는다.
+# 원본 `wait` 이 이 파츠들로 이미 눈을 깜빡인다(adult 0.93s·advent 1.10s 지점) → 배선 검증됨.
+#
+# ⚠️ 원본 `att` 포즈는 눈을 **뜨고** 있다(adult/aura/advent 전부 `eye1`). 즉 이건 원작 재현이
+#    아니라 **의도적 변경**이다. 되돌리려면 `main()` 의 `close_eyes` 두 줄만 빼면 된다.
+#
+# 값 = (뜬 눈 스프라이트, 감은 눈 스프라이트). 이름은 `spine_export` 규약대로
+# 다중 attachment 슬롯이면 `<슬롯>__<attachment>`.
+EYE = {
+    "baby":   ("eye1__eye1", "eye1__eye3"),
+    "child":  ("eye1__eye1", "eye1__eye4"),
+    "adult":  ("eye1__eye1", "eye1__eye4"),
+    "aura":   ("eye1__eye1", "eye1__eye3"),
+    "advent": ("eye1__eye1", "eye1__eye3"),
+    # 288 은 눈 변형이 attachment 가 아니라 **슬롯 3개**로 갈려 있다(전부 본 `eye1` 에 붙음).
+    # 슬롯 이름 `eye1` 이 본 이름과 충돌해 `spine_export` 가 `_slot` 접미사를 붙였다.
+    "e":      ("eye1_slot", "eye3"),
+}
+
+
+def close_eyes(anim: dict, stage: str) -> None:
+    """저작 모션 내내 눈을 감긴다 — **모션은 그대로 두고 눈 슬롯만** 바꾼다.
+
+    표시(visible)와 색(modulate)을 **둘 다** 잡아야 한다. 288 의 감은 눈 슬롯은 셋업 색이
+    alpha 0 이라(원본이 `att`/`wait` 타임라인으로만 켰다) visible 만 켜면 투명한 채로 있다.
+    """
+    pair = EYE.get(stage)
+    if pair is None:
+        return
+    opened, closed = pair
+    st = anim.setdefault("slot_tracks", {})
+    st[opened] = {"visible": [[0.0, False, "S"]],
+                  "modulate": [[0.0, [0.0, 0.0, 0.0, 0.0], "S"]]}
+    st[closed] = {"visible": [[0.0, True, "S"]],
+                  "modulate": [[0.0, [1.0, 1.0, 1.0, 1.0], "S"]]}
 
 
 def make_attack_from_pose(data: dict, pose: dict) -> dict:
@@ -295,6 +339,12 @@ def main() -> None:
         elif atk is None:
             anims["attack"] = make_attack_288(data, h)
             added.append("attack합성(%d본)" % len(anims["attack"]["tracks"]))
+
+        # 🟦 저작 모션은 눈을 감은 얼굴로 (원본 `att` 는 뜬 눈 — 의도적 변경, `EYE` 주석 참조)
+        for an in ("love", "attack"):
+            if an in anims:
+                close_eyes(anims[an], stage)
+        added.append("눈감김(%s)" % (EYE.get(stage, ("?", "-"))[1]))
 
         print("[%-5s] %s  기준본=%s" % (stage, " + ".join(added), _body_bone(data)))
         if not dry:

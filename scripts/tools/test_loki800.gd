@@ -11,7 +11,10 @@ extends SceneTree
 ##   ⑤ 이펙트 30프레임 + **트림 오프셋**이 실려 있나(전부 0 이면 재생 중 중심이 흔들린다).
 ##   ⑥ 데이터 — 드래곤 레코드·각성스킬 800(트릭스터)·배정표.
 const DID := 800
-const STAGES := ["baby", "child", "adult", "aura", "e"]
+## `advent`(강림) 은 성장 단계가 아니라 **레이드용 일러**다(`계획 및 아이디어.txt:2`).
+## 우리 레이드 화면이 아직 없어 읽는 곳은 없지만, 구워 둔 것이 성장 단계와 같은 규약
+## (텍스처 물림 + wait/love/attack)을 지키는지는 여기서 같이 못박는다.
+const STAGES := ["baby", "child", "adult", "aura", "e", "advent"]
 
 func _init() -> void:
 	var fails := 0
@@ -137,6 +140,54 @@ func _init() -> void:
 	fails += _eq("다른 종은 오라 전용 씬 없음(경로 불변)", other_aura, 0)
 	fails += _true("로키 오라 초상 보유", por.has("dragon_dragon_%d_box_aura" % DID))
 
+	# ── ⑧ 저작 모션은 눈을 감는다 (🟦 사용자 확정 2026-08-04) ──────────────────
+	# `love`/`attack` 은 감은 눈 파츠로 간다. 원본 `wait` 은 깜빡임이라 **뜬 눈이 정상**이고,
+	# 원본 `att` 포즈도 눈을 뜨고 있다 — 즉 이건 의도적 변경이라 여기서 고정해 둔다.
+	# 눈 파츠 이름 규약(원본 아틀라스 실측): eye1=뜬 눈 · eye2=반쯤 · eye3(child/adult=eye4)=감은 눈.
+	var eyes := {
+		"baby": ["eye1__eye1", "eye1__eye3"],
+		"child": ["eye1__eye1", "eye1__eye4"],
+		"adult": ["eye1__eye1", "eye1__eye4"],
+		"aura": ["eye1__eye1", "eye1__eye3"],
+		"advent": ["eye1__eye1", "eye1__eye3"],
+		"e": ["eye1_slot", "eye3"],
+	}
+	for st in STAGES:
+		var p := "res://scenes/dragons/dragon_%d_%s.tscn" % [DID, st]
+		if not ResourceLoader.exists(p):
+			continue
+		var pair: Array = eyes[st]
+		for an in ["love", "attack"]:
+			var inst := (load(p) as PackedScene).instantiate()
+			var ap: AnimationPlayer = inst.get_node_or_null("AnimationPlayer")
+			if ap == null or not ap.has_animation(an):
+				inst.queue_free()
+				continue
+			# 애니를 실제로 재생해 슬롯 트랙이 적용된 뒤의 상태를 본다.
+			ap.play(an)
+			ap.advance(ap.get_animation(an).length * 0.5)
+			var opened := _find(inst, String(pair[0]))
+			var closed := _find(inst, String(pair[1]))
+			fails += _true("%s/%s 뜬 눈 스프라이트 존재" % [st, an], opened != null)
+			fails += _true("%s/%s 감은 눈 스프라이트 존재" % [st, an], closed != null)
+			if opened != null:
+				fails += _true("%s/%s 뜬 눈 꺼짐" % [st, an], not opened.visible)
+			if closed != null:
+				fails += _true("%s/%s 감은 눈 켜짐" % [st, an], closed.visible)
+				# 288 의 감은 눈은 셋업 색이 alpha 0 이라 visible 만으론 안 보인다.
+				fails += _true("%s/%s 감은 눈 불투명" % [st, an], closed.modulate.a > 0.9)
+			inst.queue_free()
+		# `wait` 은 원본 깜빡임 그대로 — t=0 에서 눈을 뜨고 있어야 한다(회귀 감시).
+		var iw := (load(p) as PackedScene).instantiate()
+		var apw: AnimationPlayer = iw.get_node_or_null("AnimationPlayer")
+		if apw != null and apw.has_animation("wait"):
+			apw.play("wait")
+			apw.advance(0.0)
+			var ow := _find(iw, String(pair[0]))
+			if ow != null:
+				fails += _true("%s wait 은 원본대로 눈 뜸(t=0)" % st, ow.visible)
+		iw.queue_free()
+
 	print("\n=== test_loki800: %s ===" % ("PASS" if fails == 0 else "FAIL(%d)" % fails))
 	quit(1 if fails > 0 else 0)
 
@@ -153,6 +204,17 @@ func _count_textured(n: Node) -> int:
 	for ch in n.get_children():
 		c += _count_textured(ch)
 	return c
+
+
+## 이름으로 CanvasItem 하나 찾기(스프라이트는 본 노드 밑에 흩어져 있다).
+func _find(n: Node, name: String) -> CanvasItem:
+	if n.name == name and n is CanvasItem:
+		return n as CanvasItem
+	for ch in n.get_children():
+		var r := _find(ch, name)
+		if r != null:
+			return r
+	return null
 
 
 func _load(path: String) -> Dictionary:
