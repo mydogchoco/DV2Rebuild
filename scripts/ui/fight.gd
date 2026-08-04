@@ -352,16 +352,22 @@ func _apply(ev: Dictionary) -> void:
 		_set_bar(v)
 		_float_text(v["pos"], "+%d" % heal, Color(0.5, 1.0, 0.5))
 	if bool(ev.get("dead", false)) and not bool(v["dead"]):
-		# 원작 사망 모션 `down` 을 먼저 틀고(우리 변환본에 실재) 그 다음 사라진다.
-		_play_anim(v, "down")
+		# 원작 사망 = `deadTypeNormalDamage` / `deadTypeBigDamage` 가 **"damaged" → "down"**
+		# 두 단계로 낸다. `damaged` 가 여기(사망 도입부)에만 쓰이는 게 원작 사양이다.
+		var d0 := _play_anim(v, "damaged")
+		var gen0 := _gen
+		get_tree().create_timer(maxf(0.15, d0)).timeout.connect(func() -> void:
+			if gen0 == _gen:
+				_play_anim(v, "down"))
 		v["dead"] = true
 		# 스파인만 지우면 **빈 HP 바와 이름표가 허공에 남는다**(2026-08-04 스크린샷에서 확인).
 		# 셋을 함께 없앤다. down 을 볼 수 있게 조금 늦춘다.
 		for k in ["node", "barh", "name"]:
 			var n = v.get(k)
 			if n != null and is_instance_valid(n):
+				# damaged → down 두 단계를 다 보여 준 뒤에 사라진다.
 				var tw := create_tween()
-				tw.tween_interval(0.55)
+				tw.tween_interval(1.4)
 				tw.tween_property(n, "modulate:a", 0.0, 0.45)
 	_log_line(ev, t, dfn, dmg, heal)
 
@@ -416,9 +422,25 @@ func _set_bar(v: Dictionary) -> void:
 
 # ---------- 스파인 안무(원작 FightScene / MakeInterface) ----------
 #
-# 원작 시퀀스(FightScene::onClickDebug @00f8b388 이 그대로 늘어놓는다):
-#     setAnimation(X) → Delay(getDuration(X) + 0.5) → setAnimation("wait") → Delay(0.5) → …
-# 즉 **애니를 틀고 그 길이 + 0.5초 뒤 대기 모션으로 돌아온다.** 우리도 같은 규칙을 쓴다.
+# 🔴 2026-08-04 정정 (사용자 지적: "일반 피격엔 모션이 없었다") — **맞았다.**
+#   종전엔 `FightScene::onClickDebug` 의 시퀀스를 안무로 읽었는데, 그건 애니를 차례로
+#   돌려보는 **디버그 뷰어**다. 근거: 거기서 쓰는 `MakeInterface::runSpineWithAnimationName`
+#   의 호출자가 전 디컴프에서 **onClickDebug 뿐**이다(다른 호출자 0건).
+#
+# 진짜 어휘는 `MakeInterface` 에서 전투 중 애니를 바꾸는 **세 곳뿐**이다
+# (`translateSpineAnimationName` 호출 지점 전수):
+#     makeDragonLayer        @0105072c → "wait"    (루프, 상시)
+#     castSkill              @0108a924 → "attack"  → 끝나면 "wait"
+#     deadTypeBigDamage      @…        → "damaged" → "down"
+#     deadTypeNormalDamage   @…        → "damaged" → "down"
+#   (패킹 문자열 디코드: 0x0c+"attack" · 0x7469617708="wait" ·
+#    0x646567616d61640e="damaged" · 0x6e776f6408="down")
+#
+# ⇒ **일반 피격에는 애니가 없다.** `damaged` 는 피격 반응이 아니라 **사망 도입부**다.
+#   `critical`/`ultimate1`/`ultimate2` 는 콜로세움 경로에서 트리거되지 않는다
+#   (변환본엔 있지만 원작 PvP 가 안 쓴다 — 안 쓰는 게 원작 정합이다).
+#
+# 규칙: 애니를 틀고 **그 길이 + 0.5초** 뒤 대기 모션으로 돌아온다.
 #
 # 접근 이동 = `MakeInterface::setAction`(action @01062fd4 머리) —
 #     Delay → [ScaleTo(1.5) + MoveBy(offset)] → Delay(hold) → [ScaleTo(1.0) + MoveBy(-offset)]
@@ -498,19 +520,13 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 	var atk: Dictionary = _views.get(atk_tag, {})
 	var dfn: Dictionary = _views.get(dfn_tag, {})
 	if not atk.is_empty() and not bool(atk.get("dead", false)):
-		# 원작 애니 선택: 각성기 = ultimate1 · 크리티컬 = critical · 그 외 = attack.
-		var name := "attack"
-		if t == "awaken":
-			name = "ultimate1"
-		elif bool(ev.get("crit", false)):
-			name = "critical"
-		var dur := _play_anim(atk, name)
-		# 각성기는 제자리에서 낸다(원작도 궁극기는 접근 이동이 없다 — UltimateLayer 가 화면을 덮는다).
+		# 원작 `castSkill` 은 종류를 가리지 않고 **"attack" 하나만** 튼다
+		# (크리티컬·각성기용 별도 애니를 콜로세움 경로에서 부르지 않는다).
+		var dur := _play_anim(atk, "attack")
+		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
 			_approach(atk, bool(atk.get("mine", false)), dur)
-	if not dfn.is_empty() and int(ev.get("damage", 0)) > 0 \
-			and not bool(ev.get("miss", false)):
-		_play_anim(dfn, "damaged")
+	# ⛔ 피격 모션 없음 — 원작에 트리거가 없다(위 주석). 피격은 데미지 숫자·HP 바로만 보인다.
 
 
 func _float_text(pos: Vector2, text: String, col: Color) -> void:
