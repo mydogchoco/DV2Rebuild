@@ -26,12 +26,14 @@ func _ready() -> void:
 	var wait := 3.0
 	var stage := "1"
 	var extra := "0"          # 모드별 두 번째 인자(--extra=)
+	var guard := 0            # --guard=<연승> : 그 문턱의 연승방지봇을 상대로(fight 전용)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="): shot = a.substr(7)
 		elif a.begins_with("--out="): out = a.substr(6)
 		elif a.begins_with("--wait="): wait = float(a.substr(7))
 		elif a.begins_with("--stage="): stage = a.substr(8)
 		elif a.begins_with("--extra="): extra = a.substr(8)
+		elif a.begins_with("--guard="): guard = int(a.substr(8))
 
 	# ⚠️ 오토로드 _ready 는 main.gd 보다 먼저 돈다 — 닉네임을 여기서 미리 넣어야
 	#    main.gd 의 "최초 1회 강제 입력" 팝업이 뜨지 않는다. begin_batch = 디스크 미기록.
@@ -127,6 +129,16 @@ func _ready() -> void:
 			for i in 20: await get_tree().process_frame
 			Scenes.goto("colosseum", {})
 			for i in 20: await get_tree().process_frame
+		"matching":
+			# 매칭 대기 연출(원작 MatchingLayer + LoadingLayer(3)) 검수.
+			# 실제 진입은 편성창 확인 뒤라 캡처가 어렵다 — 로비 위에 직접 띄운다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 20: await get_tree().process_frame
+			var lobby := Scenes.current_scene()
+			if lobby != null:
+				MatchingWait.open(lobby, 30.0, Callable())
 		"fight":
 			# 콜로세움 대전 씬(원작 FightScene) 검수 — 봇 상대를 하나 굴려 바로 붙인다.
 			Scenes.goto("worldmap", {"region": "yutakan"})
@@ -135,7 +147,17 @@ func _ready() -> void:
 			for i in 10: await get_tree().process_frame
 			var frng := RandomNumberGenerator.new()
 			frng.seed = 20260804
-			var foe := Colosseum.roll_match(extra if extra != "0" else "team", frng)
+			var fmode := extra if extra != "0" else "team"
+			# `--guard=<연승>` = 그 문턱의 **연승방지봇**을 상대로 세운다(라온/누리/선대군).
+			# 시트(docs/input/sheets/colosseum_guard.csv)로 저작한 상대를 눈으로 검수하는 통로 —
+			# 실제로 만나려면 연승을 그만큼 쌓아야 해서 캡처가 불가능하다.
+			var foe: Dictionary = {}
+			if guard > 0:
+				var gg := Colosseum.guard_for(guard)
+				if not gg.is_empty():
+					foe = Colosseum.make_guard(gg, fmode, frng)
+			if foe.is_empty():
+				foe = Colosseum.roll_match(fmode, frng)
 			# ⚠️ 콜로세움은 레벨 25 이상(=성체)만 나간다. 공격 모션이 성체에만 있어서
 			#   저레벨 개체를 넣으면 아무 모션도 안 나온다(사용자 지적 2026-08-04).
 			var fparty: Array = Colosseum.eligible_uids()

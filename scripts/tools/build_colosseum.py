@@ -888,6 +888,11 @@ def build() -> dict:
         # 이게 곧 성체 조건이기도 하다: 공격/피격 모션이 **성체 스파인에만** 있다
         # (실측 2026-08-04 — adult 134/134 vs child·baby 각 1/133).
         "entry": {"min_level": 25,
+                  # 🟦 매칭 대기 시간(초) — 사용자 확정 2026-08-05.
+                  #   원작은 서버 응답까지 걸린 시간이라 고정값이 아니었다(`MatchingLayer` 가
+                  #   `repeatRequest_VS*` 를 반복하며 기다린다). 우리는 상대가 이미 정해져
+                  #   있으므로 연출 길이만 고정한다.
+                  "matching_seconds": 3,
                   "_source": "stringsData_KR.xml ColosseumInError",
                   "_cut": "테이머 자격증 이벤트(서버 이벤트)"},
         # 원작 문자열 번들에서 채굴한 **규칙 사실**들. 아직 미구현인 것도 있으나
@@ -952,6 +957,9 @@ def build() -> dict:
             # BMFont 로 찍고 바로 오른쪽에 `FightDragon::getLevel()` 을 "%d" 로 붙인다
             # (`<ColosseumLevel>레벨</ColosseumLevel>`). 이름이 아니다 — 2026-08-05 정정.
             "level": "레벨",
+            # 매칭 대기 화면 문구 — 원작 `MatchingLayer::init` @00fae280 이
+            # `LoadingLayer::initString` 으로 넘긴다. 원문 그대로.
+            "matching": "상대를 찾는 중",
             # 그 밖의 확정 문구
             "no_stamina": "피로도가 부족하여 전투에 참여가 불가능합니다.",
             "no_dragon": "전투에 참여가 가능한 드래곤이 없습니다.",

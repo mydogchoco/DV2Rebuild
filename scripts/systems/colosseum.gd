@@ -982,3 +982,8 @@ static func battle_bgm(rng: RandomNumberGenerator = null) -> String:
 	if list.is_empty():
 		return "bg_colosseum_battle_2"
 	return String(list[int((rng.randi() if rng != null else randi()) % list.size())])
+
+
+## 매칭 대기 연출 길이(초). 🟦 사용자 확정 2026-08-05 — 원작은 서버 응답 대기라 고정이 아니었다.
+static func matching_seconds() -> float:
+	return float(_cfg().get("entry", {}).get("matching_seconds", 3))
