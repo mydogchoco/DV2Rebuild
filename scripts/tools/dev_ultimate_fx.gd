@@ -291,7 +291,8 @@ func _survey(el: String) -> Dictionary:
 ## 갈색 원으로만 나온다(2026-08-05 캡처 확인). 색으로 구분하고 글자는 태그로 쓴다.
 ##   [이식] = 원작 `run<El>` 안무를 옮겼다   [골격] = 링은 원작, 본체는 임시 자리표시자
 ## 판정 근거는 **`UltimateFx` 가 실제로 어느 분기를 타는가**다(추측이 아니다).
-const PORTED := ["fire"]     # UltimateFx.play() 의 match 에 분기가 있는 속성
+const PORTED := ["fire", "earth", "aqua", "wind", "dark", "light", "holy", "chaos", "shadow"]
+## ↑ UltimateFx.play() 의 match 에 **분기가 있는** 속성. 손으로 적지 말고 그 match 와 맞출 것.
 
 func _verdict(el: String, s: Dictionary) -> Array:
 	var dur := float(UltimateFx.DURATION.get(el, 0.0))

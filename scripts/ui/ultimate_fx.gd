@@ -15,8 +15,8 @@ extends RefCounted
 ## ## 이 파일의 이식 상태
 ##   ✅ 바닥 링 4장 구성 + 링 안무 3계열(공통 / fire / shadow)  ← `init<El>_C` + `run<El>_C`
 ##   ✅ `_C` 속성별 추가분(dark shade · shadow twist · holy 날개 스파인 · shadow 본체 스파인)
-##   ✅ fire 20단 폭발 캐스케이드                                ← `initFire` + `runFire`
-##   ⚪ 나머지 8속성의 `run<El>` 본체 — 골격(최장 프레임 계열)으로 임시 재생 중
+##   ✅ **9속성 전부** `run<El>` 안무 이식 — 각 함수 머리에 근거를 적었다
+##   ⚪ `damage<El>_C` 의 피격 반응(화면 흔들림·색 변화)은 호출측(fight.gd)이 낸다
 ##
 ## ⚠️ 연출을 고칠 때는 여기만 고친다. 확인 창(`scenes/dev_ultimate_fx.tscn`)이 같은 코드를 튼다.
 
@@ -146,11 +146,19 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
 	_build_ring(host, el, at, s, sp, mat)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
 	match el:
-		"fire":
-			_run_fire(host, at, s, dir, sp, mat, alive)
-		_:
-			_run_fallback(host, el, at, sp, mat, alive)
+		"fire":   _run_fire(host, at, s, dir, sp, mat, alive)
+		"earth":  _run_earth(host, at, dir, sp, rng)
+		"aqua":   _run_aqua(host, at, dir, sp, rng)
+		"wind":   _run_wind(host, at, dir, sp, rng)
+		"dark":   _run_dark(host, at, dir, sp, rng)
+		"light":  _run_light(host, at, dir, sp, rng)
+		"holy":   _run_holy(host, at, dir, sp, rng)
+		"chaos":  _run_chaos(host, at, dir, sp, rng)
+		"shadow": _run_shadow(host, at, dir, sp, rng)
+		_:        _run_fallback(host, el, at, sp, mat, alive)
 	return float(DURATION.get(el, 9.0)) / sp
 
 
@@ -288,12 +296,7 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 		_fire_burst(host, pfx, pos, zbase, delay, n_stone, s, sp, mat, alive, rng)
 
 	# 화면 백색 암전
-	var flash := ColorRect.new()
-	flash.color = Color(1, 1, 1, 0)
-	flash.size = vis
-	flash.z_index = 120
-	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(flash)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), 120)
 	var ft := flash.create_tween()
 	ft.tween_interval(FIRE_FLASH_AT / sp)
 	ft.tween_property(flash, "color:a", 1.0, FIRE_FLASH_IN / sp)
@@ -364,6 +367,605 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 		return
 	var timer := host_tree.create_timer(delay)
 	timer.timeout.connect(go)
+
+
+# ── 속성별 안무 ─────────────────────────────────────────────────────────────
+#
+# 아래 8개는 각 `run<El>` 의 **박자(CCDelayTime)·변형(Scale/Rotate/Move)·프레임 수**를 실측해
+# 옮긴 것이다. ⚠️ 원작의 `CCSequence` **조립 순서**는 Ghidra 가 지역변수로 흩어 놔 자동 복원이
+# 안 된다(§8 도구 한계) — 그래서 **어느 노드에 어떤 액션이 몇 초로 걸리는지**는 실측이고,
+# 그것들을 잇는 순서 일부는 우리가 읽어 재구성했다. 재구성한 곳만 `# ASSUMPTION:` 을 단다.
+
+## 흩뿌리는 스프라이트 무리 — 여러 속성이 같은 꼴을 쓴다(거품 49 · 별 750 · 낙석 …).
+##   n      = 개수(원작 루프 상한)
+##   spread = 뿌리는 반경(x, y)
+##   each   = func(node, i, rng) — 개별 안무
+static func _swarm(host: CanvasItem, el: String, key: String, n: int, at: Vector2,
+		spread: Vector2, z: int, rng: RandomNumberGenerator, each: Callable) -> void:
+	for i in n:
+		var s := _spr(el, key)
+		if s == null:
+			return                                # 프레임이 없으면 무리 자체를 만들지 않는다
+		s.position = at + Vector2(
+			rng.randf_range(-spread.x, spread.x), rng.randf_range(-spread.y, spread.y))
+		s.z_index = z
+		host.add_child(s)
+		each.call(s, i, rng)
+
+
+## 화면 전체를 덮는 색 막(물속 색조 · 백색 암전 등).
+##
+## ⚠️ host 는 화면 원점이 아닐 수 있다 — 대전에서는 씬 Control(원점=화면)이지만 확인 창에서는
+##    무대 노드다(원점이 화면 한가운데). 그래서 **시전 지점 기준으로 사방 한 화면씩** 덮는다.
+##    (2026-08-05 실측: 종전엔 확인 창에서 막이 우하단 1/4 에만 깔렸다.)
+static func _screen_veil(host: CanvasItem, at: Vector2, col: Color, z: int) -> ColorRect:
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var r := ColorRect.new()
+	r.color = Color(col.r, col.g, col.b, 0.0)
+	r.position = at - vis
+	r.size = vis * 2.0
+	r.z_index = z
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(r)
+	return r
+
+
+# ── earth (9.0초) — 산이 솟고 파편이 회전하며 낙석이 쏟아진다 ────────────────
+## 원작 `initEarth` + `runEarth`: 기준점 = 레이어 중심 + (0, 37.5).
+##   · `earth_mountain`(앵커 (0.5,0), (0,−210), z=2) — ScaleTo(0, 0.2) → ScaleTo(2.0, 0.5)
+##   · `earth_earthquake1` ×4 — (−130,−50)·(120,−20)·(−30,−140)·(60,−120), z=1,1,4,3
+##     **RotateBy(0.875초, 3600°)** = 10바퀴 회전
+##   · 낙석 `earth_stone` — JumpBy(0.5 / 0.25 / 0.125, 높이 h×0.75 / h×0.25) → FadeTo(0.75, 0)
+##   · `earth_earthquake2`(0,−100) — Delay(2.5) … Delay(3.15) → FadeTo(0.75, 0)
+##   · 먼지 `earth_dust1/2` — ScaleTo(4.0, 1.5)
+const EARTH_BASE_DY := 37.5
+const EARTH_QUAKE_POS := [Vector2(-130.0, -50.0), Vector2(120.0, -20.0),
+	Vector2(-30.0, -140.0), Vector2(60.0, -120.0)]
+const EARTH_QUAKE_Z := [1, 1, 4, 3]
+const EARTH_SPIN_SEC := 0.875
+const EARTH_SPIN_DEG := 3600.0
+const EARTH_STONES := 49        # 원작 `rand()%26 + 49` 의 하한
+
+static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "earth"
+	var pfx := prefix(el)
+	var base := at - Vector2(0.0, EARTH_BASE_DY)     # cocos +37.5(위) ⇒ Godot 은 −
+
+	# 산 — 솟아오른다.
+	var mt := _spr(el, pfx + "mountain")
+	if mt != null:
+		mt.position = base + Vector2(0.0, 210.0)
+		mt.z_index = 92
+		mt.scale = Vector2(0.2, 0.2)
+		host.add_child(mt)
+		var t := mt.create_tween()
+		t.tween_property(mt, "scale", Vector2(0.5, 0.5), 2.0 / sp)
+		# 원작이 `mountain1~15` 애니를 함께 돌린다(프레임 15장).
+		_play_frames(mt, el, pfx + "mountain%d", 1, 15, 0.08 / sp)
+		t.tween_interval(1.5 / sp)
+		t.tween_property(mt, "modulate:a", 0.0, 0.5 / sp)
+		t.tween_callback(mt.queue_free)
+
+	# 회전 파편 4개.
+	for i in EARTH_QUAKE_POS.size():
+		var q := _spr(el, pfx + "earthquake1")
+		if q == null:
+			break
+		var p: Vector2 = EARTH_QUAKE_POS[i]
+		q.position = base + Vector2(dir * p.x, -p.y)
+		q.z_index = 90 + int(EARTH_QUAKE_Z[i])
+		host.add_child(q)
+		var t2 := q.create_tween()
+		t2.tween_interval((0.05 * float(i % 4)) / sp)
+		t2.tween_property(q, "rotation_degrees", EARTH_SPIN_DEG, EARTH_SPIN_SEC / sp)
+		t2.tween_property(q, "modulate:a", 0.0, 0.75 / sp)
+		t2.tween_callback(q.queue_free)
+
+	# 낙석 — 세 단계 점프 뒤 사라진다.
+	_swarm(host, el, pfx + "stone", EARTH_STONES, base, Vector2(200.0, 60.0), 95, rng,
+		func(n: Node2D, i: int, r: RandomNumberGenerator) -> void:
+			var t3: Tween = n.create_tween()
+			var h := 90.0 if i % 3 == 0 else 40.0
+			# ASSUMPTION: 세 CCJumpBy(0.5/0.25/0.125)의 이동량을 못 살려 좌우로 흩는다.
+			t3.tween_interval(float(i % 8) * 0.06 / sp)
+			for k in 3:
+				var d := Vector2(dir * r.randf_range(10.0, 60.0), 0.0)
+				t3.tween_method(func(x: float) -> void:
+					if not is_instance_valid(n):
+						return
+					n.position += d * 0.1
+					n.position.y -= h * 0.25 * sin(x * PI) * 0.1,
+					0.0, 1.0, [0.5, 0.25, 0.125][k] / sp)
+			t3.tween_property(n, "modulate:a", 0.0, 0.75 / sp)
+			t3.tween_callback(n.queue_free))
+
+	# 두 번째 지진 + 먼지.
+	var q2 := _spr(el, pfx + "earthquake2")
+	if q2 != null:
+		q2.position = base + Vector2(0.0, 100.0)
+		q2.z_index = 92
+		host.add_child(q2)
+		var t4 := q2.create_tween()
+		t4.tween_interval(2.5 / sp)
+		t4.tween_interval(3.15 / sp)
+		t4.tween_property(q2, "modulate:a", 0.0, 0.75 / sp)
+		t4.tween_callback(q2.queue_free)
+	for k2 in 2:
+		var du := _spr(el, pfx + ("dust1" if k2 == 0 else "dust2"))
+		if du == null:
+			break
+		du.position = base
+		du.z_index = 88
+		host.add_child(du)
+		var t5 := du.create_tween()
+		t5.tween_interval(2.0 / sp)
+		t5.tween_property(du, "scale", du.scale * 1.5, 4.0 / sp)
+		t5.parallel().tween_property(du, "modulate:a", 0.0, 4.0 / sp)
+		t5.tween_callback(du.queue_free)
+
+
+# ── aqua (11.0초) — 화면이 물빛으로 물들고 상어가 지나간다 ────────────────────
+## 원작 `runAqua`: 화면 막을 **TintTo** 로 두 번 물들인다(물속에 잠기는 색조).
+##     TintTo(1.0, 194,255,255) → Delay(3.0) → TintTo(1.0, 25,60,125) → Delay(0.75)
+##     → FadeTo(0.5, 0) → Delay(5.0)
+## 상어(tag 0x18830) = RepeatForever(애니) + JumpTo(0.25, …, 75) → MoveBy(0.5) →
+##     JumpTo(0.25, …, 50) → Delay(5.25) → FadeTo(0.5, 0)
+## 거품 **49개** · 물고기 5종 · 수면(0x18835)은 Delay(6.25) → FadeTo(0.5, 0).
+const AQUA_TINT1 := Color(194.0 / 255.0, 1.0, 1.0)
+const AQUA_TINT2 := Color(25.0 / 255.0, 60.0 / 255.0, 125.0 / 255.0)
+const AQUA_BUBBLES := 49        # 원작 루프 상한 0x31
+
+static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "aqua"
+	var pfx := prefix(el)
+
+	var veil := _screen_veil(host, at, AQUA_TINT1, 85)
+	var vt := veil.create_tween()
+	vt.tween_property(veil, "color", Color(AQUA_TINT1.r, AQUA_TINT1.g, AQUA_TINT1.b, 0.45), 1.0 / sp)
+	vt.tween_interval(3.0 / sp)
+	vt.tween_property(veil, "color", Color(AQUA_TINT2.r, AQUA_TINT2.g, AQUA_TINT2.b, 0.45), 1.0 / sp)
+	vt.tween_interval(0.75 / sp)
+	vt.tween_property(veil, "color:a", 0.0, 0.5 / sp)
+	vt.tween_callback(veil.queue_free)
+
+	# 수면.
+	var surf := _spr(el, pfx + "surface1")
+	if surf != null:
+		surf.position = at
+		surf.z_index = 86
+		host.add_child(surf)
+		_play_frames(surf, el, pfx + "surface%d", 2, 4, 0.1 / sp)
+		var st := surf.create_tween()
+		st.tween_interval(6.25 / sp)
+		st.tween_property(surf, "modulate:a", 0.0, 0.5 / sp)
+		st.tween_callback(surf.queue_free)
+
+	# 상어 — 화면을 가로지른다.
+	var shark := _spr(el, pfx + "shark1")
+	if shark != null:
+		var vis: Vector2 = host.get_viewport().get_visible_rect().size
+		shark.position = at + Vector2(-dir * vis.x * 0.6, 0.0)
+		shark.z_index = 100
+		shark.scale = Vector2(-dir if dir > 0.0 else dir, 1.0) * shark.scale
+		host.add_child(shark)
+		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
+		var kt := shark.create_tween()
+		# ASSUMPTION: 세 JumpTo/MoveBy 의 목적지를 못 살려 앞으로 가로지르게 둔다(높이는 원작 75·50).
+		_arc(kt, shark, at + Vector2(dir * 60.0, 0.0), 75.0, 0.25 / sp)
+		kt.tween_property(shark, "position", at + Vector2(dir * vis.x * 0.35, -20.0), 0.5 / sp)
+		_arc(kt, shark, at + Vector2(dir * vis.x * 0.6, 0.0), 50.0, 0.25 / sp)
+		kt.tween_interval(5.25 / sp)
+		kt.tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
+		kt.tween_callback(shark.queue_free)
+
+	# 거품 49개 — 떠오른다.
+	_swarm(host, el, pfx + "bubble", AQUA_BUBBLES, at, Vector2(220.0, 90.0), 98, rng,
+		func(n: Node2D, i: int, r: RandomNumberGenerator) -> void:
+			var t: Tween = n.create_tween()
+			t.tween_interval(float(i % 12) * 0.12 / sp)
+			t.tween_property(n, "modulate:a", 1.0, 0.0)
+			t.parallel().tween_property(n, "scale", n.scale * (float(i % 5) * 0.05 + 0.9), 0.25 / sp)
+			t.tween_property(n, "position", n.position + Vector2(r.randf_range(-30.0, 30.0), -160.0),
+				(float(i % 7) * 0.05 + 0.5) / sp)
+			t.parallel().tween_property(n, "scale", n.scale * (float(i % 5) * 0.05 + 0.9), 0.75 / sp)
+			t.tween_interval(0.5 / sp)
+			t.tween_property(n, "modulate:a", 0.0, 0.25 / sp)
+			t.tween_callback(n.queue_free))
+
+	# 물고기 5종.
+	for i in 5:
+		var f := _spr(el, pfx + "fish%d" % (i + 1))
+		if f == null:
+			break
+		f.position = at + Vector2(-dir * 300.0, rng.randf_range(-80.0, 40.0))
+		f.z_index = 97
+		f.scale *= (float(i % 6) * 0.1 + 0.75)
+		host.add_child(f)
+		var t6 := f.create_tween()
+		t6.tween_interval(float(i) * 0.35 / sp)
+		t6.tween_property(f, "position", f.position + Vector2(dir * 620.0, -40.0), 1.6 / sp)
+		t6.tween_property(f, "modulate:a", 0.0, 0.25 / sp)
+		t6.tween_callback(f.queue_free)
+
+
+# ── wind (11.0초) — 회오리 두 겹이 720° 돌고 잔해가 빨려 든다 ────────────────
+## 원작 `runWind`: 회오리 본체(0x18894) `EaseOut(ScaleBy(5.15, 1.15, 1.05), 0.25)`,
+##   겹 두 장(0x18895·0x18896)이 각각 **RotateBy(5.25초, 720°)**.
+##   0x18896 = ScaleTo(0.25,1.0) EaseIn(0.5) → FadeTo(0.75, 0)
+##   0x18895 = Delay(0.25) → FadeTo(0.75, 200) → Delay(4.15) → FadeTo(0.1, 0)
+##   잔해(나무·잎)는 MoveBy(1.0) + ScaleBy(0.9, 1.25) → MoveBy(0.25) → ScaleBy(0.25, 3.0, 0.5)
+##   → FadeTo(0.25, 0) — **가늘고 길게 늘어나며 사라진다**(빨려 드는 표현).
+const WIND_SPIN_SEC := 5.25
+const WIND_SPIN_DEG := 720.0
+const WIND_LEAVES := 12         # 원작 `rand()%8 + 12` 의 하한
+const WIND_WOODS := 3
+
+static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "wind"
+	var pfx := prefix(el)
+
+	var body := _spr(el, pfx + "whirl1")
+	if body != null:
+		body.position = at
+		body.z_index = 99
+		host.add_child(body)
+		_play_frames(body, el, pfx + "whirl%d", 1, 4, 0.035 / sp)
+		var t := body.create_tween()
+		t.tween_property(body, "scale", body.scale * Vector2(1.15, 1.05), 5.15 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(body, "scale", body.scale * Vector2(1.75, 1.5), 0.1 / sp)
+		t.tween_property(body, "modulate:a", 0.0, 0.75 / sp)
+		t.tween_callback(body.queue_free)
+
+	for i in 2:
+		var lay := _spr(el, pfx + "whirl4")
+		if lay == null:
+			break
+		lay.position = at
+		lay.z_index = 97 + i
+		host.add_child(lay)
+		var t2 := lay.create_tween()
+		t2.tween_property(lay, "rotation_degrees", WIND_SPIN_DEG * (1.0 if i == 0 else -1.0),
+			WIND_SPIN_SEC / sp)
+		var t3 := lay.create_tween()
+		if i == 0:
+			t3.tween_property(lay, "scale", lay.scale, 0.25 / sp)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			t3.tween_interval(WIND_SPIN_SEC / sp)
+			t3.tween_property(lay, "modulate:a", 0.0, 0.75 / sp)
+		else:
+			t3.tween_interval(0.25 / sp)
+			t3.tween_property(lay, "modulate:a", 200.0 / 255.0, 0.75 / sp)
+			t3.tween_interval(4.15 / sp)
+			t3.tween_property(lay, "modulate:a", 0.0, 0.1 / sp)
+		t3.tween_callback(lay.queue_free)
+
+	# 잔해 — 빨려 들며 늘어난다.
+	var debris := func(key: String, n: int, z: int) -> void:
+		_swarm(host, el, pfx + key, n, at, Vector2(260.0, 120.0), z, rng,
+			func(nd: Node2D, i: int, r: RandomNumberGenerator) -> void:
+				var t4: Tween = nd.create_tween()
+				t4.tween_interval(0.15 / sp + float(i) * 0.05 / sp)
+				t4.tween_property(nd, "position", at + Vector2(0.0, -40.0), 1.0 / sp)
+				t4.parallel().tween_property(nd, "scale", nd.scale * 1.25, 0.9 / sp)
+				t4.tween_property(nd, "position", at + Vector2(0.0, -120.0), 0.25 / sp)
+				t4.parallel().tween_property(nd, "scale",
+					nd.scale * Vector2(3.0, 0.5), 0.25 / sp)
+				t4.tween_property(nd, "modulate:a", 0.0, 0.25 / sp)
+				t4.tween_callback(nd.queue_free))
+	debris.call("leaf", WIND_LEAVES, 96)
+	debris.call("wood", WIND_WOODS, 95)
+
+	# zmoon — 뒤늦게 밝아진다.
+	for i in 2:
+		var zm := _spr(el, pfx + ("zmoon" if i == 0 else "zmoon%d" % (i + 1)))
+		if zm == null:
+			continue
+		zm.position = at
+		zm.z_index = 87 + i
+		zm.modulate.a = 0.0
+		host.add_child(zm)
+		var t5 := zm.create_tween()
+		t5.tween_interval((0.15 + 0.75) / sp)
+		t5.tween_property(zm, "modulate:a", 1.0, 0.5 / sp)
+		t5.tween_interval(3.5 / sp)
+		t5.tween_property(zm, "modulate:a", 0.0, 0.75 / sp)
+		t5.tween_callback(zm.queue_free)
+
+
+# ── dark (11.0초) — 손아귀가 잡고 폭발한다 ──────────────────────────────────
+## 원작 `initDark`: `dark_punch`·`dark_ball` 이 화면 좌우 `(W×∓0.5, 200)` 에서 들어오고,
+##   손 애니 4벌(`dark_hand1~4`, **전부 0.025초/프레임**), 폭발 두 벌
+##   (`explosion1~7` 0.04초 · `explosion8~10` 0.025초).
+const DARK_HAND_SEC := 0.025
+const DARK_EXPL_SEC := 0.04
+const DARK_EXPL2_SEC := 0.025
+
+static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "dark"
+	var pfx := prefix(el)
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+
+	# 좌우에서 들어오는 주먹·구슬.
+	for i in 2:
+		var key := "punch" if i == 0 else "ball"
+		var n := _spr(el, pfx + key)
+		if n == null:
+			continue
+		var side := -1.0 if i == 0 else 1.0
+		n.position = at + Vector2(side * vis.x * 0.5, -200.0)
+		n.z_index = 96
+		host.add_child(n)
+		var t: Tween = n.create_tween()
+		t.tween_interval((0.4 + 0.3 * float(i)) / sp)
+		t.tween_property(n, "position", at, 0.45 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.tween_property(n, "modulate:a", 0.0, 0.2 / sp)
+		t.tween_callback(n.queue_free)
+
+	# 손 — 잡았다 놓는다(원작이 hand2,3,4,3,2,1×8,2,3,4 순으로 프레임을 쌓는다).
+	var hand := _spr(el, pfx + "hand1")
+	if hand != null:
+		hand.position = at
+		hand.z_index = 99
+		host.add_child(hand)
+		_play_frames(hand, el, pfx + "hand%d", 1, 20, DARK_HAND_SEC / sp)
+		var ht := hand.create_tween()
+		ht.tween_interval(20.0 * DARK_HAND_SEC / sp + 3.0 / sp)
+		ht.tween_property(hand, "modulate:a", 0.0, 0.5 / sp)
+		ht.tween_callback(hand.queue_free)
+
+	# 폭발 — 두 벌을 시차로.
+	for i in 2:
+		var e := _spr(el, pfx + ("explosion1" if i == 0 else "explosion8"))
+		if e == null:
+			continue
+		e.position = at
+		e.z_index = 101 + i
+		e.visible = false
+		host.add_child(e)
+		var d := (1.2 + 1.4 * float(i)) / sp
+		var t2: Tween = e.create_tween()
+		t2.tween_interval(d)
+		t2.tween_callback(func() -> void:
+			if not is_instance_valid(e):
+				return
+			e.visible = true
+			if i == 0:
+				_play_frames(e, el, pfx + "explosion%d", 1, 7, DARK_EXPL_SEC / sp, true)
+			else:
+				_play_frames(e, el, pfx + "explosion%d", 8, 10, DARK_EXPL2_SEC / sp, true))
+
+	# 그림자 장막.
+	var shade := _spr(el, pfx + "shade")
+	if shade != null:
+		shade.position = at
+		shade.z_index = 84
+		shade.modulate.a = 0.0
+		host.add_child(shade)
+		var t3 := shade.create_tween()
+		t3.tween_property(shade, "modulate:a", 1.0, 0.5 / sp)
+		t3.tween_interval(6.0 / sp)
+		t3.tween_property(shade, "modulate:a", 0.0, 0.75 / sp)
+		t3.tween_callback(shade.queue_free)
+
+
+# ── light (11.25초) — 별 750개를 깔고 태양이 뜬다 ────────────────────────────
+## 원작 `initLight` 이 `light_star` 를 **750개**(0x2ee) 만든다. 우리는 그 수를 그대로 두되
+## 한 장씩 트윈을 걸면 감당이 안 되므로 **별 무리를 한 노드로 묶어** 페이드한다.
+## # ASSUMPTION: 별 개별 안무를 원작에서 못 살렸다(루프 안이라 액션이 흩어져 있다).
+const LIGHT_STARS := 750
+
+static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "light"
+	var pfx := prefix(el)
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+
+	var field := Node2D.new()
+	field.z_index = 86
+	field.modulate.a = 0.0
+	host.add_child(field)
+	for i in LIGHT_STARS:
+		var st := _spr(el, pfx + "star")
+		if st == null:
+			break
+		st.position = at + Vector2(rng.randf_range(-vis.x, vis.x),
+			rng.randf_range(-vis.y, vis.y)) * 0.6
+		st.scale *= rng.randf_range(0.4, 1.0)
+		field.add_child(st)
+	var ft := field.create_tween()
+	ft.tween_property(field, "modulate:a", 1.0, 0.75 / sp)
+	ft.tween_interval(7.0 / sp)
+	ft.tween_property(field, "modulate:a", 0.0, 1.0 / sp)
+	ft.tween_callback(field.queue_free)
+
+	# 태양·행성·섬광 — 원작이 쓰는 단품들을 차례로 띄운다.
+	var seq := [["sun", 0.5, 101], ["sunlight", 0.6, 100], ["sunwing", 0.7, 99],
+		["saturn", 1.4, 98], ["earth", 1.8, 98], ["flash", 2.4, 103],
+		["flashwing", 2.5, 102], ["bomb", 3.0, 104]]
+	for e in seq:
+		var n := _spr(el, pfx + String(e[0]))
+		if n == null:
+			continue
+		n.position = at
+		n.z_index = int(e[2])
+		n.modulate.a = 0.0
+		host.add_child(n)
+		var t: Tween = n.create_tween()
+		t.tween_interval(float(e[1]) / sp)
+		t.tween_property(n, "modulate:a", 1.0, 0.3 / sp)
+		t.parallel().tween_property(n, "scale", n.scale * 1.15, 1.2 / sp)
+		t.tween_interval(2.5 / sp)
+		t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
+		t.tween_callback(n.queue_free)
+
+
+# ── holy (11.25초) — 창 세례 ─────────────────────────────────────────────────
+## 원작 `initHoly`: `holy_spear` **31개 × 2벌**(앞 z=idx+1 / 뒤 z=375−idx)을 **3라운드**
+## 반복한다 ⇒ 창 186개. 높이는 `(0, rand()%301)` 로 흩고 기준은 `(0, 62.5)`.
+const HOLY_SPEARS := 31
+const HOLY_ROUNDS := 3
+const HOLY_BASE_DY := 62.5
+
+static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "holy"
+	var pfx := prefix(el)
+	var base := at - Vector2(0.0, HOLY_BASE_DY)
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+
+	var well := _spr(el, pfx + "well")
+	if well != null:
+		well.position = base
+		well.z_index = 88
+		well.modulate.a = 0.0
+		host.add_child(well)
+		var wt := well.create_tween()
+		wt.tween_property(well, "modulate:a", 1.0, 0.6 / sp)
+		wt.tween_interval(7.5 / sp)
+		wt.tween_property(well, "modulate:a", 0.0, 0.75 / sp)
+		wt.tween_callback(well.queue_free)
+
+	for r in HOLY_ROUNDS:
+		for i in HOLY_SPEARS:
+			for layer in 2:                     # 앞/뒤 두 벌
+				var s := _spr(el, pfx + "spear")
+				if s == null:
+					return
+				var x := base.x + rng.randf_range(-vis.x * 0.35, vis.x * 0.35)
+				var y := base.y - float(rng.randi() % 301)
+				s.position = Vector2(x, y - 260.0)
+				s.z_index = (95 + i) if layer == 0 else (84 - i / 8)
+				host.add_child(s)
+				var t: Tween = s.create_tween()
+				t.tween_interval((float(r) * 2.4 + float(i) * 0.05) / sp)
+				# ASSUMPTION: 창의 낙하 시간을 원작에서 못 살렸다(0.35초로 둔다).
+				t.tween_property(s, "position", Vector2(x, y), 0.35 / sp)\
+					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+				t.tween_interval(0.35 / sp)
+				t.tween_property(s, "modulate:a", 0.0, 0.3 / sp)
+				t.tween_callback(s.queue_free)
+
+
+# ── chaos (10.65초) — 운석과 먼지 ────────────────────────────────────────────
+## 원작 `initChaos`: `chaos_meteo1/2` + `chaos_dust1~3`(애니 0.05초/프레임) +
+##   `scene/colosseum/dust`·`dust_cover` 를 **18개**(0x12) · 12개(0xc) 루프로 깐다.
+##   운석 앵커가 `(0.5, 0.0493)` = 꼬리 끝 기준이다.
+const CHAOS_DUST_SEC := 0.05
+const CHAOS_COVERS := 18
+const CHAOS_METEOS := 12
+const CHAOS_METEO_ANCHOR_Y := 0.0493
+
+static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "chaos"
+	var pfx := prefix(el)
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+
+	# 운석 — 위에서 비스듬히 떨어진다.
+	for i in CHAOS_METEOS:
+		var m := _spr(el, pfx + ("meteo1" if i % 2 == 0 else "meteo2"))
+		if m == null:
+			break
+		var tx := at.x + rng.randf_range(-vis.x * 0.4, vis.x * 0.4)
+		m.position = Vector2(tx - dir * 260.0, at.y - 420.0)
+		m.z_index = 100
+		m.rotation = atan2(420.0, dir * 260.0) - PI * 0.5
+		host.add_child(m)
+		var t: Tween = m.create_tween()
+		t.tween_interval(float(i) * 0.28 / sp)
+		t.tween_property(m, "position", Vector2(tx, at.y), 0.45 / sp)
+		t.tween_property(m, "modulate:a", 0.0, 0.15 / sp)
+		t.tween_callback(m.queue_free)
+
+	# 먼지 기둥.
+	var du := _spr(el, pfx + "dust1")
+	if du != null:
+		du.position = at
+		du.z_index = 92
+		host.add_child(du)
+		_play_frames(du, el, pfx + "dust%d", 1, 3, CHAOS_DUST_SEC / sp)
+		var t2 := du.create_tween()
+		t2.tween_interval(6.0 / sp)
+		t2.tween_property(du, "modulate:a", 0.0, 0.75 / sp)
+		t2.tween_callback(du.queue_free)
+
+	# 흙먼지 장막 — 원작이 `scene/colosseum` 아틀라스에서 가져온다(우리도 보유).
+	for i in CHAOS_COVERS:
+		var c := AtlasUI.spr_cocos("colosseum_ui",
+			"scene_colosseum_dust_cover" if i % 2 == 0 else "scene_colosseum_dust")
+		if c == null:
+			break
+		c.position = at + Vector2(rng.randf_range(-vis.x * 0.45, vis.x * 0.45),
+			rng.randf_range(-40.0, 40.0))
+		c.z_index = 90
+		c.modulate.a = 0.0
+		host.add_child(c)
+		var t3 := c.create_tween()
+		t3.tween_interval(float(i) * 0.08 / sp)
+		t3.tween_property(c, "modulate:a", 1.0, 0.25 / sp)
+		t3.tween_property(c, "position", c.position + Vector2(dir * 90.0, -50.0), 2.0 / sp)
+		t3.parallel().tween_property(c, "modulate:a", 0.0, 2.0 / sp)
+		t3.tween_callback(c.queue_free)
+
+
+# ── shadow (9.25초) — 연출 본체가 스파인이다 ─────────────────────────────────
+## 원작 `initShadow` 은 프레임 대신 `shadow_spine.spine_json` 을 세운다(애니 `s1`·`s2`).
+## 링(`_build_ring`)이 이미 `s1` 을 틀었으므로 여기서는 **두 번째 애니 `s2`** 와 늪을 얹는다.
+const SHADOW_MARSH_Z := 100
+
+static func _run_shadow(host: CanvasItem, at: Vector2, dir: float, sp: float,
+		rng: RandomNumberGenerator) -> void:
+	var el := "shadow"
+	var pfx := prefix(el)
+	# 원작이 (0,150) 에 z=100 짜리 3장을 둔다(tag 0x1883a~c).
+	for i in 3:
+		var m := _spr(el, pfx + "marsh%d" % (i + 1))
+		if m == null:
+			break
+		m.position = at + Vector2(0.0, -150.0)
+		m.z_index = SHADOW_MARSH_Z + i
+		m.modulate.a = 0.0
+		host.add_child(m)
+		var t: Tween = m.create_tween()
+		t.tween_interval(float(i) * 0.3 / sp)
+		t.tween_property(m, "modulate:a", 1.0, 0.4 / sp)
+		t.tween_interval(5.0 / sp)
+		t.tween_property(m, "modulate:a", 0.0, 0.6 / sp)
+		t.tween_callback(m.queue_free)
+
+	var spn: Dictionary = RING_SPINE.get(el, {})
+	if spn.is_empty() or not ResourceLoader.exists(String(spn["scene"])):
+		return
+	var holder := Node2D.new()
+	holder.position = at
+	holder.z_index = 103
+	host.add_child(holder)
+	var inst = (load(String(spn["scene"])) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	if ap != null and ap.has_animation("s2"):
+		ap.play("s2")
+	var t2 := holder.create_tween()
+	t2.tween_interval(float(DURATION.get(el, 9.25)) / sp)
+	t2.tween_callback(holder.queue_free)
+
+
+## 포물선 이동 한 구간(원작 `CCJumpTo` 한 번에 대응).
+static func _arc(t: Tween, n: Node2D, to: Vector2, h: float, sec: float) -> void:
+	var from := n.position
+	t.tween_method(func(x: float) -> void:
+		if not is_instance_valid(n):
+			return
+		var p := from.lerp(to, x)
+		p.y -= h * 4.0 * x * (1.0 - x)
+		n.position = p,
+		0.0, 1.0, sec)
 
 
 # ── 임시 골격(미이식 8속성) ─────────────────────────────────────────────────
