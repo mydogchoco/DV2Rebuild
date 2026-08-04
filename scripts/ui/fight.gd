@@ -690,6 +690,53 @@ func _play_anim(v: Dictionary, name: String) -> float:
 	return dur
 
 
+## 피격 깜빡임 — 원작 `MakeInterface::damagedColor` @01089208 그대로.
+##
+##   FadeTo(0.0, 0)                              ← 즉시 투명
+##   DelayTime(getDuration("damaged") − 0.1)     ← "damaged" 애니 **길이만 잰다**(재생 안 함)
+##   FadeTo(0.1, 255)                            ← 0.1초에 걸쳐 복귀
+##   (tag = −0xc0dc8, 이미 걸려 있으면 stopActionByTag 로 끊고 다시)
+##
+## ✅ 이게 "일반 피격에 모션이 없다"의 정확한 내막이다 —
+##   `action` code 0(기본 피격)이 `getDuration(spine, "damaged", 0)` 를 부르지만
+##   **재생이 아니라 측정**이고(실측: 반환값이 곧장 CCDelayTime 으로 간다),
+##   눈에 보이는 반응은 이 **깜빡임**이다. 종전엔 이걸 통째로 빠뜨렸다.
+const HIT_BLINK_BACK := 0.1         # 원작 FadeTo(0.1, 255)
+
+func _damaged_color(v: Dictionary) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	var node := n as Node2D
+	# "damaged" 애니 길이 = 깜빡임 유지 시간(원작과 같은 출처).
+	var hold := 0.3
+	var ap = v.get("anim")
+	if ap is AnimationPlayer and is_instance_valid(ap) and (ap as AnimationPlayer).has_animation("damaged"):
+		hold = (ap as AnimationPlayer).get_animation("damaged").length
+	var tw := node.create_tween()
+	tw.tween_property(node, "modulate:a", 0.0, 0.0)
+	tw.tween_interval(maxf(0.05, hold - HIT_BLINK_BACK))
+	tw.tween_property(node, "modulate:a", 1.0, HIT_BLINK_BACK)
+
+
+## 피격 좌우 흔들림 — 원작 `MakeInterface::shakeLayerToHorizontal` @010892c0.
+##   MoveBy(0.05, dir×+20) → (0.05, dir×−35) → (0.05, dir×+25) → (0.05, dir×−10)
+## 합이 0 이라 제자리로 돌아온다(총 0.2초).
+const HIT_SHAKE := [20.0, -35.0, 25.0, -10.0]
+const HIT_SHAKE_SEC := 0.05
+
+func _shake_horizontal(v: Dictionary, dir: float) -> void:
+	var n = v.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return
+	var node := n as Node2D
+	var tw := node.create_tween()
+	for d: float in HIT_SHAKE:
+		tw.tween_property(node, "position:x",
+			node.position.x + d * dir, HIT_SHAKE_SEC).as_relative()
+	tw.tween_property(node, "position", v.get("pos", node.position), 0.0)
+
+
 ## 타격 순간의 **스쿼시&스트레치** — 원작 `action` @01062fd4 의 ScaleTo 3단.
 ##   ScaleTo(0.05, base×1.25, 1.05) → (0.05, base×0.90, 0.95) → (0.05, base×1.00, 1.00)
 ## X 는 드래곤 자기 스케일에 **곱하고**(뒤집힘 부호가 살아 있어야 한다) Y 는 절대값이다.
@@ -742,7 +789,15 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
 			_attack_pulse(atk, dfn, dur)
-	# ⛔ 피격 모션 없음 — 원작에 트리거가 없다(위 주석). 피격은 데미지 숫자·HP 바로만 보인다.
+	# 피격 반응 — **애니는 없지만 반응은 있다**(2026-08-05 `action` 코드지도로 확정).
+	#   code 0(기본 피격) → `damagedColor` = 깜빡임
+	#   code -32(중독)    → `damagedColor` + `shakeLayerToHorizontal`
+	# 종전엔 "모션이 없다"를 "아무것도 안 한다"로 잘못 옮겨 피격이 전혀 안 보였다.
+	if not dfn.is_empty() and not bool(dfn.get("dead", false)) 			and not bool(ev.get("miss", false)) and int(ev.get("damage", 0)) > 0:
+		_damaged_color(dfn)
+		if t == "poison" or bool(ev.get("crit", false)):
+			# 흔들림 방향 = 맞은 쪽이 밀리는 방향(공격자 반대편).
+			_shake_horizontal(dfn, 1.0 if bool(dfn.get("mine", false)) else -1.0)
 
 	# 이펙트 스파인은 **드래곤 모션과 별개**로 얹힌다(원작 castSkill 이 그렇게 만든다).
 	var at: Vector2 = dfn.get("pos", _vis() * 0.5) if not dfn.is_empty() else _vis() * 0.5

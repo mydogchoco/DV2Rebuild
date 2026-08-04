@@ -61,7 +61,8 @@ DEFAULT_OUT = REPO / "docs" / "ref" / "orig_code" / "probe" / "big_fn_probe.c"
 
 
 def parse_args(argv):
-    out, timeout, asm_only, targets = DEFAULT_OUT, 1800, False, []
+    out, timeout, asm_only, targets, rng = DEFAULT_OUT, 1800, False, [], None
+    disasm_table = None
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -71,17 +72,28 @@ def parse_args(argv):
             timeout = int(argv[i + 1]); i += 2
         elif a == "--asm-only":
             asm_only = True; i += 1
+        elif a == "--range":
+            lo, hi = argv[i + 1].split(","); rng = (int(lo, 16), int(hi, 16)); i += 2
+        elif a == "--disasm-table":
+            disasm_table = argv[i + 1]; i += 2
         else:
             targets.append(a); i += 1
-    return targets, out, timeout, asm_only
+    return targets, out, timeout, asm_only, rng, disasm_table
 
 
-def annotate(flat, program, func) -> list[str]:
-    """주석 붙은 디스어셈블리 — 호출 대상 이름 · 데이터 참조값을 각 줄에 단다."""
+def annotate(flat, program, body) -> list[str]:
+    """주석 붙은 디스어셈블리 — 호출 대상 이름 · 데이터 참조값을 각 줄에 단다.
+
+    `body` = AddressSetView 또는 (시작, 끝) 주소쌍.
+    ⚠️ 함수 본체(`func.getBody()`)만 뜨면 **간접 분기(`br xN`) 목적지 블록이 빠진다** —
+       Ghidra 가 점프테이블을 못 풀면 그 블록들을 함수에 귀속시키지 않기 때문이다.
+       실측(action @01062fd4): 본체 덤프에 **구멍 16군데**, 핸들러 53개 중 52개가 누락.
+       그래서 분기 정체를 볼 때는 `--range` 로 **주소 구간**을 떠야 한다.
+    """
     listing = program.getListing()
     fm = program.getFunctionManager()
     out = []
-    it = listing.getInstructions(func.getBody(), True)
+    it = listing.getInstructions(body, True)
     while it.hasNext():
         ins = it.next()
         line = f"{ins.getAddress()}  {ins}"
@@ -112,8 +124,8 @@ def annotate(flat, program, func) -> list[str]:
 
 
 def main() -> int:
-    targets, out_path, timeout, asm_only = parse_args(sys.argv[1:])
-    if not targets:
+    targets, out_path, timeout, asm_only, rng, disasm_table = parse_args(sys.argv[1:])
+    if not targets and rng is None:
         print(__doc__)
         return 2
 
@@ -133,6 +145,47 @@ def main() -> int:
 
         chunks = ["/* decomp_big.py — 디컴파일러가 포기한 거대 함수. "
                   "①정식 ②normalize ③주석 디스어셈블리 순으로 시도. */\n"]
+
+        # `--disasm-table VA,COUNT,BASE,STRIDE` — 점프테이블 목적지를 **직접 디스어셈블**한다.
+        # ⚠️ 이건 Ghidra 프로젝트 DB 를 **수정한다**(유일한 쓰기 경로).
+        #   간접 분기를 못 푼 Ghidra 가 목적지 블록을 미정의 바이트로 남겨 두기 때문에,
+        #   그 자리를 코드로 인식시키지 않으면 분기 정체를 볼 방법이 없다.
+        #   원본 `libgame.so` 와 `DV2/` 는 건드리지 않는다 — 손상돼도 재임포트로 복구된다.
+        if disasm_table:
+            import struct as _st
+            va, cnt, base, stride = disasm_table.split(",")
+            blob = SO_PATH.read_bytes()
+            o = int(va, 16) - 0x100000
+            tgts = sorted({int(base, 16) + _st.unpack_from("<H", blob, o + k * 2)[0] * int(stride)
+                           for k in range(int(cnt))})
+            tx = program.startTransaction("asm_cfg disassemble")
+            ok = 0
+            try:
+                for t in tgts:
+                    try:
+                        if flat.disassemble(af.getAddress(t)):
+                            ok += 1
+                    except Exception:  # noqa: BLE001,PERF203
+                        pass
+            finally:
+                program.endTransaction(tx, True)
+            print(f"점프테이블 목적지 {len(tgts)}개 중 {ok}개 디스어셈블")
+
+        # `--range` — 함수 귀속과 무관하게 **주소 구간**을 통째로 뜬다.
+        # 간접 분기(`br xN`) 목적지 블록은 함수 본체에 안 들어가므로 이 모드가 필요하다.
+        if rng is not None:
+            from ghidra.program.model.address import AddressSet
+            lo, hi = rng
+            aset = AddressSet(af.getAddress(lo), af.getAddress(hi))
+            body = annotate(flat, program, aset)
+            print(f"range {lo:08x}..{hi:08x} — 명령 {len(body)}개")
+            chunks.append(f"\n/* ==== RANGE {lo:08x}..{hi:08x} ==== */\n")
+            chunks.append("\n".join(body) + "\n")
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text("\n".join(chunks), encoding="utf-8")
+            print(f"-> {out_path}")
+            return 0
+
         for q in targets:
             func = None
             if q.startswith("0x"):
