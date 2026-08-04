@@ -1874,6 +1874,10 @@ func _refresh_dragon() -> void:
 	# 고르고, 오라성체용 속성 오라는 더 이상 붙이지 않는다.
 	_apply_aura(_el if not awakened and Growth.is_aura_adult(int(a["level"])) else "")
 	var stage_name := Growth.spine_stage(a)
+	# 오라성체 전용 아트를 가진 종만 `aura` 스파인으로 갈아탄다(그 외 373종은 그대로 성체).
+	# 판정·근거는 `_aura_spine_stage`. 각성했으면 `e` 가 우선이라 건드리지 않는다.
+	if not awakened and stage_name == "adult" and Growth.is_aura_adult(int(a["level"])):
+		stage_name = _aura_spine_stage(int(a["id"]))
 	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
 	# 각성 가능 종의 전용 씬이 누락된 개발 빌드만 성체로 안전 대체한다.
 	if awakened and not ResourceLoader.exists(path):
@@ -4452,7 +4456,9 @@ func _dex_pick_step(idx: int) -> void:
 func _dex_spawn_spine(id: int, stage: String, scale: float) -> Node2D:
 	var suf := stage
 	if stage == "aura":
-		suf = "adult"
+		# 원작은 오라성체도 성체 스파인이다. 오라성체 **전용 스파인을 가진 종만** 예외
+		# (800 로키 = 드빌1 `transcended`). 판정은 씬 존재 여부 — `_aura_spine_stage`.
+		suf = _aura_spine_stage(id)
 	elif stage == "awaken":
 		suf = "e" if ResourceLoader.exists(DRAGON_SCENE % [id, "e"]) else "adult"
 	var path := DRAGON_SCENE % [id, suf]
@@ -4689,6 +4695,23 @@ func _dbi_on_tap(subject: Node2D) -> void:
 				ap.animation_finished.connect(cb)
 
 
+## 오라성체 **전용 아트**를 가진 종인가 — 그 종의 스파인 씬 접미사를 돌려준다.
+##
+## 원작 규칙은 "오라성체 = 성체 그림 + 오라 이펙트"다(`Growth.AURA_ADULT_LEVEL` 주석의
+## `Dragon::getImagePathSpineJson` 근거). 그 규칙은 **그대로 둔다** — `Growth` 는 손대지 않았다.
+## 다만 외부 팩에서 이식한 종은 오라성체가 별도 아트일 수 있어(800 로키 = 드빌1 `transcended`,
+## 🟦 사용자 확정 2026-08-04) **산출물이 실제로 있을 때만** 그쪽을 쓴다. 나머지 373종은
+## `aura` 씬이 없으므로 이전과 완전히 같은 경로를 탄다.
+func _aura_spine_stage(id: int) -> String:
+	return "aura" if ResourceLoader.exists(DRAGON_SCENE % [id, "aura"]) else "adult"
+
+
+## 오라성체 초상 프레임 — 전용 `box_aura` 가 있으면 그것, 없으면 원작대로 성체 초상.
+func _aura_frame_or_adult(id: int) -> String:
+	var au := "dragon_dragon_%d_box_aura" % id
+	return au if AtlasUI.manifest("portrait_%d" % id).has(au) else ("dragon_dragon_%d_box_adult" % id)
+
+
 func _dex_stage_frame(id: int, stage: String) -> String:
 	match stage:
 		"egg": return "dragon_dragon_%d_egg" % id
@@ -4700,7 +4723,10 @@ func _dex_stage_frame(id: int, stage: String) -> String:
 			#   각성이 있는 종은 오라성체 칸에 각성 그림이 떴다.
 			#   오라성체는 **아트가 성체와 같다** — 다른 것은 오라 이펙트뿐이다
 			#   (`Growth.AURA_ADULT_LEVEL`, docs/game_design.md 성장 단계 표).
-			return "dragon_dragon_%d_box_adult" % id
+			# 예외: 외부 팩에서 이식해 **오라성체 전용 아트**를 가진 종(800 로키의
+			#   `transcended`). 원작 규칙은 그대로 두고 `box_aura` 가 있는 종만 그걸 쓴다
+			#   — 보유분 우선, 없으면 원작대로 성체 초상(§10 `MultyEquipPop` 과 같은 방침).
+			return _aura_frame_or_adult(id)
 		"awaken":
 			# 각성체 초상 = `box_evolution`. 실측으로 네 신호가 전부 일치한다:
 			#   `box_evolution` 보유 **137**종 = `dragons.csv has_e=Y` 137종(+600/700 은 초상 없음)

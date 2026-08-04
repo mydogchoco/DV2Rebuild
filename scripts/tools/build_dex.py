@@ -25,7 +25,18 @@ def main():
         art = int(d.get("art_id", did))
         plist = "DV2/480/dragon/dragon_%d.img_plist" % art
         if not os.path.exists(plist):
-            missing.append(did); continue
+            # 원본 아틀라스가 없는 종 — **외부 팩에서 이식한 드래곤**은 전용 빌더가 초상을
+            # 미리 구워 둔다(예: 800 로키 = `build_loki800.py --portrait`). 그 매니페스트를
+            # 그대로 읽어 도감 메타만 세운다. 초상 폴더도 없으면 진짜 미보유다.
+            man = "assets/converted/portrait_%d/_manifest.json" % art
+            if not os.path.exists(man):
+                missing.append(did); continue
+            names = set(k.replace("dragon_dragon_%d_" % art, "")
+                        for k in json.load(open(man, encoding="utf-8")))
+            box = set(n for n in names if n.startswith("box_") and "skin" not in n)
+            meta[str(did)] = {"awaken": "box_s01" in box, "evo": "box_evolution" in box}
+            converted += 1
+            continue
         if art == did:
             cocos_export.export(plist, "portrait_%d" % did)
         names = set(n.split("/")[-1].replace(".png", "")
@@ -33,7 +44,8 @@ def main():
         box = set(n for n in names if n.startswith("box_") and "skin" not in n)
         meta[str(did)] = {"awaken": "box_s01" in box, "evo": "box_evolution" in box}
         converted += 1
-    json.dump(meta, open(OUT_META, "w", encoding="utf-8"), ensure_ascii=False)
+    # indent=1 — 커밋된 판이 들여쓴 형태다. 한 줄로 쓰면 diff 가 통째로 바뀌어 검수가 막힌다.
+    json.dump(meta, open(OUT_META, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     aw = sum(1 for v in meta.values() if v["awaken"])
     ev = sum(1 for v in meta.values() if v["evo"])
     print("portraits=%d missing=%d  awaken=%d evo=%d  -> %s" % (converted, len(missing), aw, ev, OUT_META))

@@ -807,8 +807,17 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		"awaken":
 			_awaken_fx(atk, at)
 		_:
-			if bool(ev.get("crit", false)) and not atk.is_empty():
+			if atk.is_empty():
+				pass
+			elif bool(ev.get("crit", false)):
+				# 원작 크리티컬 연출(공용 포신 스파인)은 그대로 두고, 드빌1에서 온 종만
+				# **자기 크리티컬 이펙트**를 위에 얹는다(800 로키 = `col_action2`).
 				_critical_spine(atk, dfn)
+				_dragon_fx_seq(int(atk.get("id", 0)), "col_action2", at)
+			else:
+				# 평타 — 드빌1에서 온 종만 전용 평타 이펙트를 갖는다(`col_action1`).
+				# 없으면 아무것도 안 뜬다(원작 콜로세움 평타에도 이펙트가 없다).
+				_dragon_fx_seq(int(atk.get("id", 0)), "col_action1", at)
 
 
 # ---------- 스킬/크리티컬 이펙트 스파인 ----------
@@ -852,6 +861,65 @@ func _skill_spine(sid: int, at: Vector2) -> bool:
 	var t := holder.create_tween()
 	t.tween_interval(SKILL_SPINE_SEC)          # 원작 Delay(0.7) → Hide
 	t.tween_callback(holder.queue_free)
+	return true
+
+
+## 드래곤 **전용 이펙트 프레임 시퀀스** 1회 재생. 없으면 false.
+##
+## DV2 원작에는 "드래곤별 이펙트"라는 축이 없다 — 이펙트는 스킬 단위(`skill_<id>_spine`)다.
+## 이 경로는 **드빌1에서 이식한 종**이 자기 이펙트를 들고 오기 때문에 생겼다
+## (800 로키: `col_action1` 12프레임 = 평타 · `col_action2` 16프레임 = 크리티컬).
+## 🟦 사용자 확정 2026-08-04. 상세 = `docs/ref/porting/DragonLoki800.md` §5-C.
+##
+## 프레임마다 크기가 달라서 **원본 캔버스(src 800×480) 기준 트림 오프셋(off)** 으로 정렬한다.
+## 안 그러면 재생 중 중심이 흔들린다(`dv2-atlas-trim-offset` 과 같은 축).
+const FX_SEQ_FPS := 24.0
+
+func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
+	if did <= 0:
+		return false
+	var dir := "dragon_%d_fx" % did
+	var man := _man(dir)
+	if man.is_empty():
+		return false
+	var keys: Array = []
+	for k in man:
+		if String(k).begins_with("dragon_%d_%s_" % [did, prefix]):
+			keys.append(String(k))
+	if keys.is_empty():
+		return false
+	keys.sort()                                   # …_00, _01, … 프레임 순서
+	var holder := Node2D.new()
+	holder.z_index = 100                          # 스킬 이펙트와 같은 층
+	holder.position = at
+	add_child(holder)
+	var shown: Array[Sprite2D] = []
+	for k in keys:
+		var ent: Dictionary = man.get(k, {})
+		var spr := _spr(dir, k, Design.ASSET_SCALE)
+		if spr == null:
+			continue
+		var off: Array = ent.get("off", [0, 0])
+		# cocos off = (트림중심 − 원본캔버스중심), y-up → Godot 은 y 를 뒤집는다.
+		spr.position = Vector2(float(off[0]), -float(off[1])) * Design.ASSET_SCALE
+		spr.visible = false
+		holder.add_child(spr)
+		shown.append(spr)
+	if shown.is_empty():
+		holder.queue_free()
+		return false
+	var step := 1.0 / FX_SEQ_FPS        # 콜로세움엔 전투 배속 개념이 없다(탐험과 다른 점)
+	var tw := holder.create_tween()
+	for i in shown.size():
+		var s: Sprite2D = shown[i]
+		var prev: Sprite2D = shown[i - 1] if i > 0 else null
+		tw.tween_callback(func() -> void:
+			if prev != null and is_instance_valid(prev):
+				prev.visible = false
+			if is_instance_valid(s):
+				s.visible = true)
+		tw.tween_interval(step)
+	tw.tween_callback(holder.queue_free)
 	return true
 
 

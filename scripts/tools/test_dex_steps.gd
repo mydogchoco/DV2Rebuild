@@ -17,14 +17,17 @@ func _init() -> void:
 	var fails := 0
 	var meta: Dictionary = _load("res://data/dex_meta.json")
 
-	# ── ① 신호 규모 — evo(각성 보유) 137 · s01 13 ──────────────────────────
+	# ── ① 신호 규모 — evo(각성 보유) 138 · s01 13 ──────────────────────────
+	# 2026-08-04: 137 → **138**. 드빌1에서 이식한 800 로키가 각성체 초상(`box_evolution`,
+	# 원본 `profile/8`)을 갖는다 — 원본 아틀라스가 아니라 `build_loki800.py` 가 구운 것이라
+	# `build_dex.py` 가 초상 매니페스트에서 읽는다. 기준선을 **올린** 것이라 회귀가 아니다.
 	var evo := 0
 	var s01 := 0
 	for k in meta:
 		var m: Dictionary = meta[k]
 		if bool(m.get("evo", false)): evo += 1
 		if bool(m.get("awaken", false)): s01 += 1
-	fails += _eq("각성 보유(box_evolution)", evo, 137)
+	fails += _eq("각성 보유(box_evolution)", evo, 138)
 	fails += _eq("box_s01 보유(각성 아님)", s01, 13)
 	fails += _true("각성 보유가 s01 보다 훨씬 많다(판별 신호가 바뀐 이유)", evo > s01 * 5)
 

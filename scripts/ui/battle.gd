@@ -2155,7 +2155,10 @@ func _critical_sequence(caster: Dictionary, target: Dictionary) -> void:
 	await get_tree().create_timer(_HIT_FX_DUR / maxf(0.5, _speed)).timeout
 	if not is_inside_tree():
 		return
-	_critical_art(caster)
+	# 원본 크리티컬 아트가 없는 종은 **전용 이펙트 밴드**로 대신한다(800 로키 = 드빌1
+	# `adv_action1/2` 중 랜덤 1장). 🟦 사용자 확정 2026-08-04 — 상세는 `_critical_fx_band`.
+	if not _critical_art(caster):
+		_critical_fx_band(caster)
 
 func _start_critical_audio(caster: Dictionary) -> void:
 	# 원작 MakeInterface::showCutIn은 Cutin::show에 voice_critical 경로를 넘긴다.
@@ -2230,6 +2233,50 @@ func _critical_art(caster: Dictionary) -> bool:
 	t.tween_property(spr, "modulate:a", 0.0, 0.18)
 	t.tween_callback(func(): if is_instance_valid(lay): lay.queue_free())
 	return true
+
+## 드래곤 **전용 크리티컬 이펙트 밴드** — 원본 크리티컬 아트가 없는 종의 대체 연출.
+##
+## DV2 원작에는 "드래곤별 이펙트"라는 축이 없다(이펙트는 스킬 단위다). 이 경로는 **드빌1에서
+## 이식한 종**이 자기 이펙트를 들고 오기 때문에 생겼다 — 800 로키의 `adv_action1/2` 는
+## 400×120 짜리 **가로 밴드**(속도선 + 포효하는 얼굴)라 크리티컬 연출로 그려진 그림이다.
+## 🟦 사용자 확정 2026-08-04: 탐험 크리티컬은 **둘 중 랜덤 1장**. 상세 = `DragonLoki800.md` §5-B.
+##
+## 배치는 `_critical_art` 와 같은 규약이다 — 화면 정중앙, 가로를 화면 폭에 맞춤, CanvasLayer 41.
+## 무작위는 **연출용**이라 전투 RNG(시드 고정 대상)를 쓰지 않는다.
+func _critical_fx_band(caster: Dictionary) -> bool:
+	var cid := int(caster.get("id", 0))
+	var dir := "dragon_%d_fx" % cid
+	var man := _man(dir)
+	if man.is_empty():
+		return false
+	var keys: Array = []
+	for k in man:
+		if String(k).begins_with("dragon_%d_adv_action" % cid):
+			keys.append(String(k))
+	if keys.is_empty():
+		return false
+	keys.sort()
+	var key: String = keys[randi() % keys.size()]
+	var ent: Dictionary = man.get(key, {})
+	var w := float(ent.get("w", 0))
+	if w <= 0.0:
+		return false
+	var vis := _vis()
+	var spr := _spr(dir, key, man, vis.x / w)
+	if spr == null:
+		return false
+	spr.position = vis * 0.5
+	spr.z_index = 120
+	var lay := CanvasLayer.new()
+	lay.layer = 41                    # 컷인(40) 위 — `_critical_art` 와 같은 층
+	add_child(lay)
+	lay.add_child(spr)
+	var t := spr.create_tween()
+	t.tween_interval(0.45 / maxf(0.5, _speed))
+	t.tween_property(spr, "modulate:a", 0.0, 0.18)
+	t.tween_callback(func(): if is_instance_valid(lay): lay.queue_free())
+	return true
+
 
 ## 일반공격 아트 — 원작 `MakeInterface::firstAttackEffect(CCNode*, int attackType)`
 ## (`MakeInterface.c:14990-15120`, `secondAttackEffect`:31409 도 동일 3종). 타입별 파라미터까지 원작 그대로:

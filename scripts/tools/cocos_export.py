@@ -32,7 +32,10 @@ def sanitize(name):
     return name.replace("/", "_").replace(".png", "")
 
 
-def export(plist_path, out_sub):
+def export(plist_path, out_sub, premultiply=False):
+    """premultiply: 스트레이트 알파 페이지를 PMA 로 굽는다. DV2 원본 아틀라스는 이미 PMA 라
+    기본값 False 이고, **드빌1에서 가져온 페이지**(assets/converted/dragon_800_fx 등)만 켠다.
+    근거·측정치는 docs/ref/porting/DragonLoki800.md §3-3."""
     if atlaslib.detect_format(plist_path) != "cocos":
         print("not a cocos plist:", plist_path); return
     data = atlaslib.parse_cocos_plist(plist_path)
@@ -44,7 +47,13 @@ def export(plist_path, out_sub):
     src_png = os.path.join(os.path.dirname(plist_path), stem + ".png")
     if not os.path.exists(src_png):
         print("missing page png:", src_png); return
-    shutil.copyfile(src_png, os.path.join(outdir, os.path.basename(src_png)))
+    dst_png = os.path.join(outdir, os.path.basename(src_png))
+    if premultiply:
+        import spine_export
+        spine_export.premultiply_png(src_png, dst_png)
+        src_png = dst_png          # 회전 프레임 크롭도 PMA 판에서 떠야 한다
+    else:
+        shutil.copyfile(src_png, dst_png)
     png_res = f"res://{outdir.replace(os.sep,'/')}/{os.path.basename(src_png)}"
 
     n, rotated = 0, 0

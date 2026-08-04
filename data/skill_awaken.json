@@ -431,6 +431,9 @@
   ],
   "700": [
    700
+  ],
+  "800": [
+   800
   ]
  },
  "_by_dragon_note": "드래곤 도감 id → 각성스킬 no 목록. 각성 시 이 표에서 배정한다(Data.awaken_skill_of). 여러 개인 드래곤은 첫 번째를 기본으로 쓴다.",
@@ -3922,6 +3925,71 @@
     ],
     "note": "777 성좌의 주권자와 같은 구조의 자작 스킬(수치만 다르다)."
    }
+  },
+  {
+   "no": 800,
+   "name": "트릭스터",
+   "comment": "자신이 받는 추가 대미지 50% 감소, 아군 전체의 체력, 공격력, 방어력 10% 증가, 자신이 공격을 회피하면 상대는 혼란에 빠져 다음 턴에 자기 자신을 공격한다(전투당 5회), 아군이 입는 모든 피해 10% 감소, 아군 드래곤의 공격 대미지 50% 증가",
+   "icon": 11,
+   "dragons": [
+    800
+   ],
+   "dragon_names": [
+    "로키"
+   ],
+   "effect": {
+    "tier": "C",
+    "impl": true,
+    "cond": null,
+    "ops": [
+     {
+      "to": "self",
+      "kind": "stat",
+      "stat": "depure_pct",
+      "mode": "flat",
+      "value": 50
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "hp",
+      "mode": "pct",
+      "value": 10
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "att",
+      "mode": "pct",
+      "value": 10
+     },
+     {
+      "to": "ally",
+      "kind": "stat",
+      "stat": "def",
+      "mode": "pct",
+      "value": 10
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_taken",
+      "pct": -10
+     },
+     {
+      "to": "ally",
+      "kind": "dmg_deal",
+      "pct": 50
+     }
+    ],
+    "react": [
+     {
+      "on": "evade",
+      "turns": 1,
+      "left": 5
+     }
+    ],
+    "note": "600 불굴의 기상과 **조항 구조가 같고 수치만 크다**(30→50 · 5→10 · 4회→5회). 따라서 같은 번역을 그대로 쓴다 — 새 연산 종류를 만들 필요가 없었다."
+   }
   }
  ],
  "_effect_basis": "각 스킬의 `effect` = `comment`(사용자가 적은 서술)를 기계가 읽는 형태로 옮긴 것. 빌드: scripts/tools/build_awaken_effects.py (분류·번역이 전부 그 파일에 있다). **번역만 하고 값을 지어내지 않는다** — 설명 전체를 충족하지 못하면 impl:false 로 두고 `why` 에 무엇이 막고 있는지 적는다. 반쪽 구현은 '발동하는데 설명과 다르게 동작'이라 안 하느니만 못하다. 판정 = scripts/systems/awaken_skill.gd (순수 로직).",
@@ -3937,11 +4005,11 @@
  "_effect_progress": {
   "A_탐험": 8,
   "B_정적": 31,
-  "C_파생시스템": 22,
+  "C_파생시스템": 23,
   "D_조건부누적": 45,
-  "_impl": 106,
+  "_impl": 107,
   "_partial": 4,
-  "_total": 106,
+  "_total": 107,
   "_note": "_impl = 효과가 실제로 도는 스킬 수. _partial 은 그중 **일부 조항만** 도는 것(자작 다중조항 스킬) — 각 스킬의 `partial` 에 무엇이 아직 안 되는지 적혀 있다."
  }
 }

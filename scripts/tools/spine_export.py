@@ -43,8 +43,15 @@ def png_for_page(atlas_path, page_image):
     return os.path.join(os.path.dirname(atlas_path), stem + ".png")
 
 
-def load_merged_atlas(atlas_paths):
-    """Merge regions across atlases. Returns regions{name->info(+png abs path, +page size)}."""
+def load_merged_atlas(atlas_paths, region_basename=False):
+    """Merge regions across atlases. Returns regions{name->info(+png abs path, +page size)}.
+
+    region_basename: 리전 이름의 마지막 경로 조각으로도 찾을 수 있게 별칭을 단다.
+      DV2 원본 아틀라스는 리전명이 평면(`dragon_god_adult_love`)이라 이 옵션이 무의미하지만,
+      DV1 에서 가져온 스켈레톤은 **어태치먼트가 `arm1` 인데 리전은 `dragon/3607/adult/arm1`**
+      이라 그대로는 하나도 안 붙는다(§10 판본/출처 불일치, 포팅카드 DragonLoki800.md §3-2).
+      별칭은 **원래 이름이 없을 때만** 넣으므로 기존 변환에는 영향이 없다.
+    """
     regions = {}
     for ap in atlas_paths:
         a = atlaslib.parse_spine_atlas(ap)
@@ -53,10 +60,29 @@ def load_merged_atlas(atlas_paths):
             r = dict(r)
             r["png"] = png_for_page(ap, page["image"])
             regions[name] = r
+    if region_basename:
+        for name, r in list(regions.items()):
+            base = name.rsplit("/", 1)[-1]
+            if base != name and base not in regions:
+                regions[base] = r
     return regions
 
 
-def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, outdir=None):
+def premultiply_png(src, dst):
+    """스트레이트 알파 PNG → 프리멀티플라이 사본. 우리 씬 빌더가 PMA 블렌드로 그리기 때문에
+    (`build_spine_scene.gd` BLEND_MODE_PREMULT_ALPHA) 스트레이트 원본을 그대로 쓰면 반투명
+    가장자리가 흰 테를 두른다. DV2 원본 아틀라스는 이미 PMA 라 이 경로를 타지 않는다."""
+    from PIL import Image, ImageChops
+    im = Image.open(src).convert("RGBA")
+    r, g, b, a = im.split()
+    # ImageChops.multiply 는 (v1*v2)/255 — 채널마다 알파를 곱하는 것이 곧 프리멀티플라이다.
+    Image.merge("RGBA", (ImageChops.multiply(r, a),
+                         ImageChops.multiply(g, a),
+                         ImageChops.multiply(b, a), a)).save(dst)
+
+
+def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, outdir=None,
+           region_basename=False, premultiply=False, anim_map=None):
     # 드래곤 기본 경로 규약. sj_path/atlas_paths/outdir 명시 시 그걸 사용(몬스터 등 일반 스파인).
     if sj_path is None:
         sj_path = os.path.join(SRC, f"dragon_{dragon_id}_{stage}_spine.spine_json")
@@ -68,7 +94,7 @@ def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, 
             os.path.join(SRC, f"dragon_{dragon_id}_spine", f"skin_{dragon_id}_spine.img_plist"),
         ]
     atlas_paths = [p for p in atlas_paths if os.path.exists(p)]
-    regions = load_merged_atlas(atlas_paths)
+    regions = load_merged_atlas(atlas_paths, region_basename=region_basename)
 
     if outdir is None:
         outdir = os.path.join(OUTROOT, f"dragon_{dragon_id}")
@@ -80,7 +106,10 @@ def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, 
         src_png = r["png"]
         if src_png not in png_res and os.path.exists(src_png):
             dst = os.path.join(outdir, os.path.basename(src_png))
-            shutil.copyfile(src_png, dst)
+            if premultiply:
+                premultiply_png(src_png, dst)
+            else:
+                shutil.copyfile(src_png, dst)
             png_res[src_png] = f"res://{outdir.replace(os.sep,'/')}/{os.path.basename(src_png)}"
 
     # ---- bones (setup pose, Godot space) ----
@@ -247,7 +276,11 @@ def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, 
             for keys in stt.values():
                 if keys:
                     dur = max(dur, keys[-1][0])
-        anims[an] = {"length": dur, "tracks": tracks, "slot_tracks": slot_tracks}
+        # anim_map: 원본 애니 이름 → 우리 규약 이름. DV1 에서 온 스켈레톤은 공격 애니가
+        # `att` 인데 우리 렌더는 DV2 이름 `attack` 을 부른다(`fight.gd::_play_anim`).
+        # 호출부 40여 곳을 드래곤별로 분기시키는 대신 **변환 시점에** 이름을 맞춘다(§8.4 카탈로그 계층).
+        anims[(anim_map or {}).get(an, an)] = {
+            "length": dur, "tracks": tracks, "slot_tracks": slot_tracks}
 
     out = {
         "id": dragon_id, "stage": stage,
