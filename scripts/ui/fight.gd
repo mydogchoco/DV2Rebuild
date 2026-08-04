@@ -44,6 +44,7 @@ const BAR_H := 16.0
 
 var _pma: CanvasItemMaterial
 var _params: Dictionary = {}
+var _mans: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
 var _mode := "team"
@@ -542,6 +543,179 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		if t != "awaken":
 			_approach(atk, dfn, dur)
 	# ⛔ 피격 모션 없음 — 원작에 트리거가 없다(위 주석). 피격은 데미지 숫자·HP 바로만 보인다.
+
+	# 이펙트 스파인은 **드래곤 모션과 별개**로 얹힌다(원작 castSkill 이 그렇게 만든다).
+	var at: Vector2 = dfn.get("pos", _vis() * 0.5) if not dfn.is_empty() else _vis() * 0.5
+	match t:
+		"skill":
+			_skill_spine(int(ev.get("skill_id", 0)), at)
+		"awaken":
+			_awaken_fx(atk, at)
+		_:
+			if bool(ev.get("crit", false)) and not atk.is_empty():
+				_critical_spine(atk, dfn)
+
+
+# ---------- 스킬/크리티컬 이펙트 스파인 ----------
+#
+# 원작 `MakeInterface::castSkill` @0108a924 이 쓰는 자산(리터럴 전수):
+#     "skill/skill_%d_spine.spine_json" + "skill/skill_%d_spine.img_plist"
+#     "particle/skill/skill_%d.plist"
+#     애니명 "animation"
+# ⇒ 스킬 연출은 **드래곤 모션이 아니라 별도 이펙트 스파인**이다(castSkill 은 드래곤 애니로는
+#   "attack" 만 건드린다). 노출 시간은 원작이 애니 길이와 무관하게 0.7초 뒤 Hide 다.
+#
+# 우리 프로젝트엔 이 파이프라인이 **이미 있다** — `scenes/fx/skill_<id>_spine.tscn` 41종 +
+# `battle.gd::_play_skill_spine` 이 같은 규약(z=100 · animation/work/destroy · 0.7초)으로
+# 재생한다. 새로 짜지 않고 같은 규약을 따른다(§3 우리 코드 먼저).
+const SKILL_SPINE_SEC := 0.7
+
+## 스킬 이펙트 스파인 1회 재생. 없으면 false.
+func _skill_spine(sid: int, at: Vector2) -> bool:
+	var path := "res://scenes/fx/skill_%d_spine.tscn" % sid
+	if sid <= 0 or not ResourceLoader.exists(path):
+		return false
+	var holder := Node2D.new()
+	holder.z_index = 100                       # 원작 addChild(spine, 100)
+	holder.position = at
+	add_child(holder)
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	if ap != null:
+		# 원작 스킬 스파인은 `animation`(본체) + `work`/`destroy`(뒤처리)를 갖는다.
+		var pick := ""
+		for cand in ["animation", "work", "destroy"]:
+			if ap.has_animation(cand):
+				pick = cand
+				break
+		if pick == "":
+			holder.queue_free()
+			return false
+		ap.get_animation(pick).loop_mode = Animation.LOOP_NONE
+		ap.play(pick)
+	var t := holder.create_tween()
+	t.tween_interval(SKILL_SPINE_SEC)          # 원작 Delay(0.7) → Hide
+	t.tween_callback(holder.queue_free)
+	return true
+
+
+## 크리티컬 이펙트 — 원작은 **드래곤마다 전용 크리티컬 스켈레톤**을 갖는다
+## (`scenes/dragons/dragon_<id>_critical.tscn` 422종 · 각성본 `_e_critical` 111종 변환 완료).
+## 배치 규약은 battle.gd::_critical_spine 과 같다: 대상 위 z=8, 공격 방향으로 X 반전.
+func _critical_spine(atk: Dictionary, dfn: Dictionary) -> bool:
+	var cid := int(atk.get("id", 0))
+	var stage := "e_critical" if bool(atk.get("awakened", false)) else "critical"
+	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [cid, stage]
+	if not ResourceLoader.exists(path):
+		path = "res://scenes/dragons/dragon_%d_critical.tscn" % cid
+		if not ResourceLoader.exists(path):
+			return false
+	var holder := Node2D.new()
+	holder.z_index = 8                         # 원작 addChild(spine, 8, -2)
+	holder.position = dfn.get("pos", _vis() * 0.5)
+	# 원작 setScaleX(-…) — 부호가 핵심(공격 방향으로 뒤집는다).
+	holder.scale = Vector2(-1.0 if bool(atk.get("mine", false)) else 1.0, 1.0)
+	add_child(holder)
+	var inst = (load(path) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	if ap != null:
+		for cand in ["animation", "critical", "attack"]:
+			if ap.has_animation(cand):
+				ap.get_animation(cand).loop_mode = Animation.LOOP_NONE
+				ap.play(cand)
+				break
+	var t := holder.create_tween()
+	t.tween_interval(SKILL_SPINE_SEC)
+	t.tween_callback(holder.queue_free)
+	return true
+
+
+## 각성기(궁극기) 이펙트 — 원작 `UltimateLayer`(138메서드)가 **속성별 전용 아트**를 쓴다:
+##     `skill/ultimate/<element>/<element>_*.png`  (aqua/chaos/dark/earth/fire/holy/light/
+##     shadow/wind 9종 — 2026-08-04 cocos_export 로 전량 변환)
+## 각 속성이 바닥 링 `<el>_circle1~3` + 번호가 붙은 시퀀스(fire=explosion1~6 ·
+## wind=whirl1~4 · aqua=shark1~3 …)를 갖는다 ⇒ **링 + 프레임 시퀀스**가 기본 골격이다.
+##
+## ⚠️ 여기 구현한 건 그 골격까지다. `UltimateLayer` 전체 안무(속성별 개별 연출 · 카메라 ·
+##   `battle/<combine>/combine_outline` 합체 외곽선 · `particle/scene/colosseum/effect_damaged`)
+##   는 아직 이식 전이다 — 자산은 이제 다 있으니 이어서 붙이면 된다.
+func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
+	var el := String(atk.get("element", ""))
+	var dir := "ultimate_" + el
+	var man := _man(dir)
+	if man.is_empty():
+		return
+	var pfx := "skill_ultimate_%s_%s_" % [el, el]
+	# 바닥 링
+	var ring := _spr(dir, pfx + "circle1", Design.ASSET_SCALE)
+	if ring != null:
+		ring.position = at
+		ring.z_index = 90
+		add_child(ring)
+		var rt := ring.create_tween()
+		rt.tween_property(ring, "scale", Vector2(2.0, 2.0) * Design.ASSET_SCALE, 0.5)
+		rt.parallel().tween_property(ring, "modulate:a", 0.0, 0.5)
+		rt.tween_callback(ring.queue_free)
+	# 번호 시퀀스 — 가장 긴 계열을 골라 프레임 애니로 돌린다.
+	var fam := _longest_family(man, pfx)
+	if fam.is_empty():
+		return
+	var spr := _spr(dir, fam[0], Design.ASSET_SCALE)
+	if spr == null:
+		return
+	spr.position = at
+	spr.z_index = 101
+	add_child(spr)
+	var i := 0
+	var gen := _gen
+	var step := func() -> void: pass
+	var t := Timer.new()
+	t.wait_time = 0.08                      # 원작 프레임 시퀀스 간격대
+	t.autostart = true
+	spr.add_child(t)
+	t.timeout.connect(func() -> void:
+		i += 1
+		if gen != _gen or i >= fam.size():
+			if is_instance_valid(spr):
+				spr.queue_free()
+			return
+		var tex := _tex(dir, fam[i])
+		if tex != null and is_instance_valid(spr):
+			spr.texture = tex)
+
+
+## `<prefix><name><N>` 꼴 중 원소가 가장 많은 계열을 프레임 순서대로 반환.
+func _longest_family(man: Dictionary, pfx: String) -> Array:
+	var groups := {}
+	for k in man:
+		var s := String(k)
+		if not s.begins_with(pfx) or s.begins_with(pfx + "circle"):
+			continue
+		var tail := s.substr(pfx.length())
+		var base := tail.rstrip("0123456789")
+		if base == tail:
+			continue                        # 번호 없는 단품은 시퀀스가 아니다
+		if not groups.has(base):
+			groups[base] = []
+		(groups[base] as Array).append(s)
+	var best: Array = []
+	for b in groups:
+		var arr: Array = groups[b]
+		if arr.size() > best.size():
+			arr.sort()
+			best = arr
+	return best
+
+
+func _man(dir: String) -> Dictionary:
+	if _mans.has(dir):
+		return _mans[dir]
+	var f := FileAccess.open("res://assets/converted/%s/_manifest.json" % dir, FileAccess.READ)
+	var d: Dictionary = JSON.parse_string(f.get_as_text()) if f else {}
+	_mans[dir] = d
+	return d
 
 
 func _float_text(pos: Vector2, text: String, col: Color) -> void:
