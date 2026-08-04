@@ -1299,7 +1299,12 @@ func _play() -> void:
 func _evt_delay(ev: Dictionary) -> float:
 	match String(ev.get("type", "")):
 		"awaken":
-			return 2.0                       # 각성기는 길다(ultimate1)
+			# 🔴 2026-08-05 — 종전 2.0 초는 자작이었다. 원작 `UltimateLayer::getDuration()`
+			#   @01001200 이 읽는 표(`UltimateFx.DURATION`, 콜로세움 `DAT_021af294`)가
+			#   **속성별 9.0~12.0초**다. 2초에 다음 이벤트로 넘어가면 각성기 연출이 도는
+			#   동안 뒤 전투가 겹쳐 재생된다(사용자 지적 "연출이 원작과 다르다"의 한 갈래).
+			var av: Dictionary = _views.get(_actor_tag(ev), {})
+			return float(UltimateFx.DURATION.get(String(av.get("element", "")), 2.0))
 		"normal", "double":
 			return 1.5 if bool(ev.get("crit", false)) else 1.15
 		"dot", "effect_tick":
@@ -1943,7 +1948,14 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		#   `runSpineWithAnimationName` + `getDuration` 을 부른다 ⇒ 크리티컬은 드래곤 자신의
 		#   **`critical` 애니**를 틀고 끝나면 `wait` 로 돌아간다(`asm_cfg.py --table` 로 확인).
 		#   변환본 성체·각성체 스파인에 `critical` 이 **전부** 들어 있다(2026-08-04 실측).
-		var anim := "critical" if code == AC_CRIT_FX and _has_anim(atk, "critical") else "attack"
+		# 각성기는 드래곤 자신의 `ultimate1` 애니다 — 변환본 성체·각성체 스파인에 전부 있다
+		# (2026-08-05 실측: attack/critical/damaged/down/love/**ultimate1**/wait).
+		# 종전엔 `attack` 을 틀어 평타와 구분이 안 갔다.
+		var anim := "attack"
+		if t == "awaken" and _has_anim(atk, "ultimate1"):
+			anim = "ultimate1"
+		elif code == AC_CRIT_FX and _has_anim(atk, "critical"):
+			anim = "critical"
 		var dur := _play_anim(atk, anim)
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
@@ -2657,11 +2669,172 @@ func _shake_screen(sec: float, amp: float) -> void:
 ## 2026-08-05 **본체를 `scripts/ui/ultimate_fx.gd` 로 옮겼다** — 개발 확인 창
 ## (`scripts/tools/dev_ultimate_fx.gd`, 씬 `scenes/dev_ultimate_fx.tscn`)이 **대전과 같은 코드**를
 ## 재생해야 "구현상황 확인"이 성립한다. 연출 수정은 그 파일에서 한다.
+# ---------- 각성기 시전자 배치 — 원작 `UltimateLayer::initPosition` @00fe75ec ----------
+#
+# 🔴 2026-08-05(사용자 지적 6번 "각성기 때 양측 드래곤 위치가 원작과 다르다") — 그 자리를 찾았다.
+#   `runUltimate` 는 속성별 `run<El>` 을 돌리기 **전에** `initPosition(actorLayer, element, delay)`
+#   로 시전자를 무대 가운데로 옮긴다. 리터럴 전수:
+#
+#     sign = ABS(spine.scaleX)/spine.scaleX      ← `layer->getChildByTag(1)`(= 스파인)
+#     dx   = **+225** (sign == −1, 즉 내 팀) / **−225** (상대)      ⇒ 둘 다 **중앙 쪽**
+#     hold = `DAT_021af270[element−1]` = 7.85~10.25초(속성별)
+#     s    = 시전자 레이어 스케일(`this+0x22c`, 3v3 0.75 / 1v1 1.0)
+#
+#     레이어 : Delay(d) → CCJumpBy(**0.25**, (dx,0), height **s×150**, jumps 1)
+#              → Delay(hold) → CCJumpTo(0.25, 원래 슬롯, height s×150, 1)
+#     그림자 : Delay(d) → MoveBy(0.25, (dx,0)) + Seq(ScaleTo(0.125, s×1.75), ScaleTo(0.125, s×2))
+#              → Delay(hold) → MoveTo(0.25, 원자리) + 같은 스케일 펄스
+#     스파인 : Delay(hold + d + **0.5**) → ScaleTo(0.1, sx, **0.95**) → (0.1, sx', **1.05**)
+#              → (0.1, sx, 1.0)                                   = 착지 스쿼시
+#
+# ⚠️ 우리 구조 차이 — 그림자는 holder 의 **자식**이라 이동은 저절로 따라온다(원작은 형제라
+#    따로 옮긴다). 스케일 펄스만 따로 준다.
+# ⚠️ `hold` 는 위 표 대신 **`UltimateFx.DURATION`**(같은 원작 계열의 콜로세움 표
+#    `DAT_021af294`)을 쓴다 — 화면에 실제로 도는 우리 연출의 길이가 그쪽이라
+#    (`_evt_delay("awaken")` 도 같은 표) 복귀 시점이 연출 끝과 맞는다.
+const ULT_DX := 225.0               # 원작 ±225 — **화면 가장자리에서** 안쪽으로
+const ULT_DROP := 50.0              # 원작 (…, −50)
+const ULT_JUMP_SEC := 0.25
+const ULT_JUMP_H := 150.0           # 원작 s × 150
+const ULT_LAND_LAG := 0.5           # 원작 Delay(hold + d + 0.5)
+const ULT_SQUASH := [Vector2(1.0, 0.95), Vector2(1.0, 1.05), Vector2(1.0, 1.0)]
+const ULT_SQUASH_SEC := 0.1
+const ULT_SHADOW_PULSE := [1.75, 2.0]
+const ULT_SHADOW_SEC := 0.125
+## 원작 `initPosition` 이 쓰는 hold 표(`DAT_021af270`, 탐험 쪽). 기록용 — 위 ⚠️ 참조.
+const ULT_HOLD_ORIG := {"aqua": 9.75, "chaos": 9.65, "dark": 9.75, "earth": 7.85,
+	"fire": 9.25, "holy": 10.0, "light": 10.25, "shadow": 9.4, "wind": 9.4}
+
+## 시전자를 무대 중앙으로 점프시켰다가 되돌린다. 반환 = 총 소요 초.
+func _ultimate_position(atk: Dictionary) -> float:
+	var n = atk.get("node")
+	if not (n is Node2D) or not is_instance_valid(n):
+		return 0.0
+	var node := n as Node2D
+	var home: Vector2 = atk.get("home", node.position)
+	var mine := bool(atk.get("mine", false))
+	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+	# 🔴 2026-08-05 정정 — 무대 자리는 **슬롯 상대 이동이 아니라 절대 좌표**다.
+	#   원작 `initPosition` @00fe75ec:
+	#       내 팀(dir −1) → `VisibleRect::left()  + ( 225, −50)`
+	#       상대 (dir +1) → `VisibleRect::right() + (−225, −50)`
+	#   `VisibleRect::left/right` 는 (가장자리 x, 화면 중앙 y) 다. 슬롯에서 225 를 더하는 게
+	#   아니라 **가장자리에서 225 안쪽**이라, 3v3 뒷줄도 앞줄과 같은 자리에 선다(그게 '무대').
+	var vis := _vis()
+	var stage := Vector2(ULT_DX if mine else vis.x - ULT_DX,
+		vis.y * 0.5 + ULT_DROP)     # cocos −50(y-up) ⇒ 우리 화면에선 아래로 +50
+	var hold := float(UltimateFx.DURATION.get(String(atk.get("element", "")), 2.0))
+
+	var old = atk.get("move_tw")
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	var t := create_tween()
+	atk["move_tw"] = t
+	_tween_jump(t, node, home, stage, ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
+	t.tween_interval(hold)
+	_tween_jump(t, node, stage, home, ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(node):
+			node.position = atk.get("home", home))
+	# HUD 도 같이 간다 — 원작은 `setHUD` 가 HUD 를 **드래곤 레이어의 자식**으로 붙여서
+	# 레이어가 뛰면 저절로 따라간다. 우리는 형제라 같은 궤적을 직접 태운다.
+	var bar = atk.get("barh")
+	if bar is Node2D and is_instance_valid(bar):
+		var bh: Vector2 = (bar as Node2D).position
+		var bt := (bar as Node2D).create_tween()
+		_tween_jump(bt, bar as Node2D, bh, bh + Vector2(dx, 0.0),
+			ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
+		bt.tween_interval(hold)
+		_tween_jump(bt, bar as Node2D, bh + Vector2(dx, 0.0), bh,
+			ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
+	# 각성기가 도는 동안은 무대 자리가 원점이다(공격 복귀가 슬롯으로 튀지 않게).
+	atk["home"] = stage
+	var gen := _gen
+	get_tree().create_timer(ULT_JUMP_SEC + hold).timeout.connect(func() -> void:
+		if gen == _gen:
+			atk["home"] = atk.get("pos", home))
+
+	# 그림자 — 뛰어오를 때 커졌다가 착지에 돌아온다.
+	var shadow = atk.get("shadow")
+	if shadow is Node2D and is_instance_valid(shadow):
+		var bs: Vector2 = (shadow as Node2D).scale
+		var sw := (shadow as Node2D).create_tween()
+		for m: float in ULT_SHADOW_PULSE:
+			sw.tween_property(shadow, "scale", bs * m, ULT_SHADOW_SEC)
+		sw.tween_interval(maxf(0.0, hold - ULT_SHADOW_SEC * 2.0))
+		sw.tween_property(shadow, "scale", bs, ULT_JUMP_SEC)
+
+	# 착지 스쿼시 — 원작은 `hold + d + 0.5` 에 시작한다.
+	var sp = atk.get("spine")
+	if sp is Node2D and is_instance_valid(sp):
+		var base: Vector2 = (sp as Node2D).scale
+		var qw := (sp as Node2D).create_tween()
+		qw.tween_interval(hold + ULT_LAND_LAG)
+		for f: Vector2 in ULT_SQUASH:
+			qw.tween_property(sp, "scale",
+				Vector2(base.x * f.x, base.y * f.y), ULT_SQUASH_SEC)
+
+	# HUD 는 우리 구조에서 **별도 노드**라 따라오지 않는다(원작은 드래곤 레이어의 일부).
+	# `_swap_position` 과 같은 방식으로 같이 옮긴다.
+	var hb = atk.get("barh")
+	if hb is Node2D and is_instance_valid(hb):
+		var hd: Vector2 = (hb as Node2D).position - home
+		var ht := (hb as Node2D).create_tween()
+		ht.tween_property(hb, "position", stage + hd, ULT_JUMP_SEC)
+		ht.tween_interval(hold)
+		ht.tween_property(hb, "position", home + hd, ULT_JUMP_SEC)
+
+	# ④ 나머지 드래곤은 무대에서 **사라진다** — 원작 `initPosition` 이 각 슬롯에
+	#   `Delay(t) → Hide → Delay(T + 0.25 + 0.25) → Show` 를 건다.
+	#   T = `.rodata` `DAT_021af270`(= 위 `ULT_HOLD_ORIG`). 우리는 화면에 실제로 도는 길이와
+	#   맞추려고 `hold`(콜로세움 표)를 쓴다 — 같은 이유는 위 ⚠️ 참조.
+	#   죽은 드래곤은 이미 안 보이므로 건드리지 않는다(다시 살아나 보이면 안 된다).
+	_ultimate_hide_others(atk, hold + ULT_JUMP_SEC + ULT_HIDE_TAIL)
+	return ULT_JUMP_SEC + hold + ULT_JUMP_SEC
+
+
+const ULT_HIDE_TAIL := 0.5          # 원작 Delay(T + 0.25 + 0.25)
+
+## 시전자 말고 전부 숨긴다 → `sec` 뒤에 되돌린다.
+func _ultimate_hide_others(atk: Dictionary, sec: float) -> void:
+	var hidden: Array = []
+	for k in _views.keys():
+		var v: Dictionary = _views[k]
+		if v == atk or bool(v.get("dead", false)):
+			continue
+		for key in ["node", "barh"]:
+			var o = v.get(key)
+			if o is CanvasItem and is_instance_valid(o) and (o as CanvasItem).visible:
+				(o as CanvasItem).visible = false
+				hidden.append(o)
+	if hidden.is_empty():
+		return
+	var gen := _gen
+	var tree := get_tree()
+	if tree == null:
+		return
+	tree.create_timer(sec).timeout.connect(func() -> void:
+		if not is_instance_valid(self) or gen != _gen:
+			return
+		for o2 in hidden:
+			if o2 is CanvasItem and is_instance_valid(o2):
+				(o2 as CanvasItem).visible = true)
+
+
 func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 	var gen := _gen
+	_ultimate_position(atk)
 	# 원작은 **시전자** 기준으로 무대를 짠다 — 링은 시전자 발밑, 좌표는 시전 방향(dir)으로 편다.
 	# 종전엔 `at`(피격자 위치)만 넘겨서 링이 맞는 편에 깔리지 않았다.
+	# ⚠️ 링은 **무대 자리**(위 `_ultimate_position` 이 옮긴 곳) 발밑에 깔아야 한다 —
+	#   슬롯 좌표로 깔면 시전자가 뛰어간 자리와 어긋난다.
 	var caster: Vector2 = _body_pos(atk) if not atk.is_empty() else at
+	if not atk.is_empty():
+		# `_ultimate_position` 이 옮긴 **절대 무대 자리**를 그대로 쓴다. 슬롯 기준 상대이동으로
+		# 계산하면(종전) 3v3 뒷줄에서 링이 시전자와 다른 곳에 깔린다.
+		var vis := _vis()
+		caster = Vector2(ULT_DX if bool(atk.get("mine", false)) else vis.x - ULT_DX,
+			vis.y * 0.5 + ULT_DROP) - Vector2(0.0, float(atk.get("dragon_h", DRAGON_H)) * 0.5)
 	UltimateFx.play(self, {
 		"element": String(atk.get("element", "")),
 		"at": caster,
