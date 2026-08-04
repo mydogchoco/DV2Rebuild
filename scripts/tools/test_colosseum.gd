@@ -18,23 +18,28 @@ func _run() -> void:
 	rng.seed = 20260804
 
 	# ── 1. 티어 경계 — 원작 하드코딩과 1:1 -------------------------------------
-	# GetTier: <1200→BRONZE · <1500→SILVER · <1900→GOLD · <2300→PLATINUM · 이상→MASTER
+	# 🔴 정정 2026-08-04 — 경계는 stringsData_KR.xml `Colosseum_Rating_0~5` 가 정본이다:
+	#   1200 미만 / 1200↑ / 1400↑ / 1600↑ / 1800↑ / 2000↑ (6단계 · 200점 등간격).
+	#   종전에 쓰던 StrategyManager::GetTier(1200/1500/1900/2300)는 **시즌 시스템**이었다.
 	var cases := [
-		[0, "BRONZE"], [1199, "BRONZE"], [1200, "SILVER"], [1499, "SILVER"],
-		[1500, "GOLD"], [1899, "GOLD"], [1900, "PLATINUM"], [2299, "PLATINUM"],
-		[2300, "MASTER"], [99999, "MASTER"],
+		[0, "BRONZE"], [1199, "BRONZE"], [1200, "SILVER"], [1399, "SILVER"],
+		[1400, "GOLD"], [1599, "GOLD"], [1600, "PLATINUM"], [1799, "PLATINUM"],
+		[1800, "DIAMOND"], [1999, "DIAMOND"], [2000, "MASTER"], [99999, "MASTER"],
 	]
 	for c in cases:
 		var t := Colosseum.tier_of(int(c[0]))
 		fails += _eq("tier(%d)" % int(c[0]), String(t.get("name", "")), String(c[1]))
 
 	# 티어 프레임 경로 — 보유 프레임만 가리켜야 한다(diamond 는 없다).
-	fails += _eq("frame.border(1500)", Colosseum.tier_frame(1500, "border"),
+	fails += _eq("frame.border(1400)", Colosseum.tier_frame(1400, "border"),
 		"common/list_frame_gold.png")
-	fails += _eq("frame.icon(2300)", Colosseum.tier_frame(2300, "icon"),
+	fails += _eq("frame.icon(2000)", Colosseum.tier_frame(2000, "icon"),
 		"common/tier_icon_master.png")
+	# DIAMOND 는 아이콘이 미보유 → platinum 으로 대체돼야 한다(티어 자체는 살아 있다).
+	fails += _eq("frame.icon(1800)=diamond→platinum", Colosseum.tier_frame(1800, "icon"),
+		"common/tier_icon_platinum.png")
 	fails += _eq("to_next(1199)", Colosseum.to_next_tier(1199), 1)
-	fails += _eq("to_next(2300)", Colosseum.to_next_tier(2300), 0)
+	fails += _eq("to_next(2000)", Colosseum.to_next_tier(2000), 0)
 
 	# ── 2. 레이팅 증감 ---------------------------------------------------------
 	var w0 := Colosseum.rating_delta(true, 0, 1000)

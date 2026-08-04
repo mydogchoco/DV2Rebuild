@@ -278,7 +278,9 @@ func _on_pick(i: int) -> void:
 		return
 	_selected = i
 	if not Colosseum.can_enter():
-		_notice("입장권이 부족합니다.")
+		# 원작 문구 그대로 — `ColosseumNoStamina`. 원작은 '입장권'이 아니라 **피로도**라 부른다.
+		_notice(String(Data.colosseum.get("log", {}).get("no_stamina",
+			"피로도가 부족하여 전투에 참여가 불가능합니다.")))
 		_rebuild()
 		return
 	var foe: Dictionary = _opponents[i]
@@ -368,7 +370,9 @@ func _build_right_column(vis: Vector2) -> void:
 		# region 을 왼쪽만 남기면 중심도 왼쪽으로 옮겨야 왼쪽 기준으로 찬다.
 		fill.position = Vector2(gx + gw * ratio * 0.5, gy)
 		col.add_child(fill)
-	col.add_child(_center_label("입장권 %d / %d" % [have, mx], col.size.x, gy + 14.0, 17))
+	# 원작 명칭은 **피로도**다(ColosseumNoStamina · Colosseum_1vs1_Energy_Msg).
+	# 표기도 원작 updateStamina 와 같은 "n/10" 꼴.
+	col.add_child(_center_label("피로도 %d / %d" % [have, mx], col.size.x, gy + 14.0, 17))
 
 	# ── 하단 버튼 ─────────────────────────────────────────────────────────────
 	var bw := cw - 40.0

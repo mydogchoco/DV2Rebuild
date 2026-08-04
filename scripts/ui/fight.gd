@@ -336,8 +336,48 @@ func _apply(ev: Dictionary) -> void:
 			var n = v.get(k)
 			if n != null and is_instance_valid(n):
 				create_tween().tween_property(n, "modulate:a", 0.0, 0.45)
-	if t == "skill":
-		_say("%s 발동!" % String(ev.get("skill_name", "스킬")))
+	_log_line(ev, t, dfn, dmg, heal)
+
+
+## 하단 로그 문구 — **원작 `ColosseumTextBox` 가 쓰던 문장 그대로**.
+## 출처 = `DV2/string/stringsData_KR.xml`(사용자 지적 2026-08-04로 채굴). 유실이 아니었다.
+## 종전엔 "스킬 발동!" 같은 자작 문구를 냈다.
+func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> void:
+	var L: Dictionary = Data.colosseum.get("log", {})
+	if L.is_empty():
+		return
+	var an := _who(String(ev.get("attacker", "")))
+	var dn := _who(dfn)
+	match t:
+		"normal", "double":
+			var kind := String(L.get("atk_critical", "")) if bool(ev.get("crit", false)) \
+				else String(L.get("atk_double" if t == "double" else "atk_normal", ""))
+			if bool(ev.get("miss", false)):
+				_say(String(L.get("evade", "")) % [dn, an, kind])
+			elif bool(ev.get("block", false)):
+				_say(String(L.get("defend", "")) % [dn, an, kind, dmg])
+			else:
+				_say(String(L.get("attack", "")) % [an, dn, kind, dmg])
+		"awaken":
+			_say(String(L.get("ultimate", "")) % an)
+		"skill":
+			var sn := String(ev.get("skill_name", ""))
+			if sn != "":
+				_say(String(L.get("skill", "")) % [an, dn, sn])
+		"dot":
+			_say(String(L.get("poison", "")) % [dn, dmg])
+	if heal > 0:
+		_say(String(L.get("recover", "")) % [dn, heal])
+	if bool(ev.get("dead", false)):
+		_say(String(L.get("stun", "")) % dn)
+
+
+## 내부 전투원 이름(A0/E0) → 화면에 낼 드래곤 이름.
+func _who(tag: String) -> String:
+	if tag == "" or not _views.has(tag):
+		return ""
+	var l = (_views[tag] as Dictionary).get("name")
+	return (l as Label).text.split("  ")[0] if l is Label else tag
 
 
 func _set_bar(v: Dictionary) -> void:

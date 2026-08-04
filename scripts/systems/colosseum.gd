@@ -100,7 +100,12 @@ static func tier_frame(rating: int, kind: String) -> String:
 	if t.is_empty():
 		return ""
 	var pat := String((_cfg().get("tier", {}) as Dictionary).get("frames", {}).get(kind, ""))
-	return pat % String(t.get("key", "")) if pat != "" else ""
+	if pat == "":
+		return ""
+	# DIAMOND 는 원작 규칙엔 있으나 아이콘이 추출 에셋에 없다 → 표시만 대체(§10).
+	var key := String(t.get("icon_fallback", "")) if String(t.get("icon_fallback", "")) != "" \
+		else String(t.get("key", ""))
+	return pat % key
 
 
 ## 다음 티어까지 남은 레이팅(최상위면 0).
@@ -171,8 +176,10 @@ static func apply_result(mode: String, win: bool, opponent_nick := "") -> Dictio
 	return {
 		"delta": delta, "rating_before": before, "rating_after": after,
 		"tier_before": t_before, "tier_after": t_after,
-		"tier_up": int(t_after.get("id", 9)) < int(t_before.get("id", 9)),
-		"tier_down": int(t_after.get("id", 0)) > int(t_before.get("id", 0)),
+		# id = ColosseumProfile::getRatingBorder 의 case 번호(0 BRONZE … 5 MASTER) — **클수록 높다**.
+		# 🔴 2026-08-04: 종전엔 StrategyManager 규약(작을수록 높다)이라 부호가 반대였다.
+		"tier_up": int(t_after.get("id", 0)) > int(t_before.get("id", 0)),
+		"tier_down": int(t_after.get("id", 0)) < int(t_before.get("id", 0)),
 		"streak": int(s[sk]), "best": int(s[bk]),
 	}
 

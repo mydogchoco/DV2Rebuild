@@ -48,13 +48,29 @@ RANKER_CSV = SHEETS / "colosseum_ranker.csv"
 NICK_CSV = SHEETS / "colosseum_nick.csv"
 
 # ── 원작 채굴값 ────────────────────────────────────────────────────────────
-# StrategyManager::GetTier — id 는 원작 그대로(1=MASTER 가 최상위, 숫자가 작을수록 높다).
+#
+# 🔴 2026-08-04 정정 — 처음에 `StrategyManager::GetTier` @0170f130 의 경계
+#    (1200/1500/1900/2300, 5티어)를 썼는데 **그건 시즌(Strategy) 시스템이지
+#    클래식 콜로세움이 아니다.** 진짜 경계는 문자열 번들에 문장으로 박혀 있었다
+#    (`DV2/string/stringsData_KR.xml`):
+#        Colosseum_Rating_0 = 1200점 미만      Colosseum_Rating_3 = 1600점 이상
+#        Colosseum_Rating_1 = 1200점 이상      Colosseum_Rating_4 = 1800점 이상
+#        Colosseum_Rating_2 = 1400점 이상      Colosseum_Rating_5 = 2000점 이상
+#    ⇒ **6단계 · 200점 등간격**이고, 이게 `ColosseumProfile::getRatingBorder` @00f15ad8 의
+#      6분기(0 BRONZE / 1 SILVER / 2 GOLD / 3 PLATINUM / 4 DIAMOND / 5 MASTER)와 정확히 맞는다.
+#    종전의 "프레임이 5종뿐이니 5티어" 추론은 **자산 부재를 규칙 부재로 오독한 것**이었다.
+#    id = getRatingBorder 의 case 번호 그대로(0=BRONZE … 5=MASTER, 클수록 높다).
+#
+# ⚠️ DIAMOND 아이콘(`common/{list_frame,tier_icon}_diamond.png`)은 추출 에셋에 없다.
+#    티어는 원작대로 두고 **표시만** platinum 프레임으로 대신한다(`icon_fallback`).
 TIERS = [
-    {"id": 5, "key": "bronze",   "name": "BRONZE",   "min_rating": 0},
-    {"id": 4, "key": "silver",   "name": "SILVER",   "min_rating": 1200},
-    {"id": 3, "key": "gold",     "name": "GOLD",     "min_rating": 1500},
-    {"id": 2, "key": "platinum", "name": "PLATINUM", "min_rating": 1900},
-    {"id": 1, "key": "master",   "name": "MASTER",   "min_rating": 2300},
+    {"id": 0, "key": "bronze",   "name": "BRONZE",   "min_rating": 0},
+    {"id": 1, "key": "silver",   "name": "SILVER",   "min_rating": 1200},
+    {"id": 2, "key": "gold",     "name": "GOLD",     "min_rating": 1400},
+    {"id": 3, "key": "platinum", "name": "PLATINUM", "min_rating": 1600},
+    {"id": 4, "key": "diamond",  "name": "DIAMOND",  "min_rating": 1800,
+     "icon_fallback": "platinum"},
+    {"id": 5, "key": "master",   "name": "MASTER",   "min_rating": 2000},
 ]
 
 TIER_FRAMES = {
@@ -77,7 +93,8 @@ RATING = {
     "streak_bonus_per": 2,
     "streak_bonus_max": 12,
     # 티어가 높을수록 패배 손실이 커진다(방어적 정체 방지). 티어 id → 배수.
-    "lose_mult_by_tier": {"5": 0.5, "4": 0.8, "3": 1.0, "2": 1.2, "1": 1.5},
+    # id 는 0=BRONZE … 5=MASTER (getRatingBorder case 번호).
+    "lose_mult_by_tier": {"0": 0.5, "1": 0.8, "2": 1.0, "3": 1.1, "4": 1.3, "5": 1.5},
 }
 
 TICKET = {
@@ -128,9 +145,10 @@ BOT_GRADES = {
 # 티어별 상대 분류 가중치 — # ASSUMPTION(튜닝 노브).
 TIER_BOT_MIX = {
     "bronze":   {"novice": 100, "adept": 0,   "ranker": 0},
-    "silver":   {"novice": 70,  "adept": 30,  "ranker": 0},
-    "gold":     {"novice": 30,  "adept": 70,  "ranker": 0},
-    "platinum": {"novice": 5,   "adept": 80,  "ranker": 15},
+    "silver":   {"novice": 75,  "adept": 25,  "ranker": 0},
+    "gold":     {"novice": 40,  "adept": 60,  "ranker": 0},
+    "platinum": {"novice": 10,  "adept": 85,  "ranker": 5},
+    "diamond":  {"novice": 0,   "adept": 80,  "ranker": 20},
     "master":   {"novice": 0,   "adept": 50,  "ranker": 50},
 }
 
@@ -240,6 +258,54 @@ def build() -> dict:
             "team":   {"label": "3 vs 3", "party": 3, "rating_key": "tournament", "streak_key": "straight_team"},
         },
         "tier": {"list": TIERS, "frames": TIER_FRAMES},
+        # 원작 문자열 번들에서 채굴한 **규칙 사실**들. 아직 미구현인 것도 있으나
+        # "서버 유실"이 아니라 **클라에 있었다**는 근거로 남긴다(사용자 지적 2026-08-04).
+        "_orig_rules": {
+            "_source": "DV2/string/stringsData_KR.xml — 콜로세움 문자열 162개",
+            "entry": "레벨 25 + 테이머 자격증 이벤트 완수 (ColosseumInError)",
+            "stamina": "'피로도'라고 부른다(입장권 아님). 최대 10 = ColosseumBattleInfo::"
+                       "updateStamina 하드코딩. **1vs1/3vs3 각각 따로**(Colosseum_1vs1_Energy_Msg"
+                       " / Colosseum_3vs3_Energy_Msg). 1개 충전 = 다이아 1개.",
+            "refresh_cost": "상대 목록 새로고침은 **골드** 소모 (Colosseum_Refresh_Msg "
+                            "'새로고침에는 %1$d 골드가 필요합니다'). 실패 시 Colosseum_Refresh_Error.",
+            "streak_continue": "패배해도 **다이아로 연승을 이어갈 수 있었다** (ColosseumContinue).",
+            "rewards": "일일/주간 보상 = **다이아 + 콜로세움 주화**를 우편함 지급 "
+                       "(Colosseum_Daily_Result_1/2 · Colosseum_Weekly_Result_1/2). "
+                       "재화 이름 = Colosseum_Coin '콜로세움 주화'.",
+            "modes": "탭은 **일반전(ColosseumNormalTitle) / 등급전(ColosseumSeasonTitle)** 이고, "
+                     "1vs1·3vs3 는 그와 **별개 축**이다(Colosseum1vs1SelectError 등).",
+            "npc": "콜로세움에서 **라온·누리가 말을 건다** — ColosseumRaonTalkA/B/C · "
+                   "ColosseumNuriTalkA/B (등급 구간별 A/B/C 3단계).",
+            "cut": "일일매치·토너먼트·리플레이·방어팀·시즌 공지는 온라인 → ⚫CUT 유지.",
+        },
+        # 전투 로그 문구 — 원작 ColosseumTextBox 가 쓰던 포맷 그대로(유실 아님).
+        # `%1$s` 류 위치 지정자는 GDScript 에 없어 순서 인자로 바꿔 둔다.
+        "log": {
+            "_source": "stringsData_KR.xml Colosseum* (원문 그대로, 위치지정자만 변환)",
+            "attack": "%s이(가) %s에게 %s으로(로) %d의 피해를 주었습니다.",
+            "defend": "%s이(가) %s의 %s을(를) 방어하여 %d의 피해를 받았습니다.",
+            "evade": "%s이(가) %s의 %s을(를) 회피하였습니다.",
+            "skill": "%s이(가) %s에게 %s을(를) 사용하였습니다.",
+            "buff": "%s이(가) 자신에게 %s을(를) 사용하였습니다.",
+            "recover": "%s의 체력이 %d만큼 회복되었습니다.",
+            "poison": "%s의 체력이 중독에 의해 %d만큼 감소하였습니다.",
+            "reflect": "%s이(가) %d만큼의 반사 피해를 받았습니다.",
+            "confuse": "%s가 자신을 공격하여 %d의 피해를 입었습니다.",
+            "ultimate": "%s이(가) 각성기를 사용하였습니다.",
+            "ultimate_damage": "%s이(가) 각성기에 의해 %d의 피해를 받았습니다.",
+            "stun": "%s이(가) 쓰러졌습니다.",
+            "stuned": "%s의 움직임이 봉쇄되었습니다.",
+            "skillblock": "%s이(가) %s의 %s의 사용을 차단하였습니다.",
+            # 위 문구의 `%s`(공격 종류) 자리에 들어가는 이름.
+            "atk_normal": "일반 공격",
+            "atk_double": "연속 공격",
+            "atk_critical": "강력한 공격",
+            # 그 밖의 확정 문구
+            "no_stamina": "피로도가 부족하여 전투에 참여가 불가능합니다.",
+            "no_dragon": "전투에 참여가 가능한 드래곤이 없습니다.",
+            "select_1vs1": "대전에 참가할 드래곤을 선택해주세요.",
+            "select_3vs3": "대전에 참가할 드래곤을 3마리 선택해주세요.",
+        },
         "rating": RATING,
         "ticket": TICKET,
         "streak": STREAK,
