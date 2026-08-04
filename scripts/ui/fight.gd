@@ -1345,6 +1345,10 @@ func _apply(ev: Dictionary) -> void:
 	#   9~12초짜리 연출이 도는 내내 결과가 이미 나와 있었다.
 	if t == "awaken":
 		var atk_v: Dictionary = _views.get(_actor_tag(ev), {})
+		# 시전 줄은 지금(연출 시작) 낸다 — 피해 줄은 아래 `_apply_hit` → `_log_line` 이 낸다.
+		var LU: Dictionary = Data.colosseum.get("log", {})
+		if not LU.is_empty():
+			_say(String(LU.get("ultimate", "")) % _who(_actor_tag(ev)))
 		var wait := UltimateFx.damage_at(String(atk_v.get("element", "")), float(_speed))
 		_ultimate_knockback(v, wait)
 		var gen := _gen
@@ -1478,7 +1482,11 @@ func _log_line(ev: Dictionary, t: String, dfn: String, dmg: int, heal: int) -> v
 			else:
 				_say(String(L.get("attack", "")) % [an, dn, kind, dmg])
 		"awaken":
-			_say(String(L.get("ultimate", "")) % an)
+			# 시전 줄(`ColosseumUltimate`)은 **시전 순간**에 이미 냈다(`_apply` 의 각성기 분기).
+			# 여기는 피해가 실제로 들어가는 시각이므로 피해 줄만 낸다.
+			# 원작 문자열 `ColosseumUltimateDamage` — 표에는 있었는데 아무 데서도 안 읽고 있었다.
+			if dmg > 0:
+				_say(String(L.get("ultimate_damage", "")) % [dn, dmg])
 		"skill":
 			var sn := String(ev.get("skill_name", ""))
 			if sn != "":

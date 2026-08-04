@@ -146,6 +146,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
 	_build_ring(host, el, at, s, sp, mat)
+	_show_name(host, el, sp)          # 원작 `showUltimateName` — 그림자만 이름이 없다
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	match el:
@@ -367,6 +368,106 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 		return
 	var timer := host_tree.create_timer(delay)
 	timer.timeout.connect(go)
+
+
+# ── 각성기 이름 배너 — 원작 `showUltimateName` @01005e1c (19,776B) ──────────
+#
+# 클래스 최대 함수인데 **프레임 리터럴이 0개**다 — 전부 `StringManager::getString` +
+# `CCLabelBMFont::create`(각 19회)로 만든다. 폰트는 `getFontName_combine` = `font_combine`.
+#
+# 문구는 원작 문자열 XML(`DV2/string/stringsData_KR.xml`)에 그대로 있다.
+# ⚠️ **그림자(shadow)만 없다** — XML 에 `UltimateShadow*` 키가 없고, 라벨 수를 세면
+#    2+2+2+2+2+3+4+2 = **19** 로 `CCLabelBMFont::create` 호출 수와 정확히 맞는다.
+#    즉 "빠뜨린 것"이 아니라 원작 사양이다.
+const ULT_NAME := {
+	"aqua":  ["소환!", "메갈로돈~!"],
+	"chaos": ["필살!", "운석강타!"],
+	"dark":  ["해치워라!", "다크핸즈!"],
+	"earth": ["오의!", "대지진!"],
+	"fire":  ["헬파이어!", "타올라라!"],
+	"holy":  ["받아라!", "빛의", "심판!"],
+	"light": ["신", "성", "폭", "발!"],
+	"wind":  ["불어라!", "대폭풍!"],
+}
+const ULT_NAME_FONT := "res://assets/converted/font_ui/font_combine.fnt"
+const ULT_NAME_SIZE := 34
+## 라벨 하나의 등장 — 원작(case 1 기준):
+##   Spawn( Seq(FadeTo(0.0625,225), Delay(0.0625), FadeTo(0.125,255)),
+##          ScaleTo(0.25, 2.2, 1.8), MoveTo(0.25, 중앙), RotateBy(0.25, **360°**) )
+##   → ScaleTo(0.05, 2.0)
+const ULT_NAME_IN := 0.25
+const ULT_NAME_SPIN := 360.0
+const ULT_NAME_BIG := Vector2(2.2, 1.8)
+const ULT_NAME_SETTLE := 2.0
+const ULT_NAME_SETTLE_SEC := 0.05
+const ULT_NAME_STAGGER := 0.9      # 원작 두 번째 라벨의 Delay(0.9)
+const ULT_NAME_DY := 150.0         # 시작 y 오프셋(±). 원작은 라벨마다 150/200 을 섞어 쓴다
+## 퇴장 — Delay(2.4) → EaseIn(MoveBy(0.25, (0,−10)), 0.25) → MoveBy(0.1, (0, 200)) → 제거
+const ULT_NAME_HOLD := 2.4
+const ULT_NAME_DIP := 0.25
+const ULT_NAME_OUT := 0.1
+
+## 이름 배너를 띄운다. host 가 화면 원점이 아닐 수 있어 **화면 중앙을 호스트 좌표로 환산**한다.
+static func _show_name(host: CanvasItem, el: String, sp: float) -> void:
+	var words: Array = ULT_NAME.get(el, [])
+	if words.is_empty():
+		return                                  # shadow — 원작에도 이름이 없다
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var center: Vector2 = host.get_global_transform_with_canvas().affine_inverse() * (vis * 0.5)
+	var fnt: FontFile = null
+	if ResourceLoader.exists(ULT_NAME_FONT):
+		fnt = load(ULT_NAME_FONT)
+		if fnt != null:
+			fnt = fnt.duplicate()
+			fnt.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+
+	for i in words.size():
+		var l := Label.new()
+		l.text = String(words[i])
+		l.size = Vector2(560.0, 60.0)
+		l.pivot_offset = l.size * 0.5
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if fnt != null and _has_all(fnt, l.text):
+			l.add_theme_font_override("font", fnt)
+		l.add_theme_font_size_override("font_size", ULT_NAME_SIZE)
+		l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.2))
+		l.add_theme_constant_override("outline_size", 8)
+		l.z_index = 118
+		# ASSUMPTION: 라벨이 3~4개인 신성·빛의 개별 시작 오프셋을 원작에서 못 살렸다.
+		#   2개짜리(원작이 ±150 으로 위아래에서 들어온다) 규칙을 그대로 늘려 쓴다.
+		var dy := ULT_NAME_DY * (1.0 if i % 2 == 0 else -1.0)
+		var home := center - l.size * 0.5 + Vector2(0.0, dy * 0.35 * float(i / 2))
+		l.position = home + Vector2(l.size.x, dy)
+		l.modulate.a = 0.0
+		l.scale = Vector2(0.6, 0.6)
+		host.add_child(l)
+
+		var t := l.create_tween()
+		t.tween_interval(ULT_NAME_STAGGER * float(i) / sp)
+		# 들어오면서 한 바퀴 돈다.
+		t.tween_property(l, "modulate:a", 225.0 / 255.0, 0.0625 / sp)
+		t.parallel().tween_property(l, "position", home, ULT_NAME_IN / sp)
+		t.parallel().tween_property(l, "scale", ULT_NAME_BIG, ULT_NAME_IN / sp)
+		t.parallel().tween_property(l, "rotation_degrees", ULT_NAME_SPIN, ULT_NAME_IN / sp)
+		t.tween_property(l, "modulate:a", 1.0, 0.125 / sp)
+		t.tween_property(l, "scale", Vector2(ULT_NAME_SETTLE, ULT_NAME_SETTLE),
+			ULT_NAME_SETTLE_SEC / sp)
+		# 퇴장 — 살짝 내려앉았다가 위로 튀어 사라진다.
+		t.tween_interval(ULT_NAME_HOLD / sp)
+		t.tween_property(l, "position", home + Vector2(0.0, 10.0), ULT_NAME_DIP / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.tween_property(l, "position", home - Vector2(0.0, 200.0), ULT_NAME_OUT / sp)
+		t.parallel().tween_property(l, "modulate:a", 0.0, ULT_NAME_OUT / sp)
+		t.tween_callback(l.queue_free)
+
+
+static func _has_all(f: FontFile, s: String) -> bool:
+	for ch in s:
+		if ch != " " and not f.has_char(ch.unicode_at(0)):
+			return false
+	return true
 
 
 # ── 속성별 안무 ─────────────────────────────────────────────────────────────
