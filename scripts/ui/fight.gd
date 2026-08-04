@@ -1071,11 +1071,14 @@ func _shake_horizontal(v: Dictionary, dir: float) -> void:
 	if not (n is Node2D) or not is_instance_valid(n):
 		return
 	var node := n as Node2D
+	# ⚠️ 복귀 지점은 `v["pos"]`(슬롯 원위치)가 아니라 **지금 자리**다 —
+	#   `_swap_position` 이 자리를 옮겨 둔 도중에 흔들리면 원위치로 튕겨 버린다(2026-08-05).
+	var base := node.position
 	var tw := node.create_tween()
 	for d: float in HIT_SHAKE:
 		tw.tween_property(node, "position:x",
 			node.position.x + d * dir, HIT_SHAKE_SEC).as_relative()
-	tw.tween_property(node, "position", v.get("pos", node.position), 0.0)
+	tw.tween_property(node, "position", base, 0.0)
 
 
 ## 타격 순간의 **스쿼시&스트레치** — 원작 `action` @01062fd4 의 ScaleTo 3단.
@@ -1176,10 +1179,11 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 			_status_icon(st, int(ev.get("source", 0)), false, int(ev.get("turns", 0)))
 		return
 
-	# code 1 혼란 — 원작은 `swapPosition` 으로 자리를 흔든 뒤 자기 스파인으로 자기를 친다.
+	# code 1 혼란 — 원작은 `swapPosition` 으로 자리를 바꾼 뒤 자기 스파인으로 자기를 친다.
 	if code == AC_CONFUSE:
 		var me: Dictionary = _views.get(String(ev.get("actor", "")), {})
 		if not me.is_empty():
+			_swap_position(me, 0.8)
 			var d0 := _play_anim(me, "attack")
 			_attack_pulse(me, me, d0)
 			_damaged_color(me)
@@ -1247,6 +1251,9 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 			if atk.is_empty():
 				pass
 			elif code == AC_CRIT_FX:
+				# 코드 41 은 `criticalEffectMake` 와 함께 **`swapPosition`** 도 부른다 —
+				# 뒷줄이 크리티컬을 내면 앞줄과 자리를 바꾼다(3v3 한정).
+				_swap_position(atk, 0.8)
 				# 크리티컬 = **공격한 드래곤 자기 크리티컬 스파인**(원작 criticalEffectMake).
 				_critical_effect(atk, dfn)
 				_crit_voice(atk)
@@ -1256,6 +1263,58 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 				# 평타 — 드빌1에서 온 종만 전용 평타 이펙트를 갖는다(`col_action1`).
 				# 없으면 아무것도 안 뜬다(원작 콜로세움 평타에도 이펙트가 없다).
 				_dragon_fx_seq(int(atk.get("id", 0)), "col_action1", at)
+
+
+## 위치 교대 — 원작 `MakeInterface::swapPosition` @01087ea4 (액션 코드 **1**·**41**·**42**).
+##
+## 원작이 하는 일(디컴프 + 룩업표 실측):
+##   행동한 드래곤의 태그 `t` 로 `DAT_021c4ae8`(태그 11~15 구간)을 찾아 **교대 상대 태그**를 얻는다.
+##   실측값 = `[11, 10, 11, 10, 11]`, 구간 밖은 `10`
+##   ⇒ 태그 11(내 앞줄)·10(상대 앞줄)은 **자기 자신** ⇒ 앞줄이 행동하면 교대가 없다.
+##     태그 13·15(내 뒷줄) → 11, 12·14(상대 뒷줄) → 10 ⇒ **자기 진영 앞줄과 자리를 바꾼다.**
+##   앞줄:  Delay(d1) → MoveBy(0.05, ±210) → Delay(d2 + 0.1) → MoveTo(0.05, 앞줄 제자리)
+##   행동자: Delay(d1 + 0.05) → MoveTo(0.05, 앞줄 자리) → Delay(d2) → MoveTo(0.05, 제자리)
+##   HUD(태그 × −50)도 같이 움직인다 — 앞줄 자리 + (0, scale × −95).
+##
+## # ASSUMPTION: 원작 `MoveBy` 의 x 부호가 `ABS(scaleX)/scaleY` 라 디컴프상 항상 양수로 읽히는데,
+##   그러면 양 진영이 같은 방향으로 나간다. 물리적으로 "앞으로 비켜 준다"가 맞으므로
+##   **진영 기준 전방**(내 팀 +x / 상대 −x)으로 뒀다. 크기 210·0.05 는 원작 그대로.
+const SWAP_STEP := 210.0
+const SWAP_SEC := 0.05
+
+func _swap_position(actor: Dictionary, hold: float) -> void:
+	if _mode != "team" or actor.is_empty():
+		return
+	if int(actor.get("slot", 0)) == 0:
+		return                                   # 앞줄이 행동하면 교대 없음(룩업표 11→11 / 10→10)
+	var mine := bool(actor.get("mine", false))
+	var front: Dictionary = _views.get(("A0" if mine else "E0"), {})
+	if front.is_empty() or bool(front.get("dead", false)):
+		return
+	var dir := 1.0 if mine else -1.0
+	var fhome: Vector2 = front.get("pos", Vector2.ZERO)
+	var ahome: Vector2 = actor.get("pos", Vector2.ZERO)
+
+	# 앞줄 — 앞으로 비켜났다 제자리로.
+	for k in ["node", "barh"]:
+		var fn = front.get(k)
+		if fn is Node2D and is_instance_valid(fn):
+			var base: Vector2 = (fn as Node2D).position
+			var t1 := (fn as Node2D).create_tween()
+			t1.tween_property(fn, "position", base + Vector2(dir * SWAP_STEP, 0.0), SWAP_SEC)
+			t1.tween_interval(hold + 0.1)
+			t1.tween_property(fn, "position", base, SWAP_SEC)
+	# 행동자 — 앞줄 자리로 갔다 제자리로.
+	var shift := fhome - ahome
+	for k2 in ["node", "barh"]:
+		var an = actor.get(k2)
+		if an is Node2D and is_instance_valid(an):
+			var base2: Vector2 = (an as Node2D).position
+			var t2 := (an as Node2D).create_tween()
+			t2.tween_interval(SWAP_SEC)
+			t2.tween_property(an, "position", base2 + shift, SWAP_SEC)
+			t2.tween_interval(hold)
+			t2.tween_property(an, "position", base2, SWAP_SEC)
 
 
 ## 회피 — 원작 `MakeInterface::evadeEffect` @0108f078.
@@ -1314,6 +1373,7 @@ func _status_icon(v: Dictionary, skill_id: int, is_buff: bool, turns: int) -> vo
 		return
 	if box.get_child_count() >= ICON_MAX:
 		return
+	_zzing(v)                       # 새로 붙는 순간에만 — 재발동은 위 `activeIcon` 펄스다
 
 	var holder := Node2D.new()
 	holder.name = name_key
@@ -1337,6 +1397,37 @@ func _status_icon(v: Dictionary, skill_id: int, is_buff: bool, turns: int) -> vo
 		_bm_style(l, 36, Color.WHITE, "font_normal")
 		holder.add_child(l)
 	_icon_pulse(holder)
+
+
+## 상태이상이 **새로 붙는 순간**의 반짝임 — 원작 `createIcon` 이 같은 시퀀스 안에서 낸다.
+##   `skill/skill_zzing_spine.spine_json` + `.img_plist`, createWithFile(…, 1.0)
+##   Delay(param_6 + **0.5**) → … → runSpineWithAnimationName("animation") → Delay(**1.0**) → 제거
+const ZZING_SCENE := "res://scenes/fx/skill_zzing_spine.tscn"
+const ZZING_DELAY := 0.5
+const ZZING_HOLD := 1.0
+
+func _zzing(v: Dictionary) -> void:
+	if not ResourceLoader.exists(ZZING_SCENE):
+		return
+	var holder := Node2D.new()
+	holder.z_index = 101
+	holder.position = v.get("pos", _vis() * 0.5)
+	holder.visible = false
+	add_child(holder)
+	var inst = (load(ZZING_SCENE) as PackedScene).instantiate()
+	holder.add_child(inst)
+	var ap := _find_anim_player(inst)
+	var gen := _gen
+	get_tree().create_timer(ZZING_DELAY).timeout.connect(func() -> void:
+		if gen != _gen or not is_instance_valid(holder):
+			return
+		holder.visible = true
+		if ap != null and ap.has_animation("animation"):
+			ap.get_animation("animation").loop_mode = Animation.LOOP_NONE
+			ap.play("animation"))
+	var tw := holder.create_tween()
+	tw.tween_interval(ZZING_DELAY + ZZING_HOLD)
+	tw.tween_callback(holder.queue_free)
 
 
 ## 원작 `activeIcon` 의 발동 펄스. 기본 0.375 로 돌아온다.
