@@ -49,6 +49,25 @@ const BG_DIR := "res://assets/converted/colosseum_bg"
 const SLOT_OFF := [Vector2(335.0, 262.5), Vector2(200.0, 350.0), Vector2(135.0, 175.0)]
 const DRAGON_SCALE_TEAM := 0.75     # 원작 makeDragonLayer: type 3(3v3)
 const DRAGON_SCALE_SOLO := 1.0      # 원작 makeDragonLayer: type 1(1v1)
+
+# ✅ 2026-08-05 재확인 — 위 3v3 좌표를 **두 번째 경로로 교차검증**했다.
+#   `FUN_0105564c(out, layer, sceneType)` @0105564c 는 "그 드래곤 레이어의 **최종 슬롯 좌표**"를
+#   주는 원작 헬퍼다(`duelDragonAppear` 의 착지 MoveTo · `swapPosition` 의 복귀 MoveTo 가 쓴다).
+#   ASM + 점프테이블(0x21b0642, 6엔트리) + `.rodata` 실측:
+#     tag 10 → `FUN_010b21a0(sceneType)` · tag 11 → `FUN_010b20c4(sceneType)`
+#     tag 12 → rightBottom + (**−200, 350**) · tag 13 → leftBottom + (**200, 350**)
+#     tag 14 → rightBottom + (**−135, 175**) · tag 15 → leftBottom + (**135, 175**)
+#   PLT 심볼 실명 확인(.rela.plt): `VisibleRect::leftBottom/rightBottom/left/right`.
+#
+# 🔴 **1vs1 은 좌표가 다르다**(사용자 지적 "위치가 원작과 다르다"의 한 원인).
+#   앞줄 좌표 함수가 `FightManager::getType()` 으로 갈라진다 —
+#   콜로세움은 `ColosseumScene` 이 **1VS1 = setType(0) · 3VS3 = setType(1)** 로 넣는다.
+#     `FUN_010b20c4`(내 앞줄): `type<=11 && (1<<type)&**0xbf2**` → leftBottom + (335, 262.5)
+#         ⇒ type 1(3v3) ✅ 해당 / type 0(1v1) ✗ ⇒ else 가지 = **`VisibleRect::left() + (225, −50)`**
+#     `FUN_010b21a0`(상대 앞줄): 점프테이블(0x21b0c1b, index = type−1)
+#         ⇒ type 1 → rightBottom + (−335, 262.5) / type 0 은 표 밖 ⇒ **`right() + (−225, −50)`**
+#   `left()`/`right()` 는 화면 **세로 중앙**의 좌·우 모서리다(바닥이 아니다).
+const SOLO_SLOT := Vector2(225.0, -50.0)   # 1vs1 — left()/right() 기준 (원작 type 0 가지)
 # ⚠️ 드래곤 스파인의 **기본 방향은 왼쪽**이다(실측 2026-08-04 — 처음엔 반대로 알고
 #   상대만 뒤집었더니 우리 팀이 등을 보였다). 그래서 **왼쪽에 서는 내 팀**을 뒤집는다.
 # `PartySelect._spine_node` 는 **holder 원점 = 스프라이트 바닥 중앙**으로 맞춘다
@@ -391,13 +410,25 @@ func _stage_buff_fx() -> void:
 
 # ---------- 팀 배치 ----------
 
+## 슬롯 좌표 — 원작 `FUN_0105564c` 의 태그별 분기를 그대로 옮긴다(위 상수 주석 참조).
+## 반환은 **Godot 좌표**(y-flip 완료). `slot` 0=앞줄 1=중간 2=뒷줄.
+func _slot_pos(mine: bool, slot: int, vis: Vector2) -> Vector2:
+	if _mode != "team":
+		# 1vs1 — 원작 type 0 가지. 기준이 `left()`/`right()` = 화면 **세로 중앙**이다.
+		#   Cocos (225, h/2 − 50) → Godot y = h − (h/2 − 50) = h/2 + 50.
+		return Vector2(SOLO_SLOT.x if mine else vis.x - SOLO_SLOT.x,
+			vis.y * 0.5 - SOLO_SLOT.y)
+	var off: Vector2 = SLOT_OFF[slot % SLOT_OFF.size()]
+	return Vector2(off.x if mine else vis.x - off.x, vis.y - off.y)
+
+
 func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> void:
 	for i in team.size():
 		var p: Dictionary = team[i]
 		var tag := ("A%d" if mine else "E%d") % i
-		var off: Vector2 = SLOT_OFF[i % SLOT_OFF.size()]
-		var x := off.x if mine else vis.x - off.x
-		var y := vis.y - off.y                      # Cocos 바닥 기준 → Godot
+		var slot := _slot_pos(mine, i, vis)
+		var x := slot.x
+		var y := slot.y
 
 		var holder := Node2D.new()
 		holder.position = Vector2(x, y)
@@ -2006,15 +2037,33 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 ##   실측값 = `[11, 10, 11, 10, 11]`, 구간 밖은 `10`
 ##   ⇒ 태그 11(내 앞줄)·10(상대 앞줄)은 **자기 자신** ⇒ 앞줄이 행동하면 교대가 없다.
 ##     태그 13·15(내 뒷줄) → 11, 12·14(상대 뒷줄) → 10 ⇒ **자기 진영 앞줄과 자리를 바꾼다.**
-##   앞줄:  Delay(d1) → MoveBy(0.05, ±210) → Delay(d2 + 0.1) → MoveTo(0.05, 앞줄 제자리)
-##   행동자: Delay(d1 + 0.05) → MoveTo(0.05, 앞줄 자리) → Delay(d2) → MoveTo(0.05, 제자리)
-##   HUD(태그 × −50)도 같이 움직인다 — 앞줄 자리 + (0, scale × −95).
 ##
-## # ASSUMPTION: 원작 `MoveBy` 의 x 부호가 `ABS(scaleX)/scaleY` 라 디컴프상 항상 양수로 읽히는데,
-##   그러면 양 진영이 같은 방향으로 나간다. 물리적으로 "앞으로 비켜 준다"가 맞으므로
-##   **진영 기준 전방**(내 팀 +x / 상대 −x)으로 뒀다. 크기 210·0.05 는 원작 그대로.
+## ✅ 2026-08-05 **좌표 재채굴 — 종전 ASSUMPTION 두 개가 다 틀렸다**(사용자 지적 6번).
+##   `swapPosition(layer, d1, d2, param4, param5)` 를 끝까지 읽고 확정한 것:
+##
+##     sign  = `ABS(spine.scaleX) / spine.scaleX`   ← `layer->getChildByTag(**1**)` = 스파인
+##     sy    = `layer->getScaleY()`
+##     슬롯  = `FUN_0105564c(layer, sceneType)`     ← **절대 슬롯 좌표**(위 SLOT_OFF 주석)
+##
+##     앞줄 레이어 : Delay(d1) → MoveBy(0.05, (**sign×210**, 0)) → Delay(d2+0.1)
+##                   → MoveTo(0.05, **앞줄 슬롯**)
+##     앞줄 그림자 : 같은 시퀀스, 목적지만 앞줄 슬롯 + (0, **sy×−95**)
+##     행동자 레이어: Delay(d1+0.05) → MoveTo(0.05, **앞줄 슬롯**) → Delay(d2)
+##                   → MoveTo(0.05, **자기 슬롯**)
+##     행동자 그림자: 같은 시퀀스, 두 목적지 모두 −(0, sy×95)
+##     반환 = d1 + **0.15**
+##
+##   🔴 정정 ① **방향** — `sign` 은 스파인 flipX 부호다. 우리도 원작대로 **내 팀만 flipX**
+##      (scaleX<0) 하므로 sign 은 내 팀 −1 · 상대 +1 ⇒ 앞줄은 **자기 진영 바깥으로** 비켜난다.
+##      종전엔 "앞으로 비켜 준다"고 읽어 **중앙 쪽**으로 밀어 반대로 움직이고 있었다.
+##   🔴 정정 ② **목적지** — 원작은 전부 **슬롯 절대좌표**로 간다. 종전엔 호출 시점의 현재
+##      위치(`node.position`)를 기준으로 상대 이동시켜, 다른 연출과 겹치면 자리가 어긋났다.
+##   ℹ️ `getChildByTag(부모, 태그×−50)` 은 HUD 가 아니라 **그림자**다(`setShadow` 의 태그
+##      −500/−550/−600… 과 정확히 일치). 우리는 그림자가 holder 의 **자식**이라 따라오고,
+##      대신 HUD(`barh`)가 형제라 같이 옮긴다 — 구조는 다르지만 화면 결과는 같다.
 const SWAP_STEP := 210.0
 const SWAP_SEC := 0.05
+const SWAP_TAIL := 0.15             # 원작 반환값 d1 + 0.15
 
 func _swap_position(actor: Dictionary, hold: float) -> void:
 	if _mode != "team" or actor.is_empty():
@@ -2025,33 +2074,34 @@ func _swap_position(actor: Dictionary, hold: float) -> void:
 	var front: Dictionary = _views.get(("A0" if mine else "E0"), {})
 	if front.is_empty() or bool(front.get("dead", false)):
 		return
-	var dir := 1.0 if mine else -1.0
+	# 원작 `sign` = 스파인 flipX 부호. 내 팀만 뒤집으므로 −1 ⇒ **자기 진영 바깥**으로 비켜난다.
+	var sign := -1.0 if mine else 1.0
 	var fhome: Vector2 = front.get("pos", Vector2.ZERO)
 	var ahome: Vector2 = actor.get("pos", Vector2.ZERO)
+	var aside := Vector2(fhome.x + sign * SWAP_STEP, fhome.y)
 
-	# 앞줄 — 앞으로 비켜났다 제자리로.
+	# 앞줄 — 옆으로 비켜났다 **자기 슬롯**으로.
 	for k in ["node", "barh"]:
 		var fn = front.get(k)
 		if fn is Node2D and is_instance_valid(fn):
-			var base: Vector2 = (fn as Node2D).position
+			var d: Vector2 = (fn as Node2D).position - fhome   # 슬롯 대비 이 노드의 고정 오프셋
 			var t1 := (fn as Node2D).create_tween()
-			t1.tween_property(fn, "position", base + Vector2(dir * SWAP_STEP, 0.0), SWAP_SEC)
+			t1.tween_property(fn, "position", aside + d, SWAP_SEC)
 			t1.tween_interval(hold + 0.1)
-			t1.tween_property(fn, "position", base, SWAP_SEC)
-	# 행동자 — 앞줄 자리로 갔다 제자리로.
-	var shift := fhome - ahome
+			t1.tween_property(fn, "position", fhome + d, SWAP_SEC)
+	# 행동자 — **앞줄 슬롯**으로 갔다 **자기 슬롯**으로.
 	for k2 in ["node", "barh"]:
 		var an = actor.get(k2)
 		if an is Node2D and is_instance_valid(an):
-			var base2: Vector2 = (an as Node2D).position
+			var d2: Vector2 = (an as Node2D).position - ahome
 			var t2 := (an as Node2D).create_tween()
 			t2.tween_interval(SWAP_SEC)
-			t2.tween_property(an, "position", base2 + shift, SWAP_SEC)
+			t2.tween_property(an, "position", fhome + d2, SWAP_SEC)
 			t2.tween_interval(hold)
-			t2.tween_property(an, "position", base2, SWAP_SEC)
+			t2.tween_property(an, "position", ahome + d2, SWAP_SEC)
 	# 교대해 있는 동안은 **그 자리가 원점**이다 — 이걸 안 옮기면 그 사이 공격의 복귀가
 	# 원래 슬롯으로 튀어 자리 교대가 풀린다(`_attack_jump` ① 참조).
-	front["home"] = Vector2(fhome.x + dir * SWAP_STEP, fhome.y)
+	front["home"] = aside
 	actor["home"] = fhome
 	var gen := _gen
 	get_tree().create_timer(SWAP_SEC * 2.0 + hold + 0.1).timeout.connect(func() -> void:
@@ -2609,8 +2659,20 @@ func _shake_screen(sec: float, amp: float) -> void:
 ## 재생해야 "구현상황 확인"이 성립한다. 연출 수정은 그 파일에서 한다.
 func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 	var gen := _gen
-	UltimateFx.play(self, String(atk.get("element", "")), at, _pma,
-		func() -> bool: return is_instance_valid(self) and gen == _gen)
+	# 원작은 **시전자** 기준으로 무대를 짠다 — 링은 시전자 발밑, 좌표는 시전 방향(dir)으로 편다.
+	# 종전엔 `at`(피격자 위치)만 넘겨서 링이 맞는 편에 깔리지 않았다.
+	var caster: Vector2 = _body_pos(atk) if not atk.is_empty() else at
+	UltimateFx.play(self, {
+		"element": String(atk.get("element", "")),
+		"at": caster,
+		# 원작 `this+0x22c` = 시전자 레이어 스케일(3v3 = 0.75, 1v1 = 1.0).
+		"scale": DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO,
+		# 내 팀은 왼쪽에 선다 ⇒ 오른쪽으로 편다(+1).
+		"dir": 1.0 if bool(atk.get("mine", false)) else -1.0,
+		"speed": _speed,
+		"mat": _pma,
+		"alive": func() -> bool: return is_instance_valid(self) and gen == _gen,
+	})
 
 
 # ---------- 드래곤 컷인 — 원작 `Cutin::show` @Cutin.c:450 ----------
