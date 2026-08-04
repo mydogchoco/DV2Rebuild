@@ -603,14 +603,40 @@ func _set_bar(v: Dictionary) -> void:
 #   `critical`/`ultimate1`/`ultimate2` 는 콜로세움 경로에서 트리거되지 않는다
 #   (변환본엔 있지만 원작 PvP 가 안 쓴다 — 안 쓰는 게 원작 정합이다).
 #
-# 규칙: 애니를 틀고 **그 길이 + 0.5초** 뒤 대기 모션으로 돌아온다.
+# 🔴 2026-08-05 — 안무 마스터 `MakeInterface::action` @01062fd4 를 **드디어 읽었다**.
 #
-# 접근 이동 = `MakeInterface::setAction`(action @01062fd4 머리) —
-#     Delay → [ScaleTo(1.5) + MoveBy(offset)] → Delay(hold) → [ScaleTo(1.0) + MoveBy(-offset)]
-# 공격자가 **앞으로 나가며 커졌다가 제자리로 돌아온다**. 배율·간격은 그대로 옮긴다.
-const ATK_SCALE := 1.5              # 원작 ScaleTo(…, 1.5)
-const ATK_LEAD := 0.5               # 원작이 애니 길이에 더하는 여유
-const APPROACH := 120.0             # 상대 쪽으로 나가는 거리(우리 3v3 간격 기준)
+# 종전 주석의 "Delay → [ScaleTo(1.5) + MoveBy] → …" 는 **내가 지어낸 것**이었다.
+# 그 함수는 28,968B 라 Ghidra 디컴파일이 타임아웃으로 죽었고(`process: timeout`),
+# 나는 못 읽은 채 안무를 상상해 적었다. `scripts/tools/decomp_big.py --asm-only` +
+# `asm_read.py` 로 **주석 붙은 디스어셈블리**를 뽑아 실제 시퀀스를 복원했다
+# (근거 = `docs/ref/orig_code/probe/action_asm.c` 줄 176~465).
+#
+# ## 원작 기본 공격 시퀀스 (CCSequence 인자 순서 그대로)
+#   ① `CCDelayTime(현재애니길이 + 0.05)`            ← 진행 중 모션이 끝나길 기다린다
+#   ② `CCCallFuncN → runSpineWithAnimationName(dragon, "attack", 1.125)`  ← 재생속도 1.125배
+#   ③ `CCDelayTime(getAttackFrame() / 30 / 1.125)` ← **타격 프레임**까지의 시간
+#   ④ `CCScaleTo(0.05, base×1.25, 1.05)`           ┐
+#   ⑤ `CCScaleTo(0.05, base×0.90, 0.95)`           ├ 타격 순간의 **스쿼시&스트레치**
+#   ⑥ `CCScaleTo(0.05, base×1.00, 1.00)`           ┘
+#   ⑦ `CCDelayTime(전체길이/1.125 − 타격시간 − 0.1)` ← 공격 애니 잔여분
+#   ⑧ `CCCallFuncN → runSpineWithAnimationName(dragon, "wait", 1.0)`
+#   ⑨ `CCScaleTo(0, base, 1.0)`
+#
+# 상수 출처(부동소수 리터럴 디코드): 0x3d088815=1/30 · 0x3f900000=1.125 · 0x3fa00000=1.25 ·
+#   0x3f866666=1.05 · 0x3f666666=0.90 · 0x3f733333=0.95 · 0x3d4ccccd=0.05 · 0xbdcccccd=−0.1
+#
+# ⚠️ **이 분기에 이동(MoveBy/MoveTo)이 없다.** 공격자는 제자리에서 스케일 펄스만 한다.
+#   `action` 안의 MoveBy 는 전부 뒤쪽 분기(줄 2029·2073·3036·4771~ / 지속시간 0.25)에 있고
+#   그것들이 어느 액션 코드인지는 아직 특정하지 못했다 — 특정 전엔 붙이지 않는다(HARD RULE 6).
+#   ⇒ 종전 `_approach`(APPROACH 120pt 전진)는 근거가 없어 **끄고**, 원작 스케일 펄스로 바꾼다.
+#   되살릴 근거가 생기면 `ATK_APPROACH` 만 0 이 아닌 값으로 되돌리면 된다.
+const ATK_ANIM_SPEED := 1.125       # 원작 runSpineWithAnimationName(…, 1.125)
+const ATK_FPS := 30.0               # 원작 getAttackFrame() ÷ 30
+const ATK_PULSE_SEC := 0.05         # 원작 ScaleTo 지속시간(3단 공통)
+const ATK_PULSE := [Vector2(1.25, 1.05), Vector2(0.90, 0.95), Vector2(1.00, 1.00)]
+const ATK_TAIL := 0.1               # 원작 마지막 Delay 의 −0.1
+const ATK_LEAD := 0.05              # 원작 ①의 +0.05
+const ATK_APPROACH := 0.0           # 원작 기본공격엔 이동이 없다(위 ⚠️)
 const MOVE_SEC := 0.18
 
 ## 우리 변환본 드래곤 씬이 실제로 갖고 있는 애니(2026-08-04 실측):
@@ -639,11 +665,14 @@ func _play_anim(v: Dictionary, name: String) -> float:
 		return 0.0
 	var a := p.get_animation(name)
 	a.loop_mode = Animation.LOOP_NONE
-	p.play(name)
-	var dur := a.length
-	# 원작: Delay(duration + 0.5) 뒤 "wait" 로 복귀.
+	# 원작 `runSpineWithAnimationName(dragon, name, 1.125)` — 공격은 1.125배로 돌린다.
+	var speed := ATK_ANIM_SPEED if name == "attack" else 1.0
+	p.play(name, -1.0, speed)
+	var dur := a.length / speed
+	# 원작 ⑦: 잔여 = 전체/1.125 − 타격시간 − 0.1. 여기서는 애니가 끝난 뒤 복귀시키면 되므로
+	# 같은 값(= dur − 0.1)을 쓴다.
 	var gen := _gen
-	get_tree().create_timer(dur + ATK_LEAD).timeout.connect(func() -> void:
+	get_tree().create_timer(maxf(0.1, dur - ATK_TAIL)).timeout.connect(func() -> void:
 		if gen != _gen or not is_instance_valid(p) or bool(v.get("dead", false)):
 			return
 		if p.has_animation(ANIM_IDLE):
@@ -652,38 +681,38 @@ func _play_anim(v: Dictionary, name: String) -> float:
 	return dur
 
 
-## 공격자 접근 → 제자리 복귀.
-##
-## 원작 경로(디버그 아님): `BattleScene::basicAction` @00dcb1e8 이
-##     setAction(delay, MakeInterface, actor, FightManager::getTarget(1),
-##               getActorAction(), getHealthVariation(1), getHitAmount(), isSkillBlock, isMimic)
-## 를 부르고, `MakeInterface::setAction` @01062fb4 은 `action` @01062fd4 의 얇은 래퍼다.
-## `action` 머리의 안무 = Delay → [ScaleTo(1.5) + MoveBy(offset)] → Delay(hold)
-##                        → [ScaleTo(1.0) + MoveBy(-offset)]  ⇒ **나갔다가 제자리로 돌아온다.**
-## ⚠️ setAction 이 **target 을 인자로 받는다** — 고정 거리가 아니라 **대상 쪽으로** 간다.
-func _approach(v: Dictionary, target: Dictionary, hold: float) -> void:
+## 타격 순간의 **스쿼시&스트레치** — 원작 `action` @01062fd4 의 ScaleTo 3단.
+##   ScaleTo(0.05, base×1.25, 1.05) → (0.05, base×0.90, 0.95) → (0.05, base×1.00, 1.00)
+## X 는 드래곤 자기 스케일에 **곱하고**(뒤집힘 부호가 살아 있어야 한다) Y 는 절대값이다.
+## 시작 시점은 애니 시작 + `getAttackFrame()/30/1.125` = **타격 프레임**.
+## 우리는 프레임 수를 못 읽으므로 애니 길이의 절반을 타격 시점으로 잡는다
+## (# ASSUMPTION: getAttackFrame() 은 스파인 변환본에 남지 않는 원작 DB 값이다).
+func _attack_pulse(v: Dictionary, target: Dictionary, anim_dur: float) -> void:
 	var n = v.get("node")
 	if not (n is Node2D) or not is_instance_valid(n):
 		return
 	var node := n as Node2D
-	var home: Vector2 = v.get("pos", node.position)
-	# 대상이 있으면 그쪽으로, 없으면 진영 방향으로 기본 거리만큼.
-	var dx := APPROACH if bool(v.get("mine", false)) else -APPROACH
-	if not target.is_empty():
-		var tp: Vector2 = target.get("pos", home)
-		var d := tp - home
-		if absf(d.x) > 1.0:
-			# 상대에게 완전히 겹치지 않도록 접근 거리에서 멈춘다(원작도 MoveBy 오프셋이다).
-			dx = signf(d.x) * minf(APPROACH, absf(d.x) - 90.0)
+	var base := _base_scale(v)
+	var hit := clampf(anim_dur * 0.5, 0.05, 1.2)
+
 	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(node, "position", home + Vector2(dx, 0.0), MOVE_SEC)
-	tw.tween_property(node, "scale", Vector2(ATK_SCALE, ATK_SCALE) * _base_scale(v), MOVE_SEC)
-	tw.chain().tween_interval(maxf(0.1, hold))
-	var tw2 := tw.chain()
-	tw2.set_parallel(true)
-	tw2.tween_property(node, "position", home, MOVE_SEC)
-	tw2.tween_property(node, "scale", _base_scale(v), MOVE_SEC)
+	tw.tween_interval(hit)
+	for f: Vector2 in ATK_PULSE:
+		# X 부호 유지(내 팀은 flipX 상태다), Y 는 원작대로 절대 배율.
+		tw.tween_property(node, "scale",
+			Vector2(base.x * f.x, absf(base.y) * f.y), ATK_PULSE_SEC)
+	tw.tween_property(node, "scale", base, 0.0)
+
+	# 이동은 원작 기본공격 분기에 없다 — 근거가 생기면 ATK_APPROACH 를 켠다.
+	if ATK_APPROACH <= 0.0 or target.is_empty():
+		return
+	var home: Vector2 = v.get("pos", node.position)
+	var tp: Vector2 = target.get("pos", home)
+	var dx := signf(tp.x - home.x) * minf(ATK_APPROACH, absf(tp.x - home.x) - 90.0)
+	var mv := create_tween()
+	mv.tween_property(node, "position", home + Vector2(dx, 0.0), MOVE_SEC)
+	mv.tween_interval(maxf(0.1, anim_dur - MOVE_SEC * 2.0))
+	mv.tween_property(node, "position", home, MOVE_SEC)
 
 
 func _base_scale(v: Dictionary) -> Vector2:
@@ -703,7 +732,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		var dur := _play_anim(atk, "attack")
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
-			_approach(atk, dfn, dur)
+			_attack_pulse(atk, dfn, dur)
 	# ⛔ 피격 모션 없음 — 원작에 트리거가 없다(위 주석). 피격은 데미지 숫자·HP 바로만 보인다.
 
 	# 이펙트 스파인은 **드래곤 모션과 별개**로 얹힌다(원작 castSkill 이 그렇게 만든다).
