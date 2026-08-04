@@ -10,11 +10,18 @@
    (`dv2-ghidra-memcmp-hex-length` 와 같은 계열의 함정 — 안 풀면 안 보인다).
 3. **호출 흐름** — `bl` 만 남기고 그 앞 N줄에서 모은 상수/문자열을 인자 힌트로 붙인다.
 
+4. **`adrp`+`add` 로 잡는 .rodata 문자열** — 문자열 키(`ColosseumPoison` 등)는 Ghidra 가
+   데이터로 정의해 두지 않으면 주석에 안 뜬다. 페이지+오프셋을 합쳐 주소를 만들고
+   `libgame.so` 에서 직접 NUL 종료 문자열을 읽는다(VA − 0x100000 = 파일 오프셋,
+   [[dv2-rodata-constants-readable]]).
+
 사용:
     python scripts/tools/asm_read.py docs/ref/orig_code/probe/action_asm.c            # 호출 흐름
     python scripts/tools/asm_read.py <asm> --grep runSpine --ctx 40                   # 특정 호출 주변
     python scripts/tools/asm_read.py <asm> --floats                                   # 부동소수만 전수
     python scripts/tools/asm_read.py <asm> --strings                                  # 복원된 문자열만
+    python scripts/tools/asm_read.py <asm> --rodata                                   # adrp+add 문자열
+    python scripts/tools/asm_read.py <asm> --map 0x01067300,0x01067370                # 구간별 요약
 """
 from __future__ import annotations
 import re, struct, sys
@@ -71,6 +78,51 @@ def decode_strings(lines: list[str]) -> dict[int, str]:
     return out
 
 
+ADRP = re.compile(r"^([0-9a-f]{8})\s\s+adrp\s+(x\d+),0x([0-9a-f]+)")
+ADDI = re.compile(r"^([0-9a-f]{8})\s\s+add\s+(x\d+),(x\d+),#0x([0-9a-f]+)")
+VA_DELTA = 0x100000          # VA − 0x100000 = libgame.so 파일 오프셋
+
+
+def _so_bytes() -> bytes:
+    repo = Path(__file__).resolve().parents[2]
+    for p in (repo / "libgame.so", repo / "lib" / "arm64-v8a" / "libgame.so"):
+        if p.exists():
+            return p.read_bytes()
+    return b""
+
+
+def cstr_at(blob: bytes, va: int, limit: int = 96) -> str | None:
+    off = va - VA_DELTA
+    if not (0 <= off < len(blob)):
+        return None
+    end = blob.find(b"\0", off, off + limit)
+    if end < 0:
+        return None
+    s = blob[off:end]
+    if len(s) < 4 or not all(32 <= c < 127 for c in s):
+        return None
+    return s.decode("ascii")
+
+
+def rodata_strings(lines: list[str], blob: bytes) -> dict[int, tuple[int, str]]:
+    """`adrp xN,page` … `add xN,xN,#off` 짝을 이어 .rodata 문자열을 복원. 줄번호 → (VA, 문자열)."""
+    pend: dict[str, int] = {}
+    out: dict[int, tuple[int, str]] = {}
+    for i, ln in enumerate(lines):
+        m = ADRP.match(ln)
+        if m:
+            pend[m[2]] = int(m[3], 16)
+            continue
+        m = ADDI.match(ln)
+        if m and m[2] == m[3] and m[3] in pend:
+            va = pend[m[3]] + int(m[4], 16)
+            s = cstr_at(blob, va)
+            if s:
+                out[i] = (va, s)
+            pend.pop(m[3], None)
+    return out
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -89,10 +141,58 @@ def main() -> int:
             mode = "floats"; i += 1
         elif a[i] == "--strings":
             mode = "strings"; i += 1
+        elif a[i] == "--rodata":
+            mode = "rodata"; i += 1
+        elif a[i] == "--map":
+            mode = "map"; bounds = a[i + 1]; i += 2
         else:
             i += 1
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     strs = decode_strings(lines)
+    blob = _so_bytes()
+    rod = rodata_strings(lines, blob) if blob else {}
+
+    if mode == "rodata":
+        for i in sorted(rod):
+            va, s = rod[i]
+            print(f"{i + 1:>6}  {lines[i][:8]}  [{va:08x}] {s!r}")
+        print(f"\n[{len(rod)}건]")
+        return 0
+
+    if mode == "map":
+        # 구간(핸들러) 별 요약 — 문자열 키·주요 호출·상수를 한 덩어리로 접는다.
+        marks = sorted(int(x, 16) for x in bounds.split(","))
+        addr_of = {}
+        for i, ln in enumerate(lines):
+            m = ADDR.match(ln)
+            if m:
+                addr_of[i] = int(m[1], 16)
+        for k, start in enumerate(marks):
+            stop = marks[k + 1] if k + 1 < len(marks) else 1 << 62
+            keys, calls, floats = [], [], []
+            for i, ln in enumerate(lines):
+                a0 = addr_of.get(i)
+                if a0 is None or not (start <= a0 < stop):
+                    continue
+                if i in rod:
+                    keys.append(rod[i][1])
+                if i in strs:
+                    keys.append(strs[i])
+                m = CALL.search(ln)
+                if m:
+                    calls.append(m[1].split("::")[-1])
+                for h in HEXF.findall(ln):
+                    v = f32(int(h, 16))
+                    if v != 0.0 and abs(v) < 1e7:
+                        floats.append(pretty_float(v))
+            print(f"\n== {start:08x} ==")
+            if keys:
+                print("   키   : " + ", ".join(dict.fromkeys(keys))[:400])
+            if calls:
+                print("   호출 : " + ", ".join(dict.fromkeys(calls))[:400])
+            if floats:
+                print("   상수 : " + ", ".join(dict.fromkeys(floats))[:300])
+        return 0
 
     if mode == "floats":
         seen = {}

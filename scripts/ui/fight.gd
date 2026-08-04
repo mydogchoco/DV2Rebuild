@@ -150,6 +150,15 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		#      adult 134/134 에 `attack` 존재, child 132/133 · baby 132/133 은 **없음**.
 		#      종전엔 레벨 30 미만이면 child 를 띄워서, 저레벨 드래곤이 공격해도 아무 모션이
 		#      없었다(사용자 지적).
+		# 발밑 그림자 — 원작 `MakeInterface::setShadow` @01050b10 이
+		#   `common/shadow.png` 를 드래곤 위치 −(0, s*95) 에 `setScale(s + 1.0)` 로 깐다
+		#   (z=1, tag=-0x226). 우리 holder 원점 = 스프라이트 **바닥 중앙**이라 그 자리에 둔다.
+		var sh := _spr(CM, "common_shadow", Design.ASSET_SCALE)
+		if sh != null:
+			sh.scale *= (DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO)
+			sh.z_index = -1
+			holder.add_child(sh)
+
 		var sp := PartySelect._spine_node(int(p.get("id", 0)), "adult", DRAGON_H)
 		var ap: AnimationPlayer = null
 		if sp != null:
@@ -794,33 +803,82 @@ func _skill_spine(sid: int, at: Vector2) -> bool:
 ## 크리티컬 이펙트 — 원작은 **드래곤마다 전용 크리티컬 스켈레톤**을 갖는다
 ## (`scenes/dragons/dragon_<id>_critical.tscn` 422종 · 각성본 `_e_critical` 111종 변환 완료).
 ## 배치 규약은 battle.gd::_critical_spine 과 같다: 대상 위 z=8, 공격 방향으로 X 반전.
-func _critical_spine(atk: Dictionary, dfn: Dictionary) -> bool:
-	var cid := int(atk.get("id", 0))
-	var stage := "e_critical" if bool(atk.get("awakened", false)) else "critical"
-	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [cid, stage]
-	if not ResourceLoader.exists(path):
-		path = "res://scenes/dragons/dragon_%d_critical.tscn" % cid
-		if not ResourceLoader.exists(path):
-			return false
+## 크리티컬 컷인 — 원작 `MakeInterface::action` @01062fd4 의 크리티컬 분기.
+##
+## 🔴 2026-08-05 정정 — 종전엔 **공격한 드래곤의 `critical` 애니**를 피격 지점에 띄웠는데,
+##   원작은 그게 아니라 **공용 이펙트 스파인 3종**을 화면 중앙에 세우는 컷인이다.
+##   근거(`probe/action_asm.c` 줄 865~1270, adrp+add 로 복원한 .rodata 문자열):
+##     `dragon/dragon_9999_critical_spine.spine_json`        ← 본체(init·ready·set·shot·walking)
+##     `dragon/dragon_9999_critical_ready_spine.spine_json`  ← ready 전용 레이어
+##     `dragon/dragon_9999_critical_shot_spine.spine_json`   ← shot 전용 레이어
+##   `CCSkeletonAnimation::createWithFile` ×3 → `VisibleRect::center` / `right` 에 배치.
+##
+## 원작 시퀀스(호출 순서 그대로):
+##   Delay → Show → runSpine("init", ×2.0) → MoveTo(0.75)
+##   → runSpine("ready", ×1.125) → Delay(길이) → shakeLayerToVertical
+##   → Delay(0.5) → runSpine("ready", ×1.5) → Delay(0.25)
+##   → Spawn(Delay(길이), Shake(1.5, 0.5)) → runSpine("shot", ×1.5) → Delay(0.5)
+##
+## ⚠️ `_ready`/`_shot` 전용 스파인 2종은 아직 미변환(🟠)이다. 다만 **본체 스파인이 같은
+##   `init`/`ready`/`shot` 애니를 전부 갖고 있어**(실측: init·ready·set·shot·walking)
+##   한 장으로 같은 안무를 낸다. 2종을 변환하면 레이어만 더 얹으면 된다.
+const CRIT_SCENE := "res://scenes/dragons/dragon_9999_critical.tscn"
+const CRIT_INIT_SPEED := 2.0        # 원작 runSpine(…, "init", 2.0)
+const CRIT_READY_SPEED := 1.125     # 원작 runSpine(…, "ready", 1.125)
+const CRIT_SHOT_SPEED := 1.5        # 원작 runSpine(…, "shot", 1.5)
+const CRIT_GAP := 0.25              # 원작 Delay(0.25)
+const CRIT_SHAKE_SEC := 1.5         # 원작 Shake::actionWithDuration(1.5, 0.5)
+const CRIT_SHAKE_AMP := 0.5
+
+func _critical_spine(atk: Dictionary, _dfn: Dictionary) -> void:
+	if not ResourceLoader.exists(CRIT_SCENE):
+		return
+	var vis := _vis()
 	var holder := Node2D.new()
 	holder.z_index = 8                         # 원작 addChild(spine, 8, -2)
-	holder.position = dfn.get("pos", _vis() * 0.5)
-	# 원작 setScaleX(-…) — 부호가 핵심(공격 방향으로 뒤집는다).
+	holder.position = vis * 0.5                # 원작 VisibleRect::center
+	# 원작 setScaleX(-…) — 공격 방향으로 뒤집는다.
 	holder.scale = Vector2(-1.0 if bool(atk.get("mine", false)) else 1.0, 1.0)
 	add_child(holder)
-	var inst = (load(path) as PackedScene).instantiate()
+	var inst = (load(CRIT_SCENE) as PackedScene).instantiate()
 	holder.add_child(inst)
 	var ap := _find_anim_player(inst)
-	if ap != null:
-		for cand in ["animation", "critical", "attack"]:
-			if ap.has_animation(cand):
-				ap.get_animation(cand).loop_mode = Animation.LOOP_NONE
-				ap.play(cand)
-				break
-	var t := holder.create_tween()
-	t.tween_interval(SKILL_SPINE_SEC)
-	t.tween_callback(holder.queue_free)
-	return true
+	if ap == null:
+		holder.queue_free()
+		return
+
+	var gen := _gen
+	var step := func(name: String, speed: float) -> float:
+		if not ap.has_animation(name) or gen != _gen or not is_instance_valid(ap):
+			return 0.0
+		ap.get_animation(name).loop_mode = Animation.LOOP_NONE
+		ap.play(name, -1.0, speed)
+		return ap.get_animation(name).length / speed
+
+	var t_init: float = step.call("init", CRIT_INIT_SPEED)
+	await _wait(maxf(0.05, t_init))
+	var t_ready: float = step.call("ready", CRIT_READY_SPEED)
+	_shake_screen(CRIT_SHAKE_SEC * 0.4, CRIT_SHAKE_AMP)   # 원작 shakeLayerToVertical
+	await _wait(maxf(0.05, t_ready) + CRIT_GAP)
+	var t_shot: float = step.call("shot", CRIT_SHOT_SPEED)
+	_shake_screen(CRIT_SHAKE_SEC, CRIT_SHAKE_AMP)         # 원작 Shake(1.5, 0.5)
+	await _wait(maxf(0.3, t_shot) + 0.5)                  # 원작 마지막 Delay(0.5)
+	if is_instance_valid(holder):
+		holder.queue_free()
+
+
+## 화면 흔들림 — 원작 `MakeInterface::shakeLayerToVertical` / `Shake::actionWithDuration`.
+## 진폭은 원작 인자(0.5)를 픽셀로 환산한 값이 아니라 **비율**이므로 화면 크기에 맞춰 쓴다.
+## # ASSUMPTION: Shake 클래스의 진폭 단위를 특정하지 못해 픽셀 환산은 우리가 정했다.
+func _shake_screen(sec: float, amp: float) -> void:
+	var base := position
+	var tw := create_tween()
+	var steps := maxi(2, int(sec / 0.05))
+	for k in steps:
+		var d := amp * 18.0 * (1.0 - float(k) / float(steps))
+		tw.tween_property(self, "position",
+			base + Vector2(0.0, d if k % 2 == 0 else -d), 0.05)
+	tw.tween_property(self, "position", base, 0.05)
 
 
 ## 각성기(궁극기) 이펙트 — 원작 `UltimateLayer`(138메서드)가 **속성별 전용 아트**를 쓴다:
