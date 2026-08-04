@@ -316,8 +316,14 @@ def build() -> dict:
             "modes": "로비 탭 = 1vs1 / 3vs3 / 듀얼(⚫CUT) / 토너먼트(⚫CUT). "
                      "근거 = initWidget 의 TabImage 프레임 4종(txt_1vs1_per · txt_3vs3_per · "
                      "txt_dual_%s · addimg/custom_tournament/txt_tournament_%s).",
-            "npc": "콜로세움에서 **라온·누리가 말을 건다** — ColosseumRaonTalkA/B/C · "
-                   "ColosseumNuriTalkA/B (등급 구간별 A/B/C 3단계).",
+            # ⚠️ 2026-08-04 — **배선하지 않았다.** 문자열(ColosseumRaonTalkA/B/C ·
+            #   ColosseumNuriTalkA/B, 등급 구간별 3단계)은 실재하는데 **호출 지점이
+            #   디컴파일된 400+ 클래스 어디에도 없다**(`grep -rn "ColosseumRaon\|ColosseumNuri"` → 0건.
+            #   TownNpcManager 의 "RaonTalk" 는 마을 NPC 라 별건).
+            #   언제/어느 등급에서 뜨는지 근거가 없어 추측 배선을 하지 않는다(HARD RULE 6).
+            #   되살리려면 남은 미디컴프 클래스에서 호출자를 먼저 찾아야 한다.
+            "npc": "⚪미배선 — 라온·누리 대사 문자열은 실재(ColosseumRaonTalkA/B/C · "
+                   "ColosseumNuriTalkA/B)하나 **호출 지점을 못 찾았다**. 트리거 조건 미상.",
             "cut": "일일매치·토너먼트·리플레이·방어팀·시즌 공지는 온라인 → ⚫CUT 유지.",
         },
         # 전투 로그 문구 — 원작 ColosseumTextBox 가 쓰던 포맷 그대로(유실 아님).
