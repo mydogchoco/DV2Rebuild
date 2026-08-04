@@ -1,0 +1,5750 @@
+{
+ "_source": "docs/ref/orig_code/decomp/UltimateLayer.c",
+ "_tool": "scripts/tools/extract_ultimate_recipe.py",
+ "_note": "각성기 연출 레시피. 좌표는 원작 수식 그대로(W=레이어폭 H=레이어높이 dir=시전 방향 ±1).",
+ "elements": {
+  "aqua": {
+   "no": 1,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/aqua.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [
+     {
+      "slot": "0x270",
+      "terms": []
+     }
+    ],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/aqua/aqua_surface1.png",
+     "skill/ultimate/aqua/aqua_shark1.png",
+     "skill/ultimate/aqua/aqua_bubble.png",
+     "skill/ultimate/aqua/aqua_fish1.png",
+     "skill/ultimate/aqua/aqua_fish2.png",
+     "skill/ultimate/aqua/aqua_fish3.png",
+     "skill/ultimate/aqua/aqua_fish4.png",
+     "skill/ultimate/aqua/aqua_fish5.png"
+    ],
+    "anims": [
+     {
+      "var": "this_00",
+      "frames": [
+       "skill/ultimate/aqua/aqua_surface2.png",
+       "skill/ultimate/aqua/aqua_surface3.png",
+       "skill/ultimate/aqua/aqua_surface4.png",
+       "skill/ultimate/aqua/aqua_surface1.png"
+      ],
+      "delay": 0.1
+     },
+     {
+      "var": "this_01",
+      "frames": [
+       "skill/ultimate/aqua/aqua_shark2.png",
+       "skill/ultimate/aqua/aqua_shark3.png",
+       "skill/ultimate/aqua/aqua_shark4.png",
+       "skill/ultimate/aqua/aqua_shark5.png"
+      ],
+      "delay": 0.03
+     },
+     {
+      "var": "this_02",
+      "frames": [
+       "skill/ultimate/aqua/aqua_shark6.png",
+       "skill/ultimate/aqua/aqua_shark7.png",
+       "skill/ultimate/aqua/aqua_shark8.png"
+      ],
+      "delay": 0.05
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "FRAME aqua_surface1.png",
+     "FRAME aqua_shark1.png",
+     "ADD z=0 tag=0x18835",
+     "PT (0.0,H)",
+     "PT (local_c0,0.0)",
+     "PT (0.5,1.0)",
+     "PT (fVar27 * (local_d0[0] + W * 1.5),-80.0)",
+     "LOOP {",
+     "FRAME aqua_bubble.png",
+     "PT ((float)(int)(uVar2 - iVar3 * iVar23),0.0)",
+     "ADD z=iVar3 % 5 tag=iVar4 + 0x18862",
+     "} while iVar4 != 0x31",
+     "LOOP {",
+     "FRAME aqua_fish1.png",
+     "FRAME aqua_fish2.png",
+     "FRAME aqua_fish3.png",
+     "FRAME aqua_fish4.png",
+     "FRAME aqua_fish5.png",
+     "PT (fVar26 * 0.5,H * 0.5)",
+     "ADD z=iVar3 % 5 tag=iVar4 + 0x1883a",
+     "ADD z=iVar4 + 1 tag=0x18830",
+     "ADD z=0 tag=0x18893",
+     "} while true"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/aqua/aqua_circle1.png",
+     "skill/ultimate/aqua/aqua_circle2.png",
+     "skill/ultimate/aqua/aqua_circle3.png",
+     "skill/ultimate/aqua/aqua_bubble.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME aqua_circle1.png",
+     "FRAME aqua_circle2.png",
+     "FRAME aqua_circle3.png",
+     "FRAME aqua_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a",
+     "FRAME aqua_bubble.png",
+     "ADD z=iVar2 % 5 tag=0x18862",
+     "FRAME aqua_bubble.png",
+     "ADD z=iVar2 % 5 tag=0x18863",
+     "FRAME aqua_bubble.png",
+     "ADD z=iVar2 % 5 tag=0x18864",
+     "LOOP {",
+     "FRAME aqua_bubble.png",
+     "ADD z=iVar3 % 5 tag=iVar2 + 0x188c6",
+     "} while iVar2 != 5"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCTintTo(1.0,0xc2,0xff,0xff)",
+      "CCDelayTime(3.0)",
+      "CCTintTo(1.0,'\\x19','<','}')",
+      "CCDelayTime(0.75)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,uVar11,uVar12,uVar13,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCRepeatForever(pCVar17)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFunc((function *)&local_e0)",
+      "CCJumpTo(0.25,aCStack_1a0,75.0,1)",
+      "CCMoveBy(0.5,aCStack_1d8)",
+      "CCJumpTo(0.25,aCStack_1e0,50.0,1)",
+      "CCCallFunc((function *)&local_110)",
+      "CCDelayTime(5.25)",
+      "CCCallFunc((function *)&local_140)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_170)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(6.25)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar6,uVar7,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar57)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleBy(0.25,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.25,(_ccBezierConfig *)&local_110)",
+      "CCSpawn(pCVar20,uVar9,0)",
+      "CCMoveBy((float)(iVar2 % 7) * 0.05 + 0.5,(CCPoint *)&local_170)",
+      "CCScaleBy(0.75,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.75,(_ccBezierConfig *)&local_140)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar21,uVar12,0)",
+      "CCSpawn(pCVar20,uVar11,uVar12,0)",
+      "CCPlace(pCVar23)",
+      "CCScaleTo(0.0,(float)(iVar4 % 6) * 0.1 + 0.75)",
+      "CCDelayTime(fVar54 + 0.75)",
+      "CCFadeTo(0.0,0xff)",
+      "CCMoveBy(0.1,aCStack_1a0)",
+      "CCMoveBy(0.25,aCStack_1d8)",
+      "CCScaleBy(0.75,(float)(iVar4 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.75,(_ccBezierConfig *)&local_110)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar21,uVar28,0)",
+      "CCSpawn(pCVar20,uVar27,uVar28,0)",
+      "CCDelayTime(fVar54)",
+      "CCPlace(aCStack_1e0)",
+      "CCScaleTo(0.0,(float)(iVar4 % 6) * 0.1 + 0.75)",
+      "CCFadeTo(0.0,0xff)",
+      "CCMoveBy(0.25,(CCPoint *)local_1f0)",
+      "CCScaleBy(0.75,(float)(iVar4 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.75,(_ccBezierConfig *)&local_110)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar21,uVar34,0)",
+      "CCSpawn(pCVar20,uVar33,uVar34,0)",
+      "CCDelayTime(0.5 - fVar57)",
+      "CCPlace(aCStack_1f8)",
+      "CCScaleTo(0.0,(float)(iVar4 % 6) * 0.1 + 0.75)",
+      "CCFadeTo(0.0,0xff)",
+      "CCMoveBy(0.1,(CCPoint *)local_210)",
+      "CCScaleBy(0.3,(float)(iVar4 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.3,(_ccBezierConfig *)&local_110)",
+      "CCDelayTime(0.2)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCSequence(pCVar21,uVar40,0)",
+      "CCSpawn(pCVar20,uVar39,uVar40,0)",
+      "CCScaleTo(0.0,(float)(iVar4 % 6) * 0.1 + 0.75)",
+      "CCFadeTo(0.0,0xff)",
+      "CCPlace(aCStack_218)",
+      "CCScaleTo(0.0,(float)(iVar4 % 6) * 0.1 + 0.75)",
+      "CCFadeTo(0.0,0xff)",
+      "CCMoveBy(0.1,aCStack_238)",
+      "CCScaleBy(0.75,(float)(iVar4 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(0.75,(_ccBezierConfig *)&local_110)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar21,uVar47,0)",
+      "CCSpawn(pCVar20,uVar46,uVar47,0)",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar54 + 2.5)",
+      "CCMoveTo((float)(iVar2 % 4) * 0.1 + 0.1,(CCPoint *)&local_170)",
+      "CCMoveBy(0.75,aCStack_1d8)",
+      "CCMoveBy(0.75,aCStack_1e0)",
+      "CCMoveBy(0.15,aCStack_1e8)",
+      "CCMoveTo(0.05,aCStack_1f8)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,pVVar18,pVVar19,uVar10,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCDelayTime((float)(iVar4 % 0xb) * 0.1 + 0.5)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleBy(fVar54,(float)(iVar4 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar54,(_ccBezierConfig *)&local_110)",
+      "CCSpawn(pCVar20,uVar10,0)",
+      "CCScaleBy(fVar54,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar54,(_ccBezierConfig *)&local_140)",
+      "CCDelayTime(fVar54 + -0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar21,uVar12,0)",
+      "CCSpawn(pCVar20,uVar11,uVar12,0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,uVar11,0)",
+      "CCRepeatForever(pCVar17)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(6.25)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar52",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(5.0)",
+      "CCRotateBy(0.15,fVar54)",
+      "CCMoveTo(0.15,aCStack_1d8)",
+      "CCSpawn(pCVar20,uVar8,0)",
+      "CCRotateBy(0.12,fVar54)",
+      "CCMoveTo(0.12,aCStack_1f8)",
+      "CCSpawn(pCVar20,uVar9,uVar10,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCScaleTo(0.15,fVar56 * 1.8,1.825)",
+      "CCRotateBy(0.15,fVar54)",
+      "CCMoveTo(0.15,aCStack_218)",
+      "CCSpawn(pCVar20,uVar11,uVar12,0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCRotateBy(0.15,-fVar56)",
+      "CCCallFunc((function *)&local_140)",
+      "CCCallFunc((function *)&local_170)",
+      "CCMoveTo(0.05,aCStack_228)",
+      "CCSpawn(pCVar20,uVar13,uVar15,uVar24,uVar25,0)",
+      "CCMoveBy(0.5,aCStack_238)",
+      "CCRotateBy(0.5,fVar56 * -2.5)",
+      "CCScaleTo(0.05,fVar56 * 1.75,1.7)",
+      "CCScaleTo(0.05,fVar56 * 1.75,1.75)",
+      "CCSequence(pCVar21,uVar24,0)",
+      "CCSpawn(pCVar20,uVar15,uVar24,0)",
+      "CCMoveBy(0.5,aCStack_240)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSpawn(pCVar20,uVar24,0)",
+      "CCCallFuncN(aCStack_1a0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar11,uVar12,0)",
+      "CCSpawn(pCVar10,uVar12,0)",
+      "CCCallFuncN(aCStack_e0)",
+      "CCSequence(pCVar7,uVar8,uVar9,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,uVar9,uVar12,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCScaleTo(0.0,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCPlace((CCPoint *)&local_120)",
+      "CCScaleTo(0.3,0.0)",
+      "CCFadeTo(0.1,0xff)",
+      "CCSpawn(pCVar10,uVar16,0)",
+      "CCCallFuncN(aCStack_e0)",
+      "CCSequence(pCVar7,uVar8,uVar9,uVar12,uVar13,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar10,uVar9,0)",
+      "CCCallFuncN(aCStack_e0)",
+      "CCSequence(pCVar7,uVar8,uVar9,uVar12,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime((float)(int)uVar21 * 0.1 + 2.25)",
+      "CCPlace(aCStack_140)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleBy(fVar23,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar23,(_ccBezierConfig *)&local_120)",
+      "CCSpawn(pCVar10,uVar12,0)",
+      "CCScaleBy(fVar23,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar23,(_ccBezierConfig *)&local_138)",
+      "CCDelayTime(fVar23 + -0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar11,uVar15,0)",
+      "CCSpawn(pCVar10,uVar13,uVar15,0)",
+      "CCPlace(aCStack_150)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleBy(fVar23,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar23,(_ccBezierConfig *)&local_120)",
+      "CCSpawn(pCVar10,uVar17,0)",
+      "CCScaleBy(fVar23,(float)(iVar2 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar23,(_ccBezierConfig *)&local_138)",
+      "CCDelayTime(fVar23 + -0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar11,uVar19,0)",
+      "CCSpawn(pCVar10,uVar18,uVar19,0)",
+      "CCCallFuncN(aCStack_e0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(7.75)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar15,uVar16,uVar17,0)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(1.5)",
+      "CCMoveBy(0.5,(CCPoint *)&local_130)",
+      "CCEaseIn(pCVar18,0.5)",
+      "CCMoveBy(2.0,(CCPoint *)&local_170)",
+      "CCEaseOut(pCVar18,0.5)",
+      "CCMoveBy(2.5,aCStack_1b0)",
+      "CCEaseOut(pCVar18,0.5)",
+      "CCDelayTime(1.0)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCJumpTo(0.25,(CCPoint *)(this + 0x208),*(float *)(this + 0x22c) * 150.0,1)",
+      "CCSequence(pCVar15,uVar16,uVar17,uVar19,uVar20,uVar21,uVar23,uVar24,0)"
+     ]
+    },
+    {
+     "target": "pCVar14",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCDelayTime(7.0)",
+      "CCFadeTo(0.25,0xff)",
+      "CCMoveTo(0.25,(CCPoint *)local_f0)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar27,uVar20,0)",
+      "CCSpawn(pCVar26,uVar20,0)",
+      "CCSequence(pCVar15,uVar16,uVar17,uVar19,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar13",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.7)",
+      "CCScaleTo(0.1,fVar44,1.1)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar43,1.0)",
+      "CCDelayTime(3.0)",
+      "CCScaleTo(0.1,fVar44,1.1)",
+      "CCCallFuncN((function *)&local_130)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar43,1.0)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)&local_170)",
+      "CCDelayTime(2.7)",
+      "CCCallFuncN(aCStack_1b0)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.1,fVar44,1.1)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar43,1.0)"
+     ]
+    },
+    {
+     "target": "pCVar13",
+     "actions": [
+      "CCDelayTime((float)(int)uVar10 * 0.5 + fVar44)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCDelayTime((float)(iVar6 % 0xb) * 0.1 + 0.5)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleBy(fVar44,(float)(iVar6 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar44,(_ccBezierConfig *)&local_130)",
+      "CCSpawn(pCVar26,uVar20,0)",
+      "CCScaleBy(fVar44,(float)(iVar6 % 5) * 0.05 + 0.9)",
+      "CCBezierBy(fVar44,(_ccBezierConfig *)&local_170)",
+      "CCDelayTime(fVar44 + -0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar27,uVar23,0)",
+      "CCSpawn(pCVar26,uVar21,uVar23,0)",
+      "CCSequence(pCVar15,uVar16,uVar17,uVar19,uVar20,uVar21,0)",
+      "CCRepeatForever(pCVar18)"
+     ]
+    },
+    {
+     "target": "pCVar13",
+     "actions": [
+      "CCDelayTime(8.25)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCSequence(pCVar15,uVar16,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCJumpTo(0.25,(CCPoint *)local_170,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.5)",
+      "CCMoveTo(3.0,&local_278)",
+      "CCEaseOut(pCVar15,0.25)",
+      "CCMoveTo(2.5,aCStack_1f8)",
+      "CCEaseOut(pCVar15,0.25)",
+      "CCDelayTime(0.25)",
+      "CCPlace(aCStack_218)",
+      "CCDelayTime(0.75)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCDelayTime(0.5)",
+      "CCJumpTo(0.25,aCStack_1e8,*(float *)(this + 0x22c) * 175.0,1)",
+      "CCCallFuncN((function *)&local_120)"
+     ]
+    },
+    {
+     "target": "pCVar10",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCMoveTo(0.25,(CCPoint *)local_f0)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar27,uVar13,0)",
+      "CCSpawn(pCVar26,uVar13,0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCPlace((CCPoint *)local_170)",
+      "CCDelayTime(7.0)",
+      "CCFadeTo(0.0,0xff)",
+      "CCMoveTo(0.25,&local_278)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar27,uVar19,0)",
+      "CCSpawn(pCVar26,uVar19,0)",
+      "CCSequence(pCVar12,uVar13,pVVar11,uVar14,uVar16,uVar17,uVar19,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCJumpBy(0.15,aCStack_1f8,60.0,1)",
+      "CCJumpBy(0.1,aCStack_200,20.0,1)",
+      "CCScaleTo(0.1,fVar37 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar37,1.0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCScaleTo(0.1,fVar37 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar37 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar37,1.0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)local_170)",
+      "CCCallFuncN(aCStack_1a0)",
+      "CCDelayTime(2.0)",
+      "CCCallFuncN((function *)&local_1e0)"
+     ]
+    }
+   ]
+  },
+  "chaos": {
+   "no": 2,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/chaos.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/chaos.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "scene/colosseum.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "battle/combine_outline_white.png",
+     "battle/amagethon/combine_outline.png",
+     "scene/colosseum/dust_cover.png",
+     "skill/ultimate/chaos/chaos_dust1.png",
+     "skill/ultimate/chaos/chaos_meteo1.png",
+     "skill/ultimate/chaos/chaos_dust2.png",
+     "skill/ultimate/chaos/chaos_dust3.png",
+     "skill/ultimate/chaos/chaos_meteo2.png"
+    ],
+    "anims": [
+     {
+      "var": "this_00",
+      "frames": [],
+      "delay": 0.05
+     },
+     {
+      "var": "this_01",
+      "frames": [],
+      "delay": 0.05
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "FRAME combine_outline_white.png",
+     "FRAME combine_outline.png",
+     "PT (0.5,0.5)",
+     "ADD z=1 tag=0x1883b",
+     "PT (fVar20 * 0.5,H * 0.5)",
+     "PT (fVar20 * 0.5,H * 0.5)",
+     "ADD z=1 tag=0x1883d",
+     "ADD z=1 tag=0x1883c",
+     "LOOP {",
+     "PT (1.0,0.0)",
+     "ADD z=uVar17 tag=uVar17",
+     "} while uVar17 != 0xc",
+     "LOOP {",
+     "FRAME dust_cover.png",
+     "FRAME dust_cover.png",
+     "PT (1.0,0.0)",
+     "PT (1.0,0.0)",
+     "ADD z=iVar16 tag=iVar2",
+     "} while iVar2 != 0x12",
+     "FRAME chaos_dust1.png",
+     "PT (0.5,0.0)",
+     "PT (0.0,5.0)",
+     "FRAME chaos_meteo1.png",
+     "PT (0.5,0.049295776)",
+     "FRAME chaos_dust2.png",
+     "FRAME chaos_dust3.png",
+     "FRAME chaos_dust1.png",
+     "FRAME chaos_meteo2.png",
+     "FRAME chaos_meteo1.png",
+     "ADD z=2 tag=0x1af40",
+     "ADD z=1 tag=0x1883a"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/chaos/chaos_circle1.png",
+     "skill/ultimate/chaos/chaos_circle2.png",
+     "skill/ultimate/chaos/chaos_circle3.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME chaos_circle1.png",
+     "FRAME chaos_circle2.png",
+     "FRAME chaos_circle3.png",
+     "FRAME chaos_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCLayerColor((ccColor4B *)&local_140,local_e0._0_4_,local_110._4_4_)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.0)",
+      "CCFadeTo(1.0,0xaf)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCTintTo(1.0,0xff,0xff,0xff)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSpawn(pCVar9,uVar10,0)",
+      "CCDelayTime(0.5)",
+      "CCCallFunc((function *)&local_110)",
+      "CCCallFunc((function *)&local_140)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(1.25,'\\0')",
+      "CCCallFuncN((function *)&uStack_170)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleBy(5.0,1.5)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar5,uVar6,uVar7,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(5.0,720.0)",
+      "CCEaseOut(pCVar19,0.5)",
+      "CCScaleTo(0.25,1.0)",
+      "CCEaseIn(pCVar19,0.5)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCSequence(pCVar20,uVar6,0)",
+      "CCSpawn(pCVar9,uVar6,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar5,uVar6,uVar7,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(5.0,720.0)",
+      "CCEaseOut(pCVar19,0.5)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.75,'}')",
+      "CCFadeTo(4.0,'\\0')",
+      "CCSequence(pCVar20,uVar6,uVar7,0)",
+      "CCSpawn(pCVar9,uVar6,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar5,uVar6,uVar7,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.15)",
+      "CCMoveBy(1.25,(CCPoint *)&local_110)",
+      "CCTintTo(1.25,200,'2','\\x19')",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCScaleTo(0.1,-(fVar25 * fVar27),fVar27)",
+      "CCScaleBy(1.15,1.25)",
+      "CCSequence(pCVar20,uVar8,0)",
+      "CCSpawn(pCVar9,uVar7,uVar8,0)",
+      "CCMoveBy(0.25,(CCPoint *)&local_140)",
+      "CCScaleBy(0.25,3.0,0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar9,uVar8,uVar10,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar5,uVar6,uVar7,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.15)",
+      "CCTintTo(1.25,200,'2','\\x19')",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCScaleTo(0.1,fVar25,1.0)",
+      "CCScaleBy(1.15,1.25)",
+      "CCSequence(pCVar20,uVar7,0)",
+      "CCSpawn(pCVar9,uVar7,0)",
+      "CCScaleBy(0.25,3.0,0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar9,uVar8,0)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCDelayTime(3.5)",
+      "CCCallFuncN((function *)&local_110)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar6,0)",
+      "CCTintTo(3.0,200,'2','\\x19')",
+      "CCSpawn(pCVar9,uVar6,0)",
+      "CCDelayTime(2.0)",
+      "CCCallFunc((function *)&local_110)",
+      "CCHide()",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_140)",
+      "CCCallFuncN((function *)&uStack_170)",
+      "CCSequence(pCVar5,uVar6,uVar7,uVar8,uVar10,uVar11,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCRepeatForever(pCVar19)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCMoveBy(5.0,(CCPoint *)&local_110)",
+      "CCScaleTo(1.0,*(float *)(this + 0x288) + 0.25,0.75)",
+      "CCScaleTo(4.0,*(float *)(this + 0x288) + 0.75,2.25)",
+      "CCSequence(pCVar20,uVar6,0)",
+      "CCSpawn(pCVar9,uVar6,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar5,uVar6,uVar7,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCRepeatForever(pCVar19)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFunc((function *)&local_e0)",
+      "CCMoveBy(5.0,(CCPoint *)&local_140)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar5,pVVar3,uVar6,uVar7,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,0)",
+      "CCSpawn(pCVar6,uVar8,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar6,uVar5,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(7.65)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar10,uVar11,uVar12,0)",
+      "CCDelayTime(1.15)",
+      "CCCallFunc((function *)&local_f0)",
+      "CCMoveBy(0.1,&local_160)",
+      "CCDelayTime(0.55)",
+      "CCPlace((CCPoint *)&local_1d0)",
+      "CCMoveTo(0.1,&local_2a0)",
+      "CCDelayTime(6.75)",
+      "CCJumpTo(0.25,(CCPoint *)(this + 0x208),*(float *)(this + 0x22c) * 150.0,1)",
+      "CCSequence(pCVar10,this_03,uVar11,uVar12,uVar14,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCArray()",
+      "CCScaleTo(0.25,fVar50 * 1.15,0.9)",
+      "CCScaleTo(0.1,fVar49,1.0)",
+      "CCScaleTo(0.05,fVar49,2.0)",
+      "CCSequence(pCVar10,uVar11,uVar12,0)",
+      "CCDelayTime(0.2)",
+      "CCTintTo(0.2,0xff,'\\0','\\0')",
+      "CCSequence(pCVar19,uVar11,0)",
+      "CCSpawn(pCVar10,uVar11,0)",
+      "CCDelayTime(0.825)",
+      "CCDelayTime(0.625)",
+      "CCScaleTo(0.05,fVar49,1.0)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCTintTo(0.3,0xff,0xff,0xff)",
+      "CCScaleTo(0.1,fVar50,1.0)",
+      "CCSpawn(pCVar10,uVar11,0)",
+      "CCScaleTo(0.05,fVar50 * 0.9,1.05)",
+      "CCScaleTo(0.05,fVar50 * 1.05,0.9)",
+      "CCScaleTo(0.05,fVar50,1.0)",
+      "CCDelayTime(0.3)",
+      "CCScaleTo(3.05,fVar50 * 0.95,0.95)",
+      "CCSequence(pCVar10,uVar11,0)",
+      "CCSpawn(pCVar10,uVar11,0)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.05,fVar50 * 0.75,0.75)",
+      "CCScaleTo(0.05,fVar50,1.0)",
+      "CCCallFunc((function *)&local_f0)",
+      "CCScaleTo(0.5,fVar50 * 2.5,2.5)",
+      "CCEaseIn(pCVar13,0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar10,uVar11,0)",
+      "CCHide()",
+      "CCDelayTime(0.65)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCScaleTo(0.0,fVar50,1.0)",
+      "CCFadeTo(0.0,0xff)",
+      "CCDelayTime(0.75)",
+      "CCShow()",
+      "CCDelayTime(0.95)",
+      "CCScaleTo(0.1,fVar50 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar50 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar50,1.0)",
+      "CCSequence(this_06)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.825)",
+      "CCScaleTo(0.25,fVar50 * 1.15,0.9)",
+      "CCScaleTo(0.1,fVar49,1.0)",
+      "CCScaleTo(0.05,fVar49,2.0)",
+      "CCSequence(pCVar19,uVar11,uVar12,0)",
+      "CCDelayTime(0.2)",
+      "CCTintTo(0.2,0xff,'\\0','\\0')",
+      "CCSequence(pCVar20,uVar11,0)",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCDelayTime(0.625)",
+      "CCScaleTo(0.05,fVar49,1.0)",
+      "CCScaleTo(0.1,fVar50 * 1.25,0.75)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCTintTo(0.3,0xff,0xff,0xff)",
+      "CCScaleTo(0.1,fVar50,1.0)",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCScaleTo(0.05,fVar50 * 0.9,1.05)",
+      "CCScaleTo(0.05,fVar50 * 1.05,0.9)",
+      "CCScaleTo(0.05,fVar50,1.0)",
+      "CCDelayTime(0.3)",
+      "CCScaleTo(3.05,fVar50 * 0.95,0.95)",
+      "CCSequence(pCVar19,uVar11,0)",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCCallFuncN(&local_160)",
+      "CCCallFuncN((function *)&local_1a0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.05,fVar50 * 0.75,0.75)",
+      "CCScaleTo(0.05,fVar50,1.0)",
+      "CCCallFunc((function *)&local_1d0)",
+      "CCScaleTo(0.5,fVar50 * 2.5,2.5)",
+      "CCEaseIn(pCVar13,0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCHide()",
+      "CCDelayTime(0.65)",
+      "CCCallFuncN(aCStack_200)",
+      "CCScaleTo(0.0,fVar50,1.0)",
+      "CCFadeTo(0.0,0xff)",
+      "CCDelayTime(0.75)",
+      "CCShow()",
+      "CCDelayTime(0.95)",
+      "CCScaleTo(0.1,fVar50 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar50 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar50,1.0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(1.15)",
+      "CCScaleTo(0.35,0.0)",
+      "CCPlace(pCVar46)",
+      "CCScaleTo(0.4,*(float *)(this + 0x22c) + 1.0)",
+      "CCDelayTime(6.75)",
+      "CCMoveTo(0.25,(CCPoint *)&local_f0)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar20,uVar16,0)",
+      "CCSpawn(pCVar19,uVar16,0)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar14,uVar15,uVar16,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.95)",
+      "CCJumpBy(6.0,aCStack_f0,(float)(iVar5 % 0xb) * 2.5 + 25.0,1)",
+      "CCMoveTo(0.0,aCStack_1b8)",
+      "CCSequence(pCVar10,uVar9,uVar11,uVar12,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.95)",
+      "CCMoveBy(6.0,aCStack_f0)",
+      "CCScaleTo(3.0,*(float *)(this + 0x22c) + 0.9)",
+      "CCScaleTo(3.0,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar15,uVar11,0)",
+      "CCSpawn(pCVar14,uVar11,0)",
+      "CCPlace((CCPoint *)alStack_130)",
+      "CCScaleTo(0.0,*(float *)(this + 0x22c) + 1.0,*(float *)(this + 0x22c) + 0.25)",
+      "CCDelayTime(1.0)",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar10,uVar9,uVar11,uVar12,uVar16,uVar17,uVar18,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.95)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCRotateBy(6.0,fVar32)",
+      "CCCallFuncN((function *)alStack_130)",
+      "CCMoveBy(0.0,aCStack_228)",
+      "CCRotateBy(0.0,-fVar32)",
+      "CCScaleTo(0.0,fVar33 * 1.25,0.35)",
+      "CCDelayTime(1.0)",
+      "CCCallFunc((function *)&local_170)",
+      "CCScaleTo(0.0,fVar33,1.0)",
+      "CCMoveTo(0.0,aCStack_230)",
+      "CCCallFuncN((function *)alStack_1a0)",
+      "CCScaleTo(0.1,fVar33 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar33 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar33,1.0)"
+     ]
+    }
+   ]
+  },
+  "dark": {
+   "no": 3,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/dark.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/dark.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/dark.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "battle/combine_outline_white.png",
+     "battle/dark/combine_outline.png",
+     "skill/ultimate/dark/dark_hand14.png",
+     "skill/ultimate/dark/dark_punch.png",
+     "skill/ultimate/dark/dark_ball.png",
+     "skill/ultimate/dark/dark_explosion1.png",
+     "skill/ultimate/dark/dark_explosion8.png",
+     "skill/ultimate/dark/dark_hand2.png",
+     "skill/ultimate/dark/dark_hand3.png",
+     "skill/ultimate/dark/dark_hand4.png",
+     "skill/ultimate/dark/dark_hand1.png"
+    ],
+    "anims": [
+     {
+      "var": "this_00",
+      "frames": [],
+      "delay": 0.025
+     },
+     {
+      "var": "this_01",
+      "frames": [],
+      "delay": 0.025
+     },
+     {
+      "var": "this_02",
+      "frames": [],
+      "delay": 0.025
+     },
+     {
+      "var": "this_03",
+      "frames": [],
+      "delay": 0.025
+     },
+     {
+      "var": "this_04",
+      "frames": [
+       "skill/ultimate/dark/dark_explosion1.png",
+       "skill/ultimate/dark/dark_explosion2.png",
+       "skill/ultimate/dark/dark_explosion3.png",
+       "skill/ultimate/dark/dark_explosion4.png",
+       "skill/ultimate/dark/dark_explosion5.png",
+       "skill/ultimate/dark/dark_explosion6.png",
+       "skill/ultimate/dark/dark_explosion7.png"
+      ],
+      "delay": 0.04
+     },
+     {
+      "var": "this_05",
+      "frames": [
+       "skill/ultimate/dark/dark_explosion8.png",
+       "skill/ultimate/dark/dark_explosion9.png",
+       "skill/ultimate/dark/dark_explosion10.png"
+      ],
+      "delay": 0.025
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "FRAME combine_outline_white.png",
+     "FRAME combine_outline.png",
+     "PT (0.5,0.5)",
+     "ADD z=1 tag=0x1d650",
+     "PT (fVar21 * 0.5,H * 0.5)",
+     "PT (fVar21 * 0.5,H * 0.5)",
+     "ADD z=1 tag=0x18832",
+     "ADD z=1 tag=0x18831",
+     "FRAME dark_hand14.png",
+     "FRAME dark_hand14.png",
+     "FRAME dark_punch.png",
+     "FRAME dark_ball.png",
+     "FRAME dark_explosion1.png",
+     "FRAME dark_explosion8.png",
+     "PT (W * -0.5,200.0)",
+     "ADD z=1 tag=0x18833",
+     "PT (fVar21 * 0.5,H * 0.5)",
+     "PT (W * 0.5,200.0)",
+     "ADD z=1 tag=0x18834",
+     "PT (fVar21 * 0.5,H * 0.5)",
+     "PT (0.0,200.0)",
+     "PT (0.0,175.0)",
+     "PT (0.0,200.0)",
+     "PT (0.0,200.0)",
+     "LOOP {",
+     "} while uVar1 != 0",
+     "FRAME dark_hand2.png",
+     "FRAME dark_hand3.png",
+     "FRAME dark_hand4.png",
+     "FRAME dark_hand3.png",
+     "FRAME dark_hand2.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand1.png",
+     "FRAME dark_hand2.png",
+     "FRAME dark_hand3.png",
+     "FRAME dark_hand4.png",
+     "ADD z=1 tag=0x1883a",
+     "ADD z=2 tag=0x1883b",
+     "ADD z=1 tag=0x1883c",
+     "ADD z=1 tag=0x1883d",
+     "ADD z=1 tag=0x18833",
+     "ADD z=1 tag=0x18834"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/dark/dark_circle1.png",
+     "skill/ultimate/dark/dark_circle2.png",
+     "skill/ultimate/dark/dark_circle3.png",
+     "skill/ultimate/dark/dark_shade.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME dark_circle1.png",
+     "FRAME dark_circle2.png",
+     "FRAME dark_circle3.png",
+     "FRAME dark_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a",
+     "FRAME dark_shade.png",
+     "PT (aCStack_88)",
+     "ADD z=5 tag=0x1883f"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleBy(4.5,1.5,1.1)",
+      "CCEaseInOut(pCVar6,-0.25)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar4,uVar5,uVar7,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(4.5,720.0)",
+      "CCEaseInOut(pCVar6,-0.25)",
+      "CCScaleTo(0.25,1.0)",
+      "CCEaseIn(pCVar6,0.5)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCSequence(pCVar12,uVar5,0)",
+      "CCSpawn(pCVar11,uVar5,0)",
+      "CCSequence(pCVar4,uVar5,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(4.5,720.0)",
+      "CCEaseInOut(pCVar6,-0.25)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.75,200)",
+      "CCDelayTime(3.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar12,uVar5,uVar7,uVar9,0)",
+      "CCSpawn(pCVar11,uVar5,0)",
+      "CCSequence(pCVar4,uVar5,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCMoveBy(0.35,(CCPoint *)&local_140)",
+      "CCDelayTime(0.125)",
+      "CCMoveBy(3.0,aCStack_170)",
+      "CCMoveBy(0.25,aCStack_1b8)",
+      "CCMoveTo(0.075,aCStack_1c0)",
+      "CCSpawn(pCVar11,0)",
+      "CCHide()",
+      "CCDelayTime(1.1)",
+      "CCMoveBy(0.0,(CCPoint *)&local_110)",
+      "CCShow()",
+      "CCMoveBy(0.25,aCStack_1d8)",
+      "CCScaleBy(0.25,1.5)",
+      "CCSpawn(pCVar11,uVar21,0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_e0)",
+      "CCRotateBy(0.35,-45.0)",
+      "CCScaleBy(0.35,2.0)",
+      "CCSpawn(pCVar11,uVar13,uVar14,0)",
+      "CCScaleBy(0.025,1.05)",
+      "CCScaleBy(0.025,0.952381)",
+      "CCScaleBy(0.075,0.9)",
+      "CCSpawn(pCVar11,uVar17,0)",
+      "CCSequence(pCVar12,uVar18,uVar19,0)",
+      "CCSpawn(pCVar11,uVar18,0)",
+      "CCSpawn(pCVar11,0)",
+      "CCDelayTime(1.1)",
+      "CCFadeTo(0.1,'\\0')"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCMoveBy(0.35,(CCPoint *)&local_140)",
+      "CCDelayTime(0.125)",
+      "CCMoveBy(3.0,aCStack_170)",
+      "CCMoveBy(0.25,aCStack_1b8)",
+      "CCMoveTo(0.075,aCStack_1c0)",
+      "CCSpawn(pCVar11,0)",
+      "CCHide()",
+      "CCDelayTime(1.1)",
+      "CCMoveBy(0.0,(CCPoint *)&local_110)",
+      "CCShow()",
+      "CCMoveBy(0.25,aCStack_1d8)",
+      "CCScaleBy(0.25,1.5)",
+      "CCSpawn(pCVar11,uVar21,0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_e0)",
+      "CCRotateBy(0.35,-25.0)",
+      "CCScaleBy(0.35,2.0)",
+      "CCSpawn(pCVar11,uVar13,uVar14,0)",
+      "CCScaleBy(0.025,1.05)",
+      "CCScaleBy(0.025,0.952381)",
+      "CCScaleBy(0.075,0.9)",
+      "CCSpawn(pCVar11,uVar17,0)",
+      "CCRotateBy(3.0,35.0)",
+      "CCSequence(pCVar12,uVar18,uVar19,0)",
+      "CCSpawn(pCVar11,uVar18,0)",
+      "CCSpawn(pCVar11,0)",
+      "CCDelayTime(1.1)",
+      "CCFadeTo(0.1,'\\0')"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.5)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleTo(0.25,1.0)",
+      "CCRotateBy(0.25,-30.0)",
+      "CCEaseIn(pCVar6,0.25)",
+      "CCSpawn(pCVar11,uVar9,0)",
+      "CCRotateBy(3.0,-3600.0)",
+      "CCEaseOut(pCVar6,0.5)",
+      "CCScaleTo(3.0,2.5)",
+      "CCSequence(pCVar12,0)",
+      "CCSpawn(pCVar11,uVar13,0)",
+      "CCCallFunc((function *)&local_110)",
+      "CCScaleTo(0.075,0.0)",
+      "CCCallFuncN((function *)&local_140)",
+      "CCSequence(pCVar4,uVar5,uVar7,uVar9,uVar13,uVar14,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(4.8)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_e0)",
+      "CCMoveBy(0.1,aCStack_1b8)",
+      "CCScaleBy(0.05,1.0,1.1)",
+      "CCScaleBy(0.05,1.0,0.9090909)",
+      "CCSequence(pCVar12,uVar13,0)",
+      "CCSpawn(pCVar11,uVar13,0)",
+      "CCCallFunc((function *)&local_110)",
+      "CCScaleBy(1.0,0.8)",
+      "CCEaseOut(pCVar6,0.25)",
+      "CCRotateBy(1.0,-45.0)",
+      "CCEaseOut(pCVar6,0.25)",
+      "CCSequence(pCVar12,uVar17,0)",
+      "CCSpawn(pCVar11,uVar16,uVar17,0)",
+      "CCCallFunc((function *)&local_140)",
+      "CCHide()",
+      "CCCallFuncN(aCStack_170)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(5.9)",
+      "CCScaleTo(0.04,3.75)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFunc((function *)&local_110)",
+      "CCDelayTime(0.2)",
+      "CCSequence(pCVar12,uVar7,uVar9,uVar13,0)",
+      "CCSpawn(pCVar11,uVar7,0)",
+      "CCRotateBy(0.05,360.0)",
+      "CCScaleTo(0.05,0.0)",
+      "CCFadeTo(0.05,'\\0')",
+      "CCSpawn(pCVar11,uVar9,uVar13,0)",
+      "CCCallFuncN((function *)&local_140)",
+      "CCSequence(pCVar4,uVar5,uVar7,uVar9,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(5.9)",
+      "CCScaleTo(0.075,3.0)",
+      "CCSpawn(pCVar11,uVar7,0)",
+      "CCScaleBy(0.1,1.1)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCSpawn(pCVar11,uVar9,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar4,uVar5,uVar7,uVar9,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCTintTo(3.3,'\\x17','$','J')",
+      "CCDelayTime(2.0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar4,uVar5,uVar7,uVar9,uVar13,uVar14,uVar16,uVar17,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,0)",
+      "CCSpawn(pCVar6,uVar8,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar6,uVar5,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_04",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(7.75)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar4,uVar5,uVar6,0)",
+      "CCDelayTime(0.0)",
+      "CCDelayTime(0.75)",
+      "CCCallFunc((function *)&local_c0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,1.75)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar8,uVar9,uVar10,0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,0.0)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar8,uVar10,uVar11,0)",
+      "CCDelayTime(7.25)",
+      "CCPlace(aCStack_130)",
+      "CCCallFunc((function *)&local_f0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,1.75)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar8,uVar14,uVar15,0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar8,uVar15,0)",
+      "CCCallFuncN(aCStack_120)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.0)",
+      "CCHide()",
+      "CCDelayTime(6.9)",
+      "CCCallFuncN((function *)&local_c0)",
+      "CCDelayTime(0.04)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCDelayTime(0.81)",
+      "CCPlace(this_00)",
+      "CCShow()"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.0)",
+      "CCScaleTo(0.25,0.0)",
+      "CCDelayTime(7.25)",
+      "CCPlace((CCPoint *)&local_c0)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar4,uVar5,uVar6,uVar9,uVar10,uVar11,0)"
+     ]
+    },
+    {
+     "target": "this_02",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(0.5)",
+      "CCTintTo(0.5,'\\0','\\0','\\0')",
+      "CCDelayTime(7.75)",
+      "CCTintTo(0.5,0xff,0xff,0xff)",
+      "CCSequence(pCVar4,uVar5,uVar6,uVar9,uVar10,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(2.75)",
+      "CCMoveTo(2.5,(CCPoint *)local_f0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCDelayTime(1.25)",
+      "CCHide()",
+      "CCDelayTime(1.4)",
+      "CCShow()",
+      "CCJumpTo(0.25,(CCPoint *)local_410,*(float *)(this + 0x22c) * 100.0,1)",
+      "CCJumpTo(fVar52,aCStack_408,*(float *)(this + 0x22c) * 300.0,1)",
+      "CCSequence(pCVar9,uVar10,uVar14,uVar15,uVar16,uVar17,uVar18,uVar19,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(2.75)",
+      "CCMoveTo(2.5,(CCPoint *)local_f0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCDelayTime(1.25)",
+      "CCScaleTo(0.1,0.0)",
+      "CCDelayTime(1.3)",
+      "CCMoveTo(0.25,aCStack_170)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 0.5)",
+      "CCSpawn(pCVar22,uVar18,0)",
+      "CCMoveTo(fVar52,(CCPoint *)alStack_1b0)",
+      "CCScaleTo(fVar54,0.5)",
+      "CCScaleTo(fVar54,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar23,uVar19,0)",
+      "CCSpawn(pCVar22,uVar19,0)",
+      "CCSequence(pCVar9,uVar10,uVar14,uVar15,uVar16,uVar17,uVar18,uVar19,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(4.75)",
+      "CCCallFuncN((function *)local_f0)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN((function *)local_130)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN(aCStack_170)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN((function *)alStack_1b0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_1f0)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN((function *)alStack_230)",
+      "CCDelayTime(0.05)",
+      "CCCallFuncN((function *)alStack_270)",
+      "CCDelayTime(0.05)",
+      "CCCallFuncN((function *)alStack_2b0)",
+      "CCDelayTime(0.025)",
+      "CCCallFuncN((function *)alStack_2f0)",
+      "CCDelayTime(0.025)",
+      "CCCallFuncN((function *)alStack_330)",
+      "CCDelayTime(1.9)",
+      "CCCallFuncN((function *)alStack_370)",
+      "CCDelayTime(0.25)",
+      "CCMoveBy(fVar52,aCStack_628)",
+      "CCRotateBy(fVar52,fVar53 * 3600.0)",
+      "CCSpawn(pCVar22,uVar10,0)",
+      "CCCallFuncN((function *)alStack_3b0)",
+      "CCJumpBy(0.3,aCStack_660,60.0,1)",
+      "CCJumpBy(0.15,aCStack_668,20.0,1)",
+      "CCScaleTo(0.1,fVar53 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar53,1.0)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)alStack_3f0)",
+      "CCScaleTo(0.1,fVar53 * 0.95,1.1)",
+      "CCScaleTo(0.1,fVar53 * 1.1,0.95)",
+      "CCScaleTo(0.1,fVar53,1.0)"
+     ]
+    }
+   ]
+  },
+  "earth": {
+   "no": 4,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/earth.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/earth/earth_mountain.png",
+     "skill/ultimate/earth/earth_earthquake1.png",
+     "skill/ultimate/earth/earth_dust1.png",
+     "skill/ultimate/earth/earth_dust2.png",
+     "skill/ultimate/earth/earth_stone.png",
+     "skill/ultimate/earth/earth_earthquake2.png",
+     "skill/ultimate/earth/earth_light.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT (W * 0.5,H * 0.5)",
+     "PT (0.0,37.5)",
+     "LOOP {",
+     "PT (0.0,90.0)",
+     "} while uVar15 != 0",
+     "FRAME earth_mountain.png",
+     "PT (0.0,-210.0)",
+     "PT (0.5,0.0)",
+     "ADD z=2 tag=4",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "PT (-130.0,-50.0)",
+     "PT (120.0,-20.0)",
+     "PT (-30.0,-140.0)",
+     "PT (60.0,-120.0)",
+     "ADD z=1 tag=0x18844",
+     "ADD z=1 tag=0x18845",
+     "ADD z=4 tag=0x18846",
+     "ADD z=3 tag=0x18847",
+     "LOOP {",
+     "FRAME earth_dust1.png",
+     "FRAME earth_dust2.png",
+     "PT (W * 0.5,H / 3.0)",
+     "ADD z=0xffffffff tag=0x1888a",
+     "ADD z=0 tag=0x18876",
+     "LOOP {",
+     "FRAME earth_stone.png",
+     "ADD z=0xffffffff tag=uVar15 + 0x18859",
+     "} while uVar15 < iVar3 % 3 + 4U",
+     "} while iVar5 != 4",
+     "FRAME earth_earthquake2.png",
+     "PT (0.0,-100.0)",
+     "ADD z=2 tag=0x1884e",
+     "FRAME earth_dust1.png",
+     "PT (W * 0.5,0.0)",
+     "PT (0.5,0.1)",
+     "ADD z=0xffffffff tag=0x1888a",
+     "LOOP {",
+     "FRAME earth_dust2.png",
+     "ADD z=0 tag=iVar5 + 0x18877",
+     "} while iVar5 < iVar2 % 4",
+     "LOOP {",
+     "FRAME earth_stone.png",
+     "ADD z=0xffffffff tag=uVar15 + 0x18859",
+     "} while uVar15 < iVar5 % 4 + 6U",
+     "LOOP {",
+     "FRAME earth_stone.png",
+     "PT ((float)(iVar5 % 0xc9) + -100.0,(float)(iVar2 % 0x7e))",
+     "} while uVar15 < iVar5 % 0x1a + 0x31U",
+     "LOOP {",
+     "FRAME earth_dust2.png",
+     "} while uVar15 < iVar5 % 3 + 4U",
+     "LOOP {",
+     "FRAME earth_light.png",
+     "PT (0.5,0.0)",
+     "} while iVar5 != 4"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/earth/earth_circle1.png",
+     "skill/ultimate/earth/earth_circle2.png",
+     "skill/ultimate/earth/earth_circle3.png",
+     "skill/ultimate/earth/earth_earthquake1.png",
+     "skill/ultimate/earth/earth_dust1.png",
+     "skill/ultimate/earth/earth_dust2.png",
+     "skill/ultimate/earth/earth_stone.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (dir,-50.0)",
+     "FRAME earth_circle1.png",
+     "FRAME earth_circle2.png",
+     "FRAME earth_circle3.png",
+     "FRAME earth_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (dir * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "FRAME earth_earthquake1.png",
+     "PT (*(float *)(this + 0x22c) * 100.0,*(float *)(this + 0x22c) * 100.0)",
+     "PT (*(float *)(this + 0x22c) * 50.0,*(float *)(this + 0x22c) * 70.0)",
+     "PT (*(float *)(this + 0x22c) * 10.0,*(float *)(this + 0x22c) * 120.0)",
+     "PT (*(float *)(this + 0x22c) * 10.0,*(float *)(this + 0x22c) * 95.0)",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 100.0)",
+     "ADD z=3 tag=0xfffe77bc",
+     "ADD z=1 tag=0xfffe77bb",
+     "ADD z=4 tag=0xfffe77ba",
+     "ADD z=2 tag=0xfffe77b9",
+     "ADD z=3 tag=0xfffe77b8",
+     "LOOP {",
+     "FRAME earth_dust1.png",
+     "FRAME earth_dust2.png",
+     "PT (dir * 0.5,H / 3.0)",
+     "ADD z=0xffffffff tag=0x1888a",
+     "ADD z=0 tag=0x18876",
+     "LOOP {",
+     "FRAME earth_stone.png",
+     "ADD z=0xffffffff tag=uVar17 + 0x18859",
+     "} while uVar17 < iVar4 % 3 + 4U",
+     "} while iVar2 != 5",
+     "LOOP {",
+     "FRAME earth_stone.png",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * -80.0)",
+     "ADD z=0 tag=iVar2",
+     "} while uVar17 < iVar3 % 3 + 9U"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar34)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFunc((function *)local_110)",
+      "CCCallFunc((function *)&local_140)",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_170)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar35)",
+      "CCScaleTo(0.0,0.2)",
+      "CCScaleTo(2.0,0.5,0.5)",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar19,uVar9,0)",
+      "CCSpawn(pCVar18,uVar9,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar35)",
+      "CCScaleTo(0.0,0.2)",
+      "CCMoveBy(2.0,(CCPoint *)local_110)",
+      "CCScaleTo(2.0,1.0)",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar19,uVar10,0)",
+      "CCSpawn(pCVar18,uVar9,uVar10,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar34 + (float)(iVar3 % 4) * 0.05)",
+      "CCRotateBy(0.875,3600.0)",
+      "CCEaseInOut(pCVar24,1.0)",
+      "CCJumpBy(0.25,(CCPoint *)&local_140,H * 0.75,1)",
+      "CCEaseInOut(pCVar24,0.5)",
+      "CCJumpBy(0.125,(CCPoint *)&local_170,H * 0.25,1)",
+      "CCEaseInOut(pCVar24,0.25)",
+      "CCSequence(pCVar19,uVar8,uVar9,0)",
+      "CCSpawn(pCVar18,uVar8,0)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(2.5)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFunc((function *)local_110)",
+      "CCDelayTime(3.15)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCCallFuncN((function *)&local_140)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,uVar11,uVar12,uVar13,uVar14,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(2.0)",
+      "CCScaleTo(4.0,1.5,1.5)",
+      "CCDelayTime(3.25)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCSequence(pCVar19,uVar8,0)",
+      "CCSpawn(pCVar18,uVar8,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(2.5)",
+      "CCMoveBy(4.0,(CCPoint *)local_110)",
+      "CCScaleTo(4.0,1.5)",
+      "CCDelayTime(3.0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCSequence(pCVar19,uVar9,0)",
+      "CCSpawn(pCVar18,uVar8,uVar9,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime((float)(iVar2 % 2) * 0.05 * (float)(int)uVar31 + 2.5)",
+      "CCRotateBy(1.25,3600.0)",
+      "CCJumpBy(0.8,(CCPoint *)local_110,H * 6.0,1)",
+      "CCEaseInOut(pCVar24,1.0)",
+      "CCJumpBy(0.3,(CCPoint *)&local_140,H * 1.5,1)",
+      "CCEaseInOut(pCVar24,0.5)",
+      "CCJumpBy(0.15,(CCPoint *)&local_170,H * 0.5,1)",
+      "CCEaseInOut(pCVar24,0.25)",
+      "CCSequence(pCVar19,uVar8,uVar9,0)",
+      "CCSpawn(pCVar18,uVar8,0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(2.3)",
+      "CCScaleTo(0.2,1.0,1.1)",
+      "CCScaleTo(0.05,1.0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(2.55)",
+      "CCShow()",
+      "CCMoveBy(0.025,(CCPoint *)&local_e0)",
+      "CCMoveBy(0.025,(CCPoint *)local_110)",
+      "CCMoveBy(0.025,(CCPoint *)&local_140)",
+      "CCMoveBy(0.025,(CCPoint *)&local_170)",
+      "CCMoveBy(0.025,(CCPoint *)&local_1a0)",
+      "CCMoveBy(0.025,(CCPoint *)&local_1d0)",
+      "CCMoveBy(0.025,(CCPoint *)&local_200)",
+      "CCMoveBy(0.025,(CCPoint *)&local_230)"
+     ]
+    },
+    {
+     "target": "this",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCDelayTime(0.05)",
+      "CCCallFuncN((function *)local_110)",
+      "CCCallFunc((function *)&local_140)",
+      "CCCallFunc((function *)&local_170)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_1a0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_1d0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_200)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_230)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.0)",
+      "CCScaleBy(0.1,3.0)",
+      "CCRotateBy(0.1,360.0)",
+      "CCFadeTo(0.05,0xff)",
+      "CCFadeTo(0.05,'\\0')",
+      "CCSequence(pCVar19,uVar9,0)",
+      "CCSpawn(pCVar18,uVar8,uVar9,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.05)",
+      "CCMoveBy(0.25,(CCPoint *)local_110)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar18,uVar8,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.0)",
+      "CCShow()",
+      "CCMoveBy(3.5,(CCPoint *)&local_140)",
+      "CCScaleTo(3.5,1.5)",
+      "CCDelayTime(2.5)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCSequence(pCVar19,uVar10,0)",
+      "CCSpawn(pCVar18,uVar9,uVar10,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime((float)(iVar2 % 3) * 0.005 * (float)(int)uVar31 + 3.0)",
+      "CCShow()",
+      "CCRotateBy(0.875,3600.0)",
+      "CCJumpTo(0.5,(CCPoint *)&local_140,fVar34 + fVar34,1)",
+      "CCEaseInOut(pCVar24,1.0)",
+      "CCJumpBy(0.25,(CCPoint *)&local_1a0,fVar34 * 0.75,1)",
+      "CCEaseInOut(pCVar24,0.5)",
+      "CCJumpBy(0.125,(CCPoint *)&local_1d0,fVar34 * 0.25,1)",
+      "CCEaseInOut(pCVar24,0.25)",
+      "CCSequence(pCVar19,uVar9,uVar10,0)",
+      "CCSpawn(pCVar18,uVar9,0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(5.75)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)local_110)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar9,uVar10,uVar11,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar10,uVar11,0)",
+      "CCSpawn(pCVar9,uVar11,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(1.05)",
+      "CCFadeTo(4.25,0xff)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSequence(pCVar6,uVar7,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCScaleTo(0.0,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCPlace((CCPoint *)&local_128)",
+      "CCScaleTo(0.3,0.0)",
+      "CCFadeTo(0.1,0xff)",
+      "CCSpawn(pCVar9,uVar16,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar9,uVar8,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar27)",
+      "CCShow()",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,uVar15,uVar16,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar27)",
+      "CCScaleTo(0.0,*(float *)(this + 0x22c) * 0.2)",
+      "CCScaleTo(2.5,*(float *)(this + 0x22c),*(float *)(this + 0x22c))",
+      "CCDelayTime(2.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar10,uVar11,0)",
+      "CCSpawn(pCVar9,uVar11,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar27)",
+      "CCScaleTo(0.0,*(float *)(this + 0x22c) * 0.2)",
+      "CCMoveBy(2.5,(CCPoint *)&local_128)",
+      "CCScaleTo(2.5,*(float *)(this + 0x22c))",
+      "CCDelayTime(2.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar10,uVar13,0)",
+      "CCSpawn(pCVar9,uVar11,uVar13,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar27 + (float)(iVar3 % 4) * 0.05)",
+      "CCRotateBy(0.875,3600.0)",
+      "CCEaseInOut(pCVar22,1.0)",
+      "CCJumpBy(0.25,aCStack_130,H * 0.75,1)",
+      "CCEaseInOut(pCVar22,0.5)",
+      "CCJumpBy(0.125,aCStack_140,H * 0.25,1)",
+      "CCEaseInOut(pCVar22,0.25)",
+      "CCSequence(pCVar10,uVar8,uVar11,0)",
+      "CCSpawn(pCVar9,uVar8,0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime((float)(iVar2 % 2) * 0.05 * (float)(int)uVar24 + 2.9)",
+      "CCShow()",
+      "CCRotateBy(0.5,3600.0)",
+      "CCJumpBy(0.5,aCStack_130,fVar27 + (float)(iVar2 % 200),1)",
+      "CCEaseInOut(pCVar22,1.0)",
+      "CCSpawn(pCVar9,uVar11,0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,uVar11,uVar13,uVar15,0)"
+     ]
+    },
+    {
+     "target": "this_00",
+     "actions": [
+      "CCParticleSystemQuad(\"particle/scene/colosseum/effect_damaged.plist\")",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar6,uVar7,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(5.8)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar8,uVar9,uVar10,0)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(2.35)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCDelayTime(0.85)",
+      "CCCallFuncN((function *)&local_150)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN((function *)&local_180)",
+      "CCSequence(pCVar8,uVar9,uVar10,uVar13,uVar15,uVar16,uVar17,uVar18,uVar19,0)"
+     ]
+    },
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.3,aCStack_f0,150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.3,(CCPoint *)&local_120,200.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.3,(CCPoint *)&local_150,250.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.3,(CCPoint *)&local_180,300.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.5,(CCPoint *)&local_1c0,400.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.3,(CCPoint *)&local_1f0,350.0,1)",
+      "CCDelayTime(0.2)",
+      "CCMoveTo(0.1,aCStack_220)",
+      "CCMoveTo(0.2,(CCPoint *)local_278)",
+      "CCDelayTime(1.65)",
+      "CCPlace((CCPoint *)&local_290)",
+      "CCJumpTo(0.25,pCVar26,*(float *)(this + 0x22c) * 200.0,1)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.2)",
+      "CCMoveBy(0.3,aCStack_f0)",
+      "CCDelayTime(0.2)",
+      "CCMoveBy(0.3,(CCPoint *)&local_120)",
+      "CCDelayTime(0.2)",
+      "CCMoveBy(0.3,(CCPoint *)&local_150)",
+      "CCDelayTime(0.2)",
+      "CCMoveBy(0.3,(CCPoint *)&local_180)",
+      "CCDelayTime(0.2)",
+      "CCMoveBy(0.5,(CCPoint *)&local_1c0)",
+      "CCDelayTime(0.7)",
+      "CCMoveTo(0.1,(CCPoint *)&local_1f0)",
+      "CCDelayTime(0.2)",
+      "CCMoveTo(0.2,aCStack_220)",
+      "CCDelayTime(1.65)",
+      "CCPlace(aCStack_260)",
+      "CCScaleTo(0.0,*(float *)(this + 0x22c) + 0.25)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCMoveTo(0.25,&local_2c8)",
+      "CCSpawn(pCVar33,uVar31,0)"
+     ]
+    },
+    {
+     "target": "pCVar5",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCMoveBy(0.3,aCStack_2b0)",
+      "CCRotateBy(0.3,fVar51 * -360.0)",
+      "CCSpawn(pCVar33,uVar9,0)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCRotateBy(0.3,720.0)",
+      "CCCallFuncN((function *)&local_150)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCRotateBy(0.3,1080.0)",
+      "CCCallFuncN((function *)&local_180)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCRotateBy(0.3,1440.0)",
+      "CCCallFuncN((function *)&local_1c0)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCRotateBy(0.5,fVar51 * -1800.0)",
+      "CCCallFuncN((function *)&local_1f0)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCRotateBy(0.3,fVar51 * -1080.0)",
+      "CCScaleTo(0.2,fVar52,0.5)",
+      "CCScaleTo(0.0,fVar51,1.0)",
+      "CCCallFuncN(aCStack_220)",
+      "CCMoveBy(0.1,aCStack_2e8)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN(aCStack_260)",
+      "CCDelayTime(2.0)",
+      "CCScaleTo(0.1,fVar51 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar51 * 0.95,1.05)",
+      "CCSequence(pCVar33,uVar46,0)",
+      "CCMoveBy(0.1,aCStack_320)",
+      "CCMoveBy(0.1,aCStack_328)",
+      "CCSequence(pCVar47,uVar46,0)",
+      "CCSpawn(pCVar33,uVar46,0)",
+      "CCScaleTo(0.1,fVar51,1.0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCJumpTo(0.25,aCStack_130,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.5)",
+      "CCDelayTime(fVar76)",
+      "CCJumpBy(0.2,aCStack_1b0,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.3)",
+      "CCJumpBy(0.2,aCStack_1f0,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.3)",
+      "CCJumpBy(0.2,aCStack_230,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.3)",
+      "CCJumpBy(0.2,aCStack_270,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.7)",
+      "CCJumpBy(fVar70,aCStack_2b0,*(float *)(this + 0x22c) * 800.0,1)",
+      "CCDelayTime(fVar71)",
+      "CCMoveTo(0.1,aCStack_3c8)",
+      "CCMoveTo(0.1,(CCPoint *)alStack_330)",
+      "CCEaseInOut(pCVar25,1.0)",
+      "CCDelayTime(fVar76 + 0.25)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCDelayTime(0.25)",
+      "CCSequence(pCVar27,uVar28,uVar29,0)",
+      "CCSpawn(pCVar26,uVar28,0)",
+      "CCJumpTo(0.25,(CCPoint *)alStack_3b0,(fVar74 + 75.0) * *(float *)pUVar1,1)",
+      "CCJumpTo(0.25,&local_430,(fVar74 + 25.0) * *(float *)pUVar1,1)",
+      "CCDelayTime(fVar74)",
+      "CCJumpTo(0.25,aCStack_3c8,*(float *)pUVar1 * 100.0,1)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCMoveTo(0.25,aCStack_f0)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar11,0)",
+      "CCSpawn(pCVar26,uVar11,0)",
+      "CCDelayTime(fVar71)",
+      "CCMoveBy(0.2,aCStack_170)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar13,0)",
+      "CCSpawn(pCVar26,uVar13,0)",
+      "CCDelayTime(0.3)",
+      "CCMoveBy(0.2,aCStack_1b0)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar15,0)",
+      "CCSpawn(pCVar26,uVar15,0)",
+      "CCDelayTime(0.3)",
+      "CCMoveBy(0.2,aCStack_1f0)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar17,0)",
+      "CCSpawn(pCVar26,uVar17,0)",
+      "CCDelayTime(0.3)",
+      "CCMoveBy(0.2,aCStack_230)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar19,0)",
+      "CCSpawn(pCVar26,uVar19,0)",
+      "CCDelayTime(0.7)",
+      "CCScaleTo(fVar68,*(float *)pUVar1 * 0.25)",
+      "CCScaleTo(fVar68,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar26,uVar21,0)",
+      "CCDelayTime(fVar71)",
+      "CCMoveTo(0.1,aCStack_270)",
+      "CCMoveTo(0.1,aCStack_2f0)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.5)",
+      "CCSpawn(pCVar26,uVar24,0)",
+      "CCMoveTo(fVar71,(CCPoint *)alStack_330)",
+      "CCScaleTo(fVar68,*(float *)pUVar1 * 0.1)",
+      "CCScaleTo(fVar68,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar28,0)",
+      "CCSpawn(pCVar26,uVar28,0)",
+      "CCMoveTo(0.25,(CCPoint *)alStack_3b0)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar29,0)",
+      "CCSpawn(pCVar26,uVar29,0)",
+      "CCMoveTo(0.25,&local_430)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.85)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar30,0)",
+      "CCSpawn(pCVar26,uVar30,0)",
+      "CCDelayTime(fVar74)",
+      "CCMoveTo(0.25,&local_498)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.9)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar27,uVar32,0)",
+      "CCSpawn(pCVar26,uVar32,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCJumpBy(0.15,aCStack_410,60.0,1)",
+      "CCJumpBy(0.1,aCStack_418,20.0,1)",
+      "CCScaleTo(0.1,fVar69 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar69,1.0)",
+      "CCDelayTime(fVar76 + 0.05)",
+      "CCCallFuncN(aCStack_130)",
+      "CCRotateBy(0.2,fVar72)",
+      "CCMoveBy(0.2,aCStack_450)",
+      "CCSpawn(pCVar26,uVar11,0)",
+      "CCCallFuncN(aCStack_170)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_1b0)",
+      "CCRotateBy(0.2,fVar72)",
+      "CCCallFuncN(aCStack_1f0)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_230)",
+      "CCRotateBy(0.2,fVar72)",
+      "CCCallFuncN(aCStack_270)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_2b0)",
+      "CCRotateBy(0.2,fVar72)",
+      "CCCallFuncN(aCStack_2f0)",
+      "CCDelayTime(0.1)",
+      "CCDelayTime(0.6)",
+      "CCCallFuncN((function *)alStack_330)",
+      "CCRotateBy(fVar70,fVar72)",
+      "CCMoveBy(fVar70,aCStack_5d8)",
+      "CCSpawn(pCVar26,uVar11,0)",
+      "CCRotateBy(fVar76 + 0.65,fVar69 * 1800.0)",
+      "CCCallFuncN(aCStack_370)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.15)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.15)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.55 - (fVar76 + fVar76))",
+      "CCCallFuncN((function *)alStack_3b0)",
+      "CCScaleTo(0.05,fVar68,0.75)",
+      "CCScaleTo(0.05,fVar69,1.0)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.1,fVar69 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar69,1.0)"
+     ]
+    }
+   ]
+  },
+  "fire": {
+   "no": 5,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/fire.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [
+     {
+      "slot": "0x2d8",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * W * 0.25,-160.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x2e0",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * W * -0.25,-130.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x2e8",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "0.0,-180.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x2f0",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + -50.0),-120.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x2f8",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (25.0 - W * 0.25),-140.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x300",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + 30.0),-195.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x308",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * -30.0,-200.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x310",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * -60.0,-190.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x318",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + -75.0),-127.5",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "800",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (-25.0 - W * 0.25),-170.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x328",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + 5.0),-210.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x330",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (10.0 - W * 0.25),-120.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x338",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * 10.0,-210.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x340",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + -45.0),-120.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x348",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (30.0 - W * 0.25),-110.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x350",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * W * 0.25,-220.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x358",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * -17.5,-110.0"
+      ]
+     },
+     {
+      "slot": "0x360",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * W * -0.25,-225.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x368",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * (W * 0.25 + -55.0),-130.0",
+       "0.0,50.0"
+      ]
+     },
+     {
+      "slot": "0x370",
+      "terms": [
+       "W * 0.5,H * 0.5",
+       "dir * 90.0,-250.0",
+       "0.0,50.0"
+      ]
+     }
+    ],
+    "consts": [
+     {
+      "off": 896,
+      "words": [
+       1070805811,
+       1074370970
+      ],
+      "as_float": [
+       1.65,
+       2.15
+      ],
+      "as_int": [
+       1070805811,
+       1074370970
+      ]
+     },
+     {
+      "off": 888,
+      "words": [
+       1048576000,
+       1065353216
+      ],
+      "as_float": [
+       0.25,
+       1
+      ],
+      "as_int": [
+       1048576000,
+       1065353216
+      ]
+     },
+     {
+      "off": 912,
+      "words": [
+       1079194419,
+       1080242995
+      ],
+      "as_float": [
+       3.3,
+       3.55
+      ],
+      "as_int": [
+       1079194419,
+       1080242995
+      ]
+     },
+     {
+      "off": 904,
+      "words": [
+       1076258406,
+       1077936128
+      ],
+      "as_float": [
+       2.6,
+       3
+      ],
+      "as_int": [
+       1076258406,
+       1077936128
+      ]
+     },
+     {
+      "off": 928,
+      "words": [
+       1082130432,
+       1082392576
+      ],
+      "as_float": [
+       4,
+       4.125
+      ],
+      "as_int": [
+       1082130432,
+       1082392576
+      ]
+     },
+     {
+      "off": 920,
+      "words": [
+       1080872141,
+       1081501286
+      ],
+      "as_float": [
+       3.7,
+       3.85
+      ],
+      "as_int": [
+       1080872141,
+       1081501286
+      ]
+     },
+     {
+      "off": 936,
+      "words": [
+       1082654720,
+       1082916864
+      ],
+      "as_float": [
+       4.25,
+       4.375
+      ],
+      "as_int": [
+       1082654720,
+       1082916864
+      ]
+     },
+     {
+      "off": 944,
+      "words": [
+       1083179008
+      ],
+      "as_float": [
+       4.5
+      ],
+      "as_int": [
+       1083179008
+      ]
+     },
+     {
+      "off": 956,
+      "words": [
+       1083965440,
+       1084227584
+      ],
+      "as_float": [
+       4.875,
+       5
+      ],
+      "as_int": [
+       1083965440,
+       1084227584
+      ]
+     },
+     {
+      "off": 948,
+      "words": [
+       1083441152,
+       1083703296
+      ],
+      "as_float": [
+       4.625,
+       4.75
+      ],
+      "as_int": [
+       1083441152,
+       1083703296
+      ]
+     },
+     {
+      "off": 964,
+      "words": [
+       1084437299
+      ],
+      "as_float": [
+       5.1
+      ],
+      "as_int": [
+       1084437299
+      ]
+     },
+     {
+      "off": 976,
+      "words": [
+       7,
+       1
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       7,
+       1
+      ]
+     },
+     {
+      "off": 968,
+      "words": [
+       5,
+       2
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       5,
+       2
+      ]
+     },
+     {
+      "off": 992,
+      "words": [
+       10,
+       8
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       10,
+       8
+      ]
+     },
+     {
+      "off": 984,
+      "words": [
+       4,
+       9
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       4,
+       9
+      ]
+     },
+     {
+      "off": 1000,
+      "words": [
+       3,
+       6
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       3,
+       6
+      ]
+     },
+     {
+      "off": 1008,
+      "words": [
+       11
+      ],
+      "as_float": [
+       0
+      ],
+      "as_int": [
+       11
+      ]
+     },
+     {
+      "off": 1020,
+      "words": [
+       3,
+       1
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       3,
+       1
+      ]
+     },
+     {
+      "off": 1012,
+      "words": [
+       2,
+       13
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       2,
+       13
+      ]
+     },
+     {
+      "off": 1036,
+      "words": [
+       18,
+       4
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       18,
+       4
+      ]
+     },
+     {
+      "off": 1028,
+      "words": [
+       16,
+       1
+      ],
+      "as_float": [
+       0,
+       0
+      ],
+      "as_int": [
+       16,
+       1
+      ]
+     },
+     {
+      "off": 1044,
+      "words": [
+       20
+      ],
+      "as_float": [
+       0
+      ],
+      "as_int": [
+       20
+      ]
+     }
+    ],
+    "frames": [
+     "skill/ultimate/fire/fire_explosion1.png",
+     "skill/ultimate/fire/fire_earthquake.png",
+     "skill/ultimate/fire/fire_fillar1.png",
+     "skill/ultimate/fire/fire_stone.png"
+    ],
+    "anims": [
+     {
+      "var": "this_02",
+      "frames": [
+       "skill/ultimate/fire/fire_explosion2.png",
+       "skill/ultimate/fire/fire_explosion3.png",
+       "skill/ultimate/fire/fire_explosion4.png",
+       "skill/ultimate/fire/fire_explosion5.png",
+       "skill/ultimate/fire/fire_explosion6.png"
+      ],
+      "delay": 0.06
+     },
+     {
+      "var": "this_03",
+      "frames": [
+       "skill/ultimate/fire/fire_fillar2.png"
+      ],
+      "delay": 0.025
+     },
+     {
+      "var": "this_04",
+      "frames": [
+       "skill/ultimate/fire/fire_fillar3.png",
+       "skill/ultimate/fire/fire_fillar4.png",
+       "skill/ultimate/fire/fire_fillar5.png",
+       "skill/ultimate/fire/fire_fillar6.png",
+       "skill/ultimate/fire/fire_fillar7.png"
+      ],
+      "delay": 0.03
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * W * 0.25,-160.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * W * -0.25,-130.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (0.0,-180.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + -50.0),-120.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (25.0 - W * 0.25),-140.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + 30.0),-195.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * -30.0,-200.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * -60.0,-190.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + -75.0),-127.5)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (-25.0 - W * 0.25),-170.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + 5.0),-210.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (10.0 - W * 0.25),-120.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * 10.0,-210.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + -45.0),-120.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (30.0 - W * 0.25),-110.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * W * 0.25,-220.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * -17.5,-110.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * W * -0.25,-225.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * (W * 0.25 + -55.0),-130.0)",
+     "PT (0.0,50.0)",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (dir * 90.0,-250.0)",
+     "PT (0.0,50.0)",
+     "CONST 0x380",
+     "CONST 0x378",
+     "CONST 0x390",
+     "CONST 0x388",
+     "CONST 0x3a0",
+     "CONST 0x398",
+     "CONST 0x3a8",
+     "CONST 0x3b0",
+     "CONST 0x3bc",
+     "CONST 0x3b4",
+     "CONST 0x3c4",
+     "CONST 0x3d0",
+     "CONST 0x3c8",
+     "CONST 0x3e0",
+     "CONST 0x3d8",
+     "CONST 0x3e8",
+     "CONST 0x3f0",
+     "CONST 0x3fc",
+     "CONST 0x3f4",
+     "CONST 0x40c",
+     "CONST 0x404",
+     "CONST 0x414",
+     "LOOP {",
+     "FRAME fire_explosion1.png",
+     "FRAME fire_earthquake.png",
+     "FRAME fire_fillar1.png",
+     "PT (0.5,0.0)",
+     "PT (0.5,0.0)",
+     "PT (0.0,-5.0)",
+     "PT (0.5,0.0)",
+     "LOOP {",
+     "FRAME fire_stone.png",
+     "PT (dir * 0.5,H * 0.5)",
+     "PT (dir + (float)(iVar3 % 3) * 100.0,0.0)",
+     "ADD z=0xffffffff tag=uVar16 + 0x18877",
+     "FRAME fire_stone.png",
+     "PT (dir * 0.5,H * 0.5)",
+     "PT (dir + (float)(iVar3 % 0x1f) * 5.0,25.0)",
+     "ADD z=0xffffffff tag=uVar16 + 0x18895",
+     "} while uVar1 < iVar3 % 6 + 0xeU",
+     "} while lVar6 != 0x14"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/fire/fire_circle1.png",
+     "skill/ultimate/fire/fire_circle2.png",
+     "skill/ultimate/fire/fire_fireball1.png"
+    ],
+    "anims": [
+     {
+      "var": "this_01",
+      "frames": [
+       "skill/ultimate/fire/fire_fireball1.png",
+       "skill/ultimate/fire/fire_fireball2.png",
+       "skill/ultimate/fire/fire_fireball3.png",
+       "skill/ultimate/fire/fire_fireball4.png"
+      ],
+      "delay": 0.06
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME fire_circle1.png",
+     "FRAME fire_circle2.png",
+     "FRAME fire_circle2.png",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a",
+     "LOOP {",
+     "FRAME fire_fireball1.png",
+     "} while lVar16 != 0x14"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCLayerColor((ccColor4B *)local_140,local_e0._0_4_,local_110._4_4_)",
+      "CCDelayTime(*(float *)(this + 0x228) + 4.25)",
+      "CCFadeTo(1.0,0xff)",
+      "CCDelayTime(1.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 6.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + *(float *)(this + uVar29 * 4 + 0x378))",
+      "CCScaleTo(0.1,1.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFunc((function *)&local_110)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCScaleTo(0.1,1.25)",
+      "CCSpawn(pCVar18,uVar19,0)",
+      "CCCallFuncN((function *)local_140)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,uVar19,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 0.225 + *(float *)pUVar7)",
+      "CCScaleTo(0.1,1.1)",
+      "CCScaleTo(0.05,1.0)",
+      "CCDelayTime(0.75)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,uVar19,uVar20,uVar21,uVar22,0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 0.225 + *(float *)pUVar7)",
+      "CCShow()",
+      "CCJumpBy(fVar32,(CCPoint *)&local_110,(float)(iVar6 % 400) + 150.0,1)",
+      "CCEaseInOut(pCVar25,fVar33)",
+      "CCRotateBy(fVar32,fVar31 * ((float)(iVar6 % 0x438) + 1080.0))",
+      "CCSpawn(pCVar18,uVar12,0)",
+      "CCEaseInOut(pCVar25,fVar33)",
+      "CCRotateBy(fVar32 * 0.75,fVar31 * ((float)(iVar6 % 0x2d0) + 720.0))",
+      "CCSpawn(pCVar18,uVar13,0)",
+      "CCJumpBy(fVar32 * 0.5,aCStack_188,(float)(iVar6 % 0x4b) + 25.0,1)",
+      "CCEaseInOut(pCVar25,fVar33)",
+      "CCRotateBy(fVar32 * 0.5,fVar31 * ((float)(iVar6 % 0x168) + 360.0))",
+      "CCSpawn(pCVar18,uVar15,0)",
+      "CCMoveBy(fVar32,aCStack_190)",
+      "CCRotateBy(fVar32,(float)local_110 * 0.1 * 7.5)",
+      "CCSpawn(pCVar18,uVar19,0)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCShow()",
+      "CCMoveBy(fVar34,(CCPoint *)local_140)",
+      "CCRotateBy(fVar34,fVar31)",
+      "CCSpawn(pCVar18,uVar11,0)",
+      "CCHide()",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCDelayTime(0.2)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,0)",
+      "CCRepeat(pCVar18,1)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar10,uVar11,uVar12,0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 0.225 + *(float *)pUVar7)",
+      "CCScaleTo(0.1,1.25)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCRepeat(pCVar18,5)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.25,0.025,1.25)",
+      "CCSequence(pCVar26,uVar15,0)",
+      "CCSpawn(pCVar18,uVar15,0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar15,uVar19,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCMoveBy(0.25,(CCPoint *)&local_e0)",
+      "CCMoveBy(0.25,aCStack_110)",
+      "CCSequence(pCVar8,uVar5,0)",
+      "CCRepeatForever(pCVar9)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCScaleBy(4.1,0.85)",
+      "CCEaseIn(pCVar9,0.5)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo((float)0x40766666,'d')",
+      "CCSequence(pCVar12,uVar5,0)",
+      "CCSpawn(pCVar11,uVar5,0)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleTo(0.05,2.25)",
+      "CCScaleTo(0.05,1.6)",
+      "CCScaleBy(2.55,0.75)",
+      "CCEaseIn(pCVar9,0.5)",
+      "CCFadeTo(2.55,0xaf)",
+      "CCSpawn(pCVar11,uVar15,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar8,uVar5,uVar6,uVar13,uVar14,uVar15,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCScaleTo(0.0,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCPlace(aCStack_110)",
+      "CCScaleTo(0.3,0.0)",
+      "CCFadeTo(0.1,0xff)",
+      "CCSpawn(pCVar11,uVar17,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar8,uVar5,uVar6,uVar13,uVar14,uVar15,uVar17,uVar18,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar11,uVar6,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar8,uVar5,uVar6,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCRepeat(pCVar11,0x14)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCMoveBy(0.2,aCStack_138)",
+      "CCMoveTo(0.1,pUVar22)",
+      "CCDelayTime(0.05)",
+      "CCFadeTo(0.05,'\\0')",
+      "CCSequence(pCVar20,uVar14,0)",
+      "CCSpawn(pCVar19,uVar14,0)",
+      "CCCallFuncN(aCStack_110)",
+      "CCSequence(pCVar12,uVar5,uVar6,uVar13,uVar14,uVar15,0)",
+      "CCSpawn(pCVar11,uVar5,0)",
+      "CCSequence(pCVar8,uVar5,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(6.75)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar9,uVar10,uVar11,0)",
+      "CCDelayTime(0.25)",
+      "CCJumpBy(0.15,aCStack_f0,50.0,1)",
+      "CCMoveBy(4.35,aCStack_130)",
+      "CCEaseIn(pCVar12,0.5)",
+      "CCDelayTime(3.0)",
+      "CCMoveTo(0.15,(CCPoint *)(this + 0x208))",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar13,uVar14,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.15)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCScaleBy(0.05,1.75)",
+      "CCScaleBy(0.05,0.5714286)",
+      "CCSequence(pCVar18,uVar10,uVar11,uVar19,0)",
+      "CCTintTo(4.25,0xff,'d','\\0')",
+      "CCEaseOut(pCVar12,0.5)",
+      "CCSpawn(pCVar18,uVar10,0)",
+      "CCCallFuncN(aCStack_130)",
+      "CCScaleBy(0.05,1.75)",
+      "CCScaleBy(0.05,0.5714286)",
+      "CCSequence(pCVar18,uVar10,0)",
+      "CCTintTo(2.0,0xff,200,'\\x19')",
+      "CCEaseOut(pCVar12,0.5)",
+      "CCSpawn(pCVar18,uVar10,0)",
+      "CCDelayTime(0.9)",
+      "CCCallFuncN((function *)alStack_170)",
+      "CCTintTo(0.15,0xff,0xff,0xff)",
+      "CCScaleTo(0.1,fVar32 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar32 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar32,1.0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.15,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(4.35,*(float *)(this + 0x22c) + 0.5)",
+      "CCDelayTime(3.0)",
+      "CCScaleTo(0.15,*(float *)(this + 0x22c) + 1.0)",
+      "CCMoveTo(0.15,aCStack_f0)",
+      "CCSpawn(pCVar18,uVar14,0)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar13,uVar14,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCJumpTo(0.25,(CCPoint *)&local_540,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCDelayTime(0.15)",
+      "CCJumpBy(0.5,(CCPoint *)&local_5b0,*(float *)pUVar1 * 200.0,1)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCDelayTime(0.25)",
+      "CCJumpBy(0.5,(CCPoint *)&local_5e0,*(float *)pUVar1 * 175.0,1)",
+      "CCCallFuncN((function *)&local_150)",
+      "CCDelayTime(0.15)",
+      "CCJumpBy(0.5,aCStack_610,*(float *)pUVar1 * 150.0,1)",
+      "CCCallFuncN((function *)&local_180)",
+      "CCJumpBy(0.45,(CCPoint *)&local_650,*(float *)pUVar1 * 140.0,1)",
+      "CCCallFuncN((function *)&local_1b0)",
+      "CCJumpBy(0.4,(CCPoint *)&local_680,*(float *)pUVar1 * 140.0,1)",
+      "CCCallFuncN((function *)&local_1e0)",
+      "CCJumpBy(0.3,(CCPoint *)&local_6b0,*(float *)pUVar1 * 100.0,1)",
+      "CCCallFuncN((function *)&local_210)",
+      "CCJumpBy(0.25,(CCPoint *)&local_6e0,*(float *)pUVar1 * 90.0,1)",
+      "CCCallFuncN((function *)&local_240)",
+      "CCJumpBy(0.15,(CCPoint *)&local_710,*(float *)pUVar1 * 70.0,1)",
+      "CCCallFuncN((function *)&local_270)",
+      "CCJumpBy(0.15,(CCPoint *)&local_740,*(float *)pUVar1 * 70.0,1)",
+      "CCCallFuncN((function *)&local_2a0)",
+      "CCJumpBy(0.15,(CCPoint *)&local_770,*(float *)pUVar1 * 70.0,1)",
+      "CCCallFuncN((function *)&local_2d0)",
+      "CCJumpBy(0.125,(CCPoint *)&local_7a0,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_300)",
+      "CCJumpBy(0.125,(CCPoint *)&local_7d0,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_330)",
+      "CCJumpBy(0.125,(CCPoint *)&local_800,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_360)",
+      "CCJumpBy(0.125,(CCPoint *)&local_830,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_390)",
+      "CCJumpBy(0.125,(CCPoint *)&local_860,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_3c0)",
+      "CCJumpBy(0.125,(CCPoint *)&local_890,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_3f0)",
+      "CCJumpBy(0.125,(CCPoint *)&local_8c0,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_420)",
+      "CCJumpBy(0.125,(CCPoint *)&local_8f0,*(float *)pUVar1 * 60.0,1)",
+      "CCCallFuncN((function *)&local_450)",
+      "CCJumpBy(0.1,(CCPoint *)&local_920,*(float *)pUVar1 * 50.0,1)",
+      "CCCallFuncN((function *)&local_480)",
+      "CCMoveTo(0.0,(CCPoint *)&local_950)",
+      "CCDelayTime(W0)",
+      "CCMoveTo(0.1,aCStack_c48)",
+      "CCJumpBy(0.4,(CCPoint *)&local_9e0,*(float *)pUVar1 * 150.0,1)",
+      "CCJumpBy(0.2,(CCPoint *)&local_a10,*(float *)pUVar1 * 50.0,1)",
+      "CCDelayTime(W3)",
+      "CCDelayTime(1.75)",
+      "CCJumpTo(0.25,aCStack_c48,*(float *)pUVar1 * 150.0,1)"
+     ]
+    },
+    {
+     "target": "pCVar14",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCMoveTo(0.25,(CCPoint *)&local_f0)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar17,0)",
+      "CCSpawn(pCVar69,uVar17,0)",
+      "CCDelayTime(0.65)",
+      "CCMoveBy(0.5,(CCPoint *)&local_150)",
+      "CCScaleTo(0.25,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar19,0)",
+      "CCSpawn(pCVar69,uVar19,0)",
+      "CCDelayTime(0.25)",
+      "CCMoveBy(0.5,(CCPoint *)&local_180)",
+      "CCScaleTo(0.25,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar21,0)",
+      "CCSpawn(pCVar69,uVar21,0)",
+      "CCDelayTime(0.15)",
+      "CCMoveBy(0.5,(CCPoint *)&local_1b0)",
+      "CCScaleTo(0.25,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar23,0)",
+      "CCSpawn(pCVar69,uVar23,0)",
+      "CCMoveBy(0.45,(CCPoint *)&local_1e0)",
+      "CCScaleTo(0.225,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.225,*(float *)pUVar1 + *(float *)pUVar1 * 0.9)",
+      "CCSequence(pCVar70,uVar24,0)",
+      "CCSpawn(pCVar69,uVar24,0)",
+      "CCMoveBy(0.4,(CCPoint *)&local_210)",
+      "CCScaleTo(0.2,*(float *)pUVar1 + *(float *)pUVar1 * 0.6)",
+      "CCScaleTo(0.2,*(float *)pUVar1 + *(float *)pUVar1 * 0.8)",
+      "CCSequence(pCVar70,uVar25,0)",
+      "CCSpawn(pCVar69,uVar25,0)",
+      "CCMoveBy(0.3,(CCPoint *)&local_240)",
+      "CCScaleTo(0.15,*(float *)pUVar1 + *(float *)pUVar1 * 0.7)",
+      "CCSequence(pCVar70,uVar26,0)",
+      "CCSpawn(pCVar69,uVar26,0)",
+      "CCMoveTo(1.8,(CCPoint *)&local_270)",
+      "CCScaleTo(1.8,*(float *)pUVar1 * 0.25)",
+      "CCSpawn(pCVar69,uVar27,0)",
+      "CCDelayTime(1.5)",
+      "CCScaleTo(W1 + 0.25 + 0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCMoveBy(0.4,(CCPoint *)&local_2d0)",
+      "CCScaleTo(0.2,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.2,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar30,0)",
+      "CCSpawn(pCVar69,uVar30,0)",
+      "CCMoveBy(0.2,(CCPoint *)&local_300)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.1,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar31,0)",
+      "CCSpawn(pCVar69,uVar31,0)",
+      "CCDelayTime(W3)",
+      "CCDelayTime(1.75)",
+      "CCMoveTo(0.25,(CCPoint *)&local_330)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1 * 0.75)",
+      "CCScaleTo(0.125,*(float *)pUVar1 + *(float *)pUVar1)",
+      "CCSequence(pCVar70,uVar34,0)",
+      "CCSpawn(pCVar69,uVar34,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(1.0)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCJumpBy(0.15,aCStack_c88,60.0,1)",
+      "CCJumpBy(0.1,aCStack_c90,20.0,1)",
+      "CCScaleTo(0.1,fVar95,0.95)",
+      "CCScaleTo(0.1,fVar96,1.0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCMoveBy(0.5,aCStack_cc8)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_150)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_180)",
+      "CCSequence(pCVar70,uVar17,uVar18,uVar27,0)",
+      "CCSpawn(pCVar69,uVar17,0)",
+      "CCCallFuncN((function *)&local_1b0)",
+      "CCJumpBy(0.15,aCStack_d00,60.0,1)",
+      "CCJumpBy(0.1,aCStack_d08,20.0,1)",
+      "CCCallFuncN((function *)&local_1e0)",
+      "CCMoveBy(0.5,aCStack_d40)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_210)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_240)",
+      "CCSequence(pCVar70,uVar17,uVar18,uVar32,0)",
+      "CCSpawn(pCVar69,uVar17)",
+      "CCCallFuncN((function *)&local_270)",
+      "CCScaleTo(0.1,fVar95,0.95)",
+      "CCScaleTo(0.05,fVar96,1.0)",
+      "CCCallFuncN((function *)&local_2a0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_2d0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_300)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN((function *)&local_330)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_360)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_390)",
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)&local_3c0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_3f0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_420)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN((function *)&local_450)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_480)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_540)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN(aCStack_570)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_5b0)",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_5e0)",
+      "CCDelayTime(0.05)",
+      "CCCallFuncN(aCStack_610)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_650)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_680)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_6b0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_6e0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_710)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_740)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_770)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_7a0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_7d0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_800)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_830)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_860)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_890)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_8c0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_8f0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_920)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_950)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_980)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_9b0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_9e0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_a10)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_a40)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_a70)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_aa0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_ad0)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_b00)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_b30)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_b60)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_b90)",
+      "CCDelayTime(0.05)",
+      "CCCallFunc((function *)&local_bc0)",
+      "CCTintTo(0.0,uVar10,extraout_w1,uVar92)",
+      "CCDelayTime(W0)",
+      "CCDelayTime(0.1)",
+      "CCCallFuncN((function *)alStack_bf0)",
+      "CCDelayTime(0.6)",
+      "CCScaleTo(0.1,fVar95,0.95)",
+      "CCScaleTo(0.1,fVar96,1.0)",
+      "CCDelayTime(W3)",
+      "CCTintTo(0.5,0xff,0xff,0xff)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)alStack_c30)",
+      "CCScaleTo(0.1,fVar96 * 0.9,1.1)",
+      "CCScaleTo(0.1,fVar96 * 1.1,0.9)",
+      "CCScaleTo(0.1,fVar96,1.0)",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.1,fVar95,0.95)",
+      "CCScaleTo(0.1,fVar96,1.0)"
+     ]
+    }
+   ]
+  },
+  "holy": {
+   "no": 6,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/holy.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/holy.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/holy/holy_well.png",
+     "skill/ultimate/holy/holy_spear.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "FRAME holy_well.png",
+     "LOOP {",
+     "PT (0.0,62.5)",
+     "LOOP {",
+     "FRAME holy_spear.png",
+     "ADD z=iVar2 + 1 tag=iVar12 + iVar11",
+     "} while iVar11 != 0x1f",
+     "LOOP {",
+     "FRAME holy_spear.png",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=0x179 - iVar2 tag=iVar12 + iVar11",
+     "} while iVar11 != 0x1f",
+     "LOOP {",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (0.0,62.5)",
+     "PT (0.0,(float)(iVar2 % 0x12d))",
+     "} while iVar11 != 0x3c",
+     "FRAME holy_well.png",
+     "} while iVar10 != 3",
+     "ADD z=0 tag=0x18834"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/holy/holy_circle1.png",
+     "skill/ultimate/holy/holy_circle2.png",
+     "skill/ultimate/holy/holy_circle3.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [
+     "skill/ultimate/holy/holy_wing_spine.spine_json"
+    ],
+    "particles": [],
+    "ops": [
+     "ADD z=iVar2 + 1 tag=0x24b80",
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME holy_circle1.png",
+     "FRAME holy_circle2.png",
+     "FRAME holy_circle3.png",
+     "FRAME holy_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCLayerColor((ccColor4B *)&local_140,local_e0._0_4_,local_110._4_4_)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.775)",
+      "CCShow()",
+      "CCFadeTo(0.75,0xff)",
+      "CCDelayTime(0.1)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar12,uVar13,uVar14,uVar16,0)"
+     ]
+    },
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(6.75)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCHide()",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar12,uVar13,uVar14,uVar16,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCShow()",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.1)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleTo(0.5,0.4)",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCScaleTo(0.1,0.0)",
+      "CCHide()",
+      "CCDelayTime(0.25)",
+      "CCCallFunc((function *)&local_110)",
+      "CCShow()",
+      "CCScaleTo(0.1,1.5)",
+      "CCScaleTo(1.5,2.0)",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCDelayTime(0.855)",
+      "CCCallFunc((function *)&local_140)",
+      "CCScaleTo(0.75,3.0)",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCDelayTime(0.2)",
+      "CCCallFunc((function *)&local_170)",
+      "CCScaleTo(0.1,0.0)",
+      "CCHide()",
+      "CCDelayTime(1.0)",
+      "CCCallFunc((function *)&local_1a0)",
+      "CCCallFunc((function *)&local_1d0)",
+      "CCShow()",
+      "CCScaleTo(1.0,6.0)",
+      "CCEaseIn(pCVar19,1.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)alStack_200)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCShow()",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.505)",
+      "CCHide()",
+      "CCScaleTo(0.0,1.5)",
+      "CCShow()",
+      "CCScaleTo(0.75,3.0)",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCDelayTime(0.4)",
+      "CCScaleTo(0.1,0.0)",
+      "CCHide()",
+      "CCDelayTime(1.15)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCShow()",
+      "CCScaleTo(1.0,6.0)",
+      "CCEaseIn(pCVar19,1.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_110)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCShow()",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(3.605)",
+      "CCHide()",
+      "CCScaleTo(0.0,1.5)",
+      "CCShow()",
+      "CCScaleTo(0.75,3.0)",
+      "CCEaseIn(pCVar19,0.25)",
+      "CCDelayTime(0.4)",
+      "CCScaleTo(0.1,0.0)",
+      "CCHide()",
+      "CCDelayTime(1.3)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCShow()",
+      "CCScaleTo(1.0,6.0)",
+      "CCEaseIn(pCVar19,1.0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCCallFuncN((function *)&local_110)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.05)",
+      "CCShow()",
+      "CCFadeTo(0.0,'}')",
+      "CCScaleTo(0.2,4.0)",
+      "CCFadeTo(0.2,'\\0')",
+      "CCSpawn(pCVar39,uVar13,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar12,uVar13,uVar14,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar48 * 0.2)",
+      "CCDelayTime(fVar51 + 1.25)",
+      "CCShow()",
+      "CCFadeTo(0.25,200)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCMoveBy(fVar50 - fVar51,(CCPoint *)&local_140)",
+      "CCEaseIn(pCVar19,0.3)",
+      "CCScaleBy(0.1,1.2)",
+      "CCMoveTo(0.1,pCVar42)",
+      "CCFadeTo(0.1,'d')",
+      "CCSpawn(pCVar39,uVar20,uVar21,0)",
+      "CCMoveBy(0.75,(CCPoint *)&local_170)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSpawn(pCVar39,uVar21,0)",
+      "CCCallFuncN((function *)&local_110)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar48 * 0.2)",
+      "CCDelayTime(fVar51 + 1.25)",
+      "CCShow()",
+      "CCFadeTo(0.25,200)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCMoveBy(fVar50 - fVar51,(CCPoint *)&local_140)",
+      "CCEaseIn(pCVar19,0.3)",
+      "CCScaleBy(0.1,0.8)",
+      "CCMoveTo(0.1,(CCPoint *)&local_170)",
+      "CCFadeTo(0.1,'d')",
+      "CCSpawn(pCVar39,uVar20,uVar21,0)",
+      "CCMoveBy(0.75,(CCPoint *)&local_1a0)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSpawn(pCVar39,uVar21,0)",
+      "CCCallFuncN((function *)&local_110)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(fVar48 * 0.25)",
+      "CCDelayTime(5.8)",
+      "CCShow()",
+      "CCMoveBy((float)(iVar5 % 3) * 0.05 + 0.1,(CCPoint *)&local_110)",
+      "CCJumpBy(2.5,(CCPoint *)&local_140,(float)(iVar5 % 0x1a) + 25.0,1)",
+      "CCRotateBy(2.5,(float)local_110 * -0.25)",
+      "CCDelayTime((float)(iVar5 % 6) * 0.1 + 1.5)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar44,uVar16,0)",
+      "CCSpawn(pCVar39,uVar14,uVar16,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar12,uVar13,uVar14,uVar16,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,0)",
+      "CCSpawn(pCVar6,uVar8,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCHide()",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar6,uVar5,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_03",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(7.5)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar9,uVar10,uVar11,0)",
+      "CCDelayTime(5.75)",
+      "CCPlace(pCVar13)",
+      "CCShow()",
+      "CCCallFuncN((function *)alStack_f0)",
+      "CCDelayTime(fVar44 * 0.5)",
+      "CCCallFunc((function *)&local_120)",
+      "CCDelayTime(fVar44 * 0.5)",
+      "CCCallFuncN((function *)alStack_150)",
+      "CCSequence(pCVar9,uVar10,uVar11,uVar15,uVar16,uVar17,uVar18,uVar19,0)"
+     ]
+    },
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(8.4)",
+      "CCPlace((CCPoint *)(this + 0x208))",
+      "CCSequence(pCVar9,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(0.25)",
+      "CCDelayTime(2.0)",
+      "CCCallFuncN((function *)alStack_f0)",
+      "CCCallFuncN((function *)&local_120)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar44,1.05)",
+      "CCScaleTo(0.1,fVar43,1.0)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCCallFuncN((function *)alStack_150)",
+      "CCCallFuncN((function *)&local_1a0)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar44,1.05)",
+      "CCScaleTo(0.1,fVar43,1.0)",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(1.0,0xff)",
+      "CCCallFuncN((function *)alStack_1d0)",
+      "CCScaleTo(0.1,fVar42,0.95)",
+      "CCScaleTo(0.1,fVar44,1.05)",
+      "CCScaleTo(0.1,fVar43,1.0)",
+      "CCCallFuncN((function *)&local_210)",
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(0.75)",
+      "CCCallFuncN((function *)alStack_240)",
+      "CCCallFuncN((function *)&local_280)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.5,0xff)",
+      "CCCallFuncN((function *)&local_2b0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(8.4)",
+      "CCPlace((CCPoint *)alStack_f0)",
+      "CCSequence(pCVar9,uVar10,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(3.25)",
+      "CCJumpBy(0.95,(CCPoint *)&local_f0,*(float *)(this + 0x22c) * 100.0,1)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.2)",
+      "CCHide()",
+      "CCPlace(aCStack_1e8)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.25)",
+      "CCShow()"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(1.25)",
+      "CCDelayTime(3.25)",
+      "CCMoveBy(0.95,(CCPoint *)&local_f0)",
+      "CCScaleTo(0.4775,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.4775,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar22,uVar12,0)",
+      "CCSpawn(pCVar21,uVar12,0)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.2)",
+      "CCPlace((CCPoint *)alStack_120)",
+      "CCDelayTime(2.1)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar14,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(1.4)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCFadeTo(0.3,0x96)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0x96)",
+      "CCScaleTo(0.1,fVar51 * 0.9,1.1)",
+      "CCScaleTo(0.1,fVar51 * 1.1,0.9)",
+      "CCScaleTo(0.1,fVar51,1.0)",
+      "CCDelayTime(1.85)",
+      "CCCallFuncN((function *)alStack_120)",
+      "CCDelayTime(0.95)",
+      "CCCallFuncN(aCStack_160)",
+      "CCCallFuncN((function *)&local_1a0)",
+      "CCJumpBy(0.25,aCStack_250,80.0,1)",
+      "CCJumpBy(0.15,aCStack_258,30.0,1)",
+      "CCScaleTo(0.1,fVar51 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar51,1.0)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.1)",
+      "CCDelayTime(0.35)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCDelayTime(0.25)",
+      "CCPlace(aCStack_260)",
+      "CCFadeTo(0.0,'\\0')",
+      "CCDelayTime(1.5)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)alStack_1d0)",
+      "CCScaleTo(0.1,fVar51 * 0.9,1.1)",
+      "CCScaleTo(0.1,fVar51 * 1.1,0.9)",
+      "CCScaleTo(0.1,fVar51,1.0)"
+     ]
+    }
+   ]
+  },
+  "light": {
+   "no": 7,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/light.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/light.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/light/light_star.png",
+     "skill/ultimate/light/light_flash.png",
+     "skill/ultimate/light/light_flashwing.png",
+     "skill/ultimate/light/light_bomb.png",
+     "skill/ultimate/light/light_sun.png",
+     "skill/ultimate/light/light_sunlight.png",
+     "skill/ultimate/light/light_sunwing.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "LOOP {",
+     "FRAME light_star.png",
+     "} while iVar17 != 0x2ee",
+     "PT (local_98 + dir * 0.5,local_a4 * 0.8)",
+     "ADD z=0 tag=0x19a66",
+     "PT (60.0,60.0)",
+     "ADD z=0 tag=0x19a67",
+     "FRAME light_flash.png",
+     "FRAME light_flashwing.png",
+     "FRAME light_bomb.png",
+     "FRAME light_sun.png",
+     "FRAME light_sunlight.png",
+     "FRAME light_sunwing.png",
+     "FRAME light_sunwing.png",
+     "PT (0.54,0.5)",
+     "ADD z=0xffffffff tag=0x18831",
+     "PT (pCVar8)",
+     "PT (dir * 0.5,H * 0.5)",
+     "PT (pCVar8)",
+     "PT (pCVar8)",
+     "ADD z=0xffffffff tag=0x18834",
+     "PT (pCVar8)",
+     "PT (dir * 0.5,H * 0.5)",
+     "PT (pCVar8)",
+     "ADD z=1 tag=0x27290",
+     "ADD z=0 tag=0x18832",
+     "ADD z=0 tag=0x18834",
+     "ADD z=0 tag=0x18835",
+     "ADD z=0 tag=0x18833"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/light/light_circle1.png",
+     "skill/ultimate/light/light_circle2.png",
+     "skill/ultimate/light/light_circle3.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME light_circle1.png",
+     "FRAME light_circle2.png",
+     "FRAME light_circle3.png",
+     "FRAME light_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 1.45)",
+      "CCShow()",
+      "CCBezierTo(2.0,(_ccBezierConfig *)aCStack_168)",
+      "CCScaleTo(3.0,8.0)",
+      "CCEaseExponentialIn(pCVar13)",
+      "CCFadeTo(3.0,'\\0')",
+      "CCSpawn(pCVar12,uVar14,uVar15,0)",
+      "CCPlace(aCStack_150)",
+      "CCScaleTo(0.0,0.4)",
+      "CCFadeTo(0.0,0xff)",
+      "CCSpawn(pCVar12,uVar16,0)",
+      "CCBezierTo(1.0,(_ccBezierConfig *)aCStack_168)",
+      "CCScaleTo(2.0,8.0)",
+      "CCEaseExponentialIn(pCVar13)",
+      "CCFadeTo(3.0,'\\0')",
+      "CCSpawn(pCVar12,uVar17,uVar18,0)",
+      "CCRemoveSelf(true)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,uVar17,uVar18,0)"
+     ]
+    },
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228) + 1.45 + 1.0)",
+      "CCShow()",
+      "CCBezierTo(2.5,(_ccBezierConfig *)aCStack_168)",
+      "CCScaleTo(5.0,8.0)",
+      "CCEaseExponentialIn(pCVar13)",
+      "CCFadeTo(3.0,'\\0')",
+      "CCSpawn(pCVar12,uVar14,uVar15,0)",
+      "CCRemoveSelf(true)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.6)",
+      "CCFadeTo(0.0,0xff)",
+      "CCScaleTo(4.75,1.1)",
+      "CCDelayTime(0.5)",
+      "CCHide()",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,uVar17,uVar18,uVar20,uVar21,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCLayerColor((ccColor4B *)&local_170,fVar29,local_10c)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.1,0xff)",
+      "CCDelayTime(0.75)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCDelayTime(3.65)",
+      "CCFadeTo(0.1,0xff)",
+      "CCDelayTime(0.75)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCShow()",
+      "CCMoveTo((float)(iVar5 % 0xb) * 0.025 + 1.75,(CCPoint *)&local_e0)",
+      "CCEaseIn(pCVar13,0.1)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.75)",
+      "CCShow()",
+      "CCMoveBy((float)(iVar5 % 0x2d) * 0.025 + 0.75,(CCPoint *)&local_110)",
+      "CCEaseIn(pCVar13,0.1)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCScaleTo(0.5,0.15)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleTo(0.1,5.0)",
+      "CCDelayTime(0.75)",
+      "CCScaleTo(0.0,7.5)",
+      "CCScaleTo(0.25,2.0)",
+      "CCScaleTo(0.5,1.75)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSpawn(pCVar12,uVar20,0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,uVar17,uVar18,uVar20,uVar21,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCScaleTo(0.5,1.0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCDelayTime(1.0)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCRemoveSelf(true)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.6)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCScaleTo(0.5,7.5)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.6)",
+      "CCRotateBy(3.5,-1260.0)",
+      "CCEaseInOut(pCVar13,0.25)",
+      "CCScaleTo(1.0,0.75)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar24,uVar14,0)",
+      "CCScaleTo(2.5,2.0)",
+      "CCSequence(pCVar24,uVar14,0)",
+      "CCDelayTime(1.75)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCSequence(pCVar24,uVar15,0)",
+      "CCSpawn(pCVar12,uVar14,uVar15,0)",
+      "CCDelayTime(0.75)",
+      "CCScaleTo(0.75,0.0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCRotateBy(0.75,-360.0)",
+      "CCSpawn(pCVar12,uVar16,0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.6)",
+      "CCScaleTo(1.0,0.75)",
+      "CCEaseIn(pCVar13,0.25)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar12,uVar14,0)",
+      "CCScaleTo(2.5,2.0)",
+      "CCEaseOut(pCVar13,0.1)",
+      "CCDelayTime(0.25)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.75,0.0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCSpawn(pCVar12,0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,uVar17,uVar18,uVar20,uVar21,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.75)",
+      "CCScaleTo(1.0,0.75)",
+      "CCFadeTo(0.1,0xff)",
+      "CCSpawn(pCVar12,uVar14,0)",
+      "CCScaleTo(2.5,2.0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCDelayTime(1.75)",
+      "CCRotateBy(0.75,720.0)",
+      "CCEaseOut(pCVar13,0.25)",
+      "CCSequence(pCVar24,uVar15,0)",
+      "CCSpawn(pCVar12,uVar15,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar10,uVar11,uVar14,uVar15,uVar16,0)"
+     ]
+    },
+    {
+     "target": "pCVar6",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(4.0)",
+      "CCScaleTo(1.0,1.0)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSpawn(pCVar12,uVar14,0)",
+      "CCSequence(pCVar10,uVar11,uVar14,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,0)",
+      "CCSpawn(pCVar6,uVar8,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCRemoveSelf(true)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar6,uVar5,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(8.35)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar8,uVar9,uVar10,0)",
+      "CCDelayTime(1.25)",
+      "CCDelayTime(0.55)",
+      "CCPlace((CCPoint *)alStack_f0)",
+      "CCDelayTime(0.7)",
+      "CCHide()",
+      "CCDelayTime(5.35)",
+      "CCShow()",
+      "CCDelayTime(1.5)",
+      "CCJumpTo(0.25,(CCPoint *)(this + 0x208),*(float *)(this + 0x22c) * 150.0,1)",
+      "CCSequence(pCVar8,uVar9,uVar10,uVar13,uVar14,uVar15,uVar16,uVar17,uVar18,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.25)",
+      "CCCallFuncN((function *)alStack_f0)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.1,fVar41,1.05)",
+      "CCScaleTo(0.05,fVar42 * 0.5,0.5)",
+      "CCCallFunc((function *)&local_130)",
+      "CCHide()",
+      "CCDelayTime(0.9)",
+      "CCDelayTime(0.0)",
+      "CCShow()",
+      "CCCallFunc((function *)&local_160)",
+      "CCScaleTo(0.05,fVar41,1.05)",
+      "CCCallFuncN(aCStack_190)",
+      "CCCallFuncN((function *)&local_1d0)",
+      "CCScaleTo(0.05,fVar42 * 0.9,0.9)",
+      "CCScaleTo(0.85,fVar41,1.05)",
+      "CCCallFuncN((function *)alStack_200)",
+      "CCCallFuncN((function *)&local_240)",
+      "CCDelayTime(5.85)",
+      "CCFadeTo(0.75,0xff)",
+      "CCScaleTo(0.75,fVar42,1.0)",
+      "CCSpawn(pCVar31,uVar32,0)",
+      "CCCallFuncN((function *)&local_270)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.1,fVar41,0.95)",
+      "CCScaleTo(0.1,fVar42 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar42,1.0)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(0.9)",
+      "CCScaleTo(0.35,0.0)",
+      "CCPlace((CCPoint *)alStack_f0)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.4,*(float *)(this + 0x22c) + 1.0)",
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.1,'d')",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + 5.0)",
+      "CCSpawn(pCVar31,uVar16,0)",
+      "CCFadeTo(0.0,'\\0')",
+      "CCDelayTime(5.45)",
+      "CCFadeTo(0.75,0xff)",
+      "CCScaleTo(0.75,*(float *)(this + 0x22c) + 1.0)",
+      "CCSpawn(pCVar31,uVar21,0)",
+      "CCDelayTime(0.75)",
+      "CCMoveTo(0.25,(CCPoint *)&local_160)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar38,uVar23,0)",
+      "CCSpawn(pCVar31,uVar23,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(2.5)",
+      "CCMoveBy(4.75,(CCPoint *)&local_190)",
+      "CCDelayTime(1.5)",
+      "CCMoveBy(0.1,aCStack_f0)",
+      "CCJumpBy(0.1,(CCPoint *)&CCPoint::ZERO,*(float *)(this + 0x22c) * 75.0,1)",
+      "CCJumpBy(0.05,(CCPoint *)&CCPoint::ZERO,*(float *)(this + 0x22c) * 20.0,1)",
+      "CCDelayTime(0.75)",
+      "CCJumpTo(0.25,aCStack_188,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar14,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar9",
+     "actions": [
+      "CCDelayTime(2.3)",
+      "CCFadeTo(0.1,'d')",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + 5.0)",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCFadeTo(0.0,'\\0')",
+      "CCDelayTime(5.45)",
+      "CCPlace(aCStack_f0)",
+      "CCFadeTo(0.75,0xff)",
+      "CCScaleTo(0.75,*(float *)(this + 0x22c) + 1.0)",
+      "CCSpawn(pCVar19,uVar15,0)",
+      "CCDelayTime(1.15)",
+      "CCMoveTo(0.25,&local_1d8)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 0.75)",
+      "CCScaleTo(0.125,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar20,uVar17,0)",
+      "CCSpawn(pCVar19,uVar17,0)",
+      "CCSequence(pCVar10,uVar11,uVar12,uVar13,uVar14,uVar15,uVar16,uVar17,0)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(2.5)",
+      "CCCallFuncN(aCStack_f0)",
+      "CCDelayTime(1.0)",
+      "CCRotateBy(3.75,(float)(iVar4 % 0x79) + -60.0)",
+      "CCTintTo(3.75,0xff,'2','\\0')",
+      "CCSpawn(pCVar19,uVar11,0)",
+      "CCTintTo(0.75,'\\0','\\0','\\0')",
+      "CCDelayTime(0.75)",
+      "CCRotateTo(0.1,0.0)",
+      "CCCallFuncN(aCStack_130)",
+      "CCDelayTime(0.15)",
+      "CCTintTo(0.75,0xff,0xff,0xff)",
+      "CCCallFuncN(aCStack_170)",
+      "CCScaleTo(0.05,fVar33 * 1.05,1.05)",
+      "CCScaleTo(0.05,fVar33,1.0)",
+      "CCDelayTime(0.15)",
+      "CCScaleTo(0.1,fVar33 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar33 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar33,1.0)"
+     ]
+    }
+   ]
+  },
+  "wind": {
+   "no": 8,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/wind.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "skill/ultimate/wind.pvr.ccz",
+      "capacity": 29
+     },
+     {
+      "atlas": "scene/colosseum.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "battle/combine_outline_white.png",
+     "battle/hurricane/combine_outline.png",
+     "skill/ultimate/wind/wind_whirl1.png",
+     "skill/ultimate/wind/wind_whirl4.png",
+     "skill/ultimate/wind/wind_zmoon.png",
+     "skill/ultimate/wind/wind_wood.png",
+     "skill/ultimate/wind/wind_leaf.png"
+    ],
+    "anims": [
+     {
+      "var": "this_01",
+      "frames": [
+       "skill/ultimate/wind/wind_whirl1.png",
+       "skill/ultimate/wind/wind_whirl2.png",
+       "skill/ultimate/wind/wind_whirl3.png",
+       "skill/ultimate/wind/wind_whirl4.png"
+      ],
+      "delay": 0.035
+     },
+     {
+      "var": "this_02",
+      "frames": [
+       "skill/ultimate/wind/wind_whirl4.png",
+       "skill/ultimate/wind/wind_whirl3.png",
+       "skill/ultimate/wind/wind_whirl2.png",
+       "skill/ultimate/wind/wind_whirl1.png"
+      ],
+      "delay": 0.025
+     },
+     {
+      "var": "this_03",
+      "frames": [],
+      "delay": 0.05
+     }
+    ],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "FRAME combine_outline_white.png",
+     "FRAME combine_outline.png",
+     "ADD z=1 tag=0x18894",
+     "ADD z=1 tag=0x18896",
+     "ADD z=1 tag=0x18895",
+     "LOOP {",
+     "ADD z=uVar19 tag=uVar19",
+     "} while uVar19 != 0x2d",
+     "FRAME wind_whirl1.png",
+     "FRAME wind_whirl4.png",
+     "PT (local_d8[0],0.0)",
+     "PT (0.0,10.0)",
+     "FRAME wind_zmoon.png",
+     "FRAME wind_zmoon.png",
+     "PT (100.0,0.0)",
+     "LOOP {",
+     "FRAME wind_wood.png",
+     "FRAME wind_wood.png",
+     "PT (100.0,0.0)",
+     "ADD z=iVar3 % 2 tag=iVar2 + 0x18836",
+     "ADD z=iVar3 % 3 tag=iVar2 + 0x18836",
+     "} while iVar2 < iVar3 % 3",
+     "LOOP {",
+     "FRAME wind_leaf.png",
+     "FRAME wind_leaf.png",
+     "PT (100.0,0.0)",
+     "ADD z=iVar2 % 3 tag=uVar19 + 0x1884a",
+     "ADD z=iVar2 % 3 tag=uVar19 + 0x1884a",
+     "} while uVar19 < iVar2 % 8 + 0xcU",
+     "FRAME wind_zmoon.png",
+     "FRAME wind_zmoon.png",
+     "ADD z=0 tag=0x299a0",
+     "ADD z=2 tag=0x18832",
+     "ADD z=2 tag=0x299a0",
+     "ADD z=0 tag=0x18832"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/wind/wind_circle1.png",
+     "skill/ultimate/wind/wind_circle2.png",
+     "skill/ultimate/wind/wind_circle3.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME wind_circle1.png",
+     "FRAME wind_circle2.png",
+     "FRAME wind_circle3.png",
+     "FRAME wind_circle3.png",
+     "ADD z=0xffffffff tag=9000",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCScaleBy(5.15,1.15,1.05)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCScaleBy(0.1,1.75,1.5)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(5.25,720.0)",
+      "CCEaseInOut(pCVar10,-0.25)",
+      "CCScaleTo(0.25,1.0)",
+      "CCEaseIn(pCVar10,0.5)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCSequence(pCVar17,uVar11,0)",
+      "CCSpawn(pCVar16,uVar11,0)",
+      "CCSequence(pCVar9,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(5.25,720.0)",
+      "CCEaseInOut(pCVar10,-0.25)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.75,200)",
+      "CCDelayTime(4.15)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCSequence(pCVar17,uVar11,uVar12,uVar14,0)",
+      "CCSpawn(pCVar16,uVar11,0)",
+      "CCSequence(pCVar9,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.15)",
+      "CCMoveBy(1.0,(CCPoint *)&local_110)",
+      "CCScaleTo(0.1,-(fVar35 * fVar36),fVar36)",
+      "CCScaleBy(0.9,1.25)",
+      "CCSequence(pCVar17,uVar12,0)",
+      "CCSpawn(pCVar16,uVar12,0)",
+      "CCMoveBy(0.25,aCStack_140)",
+      "CCScaleBy(0.25,3.0,0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar16,uVar14,uVar18,0)",
+      "CCDelayTime((float)0x40766666)",
+      "CCPlace((CCPoint *)local_188)",
+      "CCScaleTo(0.0,0.0)",
+      "CCFadeTo(0.0,200)",
+      "CCMoveBy(1.5,(CCPoint *)local_190)",
+      "CCScaleTo(0.1,-(fVar35 * fVar36),fVar36)",
+      "CCScaleBy(1.4,1.25)",
+      "CCSequence(pCVar17,uVar22,0)",
+      "CCFadeTo(1.5,'\\0')",
+      "CCSpawn(pCVar16,uVar22,uVar23,0)",
+      "CCCallFuncN((function *)&local_e0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(5.25)",
+      "CCMoveBy(fVar33,(CCPoint *)&local_110)",
+      "CCScaleTo(0.1,-(fVar35 * fVar36),fVar36)",
+      "CCScaleBy(fVar32 + 1.4,1.25)",
+      "CCSequence(pCVar17,uVar12,0)",
+      "CCFadeTo(fVar33,'\\0')",
+      "CCSpawn(pCVar16,uVar12,uVar14,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRepeatForever(pCVar10)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.15)",
+      "CCDelayTime(0.75)",
+      "CCShow()",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCFadeTo(0.5,0xff)",
+      "CCScaleBy((float)0x40766666,1.25,1.0)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCDelayTime(1.5)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar17,uVar20,0)",
+      "CCSpawn(pCVar16,uVar20,0)",
+      "CCScaleBy(0.25,1.75,1.0)",
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCSequence(pCVar17,uVar21,0)",
+      "CCSpawn(pCVar16,uVar21,0)",
+      "CCCallFuncN(aCStack_140)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,uVar18,uVar19,uVar20,uVar21,uVar22,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRepeatForever(pCVar10)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.15)",
+      "CCDelayTime(0.75)",
+      "CCShow()",
+      "CCFadeTo(0.5,0xaf)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCScaleBy((float)0x40766666,1.25,1.0)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCDelayTime(1.75)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar17,uVar20,0)",
+      "CCSpawn(pCVar16,uVar20,0)",
+      "CCScaleBy(0.25,1.75,1.0)",
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.1,'\\0')",
+      "CCSequence(pCVar17,uVar21,0)",
+      "CCSpawn(pCVar16,uVar21,0)",
+      "CCCallFuncN(aCStack_140)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,uVar18,uVar19,uVar20,uVar21,uVar22,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRepeatForever(pCVar10)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRepeatForever(pCVar10)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(fVar42,(CCPoint *)&local_1a0)",
+      "CCScaleBy(fVar42 * 0.5,1.75)",
+      "CCScaleBy(fVar42 * 0.5,0.5714286)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar16,uVar12,0)",
+      "CCRotateBy(fVar38,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar9,uVar12,uVar14,0)",
+      "CCSequence((CCFiniteTimeAction *)pVVar24,uVar11,uVar12,0)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace((CCPoint *)&local_e0)",
+      "CCMoveTo(fVar38,(CCPoint *)&local_110)",
+      "CCScaleBy(fVar38 * 0.5,0.75)",
+      "CCScaleBy(fVar38 * 0.5,1.3333334)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar17,uVar20,0)",
+      "CCRotateBy(fVar38,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar16,uVar20,uVar21,0)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar19,pVVar24,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "local_250",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35 + 0.3)",
+      "CCRotateBy(0.0,(float)(iVar3 % 0xb5) + -90.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(0.15,aCStack_1b8)",
+      "CCScaleBy(0.15,1.75)",
+      "CCRotateBy(0.15,(float)(iVar3 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar16,uVar18,uVar19,0)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.25)",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35 + 0.3)",
+      "CCRotateBy(0.0,(float)(iVar3 % 0xb5) + -90.0)",
+      "CCPlace((CCPoint *)&local_e0)",
+      "CCMoveTo(0.25,aCStack_140)",
+      "CCScaleBy(0.25,0.75)",
+      "CCRotateBy(0.25,(float)(iVar3 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar16,uVar18,uVar19,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRotateBy(0.0,(float)(iVar29 % 0x2d1) + -360.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(fVar40,(CCPoint *)&local_1a0)",
+      "CCScaleBy(fVar40 * 0.5,1.75)",
+      "CCScaleBy(fVar40 * 0.5,0.5714286)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar16,uVar12,0)",
+      "CCRotateBy(fVar39,(float)(iVar29 % 0x5b) + -45.0)",
+      "CCSpawn(pCVar9,uVar12,uVar14,0)",
+      "CCSequence((CCFiniteTimeAction *)pVVar24,uVar11,uVar12,0)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar36)",
+      "CCDelayTime(fVar32)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar36)",
+      "CCDelayTime(fVar32)",
+      "CCRotateBy(0.0,(float)(iVar29 % 0x2d1) + -360.0)",
+      "CCPlace((CCPoint *)&local_e0)",
+      "CCMoveTo(fVar39,(CCPoint *)&local_110)",
+      "CCScaleBy(fVar39 * 0.5,0.75)",
+      "CCScaleBy(fVar39 * 0.5,1.3333334)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar17,uVar20,0)",
+      "CCRotateBy(fVar39,(float)(iVar29 % 0x5b) + -45.0)",
+      "CCSpawn(pCVar16,uVar20,uVar21,0)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar19,pVVar24,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar36)",
+      "CCDelayTime(fVar32)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar36)",
+      "CCDelayTime(fVar32 + 0.3)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(0.35 - fVar33,aCStack_1b8)",
+      "CCScaleBy(0.35 - fVar33,1.75)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar36)",
+      "CCDelayTime(fVar32 + 0.3)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace((CCPoint *)&local_e0)",
+      "CCMoveTo(fVar35,aCStack_140)",
+      "CCScaleBy(fVar35,0.75)",
+      "CCRotateBy(fVar42,(float)(iVar5 % 0x5b) + -45.0)",
+      "CCSpawn(pCVar16,uVar18,uVar19,0)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,pVVar24,pVVar25,uVar18,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCRotateBy(0.0,(float)(iVar5 % 0x2d1) + -360.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(fVar41,(CCPoint *)&local_1a0)",
+      "CCScaleBy(fVar41 * 0.5,1.75)",
+      "CCScaleBy(fVar41 * 0.5,0.5714286)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar16,uVar12,0)",
+      "CCRotateBy(fVar40,(float)(iVar5 % 0x2d1) + -360.0)",
+      "CCSpawn(pCVar9,uVar12,uVar14,0)",
+      "CCSequence((CCFiniteTimeAction *)pVVar24,uVar11,uVar12,0)",
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCDelayTime(fVar38)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCDelayTime(fVar38)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0x2d1) + -360.0)",
+      "CCPlace((CCPoint *)&local_e0)",
+      "CCMoveTo(fVar40,(CCPoint *)&local_110)",
+      "CCScaleBy(fVar40 * 0.5,0.75)",
+      "CCScaleBy(fVar40 * 0.5,1.3333334)",
+      "CCEaseOut(pCVar10,0.25)",
+      "CCSequence(pCVar17,uVar20,0)",
+      "CCRotateBy(fVar40,(float)(iVar5 % 0x2d1) + -360.0)",
+      "CCSpawn(pCVar16,uVar20,uVar21,0)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar19,pVVar24,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCDelayTime(fVar38)",
+      "CCSequence(pCVar9,uVar12,uVar14,uVar18,uVar11,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCDelayTime(fVar38 + 0.275)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace(aCStack_140)",
+      "CCMoveTo(fVar36,aCStack_1b8)",
+      "CCScaleBy(fVar36,1.75)",
+      "CCRotateBy(fVar36,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar16,uVar19,uVar20,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,pVVar24,uVar18,uVar19,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(fVar35)",
+      "CCDelayTime(fVar38 + 0.25)",
+      "CCRotateBy(0.0,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCPlace((CCPoint *)&local_110)",
+      "CCMoveTo(fVar32,(CCPoint *)local_188)",
+      "CCScaleBy(fVar32,0.75)",
+      "CCRotateBy(fVar32,(float)(iVar5 % 0xb5) + -90.0)",
+      "CCSpawn(pCVar16,uVar19,uVar20,0)",
+      "CCCallFuncN((function *)&local_e0)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,uVar18,pVVar24,uVar19,uVar20,0)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(0.75)",
+      "CCDelayTime(4.4)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_e0)",
+      "CCCallFuncN((function *)&local_110)",
+      "CCSequence(pCVar9,uVar11,uVar12,uVar14,uVar18,uVar19,uVar20,0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.15)",
+      "CCFadeTo(0.25,0xff)",
+      "CCDelayTime(0.25)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 10.0)",
+      "CCFadeTo(0.1,'\\x19')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar7,uVar8,0)",
+      "CCSpawn(pCVar6,uVar8,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.4)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar6,uVar5,0)",
+      "CCCallFuncN((function *)alStack_c0)",
+      "CCSequence(pCVar3,uVar4,uVar5,uVar8,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(6.15)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar8,uVar9,uVar10,0)",
+      "CCDelayTime(2.0)",
+      "CCMoveBy(0.15,(CCPoint *)&local_130)",
+      "CCMoveBy(0.5,aCStack_160)",
+      "CCMoveBy(0.25,&local_190)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCMoveBy(0.1,&local_1c0)",
+      "CCDelayTime(4.15)",
+      "CCMoveTo(0.15,(CCPoint *)(this + 0x208))",
+      "CCSequence(pCVar8,uVar9,uVar10,uVar12,this_03,uVar13,uVar14,uVar15,0)"
+     ]
+    },
+    {
+     "target": "pCVar7",
+     "actions": [
+      "CCDelayTime(2.0)",
+      "CCScaleTo(0.15,*(float *)(this + 0x22c) + 0.75)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 0.9)",
+      "CCScaleTo(0.1,0.0)",
+      "CCDelayTime(4.15)",
+      "CCMoveTo(0.15,(CCPoint *)&local_f0)",
+      "CCScaleTo(0.15,*(float *)(this + 0x22c) + 1.0)",
+      "CCSpawn(pCVar17,uVar15,0)",
+      "CCSequence(pCVar8,uVar9,uVar10,uVar12,uVar13,uVar14,uVar15,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(1.8)",
+      "CCScaleTo(0.15,fVar31,0.9)",
+      "CCScaleTo(0.1,fVar32 * 0.9,1.1)",
+      "CCScaleTo(0.1,fVar32,1.0)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCCallFuncN((function *)&local_130)",
+      "CCScaleTo(0.1,fVar31,1.1)",
+      "CCScaleTo(0.1,fVar32,1.0)",
+      "CCDelayTime(0.3)",
+      "CCScaleTo(0.15,fVar31,0.9)",
+      "CCScaleTo(0.1,fVar32 * 0.9,1.1)",
+      "CCScaleTo(0.1,fVar32,1.0)",
+      "CCDelayTime(4.05)",
+      "CCCallFuncN(aCStack_160)",
+      "CCDelayTime(0.15)",
+      "CCScaleTo(0.1,fVar31,0.9)",
+      "CCScaleTo(0.1,fVar32,1.0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(fVar61)",
+      "CCMoveTo(0.25,aCStack_e0)",
+      "CCDelayTime(fVar53 + 0.5)",
+      "CCCallFuncN(aCStack_140)",
+      "CCPlace(aCStack_e0)",
+      "CCMoveTo(fVar63 + 0.5,aCStack_108)",
+      "CCScaleBy(fVar60,fVar66)",
+      "CCScaleTo(fVar60,*(float *)(this + 0x22c))",
+      "CCEaseOut(pCVar25,0.25)",
+      "CCSequence(pCVar24,uVar26,0)",
+      "CCSpawn(pCVar23,uVar26,0)",
+      "CCDelayTime(0.75)",
+      "CCCallFuncN((function *)local_170)",
+      "CCPlace(aCStack_d8)",
+      "CCMoveTo(0.5,aCStack_100)",
+      "CCScaleBy(0.25,fVar64)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c))",
+      "CCEaseOut(pCVar25,0.25)",
+      "CCSequence(pCVar24,uVar30,0)",
+      "CCSpawn(pCVar23,uVar30,0)",
+      "CCDelayTime(0.5)",
+      "CCCallFuncN((function *)&local_1a0)",
+      "CCPlace(aCStack_d0)",
+      "CCMoveTo(fVar60,aCStack_f8)",
+      "CCScaleBy(0.25 - fVar65,fVar59)",
+      "CCScaleTo(0.25 - fVar65,*(float *)(this + 0x22c))",
+      "CCEaseOut(pCVar25,0.25)",
+      "CCSequence(pCVar24,uVar34,0)",
+      "CCSpawn(pCVar23,uVar34,0)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN((function *)&local_1d0)",
+      "CCPlace(aCStack_c8)",
+      "CCMoveTo(fVar59,aCStack_f0)",
+      "CCScaleBy(fVar62,fVar55)",
+      "CCScaleTo(fVar62,*(float *)(this + 0x22c))",
+      "CCEaseOut(pCVar25,0.25)",
+      "CCSequence(pCVar24,uVar38,0)",
+      "CCSpawn(pCVar23,uVar38,0)",
+      "CCDelayTime(0.15)",
+      "CCCallFuncN(&local_200)",
+      "CCPlace(aCStack_c0)",
+      "CCMoveTo(fVar62,aCStack_e8)",
+      "CCScaleBy(fVar62,fVar56)",
+      "CCSpawn(pCVar23,uVar42,0)",
+      "CCDelayTime(fVar58)",
+      "CCCallFuncN(&local_230)",
+      "CCScaleTo(0.0,*(float *)(this + 0x22c))",
+      "CCPlace(aCStack_270)",
+      "CCMoveTo(0.25,aCStack_268)",
+      "CCMoveBy(0.25,aCStack_288)",
+      "CCEaseIn(pCVar25,0.25)",
+      "CCMoveTo(0.25,aCStack_268)",
+      "CCEaseOut(pCVar25,0.25)"
+     ]
+    },
+    {
+     "target": "pCVar16",
+     "actions": [
+      "CCDelayTime(fVar61)",
+      "CCMoveTo(0.25,aCStack_140)",
+      "CCScaleTo(0.0,0.0)",
+      "CCPlace((CCPoint *)&local_1a0)",
+      "CCDelayTime(6.2 - fVar65)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 0.5)",
+      "CCEaseIn(pCVar25,0.25)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCEaseOut(pCVar25,0.25)",
+      "CCSequence(pCVar18,uVar19,uVar20,uVar21,uVar22,uVar26,uVar27,uVar28,0)"
+     ]
+    },
+    {
+     "target": "pCVar14",
+     "actions": [
+      "CCDelayTime(fVar61)",
+      "CCCallFuncN(aCStack_140)",
+      "CCRotateBy(0.25,fVar8)",
+      "CCDelayTime(fVar53 + 0.5)",
+      "CCRotateBy(fVar63 + 0.5,fVar54 * 1440.0)",
+      "CCDelayTime(0.75)",
+      "CCRotateBy(0.5,fVar54 * 1080.0)",
+      "CCDelayTime(0.5)",
+      "CCRotateBy(fVar60,fVar8)",
+      "CCDelayTime(0.3)",
+      "CCRotateBy(fVar59,fVar8)",
+      "CCDelayTime(0.15)",
+      "CCRotateBy(fVar62,fVar8)",
+      "CCDelayTime(fVar58)",
+      "CCRotateBy(0.75,fVar54 * 360.0)",
+      "CCCallFuncN((function *)local_170)",
+      "CCScaleTo(0.1,fVar54 * 1.05,0.9)",
+      "CCScaleTo(0.1,fVar54 * 0.95,1.05)",
+      "CCScaleTo(0.1,fVar54,1.0)",
+      "CCDelayTime(fVar65 + 0.75)",
+      "CCCallFuncN((function *)&local_1a0)",
+      "CCScaleTo(0.1,fVar54 * 1.05,1.05)",
+      "CCScaleTo(0.1,fVar54,1.0)"
+     ]
+    }
+   ]
+  },
+  "shadow": {
+   "no": 9,
+   "init": {
+    "batch": [
+     {
+      "atlas": "skill/ultimate/shadow.pvr.ccz",
+      "capacity": 29
+     }
+    ],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "battle/combine_outline_white.png",
+     "battle/blackwind/combine_outline.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [
+     "skill/ultimate/shadow/shadow_spine.spine_json"
+    ],
+    "particles": [],
+    "ops": [
+     "FRAME combine_outline_white.png",
+     "FRAME combine_outline.png",
+     "PT (0.5,0.5)",
+     "ADD z=1 tag=0x2c0b0",
+     "PT (W * 0.5,H * 0.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=1 tag=0x18832",
+     "ADD z=1 tag=0x18831",
+     "PT (0.0,150.0)",
+     "ADD z=100 tag=0x1883a",
+     "PT (0.0,150.0)",
+     "ADD z=100 tag=0x1883b",
+     "PT (0.0,150.0)",
+     "ADD z=100 tag=0x1883c"
+    ]
+   },
+   "init_C": {
+    "batch": [],
+    "anchors": [],
+    "consts": [],
+    "frames": [
+     "skill/ultimate/shadow/shadow_marsh1.png",
+     "skill/ultimate/shadow/shadow_circle1.png",
+     "skill/ultimate/shadow/shadow_circle2.png",
+     "skill/ultimate/shadow/shadow_twist.png"
+    ],
+    "anims": [],
+    "addchild": [],
+    "spines": [],
+    "particles": [],
+    "ops": [
+     "PT ((CCPoint *)&CCPoint::ZERO)",
+     "PT (W,-50.0)",
+     "FRAME shadow_marsh1.png",
+     "FRAME shadow_circle1.png",
+     "FRAME shadow_circle2.png",
+     "FRAME shadow_circle2.png",
+     "PT (*(float *)(this + 0x22c) * 0.0,*(float *)(this + 0x22c) * 87.5)",
+     "PT (W * 0.5,H * 0.5)",
+     "ADD z=iVar2 + -1 tag=9000",
+     "ADD z=iVar2 + -1 tag=0x2329",
+     "ADD z=iVar2 + -1 tag=0x232a",
+     "ADD z=iVar2 + -1 tag=0x232b",
+     "FRAME shadow_twist.png",
+     "PT (aCStack_98)",
+     "ADD z=5 tag=0x1883f"
+    ]
+   },
+   "run": [
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCCallFunc((function *)&local_b0)",
+      "CCScaleBy(5.0,1.5,1.1)",
+      "CCEaseInOut(pCVar15,-0.25)",
+      "CCCallFuncN((function *)alStack_e0)",
+      "CCSequence(pCVar7,uVar6,uVar8,uVar9,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(4.5,720.0)",
+      "CCEaseInOut(pCVar15,-0.25)",
+      "CCScaleTo(0.25,1.0)",
+      "CCEaseIn(pCVar15,0.5)",
+      "CCFadeTo(0.75,'\\0')",
+      "CCSequence(pCVar17,uVar6,0)",
+      "CCSpawn(pCVar16,uVar6,0)",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCSequence(pCVar7,uVar6,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCRotateBy(4.5,720.0)",
+      "CCEaseInOut(pCVar15,-0.25)",
+      "CCDelayTime(0.25)",
+      "CCFadeTo(0.75,200)",
+      "CCDelayTime(3.5)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCSequence(pCVar17,uVar6,uVar8,uVar9,0)",
+      "CCSpawn(pCVar16,uVar6,0)",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCSequence(pCVar7,uVar6,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCCallFuncN((function *)alStack_e0)",
+      "CCDelayTime(fVar24)",
+      "CCCallFuncN((function *)alStack_110)",
+      "CCSequence(pCVar7,uVar6,uVar8,uVar9,uVar11,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCCallFuncN((function *)alStack_e0)",
+      "CCDelayTime(fVar24)",
+      "CCCallFuncN((function *)alStack_110)",
+      "CCSequence(pCVar7,uVar6,uVar8,uVar9,uVar11,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCCallFuncN((function *)alStack_e0)",
+      "CCDelayTime(fVar24)",
+      "CCCallFuncN((function *)alStack_110)",
+      "CCSequence(pCVar7,uVar6,uVar8,uVar9,uVar11,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar4",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCDelayTime(1.0)",
+      "CCShow()",
+      "CCCallFuncN((function *)&local_b0)",
+      "CCCallFuncN((function *)alStack_e0)",
+      "CCDelayTime(fVar24)",
+      "CCCallFuncN((function *)alStack_110)",
+      "CCSequence(pCVar7,uVar6,uVar8,uVar9,uVar11,uVar12,uVar13,0)"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(*(float *)(this + 0x228))",
+      "CCTintTo(0.2,'\\0',0xb9,0xcd)",
+      "CCDelayTime(0.2)",
+      "CCTintTo(1.0,'\\0','F','P')",
+      "CCDelayTime(2.0)",
+      "CCTintTo(0.2,0xff,0xff,0xff)",
+      "CCDelayTime(0.2)",
+      "CCFadeTo(0.5,'\\0')",
+      "CCDelayTime(5.0)",
+      "CCCallFunc((function *)&local_b0)",
+      "CCCallFuncN((function *)alStack_e0)"
+     ]
+    }
+   ],
+   "run_C": [
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(0.5)",
+      "CCCallFunc((function *)&local_c0)",
+      "CCFadeTo(0.25,0xff)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 0.25)",
+      "CCSpawn(pCVar5,uVar6,0)",
+      "CCDelayTime(0.5)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)alStack_f0)",
+      "CCSequence(pCVar3,uVar4,uVar6,uVar7,uVar8,uVar10,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(1.5)",
+      "CCFadeTo(0.25,0xff)",
+      "CCFadeTo(0.0,'}')",
+      "CCFadeTo(0.15,'\\0')",
+      "CCCallFuncN((function *)&local_c0)",
+      "CCSequence(pCVar3,uVar4,uVar6,uVar7,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(1.5)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.05,*(float *)(this + 0x22c) + 0.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCCallFuncN((function *)&local_c0)",
+      "CCSequence(pCVar3,uVar4,uVar6,uVar7,uVar8,0)"
+     ]
+    },
+    {
+     "target": "pCVar2",
+     "actions": [
+      "CCDelayTime(1.5)",
+      "CCScaleTo(0.1,(*(float *)(this + 0x22c) + 0.25) * 1.125)",
+      "CCScaleTo(0.25,(*(float *)(this + 0x22c) + 0.25) * 3.25)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar5,uVar6,0)",
+      "CCCallFuncN((function *)&local_c0)",
+      "CCSequence(pCVar3,uVar4,uVar6,uVar7,0)"
+     ]
+    }
+   ],
+   "action_C": [
+    {
+     "target": "this_04",
+     "actions": [
+      "CCFadeTo(1.0,'\\0')",
+      "CCDelayTime(7.75)",
+      "CCFadeTo(1.0,0xff)",
+      "CCSequence(pCVar4,uVar5,uVar6,0)",
+      "CCDelayTime(0.0)",
+      "CCDelayTime(0.75)",
+      "CCCallFunc((function *)&local_c0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,1.75)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar8,uVar9,uVar10,0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,0.0)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCSpawn(pCVar8,uVar10,uVar11,0)",
+      "CCDelayTime(7.25)",
+      "CCPlace(aCStack_130)",
+      "CCCallFunc((function *)&local_f0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCScaleTo(0.25,1.75)",
+      "CCFadeTo(0.25,0xff)",
+      "CCSpawn(pCVar8,uVar14,uVar15,0)",
+      "CCRotateBy(0.25,360.0)",
+      "CCFadeTo(0.25,'\\0')",
+      "CCMoveBy(0.25,aCStack_140)",
+      "CCSpawn(pCVar8,uVar15,uVar16,0)",
+      "CCCallFuncN(aCStack_120)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.0)",
+      "CCHide()",
+      "CCDelayTime(6.9)",
+      "CCCallFuncN((function *)&local_c0)",
+      "CCDelayTime(0.04)",
+      "CCCallFuncN((function *)&local_f0)",
+      "CCDelayTime(0.81)",
+      "CCPlace(this_00)",
+      "CCShow()"
+     ]
+    },
+    {
+     "target": "pCVar3",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(1.0)",
+      "CCScaleTo(0.25,0.0)",
+      "CCDelayTime(7.25)",
+      "CCPlace((CCPoint *)&local_c0)",
+      "CCScaleTo(0.25,*(float *)(this + 0x22c) + 1.0)",
+      "CCSequence(pCVar4,uVar5,uVar6,uVar9,uVar10,uVar11,0)"
+     ]
+    },
+    {
+     "target": "this_02",
+     "actions": [
+      "CCDelayTime(0.0)",
+      "CCDelayTime(0.5)",
+      "CCTintTo(0.5,'\\0','\\0','\\0')",
+      "CCDelayTime(7.75)",
+      "CCTintTo(0.5,0xff,0xff,0xff)",
+      "CCSequence(pCVar4,uVar5,uVar6,uVar9,uVar10,0)"
+     ]
+    }
+   ],
+   "damage_C": [
+    {
+     "target": "this_00",
+     "actions": [
+      "CCDelayTime(3.0)",
+      "CCJumpTo(0.2,(CCPoint *)alStack_f0,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.2,(CCPoint *)&local_170,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.2,aCStack_1a0,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.2,aCStack_1e0,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.2,(CCPoint *)&local_220,*(float *)(this + 0x22c) * 150.0,1)",
+      "CCDelayTime(0.2)",
+      "CCJumpBy(0.5 - fVar82,aCStack_250,*(float *)(this + 0x22c) * 1000.0,1)",
+      "CCDelayTime(1.2)",
+      "CCMoveTo(0.1,aCStack_608)",
+      "CCDelayTime(fVar80)",
+      "CCJumpTo(0.25,aCStack_608,*(float *)(this + 0x22c) * 100.0,1)"
+     ]
+    },
+    {
+     "target": "pCVar8",
+     "actions": [
+      "CCDelayTime(3.0)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar11,0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar13,0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar15,0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar17,0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.75)",
+      "CCScaleTo(0.2,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar19,0)",
+      "CCDelayTime(0.2)",
+      "CCScaleTo(0.5,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.2)",
+      "CCScaleTo(0.5,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar21,0)",
+      "CCMoveTo(0.25,(CCPoint *)alStack_f0)",
+      "CCDelayTime(1.2)",
+      "CCMoveTo(0.2,(CCPoint *)&local_170)",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.85)",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar25,0)",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + *(float *)(this + 0x22c) * 0.9)",
+      "CCScaleTo(0.1,*(float *)(this + 0x22c) + *(float *)(this + 0x22c))",
+      "CCSequence(pCVar28,uVar26,0)",
+      "CCSpawn(pCVar28,0)"
+     ]
+    },
+    {
+     "target": "this_01",
+     "actions": [
+      "CCDelayTime(3.0)",
+      "CCCallFuncN((function *)alStack_f0)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCMoveBy(0.15,aCStack_648)",
+      "CCSpawn(pCVar28,uVar11,0)",
+      "CCCallFuncN(aCStack_130)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCCallFuncN((function *)&local_170)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_1a0)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCCallFuncN(aCStack_1e0)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCCallFuncN((function *)&local_220)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_250)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCCallFuncN((function *)&uStack_290)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCCallFuncN((function *)&local_2d0)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN(aCStack_300)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCCallFuncN((function *)alStack_340)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCCallFuncN((function *)&local_380)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN((function *)alStack_3b0)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCCallFuncN((function *)alStack_3f0)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCCallFuncN((function *)&local_430)",
+      "CCDelayTime(0.2)",
+      "CCCallFuncN((function *)alStack_460)",
+      "CCRotateBy(0.15,fVar83)",
+      "CCCallFuncN((function *)alStack_4a0)",
+      "CCScaleTo(0.025,fVar84,0.75)",
+      "CCScaleTo(0.025,fVar81,1.0)",
+      "CCDelayTime(0.3)",
+      "CCCallFuncN((function *)&local_4e0)",
+      "CCDelayTime(1.2)",
+      "CCCallFuncN((function *)&local_510)",
+      "CCCallFuncN((function *)alStack_540)",
+      "CCRotateBy(fVar82 + 0.6,fVar81 * 1800.0)",
+      "CCMoveBy(0.6 - fVar82,aCStack_890)",
+      "CCSpawn(pCVar28,uVar11,0)",
+      "CCCallFuncN((function *)&local_580)",
+      "CCCallFuncN((function *)alStack_5b0)",
+      "CCScaleTo(0.05,fVar84,0.75)",
+      "CCScaleTo(0.05,fVar81,1.0)",
+      "CCDelayTime(fVar80)",
+      "CCScaleTo(0.05,fVar84,0.75)",
+      "CCScaleTo(0.05,fVar81,1.0)",
+      "CCDelayTime(0.15)",
+      "CCScaleTo(0.05,fVar84,0.75)",
+      "CCScaleTo(0.05,fVar81,1.0)",
+      "CCDelayTime(0.55 - (fVar82 + fVar82))",
+      "CCCallFuncN((function *)alStack_5f0)",
+      "CCScaleTo(0.05,fVar84,0.75)",
+      "CCScaleTo(0.05,fVar81,1.0)",
+      "CCDelayTime(0.5)",
+      "CCScaleTo(0.1,fVar81 * 1.05,0.95)",
+      "CCScaleTo(0.1,fVar81,1.0)"
+     ]
+    }
+   ]
+  }
+ }
+}
