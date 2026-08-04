@@ -145,6 +145,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat = CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
+	_combine_outline(host, el, at, sp)   # dark·shadow·wind·chaos 만 갖는 회전 문양
 	_build_ring(host, el, at, s, sp, mat)
 	_show_name(host, el, sp)          # 원작 `showUltimateName` — 그림자만 이름이 없다
 	var rng := RandomNumberGenerator.new()
@@ -368,6 +369,66 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 		return
 	var timer := host_tree.create_timer(delay)
 	timer.timeout.connect(go)
+
+
+# ── 합체 외곽선(회전 문양) — `init<El>` + `run<El>` ─────────────────────────
+#
+# 네 속성만 갖는다. 원작 `initDark` 실측:
+#   `CCLayerColor`(흰색, 외곽선 프레임 크기, 앵커 0.5/0.5)를 레이어 위치에 놓고
+#   **setScale(2.25)** · setRotation(0.375) 로 세운 뒤 tag 0x1d650 으로 붙이고,
+#   그 안에 `battle/combine_outline_white`(0x18832) 와 `battle/<n>/combine_outline`(0x18831) 을
+#   가운데 겹친다. `runDark` 가 **`EaseInOut(RotateBy(4.5초, 720°), −0.25)`** 로 두 바퀴 돌린다.
+#
+# 원본 프레임은 전부 보유·변환돼 있다(`battle_combine_*` · `battle_ui`).
+const COMBINE := {
+	"dark":   {"dir": "battle_combine_dark",      "key": "battle_dark_combine_outline"},
+	"shadow": {"dir": "battle_combine_blackwind", "key": "battle_blackwind_combine_outline"},
+	"wind":   {"dir": "battle_combine_hurricane", "key": "battle_hurricane_combine_outline"},
+	"chaos":  {"dir": "battle_combine_amagethon", "key": "battle_amagethon_combine_outline"},
+}
+const COMBINE_WHITE_DIR := "battle_ui"
+const COMBINE_WHITE_KEY := "battle_combine_outline_white"
+const COMBINE_SCALE := 2.25        # 원작 setScale(0x40100000)
+## 원작이 바로 다음 줄에 `vtable+0x68` 로 **0x3ec00000 = 0.375** 를 준다.
+## ⚠️ 이 슬롯의 의미를 **확정하지 못했다**(`setScaleY` / `setRotation` / `setSkew` 후보).
+##   `setScaleY(0.375)` 로 읽어 눌러 봤더니, 같은 함수가 거는 `RotateBy(720°)` 와 겹쳐
+##   납작한 타원이 화면을 가로지르는 **띠**로 보였다(2026-08-05 캡처) — 회전 문양으로는
+##   앞뒤가 안 맞는다. 그래서 **균일 배율**로 둔다. 0.375 를 회전(도)으로 읽으면 사실상
+##   무동작이라 화면에 차이가 없다 ⇒ 어느 쪽이든 지금 그림이 원작에 더 가깝다.
+##   슬롯 의미를 확정할 근거가 나오면 여기만 고치면 된다.
+const COMBINE_SCALE_Y := 2.25
+const COMBINE_SPIN_SEC := 4.5
+const COMBINE_SPIN_DEG := 720.0
+
+static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
+	var c: Dictionary = COMBINE.get(el, {})
+	if c.is_empty():
+		return
+	var holder := Node2D.new()
+	holder.position = at
+	holder.z_index = 83                 # 드래곤 뒤(바닥 링보다 아래)
+	holder.scale = Vector2(COMBINE_SCALE, COMBINE_SCALE_Y)
+	host.add_child(holder)
+	var w := AtlasUI.spr_cocos(COMBINE_WHITE_DIR, COMBINE_WHITE_KEY)
+	if w != null:
+		w.z_index = 1
+		holder.add_child(w)
+	var o := AtlasUI.spr_cocos(String(c["dir"]), String(c["key"]))
+	if o != null:
+		o.z_index = 2
+		holder.add_child(o)
+	if holder.get_child_count() == 0:
+		holder.queue_free()
+		return
+	holder.modulate.a = 0.0
+	var t := holder.create_tween()
+	t.tween_property(holder, "modulate:a", 1.0, 0.35 / sp)
+	var spin := holder.create_tween()
+	spin.tween_property(holder, "rotation_degrees", COMBINE_SPIN_DEG, COMBINE_SPIN_SEC / sp)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_interval(COMBINE_SPIN_SEC / sp)
+	t.tween_property(holder, "modulate:a", 0.0, 0.5 / sp)
+	t.tween_callback(holder.queue_free)
 
 
 # ── 각성기 이름 배너 — 원작 `showUltimateName` @01005e1c (19,776B) ──────────
