@@ -171,6 +171,30 @@ func _ready() -> void:
 				fp["stage_element"] = stage
 			Scenes.goto("fight", fp)
 			for i in 20: await get_tree().process_frame
+		"fightinfo":
+			# 전투 중 드래곤 터치 상태창(원작 showDragonInfo) 검수 — 클릭을 직접 흉내 낸다.
+			Scenes.goto("worldmap", {"region": "yutakan"})
+			for i in 20: await get_tree().process_frame
+			Scenes.goto("colosseum", {})
+			for i in 10: await get_tree().process_frame
+			var irng := RandomNumberGenerator.new()
+			irng.seed = 20260805
+			var ifoe := Colosseum.roll_match("team", irng)
+			var iparty: Array = Colosseum.eligible_uids()
+			if iparty.is_empty():
+				iparty = UserDB.party()
+			Scenes.goto("fight", {"mode": "team", "opponent": ifoe, "party": iparty,
+				"stage_element": stage if stage != "" and stage != "0" else "fire"})
+			for i in 20: await get_tree().process_frame
+			var fs := Scenes.current_scene()
+			if fs != null:
+				# `--extra=foe` 면 상대 드래곤을, 아니면 내 드래곤을 연다.
+				var vws: Dictionary = fs.get("_views")
+				var want := "E0" if extra == "foe" else "A0"
+				if vws.has(want):
+					var rec: Dictionary = (vws[want] as Dictionary).get("rec", {})
+					if not rec.is_empty():
+						StatusLayer.open_panel(fs, rec, extra != "foe")
 		"fightfx":
 			# 대전 중 **간헐 연출** 검수 — 스킬 이름 배너(createIcon 상단)와 상태이상 아이콘은
 			# 실제 전투에서 언제 뜰지 알 수 없어 타이밍 캡처가 안 된다. 직접 세워 놓고 찍는다.

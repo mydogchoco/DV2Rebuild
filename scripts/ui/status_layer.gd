@@ -83,11 +83,38 @@ var _man_portrait: Dictionary = {}
 
 var _root: Control          # popup4 창(모든 좌표의 기준)
 var _uid := -1              # 지금 보고 있는 드래곤(하단 목록에서 바꾼다)
+## 패널 단독 모드(원작 `CharacterInfoPopup` 단독 사용 — `open_panel` 참조).
+var _panel_only := false
+var _panel_left := true
+var _record: Dictionary = {}   # 단독 모드에서 보여 줄 레코드(봇이면 세이브에 없다)
 
 ## 어느 씬에서든: `StatusLayer.open(self)`.
 static func open(host: Node) -> StatusLayer:
 	var l := StatusLayer.new()
 	l.layer = 24            # 동굴의 드래곤 spine(별도 CanvasLayer)보다 위
+	host.add_child(l)
+	return l
+
+
+## **패널만** 띄운다 — 원작 `CharacterInfoPopup` 을 두루마리 없이 단독으로 쓰는 경로.
+##
+## 원작에도 이 경로가 있다: 전투 중 드래곤을 터치하면
+##   `FightScene::ccTouchesBegan` @00f8f02c (드래곤 레이어 boundingBox 히트테스트)
+##     → `MakeInterface::showDragonInfo(fightDragon)` @010b22bc
+##        → `FightManager::getDragonInfo(index)` 가 들고 있는 `CharacterInfoPopup` +
+##          `CharacterInfoPopup::setHpData()`
+##   빈 곳을 터치하면 `MakeInterface::removeDragonInfo` @010b2664.
+## 레퍼런스 = `docs/ref/pvp/드래곤터치_상태창팝업.png`(전투 중) — 두루마리·단상·하단 목록이
+## 없고 **우측 패널만** 뜬다. 그래서 창을 새로 짜지 않고 같은 `_build_panel` 을 쓴다.
+##
+## `record` = UserDB 드래곤 레코드 **또는 봇 레코드**(콜로세움 상대는 세이브에 없다).
+## `left` 면 화면 왼쪽에, 아니면 오른쪽에 붙인다(원작은 터치한 드래곤 쪽에 낸다).
+static func open_panel(host: Node, record: Dictionary, left := true) -> StatusLayer:
+	var l := StatusLayer.new()
+	l.layer = 24
+	l._panel_only = true
+	l._record = record
+	l._panel_left = left
 	host.add_child(l)
 	return l
 
@@ -145,6 +172,9 @@ func _vis() -> Vector2:
 	return get_viewport().get_visible_rect().size
 
 func _dragon() -> Dictionary:
+	# 단독 패널 모드는 넘겨받은 레코드를 그대로 쓴다(콜로세움 봇은 세이브에 없다).
+	if not _record.is_empty():
+		return _record
 	var d := UserDB.get_dragon(_uid)
 	return d if not d.is_empty() else UserDB.active_dragon()
 
@@ -218,6 +248,9 @@ func _reopen(uid: int) -> void:
 func _build() -> void:
 	var vis := _vis()
 	var S := Design.ASSET_SCALE
+	if _panel_only:
+		_build_panel_only(vis, S)
+		return
 
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.6)
@@ -267,6 +300,41 @@ func _build() -> void:
 	_build_stage(a, stage_w, body_top, body_h, S)
 	_build_panel(a, W, body_top, S)
 	_build_strip(W, strip_y, STRIP_H)
+
+## 패널 단독 모드 — 원작 전투 중 `showDragonInfo` 가 내는 모습(레퍼런스
+## `docs/ref/pvp/드래곤터치_상태창팝업.png`). 두루마리·단상·하단 목록 없이 패널만 띄우고,
+## 바깥을 누르면 닫힌다(원작 `removeDragonInfo` 와 같은 자리).
+##
+## `_build_panel` 은 창 폭 `W` 기준으로 **오른쪽에서** 들여 붙이므로, 왼쪽에 세우려면
+## `_root` 를 그 폭만큼만 두고 화면 왼쪽에 놓으면 된다 — 패널 코드를 건드리지 않는다.
+func _build_panel_only(vis: Vector2, S: float) -> void:
+	var a := _dragon()
+	if a.is_empty():
+		queue_free()
+		return
+	# 원작 전투 팝업은 화면을 어둡게 하지 않는다(전투가 계속 보인다) — 투명 클릭 판만 깐다.
+	var catcher := Control.new()
+	catcher.set_anchors_preset(Control.PRESET_FULL_RECT)
+	catcher.size = vis
+	catcher.mouse_filter = Control.MOUSE_FILTER_STOP
+	catcher.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			_close())
+	add_child(catcher)
+
+	# `_build_panel` 은 pane 을 `W - inset - PW×scale` 에 놓고, inset 은
+	# `clampf((W-670)×0.25, 40, 200)` 이라 좁은 창에서는 **40 고정**이다.
+	# ⇒ `W = 40 + PW×scale` 을 주면 pane 이 `_root` 로컬 원점(0)에 딱 온다.
+	var pw := PANEL.x * PANEL_SCALE
+	var margin := 16.0
+	var inner := 40.0 + pw
+	_root = Control.new()
+	_root.size = Vector2(pw, PANEL.y * PANEL_SCALE)
+	_root.position = Vector2(margin if _panel_left else vis.x - pw - margin,
+		maxf(10.0, vis.y * 0.5 - PANEL.y * PANEL_SCALE * 0.5))
+	add_child(_root)
+	_build_panel(a, inner, 0.0, S)
+
 
 ## 제목 두루마리 배너 + 우상단 ✖ (원작 `common/bg/title_bar_scroll` 미보유 → `9patch/pop_title_bg`).
 func _build_title(W: float, S: float) -> void:

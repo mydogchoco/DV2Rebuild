@@ -126,8 +126,13 @@ func _rebuild() -> void:
 
 	var vis := _vis()
 	_build_bg(vis)
-	_build_team(_my, true, vis)
-	_build_team(_fo, false, vis)
+	# 원본 레코드도 같이 넘긴다 — 드래곤을 누르면 뜨는 상태창(`CharacterInfoPopup`)이
+	# 젬·장비·스킬을 **레코드에서** 읽는다(요약본에는 그 원본이 없다).
+	var my_recs: Array = []
+	for u in uids.slice(0, n):
+		my_recs.append(UserDB.get_dragon(int(u)))
+	_build_team(_my, true, vis, my_recs)
+	_build_team(_fo, false, vis, (_foe.get("dragons", []) as Array).slice(0, n))
 	_build_top(vis)
 	_build_log(vis)
 	# 무대 룰렛이 끝나야 전투가 시작된다(원작 initInterface 의 지연 누적과 같은 자리).
@@ -344,7 +349,7 @@ func _stage_buff_fx() -> void:
 
 # ---------- 팀 배치 ----------
 
-func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
+func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> void:
 	for i in team.size():
 		var p: Dictionary = team[i]
 		var tag := ("A%d" if mine else "E%d") % i
@@ -397,10 +402,12 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 
 		# HUD 는 드래곤 **머리 위**다 — 종마다 키가 다르므로 실측 높이를 넘긴다.
 		var dh := DRAGON_H
+		var dw := DRAGON_H
 		if sp != null:
 			var rb := PartySelect._bounds(sp, Transform2D.IDENTITY)
 			if rb.size.y > 1.0:
 				dh = rb.size.y
+				dw = rb.size.x
 		var hud := _make_hud(p, Vector2(x, y), dh)
 		add_child(hud["root"])
 
@@ -417,6 +424,9 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
 			"dead": false, "pos": Vector2(x, y), "mine": mine, "slot": i,
 			"dragon_h": dh,        # 실측 스파인 높이 — 무대 버프 스파인을 몸통 중앙에 올릴 때 쓴다
+			"dragon_w": dw,        # 히트테스트용(원작 boundingBox × 0.75)
+			# 드래곤 터치 상태창이 읽을 **원본 레코드**(봇은 세이브에 없어 그대로 들고 온다).
+			"rec": (recs[i] as Dictionary) if i < recs.size() else {},
 		}
 
 
@@ -2362,3 +2372,62 @@ func _nine9(key: String, sz_pt: Vector2, cap: Rect2, dir: String) -> NinePatchRe
 	np.size = sz_pt
 	np.material = _pma
 	return np
+
+
+# ---------- 드래곤 터치 → 상태창 (원작 `FightScene::ccTouchesBegan` @00f8f02c) ----------
+#
+# 원작이 하는 일:
+#   ① 태그 −9 / −10 자식(= 결과 팝업류)이 떠 있으면 **무시**한다.
+#   ② 드래곤 슬롯 태그 10~15 를 훑으며 각 드래곤 레이어의 사각형
+#      `CCRect(x − w×0.5×0.75, y − h×0.5×0.75, w×0.75, h×0.75)` 에 터치가 들었는지 본다
+#      ⇒ **경계상자의 75%** 만 유효 타격 범위다.
+#   ③ 들었으면 `FightManager::getDragonIndexFromDirection(tag)` 로 인덱스를 얻어
+#      `MakeInterface::showDragonInfo(fightDragon)` @010b22bc,
+#      아무 데도 안 들었으면 `MakeInterface::removeDragonInfo` @010b2664.
+#
+# 우리 대응: 같은 75% 규칙으로 히트테스트하고 `StatusLayer.open_panel` 을 띄운다.
+# 패널 본체는 **원작과 같은 클래스**(`CharacterInfoPopup`)를 우리가 이미 이식해 둔 것을 쓴다
+# (상태창 우측 패널과 같은 코드 — §3 "같은 일을 하는 헬퍼가 이미 있는지 grep").
+const TOUCH_BOX := 0.75             # 원작 boundingBox × 0.75
+
+var _info_panel: StatusLayer = null
+
+func _gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	var mb := event as InputEventMouseButton
+	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+		return
+	# ① 이미 패널이 떠 있으면 그쪽이 입력을 먹는다(원작도 팝업이 있으면 히트테스트를 건너뛴다).
+	if _info_panel != null and is_instance_valid(_info_panel):
+		return
+	var hit := _dragon_at(mb.position)
+	if hit.is_empty():
+		return
+	var rec: Dictionary = hit.get("rec", {})
+	if rec.is_empty():
+		return
+	accept_event()
+	# 내 팀은 왼쪽에 서므로 패널도 왼쪽에 — 원작도 터치한 쪽에 낸다.
+	_info_panel = StatusLayer.open_panel(self, rec, bool(hit.get("mine", false)))
+
+
+## 그 지점에 있는 전투원(없으면 {}). 원작과 같은 **경계상자 75%** 규칙.
+func _dragon_at(p: Vector2) -> Dictionary:
+	for tag in _views:
+		var v: Dictionary = _views[tag]
+		if bool(v.get("dead", false)):
+			continue
+		var n = v.get("node")
+		if not (n is Node2D) or not is_instance_valid(n):
+			continue
+		var pos: Vector2 = (n as Node2D).position
+		var w := float(v.get("dragon_w", DRAGON_H)) * TOUCH_BOX
+		var h := float(v.get("dragon_h", DRAGON_H)) * TOUCH_BOX
+		var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+		w *= s
+		h *= s
+		# 우리 노드 원점은 **발밑 중앙**이라 상자는 그 위로 올라간다.
+		if Rect2(pos - Vector2(w * 0.5, h), Vector2(w, h)).has_point(p):
+			return v
+	return {}
