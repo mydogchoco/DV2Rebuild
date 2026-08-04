@@ -489,14 +489,29 @@ func _play_anim(v: Dictionary, name: String) -> float:
 	return dur
 
 
-## 공격자 접근 → 제자리 복귀(원작 setAction 의 MoveBy 왕복 + ScaleTo).
-func _approach(v: Dictionary, toward_right: bool, hold: float) -> void:
+## 공격자 접근 → 제자리 복귀.
+##
+## 원작 경로(디버그 아님): `BattleScene::basicAction` @00dcb1e8 이
+##     setAction(delay, MakeInterface, actor, FightManager::getTarget(1),
+##               getActorAction(), getHealthVariation(1), getHitAmount(), isSkillBlock, isMimic)
+## 를 부르고, `MakeInterface::setAction` @01062fb4 은 `action` @01062fd4 의 얇은 래퍼다.
+## `action` 머리의 안무 = Delay → [ScaleTo(1.5) + MoveBy(offset)] → Delay(hold)
+##                        → [ScaleTo(1.0) + MoveBy(-offset)]  ⇒ **나갔다가 제자리로 돌아온다.**
+## ⚠️ setAction 이 **target 을 인자로 받는다** — 고정 거리가 아니라 **대상 쪽으로** 간다.
+func _approach(v: Dictionary, target: Dictionary, hold: float) -> void:
 	var n = v.get("node")
 	if not (n is Node2D) or not is_instance_valid(n):
 		return
 	var node := n as Node2D
 	var home: Vector2 = v.get("pos", node.position)
-	var dx := APPROACH if toward_right else -APPROACH
+	# 대상이 있으면 그쪽으로, 없으면 진영 방향으로 기본 거리만큼.
+	var dx := APPROACH if bool(v.get("mine", false)) else -APPROACH
+	if not target.is_empty():
+		var tp: Vector2 = target.get("pos", home)
+		var d := tp - home
+		if absf(d.x) > 1.0:
+			# 상대에게 완전히 겹치지 않도록 접근 거리에서 멈춘다(원작도 MoveBy 오프셋이다).
+			dx = signf(d.x) * minf(APPROACH, absf(d.x) - 90.0)
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(node, "position", home + Vector2(dx, 0.0), MOVE_SEC)
@@ -525,7 +540,7 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 		var dur := _play_anim(atk, "attack")
 		# 각성기는 제자리에서 낸다(원작도 UltimateLayer 가 화면을 덮는다).
 		if t != "awaken":
-			_approach(atk, bool(atk.get("mine", false)), dur)
+			_approach(atk, dfn, dur)
 	# ⛔ 피격 모션 없음 — 원작에 트리거가 없다(위 주석). 피격은 데미지 숫자·HP 바로만 보인다.
 
 
