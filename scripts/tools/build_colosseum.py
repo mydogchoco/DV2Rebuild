@@ -922,8 +922,11 @@ def build() -> dict:
             #   ColosseumNuriTalkA/B, 등급 구간별 3단계)은 실재하는데 **호출 지점이
             #   디컴파일된 400+ 클래스 어디에도 없다**(`grep -rn "ColosseumRaon\|ColosseumNuri"` → 0건.
             #   TownNpcManager 의 "RaonTalk" 는 마을 NPC 라 별건).
-            #   언제/어느 등급에서 뜨는지 근거가 없어 추측 배선을 하지 않는다(HARD RULE 6).
-            #   되살리려면 남은 미디컴프 클래스에서 호출자를 먼저 찾아야 한다.
+            # ✅ **2026-08-05 해결 — 주인은 `MatchingLayer` 였다.**
+            #   `MatchingLayer::showNuriEvent` @00fb45e0(6,204B) ·
+            #   `showRaonEvent` @00fb6574(4,600B). 못 찾았던 이유는 그때 매칭 화면을 통째로
+            #   컷해 둬서 그 클래스를 조회 대상에 넣지 않았기 때문이다(매칭 연출은 부활했다 —
+            #   `scripts/ui/matching.gd`). 대사 배선 자체는 아직 ⚪ 미이식이다.
             "npc": "⚪미배선 — 라온·누리 대사 문자열은 실재(ColosseumRaonTalkA/B/C · "
                    "ColosseumNuriTalkA/B)하나 **호출 지점을 못 찾았다**. 트리거 조건 미상.",
             "cut": "일일매치·토너먼트·리플레이·방어팀·시즌 공지는 온라인 → ⚫CUT 유지.",
