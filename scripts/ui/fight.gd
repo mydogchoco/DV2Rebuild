@@ -2848,6 +2848,19 @@ func _ultimate_position(atk: Dictionary) -> float:
 		ht.tween_interval(hold)
 		ht.tween_property(hb, "position", home + hd, ULT_JUMP_SEC)
 
+	# ⑤ **시전자도 사라진다** — 원작 `action<El>_C` 가 시전자 몸통(child tag 1)과 그림자에
+	#   `FadeTo(1.0, 0) → Delay(T_el) → FadeTo(1.0, 255)` 를 건다. 각성기가 도는 동안은
+	#   연출이 화면을 가져가고, 끝날 무렵 시전자가 다시 떠오른다.
+	#   T_el = 각 `action<El>_C` 의 첫 `CCDelayTime`(실측, 아래 표).
+	var back := float(ULT_ACTOR_BACK.get(String(atk.get("element", "")), 7.0))
+	for key in ["spine", "shadow"]:
+		var o = atk.get(key)
+		if o is CanvasItem and is_instance_valid(o):
+			var at2 := (o as CanvasItem).create_tween()
+			at2.tween_property(o, "modulate:a", 0.0, 1.0)
+			at2.tween_interval(back)
+			at2.tween_property(o, "modulate:a", 1.0, 1.0)
+
 	# ④ 나머지 드래곤은 무대에서 **사라진다** — 원작 `initPosition` 이 각 슬롯에
 	#   `Delay(t) → Hide → Delay(T + 0.25 + 0.25) → Show` 를 건다.
 	#   T = `.rodata` `DAT_021af270`(= 위 `ULT_HOLD_ORIG`). 우리는 화면에 실제로 도는 길이와
@@ -2858,6 +2871,12 @@ func _ultimate_position(atk: Dictionary) -> float:
 
 
 const ULT_HIDE_TAIL := 0.5          # 원작 Delay(T + 0.25 + 0.25)
+## 시전자가 **다시 나타나는** 시각 — 각 `action<El>_C` 의 첫 `CCDelayTime`(실측 2026-08-05).
+## 속성마다 다르다(땅 5.8 이 가장 빠르고 빛 8.35 가 가장 늦다) = 연출 길이와 짝이 맞는다.
+const ULT_ACTOR_BACK := {
+	"aqua": 7.75, "chaos": 7.65, "dark": 7.75, "earth": 5.8, "fire": 6.75,
+	"holy": 7.5, "light": 8.35, "wind": 6.15, "shadow": 7.75,
+}
 
 ## 시전자 말고 전부 숨긴다 → `sec` 뒤에 되돌린다.
 func _ultimate_hide_others(atk: Dictionary, sec: float) -> void:
