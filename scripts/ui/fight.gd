@@ -28,12 +28,26 @@ const NP := "ninepatch_ui"
 const CM := "common_ui"
 const BG_DIR := "res://assets/converted/colosseum_bg"
 
-# 원작 3v3 배치 — 좌(내 팀) / 우(상대). 카드가 아니라 스파인이라 바닥선을 맞춘다.
-# 뒤(위)→앞(아래)으로 갈수록 바깥쪽에 놓아 서로 가리지 않게 한다.
-# ⚠️ 3번째 슬롯을 0.82 에 두면 하단 로그 박스(원작 ColosseumTextBox)와 겹친다 — 0.74 까지만.
-const SLOT_Y := [0.44, 0.59, 0.74]      # 화면 높이 비율
-const MY_X := [0.30, 0.19, 0.08]
-const FOE_X := [0.70, 0.81, 0.92]
+# 원작 3v3 배치 — **화면 비율이 아니라 좌·우 바닥 모서리 기준 절대 오프셋**이다.
+#
+# 🔴 2026-08-04 정정(사용자 지적 "원작 로직을 그대로 계승하지 않았다") — 종전 비율 배치는 자작이었다.
+# 근거: `FightScene::init` @00f88fac 이 슬롯 태그로 위치를 잡는다 —
+#   내 팀 = 태그 11·13·15 (`iVar3 = 0xb`, +2), 상대 = 태그 10·12·14 (`iVar3 = 10`, +2).
+#   위치는 `FUN_00f8ad70(layer, sceneType)` 가 태그로 분기해 준다(probe/fight_slot_probe.c):
+#     tag 11 → `FUN_00f8f65c`  = leftBottom  + (335, 262.5)
+#     tag 13 →                   leftBottom  + (200, 350)
+#     tag 15 →                   leftBottom  + (135, 175)
+#     tag 10 → `FUN_00f8f738`  = rightBottom + (-335, 262.5)
+#     tag 12 →                   rightBottom + (-200, 350)
+#     tag 14 →                   rightBottom + (-135, 175)
+#   (probe/fight_slot0_probe.c — 콜로세움 씬 타입은 `0xbf2` 마스크에 드는 분기다.)
+# Cocos y 는 바닥 기준이라 Godot 은 `visH - y` 로 뒤집는다(§Design).
+#
+# 스케일도 원작대로 — `makeDragonLayer` @0105072c 끝: **3v3 = 0.75, 1v1 = 1.0**.
+# 뒤집기도 원작대로 — 같은 함수의 `1 << tag & 0xa800`(= 태그 11·13·15) 만 flipX 한다 = **내 팀**.
+const SLOT_OFF := [Vector2(335.0, 262.5), Vector2(200.0, 350.0), Vector2(135.0, 175.0)]
+const DRAGON_SCALE_TEAM := 0.75     # 원작 makeDragonLayer: type 3(3v3)
+const DRAGON_SCALE_SOLO := 1.0      # 원작 makeDragonLayer: type 1(1v1)
 # ⚠️ 드래곤 스파인의 **기본 방향은 왼쪽**이다(실측 2026-08-04 — 처음엔 반대로 알고
 #   상대만 뒤집었더니 우리 팀이 등을 보였다). 그래서 **왼쪽에 서는 내 팀**을 뒤집는다.
 # `PartySelect._spine_node` 는 **holder 원점 = 스프라이트 바닥 중앙**으로 맞춘다
@@ -121,9 +135,9 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 	for i in team.size():
 		var p: Dictionary = team[i]
 		var tag := ("A%d" if mine else "E%d") % i
-		var xs: Array = MY_X if mine else FOE_X
-		var x := vis.x * float(xs[i % xs.size()])
-		var y := vis.y * float(SLOT_Y[i % SLOT_Y.size()])
+		var off: Vector2 = SLOT_OFF[i % SLOT_OFF.size()]
+		var x := off.x if mine else vis.x - off.x
+		var y := vis.y - off.y                      # Cocos 바닥 기준 → Godot
 
 		var holder := Node2D.new()
 		holder.position = Vector2(x, y)
@@ -136,40 +150,167 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		#      adult 134/134 에 `attack` 존재, child 132/133 · baby 132/133 은 **없음**.
 		#      종전엔 레벨 30 미만이면 child 를 띄워서, 저레벨 드래곤이 공격해도 아무 모션이
 		#      없었다(사용자 지적).
-		var sp := PartySelect._spine_node(int(p.get("id", 0)), "adult", 170.0)
+		var sp := PartySelect._spine_node(int(p.get("id", 0)), "adult", DRAGON_H)
 		var ap: AnimationPlayer = null
 		if sp != null:
-			# 스파인 기본 방향이 왼쪽이므로 **왼쪽 진영(내 팀)** 을 뒤집어 마주 보게 한다.
+			# 원작 makeDragonLayer 의 최종 setScale — 3v3 은 0.75 로 줄인다.
+			var ds := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+			sp.scale *= ds
+			# 스파인 기본 방향이 왼쪽이므로 **왼쪽 진영(내 팀)** 을 뒤집어 마주 보게 한다
+			# (원작도 태그 11·13·15 = 내 팀만 flipX 한다).
 			if mine:
 				sp.scale = Vector2(-absf(sp.scale.x), sp.scale.y)
 			holder.add_child(sp)
 			ap = _find_anim_player(sp)
 
-		# 이름 + HP 바 — 원작 9patch/bar_bg2 + bar1(둘 다 보유). 발밑에 놓는다.
-		var barh := Control.new()
-		barh.position = Vector2(x - BAR_W * 0.5, y + BAR_DY)
-		add_child(barh)
-		var bar_bg := _nine("9patch_bar_bg2", Vector2(BAR_W, BAR_H), Rect2(12, 6, 4, 4))
-		if bar_bg != null:
-			barh.add_child(bar_bg)
-		var fill := _nine("9patch_bar1" if mine else "9patch_bar3",
-			Vector2(BAR_W, BAR_H), Rect2(12, 6, 4, 4))
-		if fill != null:
-			barh.add_child(fill)
-
-		var nm := Label.new()
-		nm.text = "%s  Lv.%d" % [String(p.get("name", "")), int(p.get("level", 1))]
-		nm.size = Vector2(BAR_W, 20.0)
-		nm.position = Vector2(x - BAR_W * 0.5, y + BAR_DY + BAR_H + 2.0)
-		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nm.add_theme_font_size_override("font_size", 15)
-		add_child(nm)
+		var hud := _make_hud(p, Vector2(x, y), 1.0 if _mode != "team" else DRAGON_SCALE_TEAM)
+		add_child(hud["root"])
 
 		_views[tag] = {
-			"node": holder, "bar": fill, "barh": barh, "name": nm, "anim": ap,
+			"node": holder, "bar": hud["fill"], "barh": hud["root"],
+			"name": hud["name_label"], "hp_label": hud["hp_label"], "anim": ap,
 			"hp": int(p.get("hp_max", 1)), "hp_max": maxi(1, int(p.get("hp_max", 1))),
 			"dead": false, "pos": Vector2(x, y), "mine": mine,
 		}
+
+
+# ---------- 드래곤 HUD — 원작 `MakeInterface::setHUD` @01050ffc 이식 ----------
+#
+# 종전엔 다른 화면 프레임(`9patch/bar_bg2` + `bar1/bar3`)으로 자작 바를 그렸다.
+# 콜로세움 전용 프레임이 **네 장 다 있다**(사용자 지적 2026-08-04로 재조회):
+#   `scene/colosseum/bar_cover_bg`(118×19) · `bar_cover`(156×29) · `bar_bg`(119×17) · `bar`(119×17)
+#
+# 원작 조립 순서(그대로 옮긴다):
+#   layer = 드래곤 노드. **HUD 는 그 위 100pt**(pos = 레이어중심 + (0, h*0.5 + 100)).
+#   ① `bar_cover_bg`  addChild(z=7,  tag=5)
+#   ② `bar_cover`     같은 위치, addChild(z=10, tag=6)
+#        └ 속성 아이콘: pos(17.5, 19.75), setScale(28.5 / 아이콘폭), addChild(z=0)
+#   ③ `bar_bg`        anchor(0, 0.5), pos = cover + (15 - w*0.5, 1), addChild(z=8, tag=4)
+#   ④ `bar`(채움)     anchor(0, 0.5), pos = bar_bg.pos,             addChild(z=9, tag=3)
+#   ⑤ 이름 BMFont(subtitle) anchor(0,0) scale 0.5, pos = cover + (-coverW*0.5, coverH*0.5)
+#   ⑥ 레벨 BMFont(subtitle) anchor(0.65,0.85), pos = 이름.pos + (이름폭, coverH*0.5)
+#   ⑦ "현재 / 최대" BMFont(subtitle) scale 0.75, pos = cover + (17.5, 1.5)
+#   등장 = DelayTime(d) → Show → ScaleTo(0.05, 1.1) → ScaleTo(0.05, 1.0)
+#   라벨만 DelayTime(d) → DelayTime(0.25) → FadeTo(0.5, 255)
+
+const DRAGON_H := 170.0             # `_spine_node` 정규화 높이
+const HUD_LIFT := 18.0              # 원작은 100(원작 레이어 크기 기준) — 위 주석 참조
+const HUD_ELEM_POS := Vector2(17.5, 19.75)
+const HUD_ELEM_W := 28.5
+
+func _make_hud(p: Dictionary, at: Vector2, dragon_scale := 1.0) -> Dictionary:
+	var S := Design.ASSET_SCALE
+	var root := Node2D.new()
+	# 원작 pos = 레이어중심 + (0, h*0.5 + 100) = **레이어 꼭대기에서 100pt 위**.
+	# ⚠️ 그 100 은 원작 드래곤 레이어 크기 기준이라 우리 정규화 높이(170)에 그대로 쓰면
+	#   HUD 가 위 슬롯까지 올라간다. 구조·프레임·내부 오프셋은 원작 그대로 두고
+	#   **머리 위 여백만** 우리 배치에 맞춘다(= 레이어 꼭대기 + HUD_LIFT).
+	# `PartySelect._spine_node` 규약상 holder 원점 = 스프라이트 **바닥 중앙**이다.
+	root.position = at + Vector2(0.0, -(DRAGON_H * dragon_scale + HUD_LIFT))
+
+	var cover_bg := _spr(CO, "scene_colosseum_bar_cover_bg", S)
+	if cover_bg != null:
+		root.add_child(cover_bg)                       # z=7
+	var cover := _spr(CO, "scene_colosseum_bar_cover", S)
+	if cover != null:
+		root.add_child(cover)                          # z=10
+	var cover_w := 156.0 * S
+	var cover_h := 29.0 * S
+
+	# 속성 아이콘 — 원작 `FightDragon::getElementSprite()`.
+	#   `element->setPosition(17.5, 19.75)` · `setScale(28.5 / contentSize.width)`
+	# ⚠️ §9 규칙 2 — 원작 좌표·크기 리터럴은 **이미 포인트**다. ASSET_SCALE 을 다시 곱하지 않는다.
+	#   Cocos 자식 좌표 원점 = 부모의 **좌하단** → cover 중심 기준으로 환산해 넣는다.
+	var es := _element_sprite(String(p.get("element", "")))
+	if es != null and cover != null:
+		es.position = Vector2(HUD_ELEM_POS.x - cover_w * 0.5,
+			cover_h * 0.5 - HUD_ELEM_POS.y)
+		var iw := float(es.texture.get_width())
+		if iw > 0.0:
+			es.scale = Vector2.ONE * (HUD_ELEM_W / iw)   # 화면에 28.5pt 폭으로
+		cover.add_child(es)
+
+	# 게이지 — 원작 `bar_bg` anchor(0, 0.5), pos = cover + (15 - w*0.5, 1). `bar` 는 같은 자리.
+	var bar_w := 119.0 * S
+	var bar_h := 17.0 * S
+	var bar_left := Vector2(15.0 - bar_w * 0.5, -1.0 - bar_h * 0.5)
+	var bg := _spr(CO, "scene_colosseum_bar_bg", S)
+	if bg != null:
+		bg.centered = false
+		bg.position = bar_left
+		root.add_child(bg)                             # 원작 z=8, tag=4
+	var fill := _spr(CO, "scene_colosseum_bar", S)
+	if fill != null:
+		fill.centered = false
+		fill.position = bar_left
+		fill.region_enabled = true
+		fill.region_rect = Rect2(0, 0, 119, 17)
+		root.add_child(fill)                           # 원작 z=9, tag=3
+
+	# 이름 — 원작 anchor(0,0), pos = cover + (-coverW*0.5, coverH*0.5) = **cover 좌상단**, scale 0.5.
+	var nm := Label.new()
+	nm.text = String(p.get("name", ""))
+	nm.position = Vector2(-cover_w * 0.5, -cover_h * 0.5 - 21.0)
+	_bm_style(nm, 16, Color.WHITE)
+	root.add_child(nm)
+
+	# 레벨 — 원작은 이름 오른쪽(anchor 0.65,0.85). 우리는 이름 폭을 런타임에 못 재므로
+	#   cover 오른쪽 끝에 맞춘다(같은 줄·오른쪽이라는 성질은 같다).
+	var lv := Label.new()
+	lv.text = "Lv.%d" % int(p.get("level", 1))
+	lv.size = Vector2(cover_w, 20.0)
+	lv.position = Vector2(-cover_w * 0.5, -cover_h * 0.5 - 21.0)
+	lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_bm_style(lv, 14, Color(1.0, 0.92, 0.6))
+	root.add_child(lv)
+
+	# "현재 / 최대" — 원작 pos = cover + (17.5, 1.5), scale 0.75, anchor 중앙.
+	var hp := Label.new()
+	var hpm := maxi(1, int(p.get("hp_max", 1)))
+	hp.text = "%d / %d" % [hpm, hpm]
+	hp.size = Vector2(bar_w, 18.0)
+	hp.position = Vector2(17.5 - bar_w * 0.5, -1.5 - 9.0)
+	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hp.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_bm_style(hp, 13, Color.WHITE)
+	root.add_child(hp)
+
+	return {"root": root, "fill": fill, "hp_label": hp, "name_label": nm}
+
+
+## 속성 아이콘 — 원작 `FightDragon::getElementSprite()`.
+## 프레임은 `battle/element_%s_mark.png`(cave.gd 가 이미 쓰는 원본 세트와 같은 것).
+func _element_sprite(element: String) -> Sprite2D:
+	if element == "":
+		return null
+	return _spr("battle_ui", "battle_element_%s_mark" % element, 1.0)
+
+
+## 원작 BMFont(`GameManager::getFontName_subtitle`).
+var _bmfonts := {}
+func _bmfont(name: String) -> FontFile:
+	if _bmfonts.has(name):
+		return _bmfonts[name]
+	var path := "res://assets/converted/font_ui/%s.fnt" % name
+	if not ResourceLoader.exists(path):
+		_bmfonts[name] = null
+		return null
+	var f: FontFile = load(path).duplicate()
+	f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+	var fb := SystemFont.new()
+	fb.font_names = PackedStringArray(["Malgun Gothic", "맑은 고딕", "Gulim"])
+	f.fallbacks = [fb]
+	_bmfonts[name] = f
+	return f
+
+
+func _bm_style(l: Label, size: int, col: Color, font := "font_subtitle") -> void:
+	var f := _bmfont(font)
+	if f != null:
+		l.add_theme_font_override("font", f)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 # ---------- 상단 정보(원작 ColosseumFightInitWidget) ----------
@@ -364,7 +505,7 @@ func _apply(ev: Dictionary) -> void:
 	if heal > 0:
 		v["hp"] = mini(int(v["hp_max"]), int(v["hp"]) + heal)
 		_set_bar(v)
-		_float_text(v["pos"], "+%d" % heal, Color(0.5, 1.0, 0.5))
+		_float_text(v["pos"], "+%d" % heal, Color(0.5, 1.0, 0.5), true)
 	if bool(ev.get("dead", false)) and not bool(v["dead"]):
 		# 원작 사망 = `deadTypeNormalDamage` / `deadTypeBigDamage` 가 **"damaged" → "down"**
 		# 두 단계로 낸다. `damaged` 가 여기(사망 도입부)에만 쓰이는 게 원작 사양이다.
@@ -376,7 +517,7 @@ func _apply(ev: Dictionary) -> void:
 		v["dead"] = true
 		# 스파인만 지우면 **빈 HP 바와 이름표가 허공에 남는다**(2026-08-04 스크린샷에서 확인).
 		# 셋을 함께 없앤다. down 을 볼 수 있게 조금 늦춘다.
-		for k in ["node", "barh", "name"]:
+		for k in ["node", "barh"]:
 			var n = v.get(k)
 			if n != null and is_instance_valid(n):
 				# damaged → down 두 단계를 다 보여 준 뒤에 사라진다.
@@ -427,11 +568,19 @@ func _who(tag: String) -> String:
 	return (l as Label).text.split("  ")[0] if l is Label else tag
 
 
+## HP 게이지 갱신 — 원작 `MakeInterface::decreaseHP`/`increaseHP` 와 같은 자리.
+## 채움은 `bar.png` 를 **왼쪽부터 잘라** 보여 준다(원작도 anchor(0,0.5) 스프라이트다).
 func _set_bar(v: Dictionary) -> void:
+	var r := clampf(float(v["hp"]) / float(v["hp_max"]), 0.0, 1.0)
 	var b = v.get("bar")
-	if b is NinePatchRect and is_instance_valid(b):
-		var r := clampf(float(v["hp"]) / float(v["hp_max"]), 0.0, 1.0)
-		(b as NinePatchRect).size = Vector2(BAR_W * r, BAR_H)
+	if b is Sprite2D and is_instance_valid(b):
+		var s := b as Sprite2D
+		var t := s.texture
+		if t != null:
+			s.region_rect = Rect2(0, 0, float(t.get_width()) * r, t.get_height())
+	var hl = v.get("hp_label")
+	if hl is Label and is_instance_valid(hl):
+		(hl as Label).text = "%d / %d" % [maxi(0, int(v["hp"])), int(v["hp_max"])]
 
 
 # ---------- 스파인 안무(원작 FightScene / MakeInterface) ----------
@@ -731,16 +880,30 @@ func _man(dir: String) -> Dictionary:
 	return d
 
 
-func _float_text(pos: Vector2, text: String, col: Color) -> void:
+## 피해/회복 수치 — 원작 `MakeInterface::showDamage` @010910ac 이식.
+##   폰트: 피해 = `font/font_total.fnt` · 회복 = `font/font_heal.fnt`(둘 다 보유)
+##   위치: 대상 기준 (0, 235) 위
+##   연출: Delay → Show → **ScaleTo(0, 1.75) → ScaleTo(0.25, 1.0)** → Delay(0.5) → 사라짐
+##   ⇒ 종전의 "위로 떠오르며 페이드"는 자작이었다. 원작은 **크게 떴다가 제 크기로 줄어드는** 팝이다.
+const DMG_LIFT := 235.0 * 0.5       # 원작 (0,235) — 우리 드래곤 크기(170) 기준으로 절반만
+const DMG_POP_BIG := 1.75           # 원작 ScaleTo(0, 1.75)
+const DMG_POP_SEC := 0.25           # 원작 ScaleTo(0.25, 1.0)
+const DMG_HOLD := 0.5               # 원작 DelayTime(0.5)
+
+func _float_text(pos: Vector2, text: String, col: Color, heal := false) -> void:
 	var l := Label.new()
 	l.text = text
-	l.position = pos + Vector2(-16.0, -60.0)
-	l.add_theme_font_size_override("font_size", 26)
-	l.modulate = col
+	l.size = Vector2(140.0, 40.0)
+	l.pivot_offset = l.size * 0.5
+	l.position = pos + Vector2(-70.0, -DMG_LIFT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bm_style(l, 30, col, "font_heal" if heal else "font_total")
+	l.scale = Vector2.ONE * DMG_POP_BIG
 	add_child(l)
 	var tw := create_tween()
-	tw.tween_property(l, "position:y", l.position.y - 44.0, 0.6)
-	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.6)
+	tw.tween_property(l, "scale", Vector2.ONE, DMG_POP_SEC)
+	tw.tween_interval(DMG_HOLD)
+	tw.tween_property(l, "modulate:a", 0.0, 0.2)
 	tw.tween_callback(l.queue_free)
 
 

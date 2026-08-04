@@ -140,8 +140,11 @@ func _rebuild() -> void:
 	_build_tabs(panel)
 	_build_rank_list(panel)
 	_build_panel_footer(panel)
-	_build_start_buttons(vis)
+	# ⚠️ 우측 열을 **먼저** 짓는다. 이 Control 은 시작 버튼과 겹치는데(원작 열 폭이 btnW+67 이라
+	#   버튼이 그 안에 든다) 나중에 붙이면 위에 깔려 버튼 클릭을 먹는다 — `mouse_filter` 도
+	#   IGNORE 로 내려 둔다(Control 기본값은 STOP).
 	_build_right_column(vis)
+	_build_start_buttons(vis)
 
 
 # ---------- 배경 ----------
@@ -586,6 +589,7 @@ func _build_right_column(vis: Vector2) -> void:
 	var col := Control.new()
 	col.position = Vector2(x, 0.0)
 	col.size = Vector2(RIGHT_COL - PANEL_LEFT, vis.y)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 시작 버튼 클릭을 가로채지 않게
 	add_child(col)
 
 	var s := Colosseum.refresh_ticket()
