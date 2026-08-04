@@ -70,6 +70,29 @@ static func party_size(mode: String) -> int:
 	return int(mode_cfg(mode).get("party", 3))
 
 
+## 출전 자격 — 원작 입장 조건은 **레벨 25 이상**이다
+## (`ColosseumInError` "테이머 자격증 이벤트를 완수하셔야 입장할 수 있습니다. (레벨 25)").
+## ⚫ 테이머 자격증 이벤트는 서버 이벤트라 CUT — 레벨 조건만 적용한다.
+## 이게 곧 **성체 조건**이기도 하다: 공격 모션이 성체 스파인에만 있다(fight.gd 주석).
+static func min_level() -> int:
+	return int(_cfg().get("entry", {}).get("min_level", 25))
+
+
+## 그 드래곤이 콜로세움에 나갈 수 있나.
+static func eligible(uid: int) -> bool:
+	var d := UserDB.get_dragon(uid)
+	return not d.is_empty() and int(d.get("level", 1)) >= min_level()
+
+
+## 출전 가능한 보유 드래곤 uid 목록(편성창에 넘길 후보).
+static func eligible_uids() -> Array:
+	var out: Array = []
+	for d in UserDB.dragons():
+		if int((d as Dictionary).get("level", 1)) >= min_level():
+			out.append(int((d as Dictionary).get("uid", 0)))
+	return out
+
+
 static func rating_of(mode: String) -> int:
 	return int(state().get(String(mode_cfg(mode).get("rating_key", "tournament")), 0))
 

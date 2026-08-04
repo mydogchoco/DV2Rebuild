@@ -258,6 +258,14 @@ def build() -> dict:
             "team":   {"label": "3 vs 3", "party": 3, "rating_key": "tournament", "streak_key": "straight_team"},
         },
         "tier": {"list": TIERS, "frames": TIER_FRAMES},
+        # 입장 조건 — 원작 `ColosseumInError` 가 문장으로 못 박는다(유실 아님).
+        # "테이머 자격증 이벤트를 완수하셔야 입장할 수 있습니다. (레벨 25)"
+        # ⚫ 자격증 이벤트는 서버 이벤트라 CUT → 레벨 조건만 쓴다.
+        # 이게 곧 성체 조건이기도 하다: 공격/피격 모션이 **성체 스파인에만** 있다
+        # (실측 2026-08-04 — adult 134/134 vs child·baby 각 1/133).
+        "entry": {"min_level": 25,
+                  "_source": "stringsData_KR.xml ColosseumInError",
+                  "_cut": "테이머 자격증 이벤트(서버 이벤트)"},
         # 원작 문자열 번들에서 채굴한 **규칙 사실**들. 아직 미구현인 것도 있으나
         # "서버 유실"이 아니라 **클라에 있었다**는 근거로 남긴다(사용자 지적 2026-08-04).
         "_orig_rules": {

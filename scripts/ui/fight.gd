@@ -128,8 +128,14 @@ func _build_team(team: Array, mine: bool, vis: Vector2) -> void:
 		holder.position = Vector2(x, y)
 		add_child(holder)
 
-		var sp := PartySelect._spine_node(int(p.get("id", 0)),
-			"adult" if int(p.get("level", 1)) >= 30 else "child", 170.0)
+		# ⚠️ **콜로세움은 항상 성체 스파인이다.**
+		#   ① 원작 입장 조건이 레벨 25(=성체) 이상이라 애초에 유생이 못 들어온다
+		#      (`ColosseumInError` "테이머 자격증 이벤트를 완수하셔야 입장할 수 있습니다. (레벨 25)").
+		#   ② 실측(2026-08-04): 공격 모션은 **성체에만 있다** —
+		#      adult 134/134 에 `attack` 존재, child 132/133 · baby 132/133 은 **없음**.
+		#      종전엔 레벨 30 미만이면 child 를 띄워서, 저레벨 드래곤이 공격해도 아무 모션이
+		#      없었다(사용자 지적).
+		var sp := PartySelect._spine_node(int(p.get("id", 0)), "adult", 170.0)
 		var ap: AnimationPlayer = null
 		if sp != null:
 			# 스파인 기본 방향이 왼쪽이므로 **왼쪽 진영(내 팀)** 을 뒤집어 마주 보게 한다.

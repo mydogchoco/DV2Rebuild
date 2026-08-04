@@ -285,12 +285,28 @@ func _on_pick(i: int) -> void:
 		return
 	var foe: Dictionary = _opponents[i]
 	var n := Colosseum.party_size(_mode)
+	# 원작 입장 조건 = 레벨 25 이상(ColosseumInError). 자격 있는 개체가 없으면 못 들어간다.
+	var ok := Colosseum.eligible_uids()
+	if ok.size() < n:
+		_notice("레벨 %d 이상 드래곤이 %d마리 필요합니다." % [Colosseum.min_level(), n])
+		_rebuild()
+		return
 	# 🟠 덱 선택 = 우리 `PartySelect`(원작 `AddDragonCell` 이식본) 재사용.
 	#   원작 콜로세움 전용 선택창은 `Select3vs3Layer`/`Select1vs1Layer` 로 따로 있고
 	#   (CCMenuOnScrollView + `makeMagneticDummy` 드래그 재정렬 + `dragon_select_deco`),
 	#   형태가 다르다. 그쪽 이식은 별건으로 남긴다 — 지금은 **같은 일을 하는 원작 유래
 	#   위젯**을 쓴다(자작 창을 새로 만드는 것보다 낫다). docs/ref/porting/Colosseum.md §1.
-	PartySelect.open_run(self, UserDB.party().slice(0, n), func(picked: Array) -> void:
+	# 편성창의 초기 선택도 **자격 있는 개체**로만 채운다(현재 파티에 저레벨이 섞여 있을 수 있다).
+	var seed_party: Array = []
+	for u in UserDB.party():
+		if Colosseum.eligible(int(u)):
+			seed_party.append(int(u))
+	while seed_party.size() < n and ok.size() > seed_party.size():
+		for u in ok:
+			if not seed_party.has(int(u)):
+				seed_party.append(int(u))
+				break
+	PartySelect.open_run(self, seed_party.slice(0, n), func(picked: Array) -> void:
 		if picked.is_empty():
 			return
 		if not Colosseum.spend_ticket():

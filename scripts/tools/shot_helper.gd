@@ -136,8 +136,13 @@ func _ready() -> void:
 			var frng := RandomNumberGenerator.new()
 			frng.seed = 20260804
 			var foes := Colosseum.roll_opponents(extra if extra != "0" else "team", frng)
+			# ⚠️ 콜로세움은 레벨 25 이상(=성체)만 나간다. 공격 모션이 성체에만 있어서
+			#   저레벨 개체를 넣으면 아무 모션도 안 나온다(사용자 지적 2026-08-04).
+			var fparty: Array = Colosseum.eligible_uids()
+			if fparty.is_empty():
+				fparty = UserDB.party()
 			Scenes.goto("fight", {"mode": extra if extra != "0" else "team",
-				"opponent": foes[0], "party": UserDB.party()})
+				"opponent": foes[0], "party": fparty})
 			for i in 20: await get_tree().process_frame
 		"getitem":
 			# 획득 공개 팝업(원작 ShowGetItemDetailLayer) 배치 검수 — N개를 원형으로 놓는다.
