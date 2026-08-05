@@ -55,6 +55,9 @@ FACTORY = re.compile(
     r"ActionInterval|Progress\w*|OrbitCamera|CardinalSpline\w*|CatmullRom\w*))::create\b"
 )
 ASSIGN = re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(.+);\s*$")
+# 액션의 **대상 노드**를 태그 사슬로 특정한다 — 어느 스프라이트에 걸리는지가 배치의 절반이다
+BYTAG = re.compile(r"^\s*(\w+)\s*=\s*(?:\([^)]*\))?\s*CCNode::getChildByTag\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$")
+GETPAR = re.compile(r"^\s*(\w+)\s*=\s*(?:\([^)]*\))?\s*\(\*\*\(code \*\*\)\(\*\(long \*\)(\w+) \+ 0x1b0\)\)")
 RUNACTION = re.compile(r"\bCCNode::runAction\s*\(\s*([^,]+?)\s*,\s*([A-Za-z_]\w*)\s*\)")
 # (**(code **)(*(long *)node + 0x160))(node, action)  = 가상 runAction
 VRUN = re.compile(r"\(\*\*\(code \*\*\)\(\*\(long \*\)(\w+) \+ (0x[0-9a-f]+|\d+)\)\)\(\w+,(\w+)\)")
@@ -109,6 +112,7 @@ class Env:
 
     def __init__(self) -> None:
         self.val: dict[str, dict] = {}
+        self.tag: dict[str, str] = {}        # 변수 → getChildByTag 사슬(대상 노드)
         self.pending_fn: dict | None = None  # 직전 operator_new(0x28) 블록
 
     def put(self, var: str, node: dict) -> None:
@@ -206,6 +210,13 @@ def parse(body: list[str]) -> tuple[list[dict], Env]:
                     env.pending_fn["args"].append(f32(hm.group(1)))
             continue
 
+        gp = GETPAR.match(st)
+        if gp:
+            env.tag[gp.group(1)] = "parent(%s)" % env.tag.get(gp.group(2), gp.group(2))
+        bt = BYTAG.match(st.rstrip(";"))
+        if bt:
+            base = env.tag.get(bt.group(2), CAST.sub("", bt.group(2)).strip())
+            env.tag[bt.group(1)] = "%s/tag %s" % (base, bt.group(3))
         m = ASSIGN.match(st)
         if m:
             var, rhs = m.group(1), CAST.sub("", m.group(2)).strip()
@@ -235,11 +246,13 @@ def parse(body: list[str]) -> tuple[list[dict], Env]:
 
         # ⚠️ 변수는 재사용된다 — **그 시점의 환경을 스냅샷**해 둬야 한다
         for target, act in RUNACTION.findall(st):
-            roots.append({"target": CAST.sub("", target).strip(), "act": act,
+            tgt = CAST.sub("", target).strip()
+            roots.append({"target": env.tag.get(tgt, tgt), "act": act,
                           "line": lineno, "env": dict(env.val)})
         for tgt, slot, act in VRUN.findall(st):
             if slot in ("0x160", "0x168"):  # runAction 계열 가상 슬롯
-                roots.append({"target": tgt, "act": act, "line": lineno, "env": dict(env.val)})
+                roots.append({"target": env.tag.get(tgt, tgt), "act": act,
+                              "line": lineno, "env": dict(env.val)})
     return roots, env
 
 
