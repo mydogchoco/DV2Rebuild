@@ -1485,7 +1485,7 @@ func _ultimate_damage(ev: Dictionary, t: String, dfn: String, v: Dictionary, ele
 	var share := float(plan[1])
 	var last := float(plan[2]) / maxf(0.05, float(_speed))
 	var total := int(ev.get("damage", 0))
-	_ultimate_knockback(v, last)
+	_ultimate_knockback(v, last, element)
 	var gen := _gen
 	var spent := 0
 	for ct: float in chips:
@@ -1520,31 +1520,57 @@ const ULT_KNOCK_N := 4
 const ULT_KNOCK_H := 150.0
 const ULT_LAUNCH_H := 800.0
 
-func _ultimate_knockback(v: Dictionary, at_sec: float) -> void:
+## 속성별 피격 반응 — 원작 `damage<El>_C` 실측(2026-08-05 `resolve_actions.py`).
+##   [시작초, 저글링 횟수, 저글링 1회 시간, 저글링 간격, 저글링 높이(×S), 마무리 높이(×S)]
+## 공통 골격: `Delay(T)` → `JumpTo(0.25, 무대, S*150, 1)` → `JumpBy(t, …, S*h, 1)` 반복
+##   → 마지막에 크게 띄운다. 땅은 S*800, 그림자는 S*1000 으로 가장 크게 난다.
+## ⚪ 원작이 저글링마다 같이 거는 몸통 스쿼시(`ScaleTo(0.1, ×1.05, 0.95)`)와
+##   `MakeInterface::shakeLayerToVertical`(화면 흔들기)은 아직 안 넣었다 — 아래 §백로그.
+const ULT_KNOCK := {
+	"aqua":   [1.0,  1, 0.25, 0.5,  150.0, 175.0],
+	"chaos":  [1.95, 1, 6.0,  0.0,  30.0,  30.0],
+	"dark":   [2.75, 1, 0.25, 1.25, 100.0, 300.0],
+	"earth":  [1.0,  4, 0.2,  0.3,  150.0, 800.0],
+	"fire":   [1.0,  6, 0.35, 0.15, 150.0, 150.0],
+	"holy":   [4.5,  1, 0.95, 0.2,  100.0, 100.0],
+	"light":  [2.5,  2, 0.1,  0.05, 75.0,  150.0],
+	"shadow": [3.0,  5, 0.2,  0.2,  150.0, 1000.0],
+	"wind":   [1.0,  5, 0.25, 0.3,  120.0, 200.0],
+}
+
+func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
 	var n = v.get("node")
 	if not (n is Node2D) or not is_instance_valid(n) or bool(v.get("dead", false)):
 		return
 	var node := n as Node2D
 	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
 	var home: Vector2 = v.get("home", node.position)
-	# 저글링은 **피해 시각 직전**에 몰아친다(원작도 damage_C 가 그 무렵에 건다).
-	var lead := maxf(0.0, at_sec - (ULT_KNOCK_SEC + ULT_KNOCK_GAP) * float(ULT_KNOCK_N))
+	var k: Array = ULT_KNOCK.get(element, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
+	var n_j := int(k[1])
+	var sec := float(k[2])
+	var gap := float(k[3])
+	var hop := float(k[4])
+	var big := float(k[5])
+	# 원작은 `Delay(T)` 로 시작하지만 우리 피해 시각(`_ult_dmg_plan`)과 어긋나면 안 되므로
+	# **마무리 띄우기가 피해 시각에 맞물리도록** 앞에서 뺀다(원작도 그 무렵이다).
+	var lead := maxf(float(k[0]), at_sec - (sec + gap) * float(n_j) - 0.6)
 	var old = v.get("move_tw")
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
 	var t := create_tween()
 	v["move_tw"] = t
 	t.tween_interval(lead)
-	for i in ULT_KNOCK_N:
+	for i in n_j:
 		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
 		_tween_jump(t, node, node.position + d * float(i), node.position + d * float(i + 1),
-			ULT_KNOCK_H * s * 0.35, ULT_KNOCK_SEC, 1.0)
-		t.tween_interval(ULT_KNOCK_GAP)
+			hop * s * 0.35, sec, 1.0)
+		t.tween_interval(gap)
 	# 마지막 — 크게 띄웠다가 제자리로.
-	_tween_jump(t, node, node.position, home, ULT_LAUNCH_H * s * 0.35, 0.6, 1.0)
+	_tween_jump(t, node, node.position, home, big * s * 0.35, 0.6, 1.0)
 	t.tween_callback(func() -> void:
 		if is_instance_valid(node):
 			node.position = v.get("home", home))
+
 
 
 ## 피격 결과(HP·수치·사망)를 실제로 반영한다. 각성기만 시각을 늦춰 부른다.
