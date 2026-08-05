@@ -1570,6 +1570,11 @@ func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
 	t.tween_interval(lead - 0.25)
 	_tween_jump(t, node, home, stage, 150.0 * s, 0.25, 1.0)   # 무대점으로 끌려간다
 	for i in n_j:
+		# 타격음 — 원작은 매 타에 피격음을 낸다(`runSpineWithAnimationName` @0104f468 이
+		# `(rand()%6)*0.05 + 0.25` 볼륨으로 재생). 두 음원을 번갈아 쓴다.
+		var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
+		t.tween_callback(func() -> void:
+			Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25))
 		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
 		_tween_jump(t, node, stage + d * float(i), stage + d * float(i + 1),
 			hop * s, sec, 1.0)
@@ -2995,36 +3000,28 @@ func _ultimate_position(atk: Dictionary) -> float:
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
 	# 시전자 — `initPosition`: Delay(1.0) → JumpTo(0.25, stage, S*150, 1).
-	# 복귀는 `action<El>_C` 의 비행 꼬리(MoveTo(0.15, home))가 맡는다(아래 ③).
+	# 그 뒤의 무대 안무(부양·통통 점프·중앙 이동·소멸/재등장)와 스파인 3단계
+	# (ultimate1 → ultimate2 → wait)는 **속성별 실측**을 `UltimateFx.caster_fx` 가 낸다.
 	var t := create_tween()
 	atk["move_tw"] = t
 	t.tween_interval(UltimateFx.LEAD)
 	_tween_jump(t, node, home, stage, ULT_JUMP_H * s, ULT_JUMP_SEC, 1.0)
-	# ③ 시전자 비행 — `actionFire_C` 실측(다른 속성은 같은 꼴로 근사, 속성별 이식 전까지):
-	#   Delay(0.25) → JumpBy(0.15, (0, S*75), 50, 1) → EaseIn(MoveBy(4.35, (0,50)), 0.5)
-	#   → Delay(3.0) → MoveTo(0.15, home)
-	# ASSUMPTION: fire 외 8속성의 비행 수치는 actionFire_C 를 따른다(각 속성 이식 시 교체).
-	t.tween_interval(UltimateFx.ACT_AT - UltimateFx.LEAD - ULT_JUMP_SEC + 0.25)
-	_tween_jump(t, node, stage, stage + Vector2(0.0, -s * 75.0), 50.0, 0.15, 1.0)
-	t.tween_property(node, "position", Vector2(0.0, -50.0), 4.35).as_relative()\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.tween_interval(3.0)
-	t.tween_property(node, "position", home, 0.15)
-	t.tween_callback(func() -> void:
-		if is_instance_valid(node):
-			node.position = atk.get("home", home))
+	var total := UltimateFx.caster_fx({
+		"node": node, "anim": atk.get("anim"), "shadow": atk.get("shadow"),
+		"home": home, "stage": stage, "scale": s, "host": self,
+	}, el)
 	# 각성기가 도는 동안은 무대 자리가 원점이다(공격 복귀가 슬롯으로 튀지 않게).
 	atk["home"] = stage
 	var gen := _gen
-	var total := UltimateFx.ACT_AT + 0.25 + 0.15 + 4.35 + 3.0 + 0.15
 	get_tree().create_timer(total).timeout.connect(func() -> void:
 		if gen == _gen:
 			atk["home"] = atk.get("pos", home))
 
 	# 그림자 — `initPosition`: Delay(1.0) → Spawn(MoveTo(0.25, stage−(0,S*95)),
 	#   ScaleTo(0.125, S*1.75) → ScaleTo(0.125, S*2.0)). 끝에 원복.
+	# (물·바람은 caster_fx 가 속성 전용 그림자 안무를 내므로 여기선 건너뛴다.)
 	var shadow = atk.get("shadow")
-	if shadow is Node2D and is_instance_valid(shadow):
+	if shadow is Node2D and is_instance_valid(shadow) and not (el in ["aqua", "wind"]):
 		var bs: Vector2 = (shadow as Node2D).scale
 		var sw := (shadow as Node2D).create_tween()
 		sw.tween_interval(UltimateFx.LEAD)

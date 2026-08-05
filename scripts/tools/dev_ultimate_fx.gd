@@ -350,17 +350,16 @@ func _play() -> void:
 		_target.position = _target_home
 		_target.modulate.a = 1.0
 	var el: String = ELEMENTS[_sel]
-	Bgm.sfx("effect_bigbang")
+	# ⚫ 종전의 `effect_bigbang` 은 원작에 없던 자작 배정이라 제거(사용자 확정 2026-08-05).
+	#   효과음은 UltimateFx.SFX(원작 리터럴) + 타격음 배선이 낸다.
 	var dur := float(UltimateFx.DURATION.get(el, 9.0))
 
-	# 시전자 — 원작 `initPosition`+`action<El>_C`: **몸통은 사라지지 않는다**(사라지는 건 HUD 뿐).
-	#   Delay(1.0+0.2) 스쿼시 → action_C(2.25)부터 홉 + 4.35초 상승 비행 → 제자리.
-	# 대상은 `damage<El>_C` 의 저글링을 흉내 내 피해 시각에 튀어 오른다.
+	# 시전자 — 속성별 무대 안무 + 스파인 3단계(ultimate1→ultimate2→wait)는
+	# `UltimateFx.caster_fx`(action<El>_C 실측)가 낸다. 대전(fight.gd)과 같은 코드.
 	if _caster != null:
 		var ap := FightScene._find_anim_player(_caster)
-		if ap != null and ap.has_animation("ultimate1"):
-			ap.play("ultimate1")
-		_caster.modulate.a = 1.0
+		_caster.modulate = Color(1, 1, 1, 1)
+		_caster.scale = Vector2.ONE
 		var b0: Vector2 = _caster.scale
 		var tk := _caster.create_tween()
 		tk.tween_interval(UltimateFx.LEAD + 0.2)
@@ -368,15 +367,10 @@ func _play() -> void:
 		tk.tween_property(_caster, "scale", Vector2(b0.x * 0.95, b0.y * 1.05), 0.1)
 		tk.tween_property(_caster, "scale", b0, 0.1)
 		_actor_tweens.append(tk)
-		var home := _caster_home
-		var mv := _caster.create_tween()
-		mv.tween_interval(UltimateFx.ACT_AT + 0.25)
-		mv.tween_property(_caster, "position", home + Vector2(0.0, -75.0), 0.15)
-		mv.tween_property(_caster, "position", Vector2(0.0, -50.0), 4.35).as_relative()\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		mv.tween_interval(3.0)
-		mv.tween_property(_caster, "position", home, 0.15)
-		_actor_tweens.append(mv)
+		UltimateFx.caster_fx({
+			"node": _caster, "anim": ap, "shadow": null,
+			"home": _caster_home, "stage": _caster_home, "scale": 1.0, "host": _stage,
+		}, el)
 	if _target != null:
 		# 피격 반응 — 대전의 `_ultimate_knockback`(원작 `damage<El>_C` 실측 표)을 그대로 흉내:
 		# 저글링 n회 + 마무리 큰 띄우기, 그동안 스파인은 **damaged** 모션(원작
@@ -398,6 +392,10 @@ func _play() -> void:
 			if tap != null and tap.has_animation("damaged"):
 				tap.play("damaged"))
 		for i in n_j:
+			# 타격음 — 매 타마다(원작 배선). 두 음원을 번갈아, 볼륨 (rand%6)*0.05+0.25.
+			var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
+			tt.tween_callback(func() -> void:
+				Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25))
 			var d := Vector2(20.0 * float(i + 1), 0.0)      # 상대 진영은 +x 로 밀린다
 			tt.tween_property(_target, "position", home + d - Vector2(0.0, hop), jsec * 0.5)\
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
