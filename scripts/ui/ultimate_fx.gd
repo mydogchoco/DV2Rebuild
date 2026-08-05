@@ -387,11 +387,15 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 			t2.tween_property(st, "modulate:a", 0.0, 0.75 / sp)
 			t2.tween_callback(st.queue_free)
 
-	var host_tree := host.get_tree()
-	if host_tree == null:
-		return
-	var timer := host_tree.create_timer(delay)
+	# ⚠️ `SceneTree.create_timer` 는 host 보다 오래 산다 — 씬이 먼저 사라지면 `go` 가 붙든
+	#    노드들이 이미 free 돼 "Lambda capture was freed" 가 무더기로 뜬다(스크린샷 도구에서 실측).
+	#    host 의 자식 Timer 로 만들면 host 와 함께 정리된다.
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = maxf(0.01, delay)
+	timer.autostart = true
 	timer.timeout.connect(go)
+	host.add_child(timer)
 
 
 # ── 합체 외곽선(회전 문양) — `init<El>` + `run<El>` ─────────────────────────
@@ -411,15 +415,22 @@ const COMBINE := {
 }
 const COMBINE_WHITE_DIR := "battle_ui"
 const COMBINE_WHITE_KEY := "battle_combine_outline_white"
-const COMBINE_SCALE := 2.25        # 원작 setScale(0x40100000)
-## 원작이 바로 다음 줄에 `vtable+0x68` 로 **0x3ec00000 = 0.375** 를 준다.
-## ⚠️ 이 슬롯의 의미를 **확정하지 못했다**(`setScaleY` / `setRotation` / `setSkew` 후보).
-##   `setScaleY(0.375)` 로 읽어 눌러 봤더니, 같은 함수가 거는 `RotateBy(720°)` 와 겹쳐
-##   납작한 타원이 화면을 가로지르는 **띠**로 보였다(2026-08-05 캡처) — 회전 문양으로는
-##   앞뒤가 안 맞는다. 그래서 **균일 배율**로 둔다. 0.375 를 회전(도)으로 읽으면 사실상
-##   무동작이라 화면에 차이가 없다 ⇒ 어느 쪽이든 지금 그림이 원작에 더 가깝다.
-##   슬롯 의미를 확정할 근거가 나오면 여기만 고치면 된다.
-const COMBINE_SCALE_Y := 2.25
+## 🔵 2026-08-05 슬롯 확정 — `vtable+0x58 = setScaleX` · `+0x68 = setScaleY`.
+##   근거 ①: `AlchemyTutorialLayer.c:534` 가 `(*+0x68)(692.0 / contentSize.height)` 를 부른다
+##           — 디자인 높이를 **세로만** 맞추는 호출이라 setScaleY 말고는 될 수 없다.
+##   근거 ②: 이미 확정된 슬롯들과 cocos2d-x 2.x `CCNode` 선언 순서가 정확히 맞물린다
+##           (0x30 setZOrder · 0x40 getZOrder · **0x58 setScaleX · 0x60 getScaleX ·
+##            0x68 setScaleY · 0x70 getScaleY** · 0x78 setScale · 0x90 setPosition ·
+##            0xb0~0xc8 position X/Y · 0xd0~0xe8 skew · 0xf0 setAnchorPoint ·
+##            0x110 getContentSize · 0x128/0x130 setRotation/getRotation).
+##   근거 ③: `runFire` 가 `(*+0x70)()` 반환값으로 좌표를 나눈다 = getScaleY.
+##
+##   ⇒ 컨테이너는 **(2.25, 0.375) 로 납작**하다. 종전에 "띠로 보여 앞뒤가 안 맞는다"고 판단한 건
+##      **회전을 컨테이너에 걸었기 때문**이었다. 원작은 회전을 **자식 두 장**(흰 외곽선 0x18832 ·
+##      속성 외곽선 0x18831)에 각각 걸고 컨테이너는 가만히 둔다 ⇒ **바닥에 누운 원근 링이 도는**
+##      그림이 된다. 이제 앞뒤가 맞는다.
+const COMBINE_SCALE := 2.25        # setScaleX(0x40100000)
+const COMBINE_SCALE_Y := 0.375     # setScaleY(0x3ec00000)
 const COMBINE_SPIN_SEC := 4.5
 const COMBINE_SPIN_DEG := 720.0
 
@@ -427,31 +438,50 @@ static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: floa
 	var c: Dictionary = COMBINE.get(el, {})
 	if c.is_empty():
 		return
+	# 컨테이너 = 원작 `CCLayerColor`(tag 0x1d650). 눌린 배율만 갖고 **회전하지 않는다**.
 	var holder := Node2D.new()
 	holder.position = at
 	holder.z_index = 83                 # 드래곤 뒤(바닥 링보다 아래)
 	holder.scale = Vector2(COMBINE_SCALE, COMBINE_SCALE_Y)
 	host.add_child(holder)
+	# 흰 외곽선(0x18832) — 원작 `setScale(0)` 으로 시작해 `EaseIn(ScaleTo(0.25, 1.0), 0.5)` 로 편다.
 	var w := AtlasUI.spr_cocos(COMBINE_WHITE_DIR, COMBINE_WHITE_KEY)
 	if w != null:
 		w.z_index = 1
+		w.scale = Vector2.ZERO
 		holder.add_child(w)
+		var wt := w.create_tween()
+		wt.tween_property(w, "scale", Vector2.ONE, 0.25 / sp).set_ease(Tween.EASE_IN)
+		wt.tween_property(w, "modulate:a", 0.0, 0.75 / sp)
+		wt.tween_callback(w.queue_free)
+	# 속성 외곽선(0x18831) — 원작 `setOpacity(0)` 으로 시작해 `Delay(0.25) → FadeTo(0.75, 200)`.
 	var o := AtlasUI.spr_cocos(String(c["dir"]), String(c["key"]))
 	if o != null:
 		o.z_index = 2
+		o.modulate.a = 0.0
 		holder.add_child(o)
+		var ot := o.create_tween()
+		ot.tween_interval(0.25 / sp)
+		ot.tween_property(o, "modulate:a", 200.0 / 255.0, 0.75 / sp)
+		ot.tween_interval(3.5 / sp)
+		ot.tween_property(o, "modulate:a", 0.0, 0.5 / sp)
 	if holder.get_child_count() == 0:
 		holder.queue_free()
 		return
-	holder.modulate.a = 0.0
-	var t := holder.create_tween()
-	t.tween_property(holder, "modulate:a", 1.0, 0.35 / sp)
-	var spin := holder.create_tween()
-	spin.tween_property(holder, "rotation_degrees", COMBINE_SPIN_DEG, COMBINE_SPIN_SEC / sp)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_interval(COMBINE_SPIN_SEC / sp)
-	t.tween_property(holder, "modulate:a", 0.0, 0.5 / sp)
-	t.tween_callback(holder.queue_free)
+	# 회전은 **컨테이너가 아니라 자식마다** — 원작이 tag 0x18832·0x18831 에 각각 건다.
+	# ⚠️ 원작 인자는 `CCEaseInOut(RotateBy(4.5, 720°), −0.25)` 인데 **rate 가 음수**다.
+	#    Cocos 식(`0.5·t^rate`)에 넣으면 t→0 에서 발산해 첫 프레임이 720°를 몇 바퀴 넘겨 버린다
+	#    ⇒ 그대로 쓸 수 없다. 회전량·시간은 실측 그대로 두고 곡선만 통상 sine in/out 으로 둔다.
+	for ch in holder.get_children():
+		var n2 := ch as Node2D
+		var st: Tween = n2.create_tween()
+		st.tween_property(n2, "rotation_degrees", COMBINE_SPIN_DEG, COMBINE_SPIN_SEC / sp)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# 정리는 **holder 에 매인 트윈**으로 — SceneTreeTimer 는 holder 보다 오래 살아
+	# 씬이 먼저 사라지면 "Lambda capture was freed" 경고를 낸다.
+	var ht: Tween = holder.create_tween()
+	ht.tween_interval((COMBINE_SPIN_SEC + 1.0) / sp)
+	ht.tween_callback(holder.queue_free)
 
 
 # ── 각성기 이름 배너 — ⚫ 컷 (2026-08-05) ───────────────────────────────────
@@ -1296,7 +1326,13 @@ static func _tex(element: String, key: String) -> Texture2D:
 ##
 ## 반환 = 홀더 `Node2D`(원점 = 원작 앵커점). 프레임 교체는 `_set_frame` 을 쓴다.
 ## ⚠️ `Design.ASSET_SCALE` 은 **안쪽 Sprite2D 가 이미 흡수**한다 — 여기 또 곱하지 말 것(§9-2).
+## 확인 창(`dev_ultimate_fx`)이 "우리가 실제로 쓰는 프레임"을 알 수 있게 **실제 요청을 기록**한다.
+## 종전엔 창이 "가장 긴 계열 + circle1" 이라는 추측으로 표시해서, 이식을 마친 뒤에도
+## `spear`·`well`·`stone` 을 "안 쓰는 단품" 으로 잘못 적었다(2026-08-05).
+static var used_keys := {}
+
 static func _spr(element: String, key: String) -> Node2D:
+	used_keys[element + "/" + key] = true
 	return AtlasUI.spr_cocos(DIR_PREFIX + element, key)
 
 
@@ -1308,6 +1344,7 @@ static func _set_frame(holder: Node2D, element: String, key: String) -> bool:
 	var t := AtlasUI.tex(dir, key)
 	if t == null:
 		return false
+	used_keys[element + "/" + key] = true
 	var s := holder.get_child(0) as Sprite2D
 	if s == null:
 		return false

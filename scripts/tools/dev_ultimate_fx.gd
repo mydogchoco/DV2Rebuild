@@ -160,6 +160,13 @@ func _ready() -> void:
 	_hint.add_theme_font_size_override("font_size", 14)
 	add_child(_hint)
 
+	# 자산 사용량은 **재생하면서** 쌓이므로(`UltimateFx.used_keys`) 패널을 주기적으로 다시 그린다.
+	var tick := Timer.new()
+	tick.wait_time = 0.5
+	tick.autostart = true
+	tick.timeout.connect(_refresh)
+	add_child(tick)
+
 	_refresh()
 	_play()
 	_maybe_shot()
@@ -247,27 +254,35 @@ func _survey(el: String) -> Dictionary:
 	var man := UltimateFx.manifest(el)
 	var pfx := UltimateFx.prefix(el)
 	var fams := UltimateFx.families(man, pfx)
+	# 🔵 2026-08-05 — 종전엔 "가장 긴 계열 + circle1" 을 우리가 쓰는 것으로 **추측**했다.
+	#   그래서 이식을 마친 뒤에도 `spear`·`well`·`stone` 이 "안 쓰는 단품" 으로 남았다.
+	#   이제 `UltimateFx.used_keys`(실제 요청 기록)를 읽어 **사실**을 낸다.
 	var used: Array = []
-	if man.has(pfx + "circle1"):
-		used.append(pfx + "circle1")
-	var seq: Array = []
-	if not fams.is_empty():
-		seq = (fams[0]["frames"] as Array)
-		used.append_array(seq)
-	var idle: Array = []
-	for f in fams:
-		if fams.is_empty() or f == fams[0]:
-			continue
-		idle.append("%s(%d)" % [f["name"], (f["frames"] as Array).size()])
-	# 계열에 안 잡히는 단품(번호 없는 프레임) — circle 제외
-	var singles: Array = []
+	var unused: Array = []
 	for k in man:
-		var s := String(k)
-		if not s.begins_with(pfx) or s.begins_with(pfx + "circle"):
+		var key := String(k)
+		if not key.begins_with(pfx):
 			continue
-		var tail := s.substr(pfx.length())
-		if tail.rstrip("0123456789") == tail:
-			singles.append(tail)
+		if UltimateFx.used_keys.has(el + "/" + key):
+			used.append(key)
+		else:
+			unused.append(key)
+	unused.sort()
+	var seq: Array = (fams[0]["frames"] as Array) if not fams.is_empty() else []
+	# 미사용은 계열로 접어서 보여 준다(낱개 수백 줄이 되지 않게).
+	var by_fam := {}
+	for key in unused:
+		var tail := String(key).substr(pfx.length())
+		var stem := tail.rstrip("0123456789")
+		by_fam[stem] = int(by_fam.get(stem, 0)) + 1
+	var idle: Array = []
+	var singles: Array = []
+	for stem in by_fam:
+		if int(by_fam[stem]) > 1:
+			idle.append("%s(%d)" % [stem, int(by_fam[stem])])
+		else:
+			singles.append(String(stem))
+	idle.sort()
 	singles.sort()
 	var o: Dictionary = ORIG.get(el, {})
 	var spine := String(o.get("spine", ""))
@@ -308,8 +323,10 @@ func _refresh() -> void:
 		var s := _survey(el)
 		var v := _verdict(el, s)
 		var mark := "▶" if i == _sel else "   "
-		_list[i].text = "%s %d %s  %s  (자산 %d/%d)" % [
-			mark, i + 1, KR[el], v[0], int(s["used"]), int(s["total"])]
+		# 사용량은 **재생해 봐야** 나온다(`UltimateFx.used_keys`) — 아직 안 돈 속성은 `?` 로.
+		var cnt := "%d/%d" % [int(s["used"]), int(s["total"])] if int(s["used"]) > 0 \
+			else "?/%d" % int(s["total"])
+		_list[i].text = "%s %d %s  %s  (자산 %s)" % [mark, i + 1, KR[el], v[0], cnt]
 		_list[i].modulate = v[1] if i == _sel else Color(v[1], 0.55)
 
 	var el2: String = ELEMENTS[_sel]
@@ -326,9 +343,8 @@ func _refresh() -> void:
 	if not (s2["extra"] as Array).is_empty():
 		lines.append("원작 부가자산     : %s" % ", ".join(s2["extra"] as Array))
 	lines.append("")
-	lines.append("우리가 쓰는 것    : %s%s" % [
-		("바닥 링 circle1 + " if bool(s2["ring"]) else ""),
-		("%s %d프레임" % [s2["seq_name"], int(s2["seq_len"])]) if int(s2["seq_len"]) > 0 else "(시퀀스 없음)"])
+	lines.append("우리가 쓰는 것    : %d / %d 프레임 (재생하면서 실측 — SPACE 로 갱신)" % [
+		int(s2["used"]), int(s2["total"])])
 	if not (s2["idle"] as Array).is_empty():
 		lines.append("안 쓰는 계열      : %s" % ", ".join(s2["idle"] as Array))
 	if not (s2["singles"] as Array).is_empty():
