@@ -158,7 +158,11 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat = CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
-	_combine_outline(host, el, at, sp)   # dark·shadow·wind·chaos 만 갖는 회전 문양
+	# 합체 문양은 **바닥 높이**에 깔린다 — 원작 영상(어둠 +3.7초 · 바람 +5.4초)에서 링이
+	# 화면 세로 중앙이 아니라 드래곤 발치에 눕는다. 가로는 화면 중앙이다.
+	# (원작 컨테이너 위치는 `this->getPosition()` 인데, 그 값이 시전자인지 화면 중앙인지는
+	#  `FightScene::FUN_00f8ed78` 을 더 파야 확정된다 — 영상과 맞는 쪽으로 둔다.)
+	_combine_outline(host, el, at + Vector2(0.0, s * RING_DY), sp)
 	_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -310,7 +314,7 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 		_fire_burst(host, pfx, pos, int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
 			rng.randi() % 6 + FIRE_STONE_MIN, s, sp, mat, alive, rng)
 
-	# 화면 백색 암전
+	# 화면 백색 암전 — 원작 `runFire` 의 `CCLayerColor(0xffffff)`
 	var flash := _screen_veil(host, at, Color(1, 1, 1), 120)
 	var ft := flash.create_tween()
 	ft.tween_interval(FIRE_FLASH_AT / sp)
@@ -607,6 +611,7 @@ const EARTH_QUAKE_POS := [Vector2(-130.0, -50.0), Vector2(120.0, -20.0),
 const EARTH_QUAKE_Z := [1, 1, 4, 3]
 const EARTH_SPIN_SEC := 0.875
 const EARTH_SPIN_DEG := 3600.0
+const WIND_GLOOM := 0.55        # 원작 영상에서 바람 구간은 화면이 어두워진다
 const EARTH_LIGHT_SCALE := 1.5   # 원작 setScale(1.5) — 빛기둥 4개(0/90/180/270°)
 const EARTH_STONES := 49        # 원작 `rand()%26 + 49` 의 하한
 
@@ -854,11 +859,30 @@ static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var el := "wind"
 	var pfx := prefix(el)
 
+	# 원작 `initWind` — 화면을 어둡게 깔고 그 위에서 돈다(영상 바람 +5.4초: 화면이 어두워진다).
+	var gloom := _screen_veil(host, at, Color(0, 0, 0), 82)
+	var gt := gloom.create_tween()
+	gt.tween_property(gloom, "color:a", WIND_GLOOM, 0.75 / sp)
+	gt.tween_interval(7.5 / sp)
+	gt.tween_property(gloom, "color:a", 0.0, 1.0 / sp)
+	gt.tween_callback(gloom.queue_free)
+
+	# 회오리 본체 — 원작은 `setScaleX(화면폭 / 프레임폭)` · `setScaleY(화면높이 / 프레임높이)` 로
+	#   **화면을 채우도록** 늘리고 처음엔 숨긴다(`setVisible(0)` · `setOpacity(0)`).
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	var body := _spr(el, pfx + "whirl1")
 	if body != null:
+		var mn: Dictionary = manifest(el).get(pfx + "whirl1", {})
+		var bw := float(mn.get("w", 1.0)) * Design.ASSET_SCALE
+		var bh := float(mn.get("h", 1.0)) * Design.ASSET_SCALE
+		if bw > 1.0 and bh > 1.0:
+			body.scale = Vector2(vis.x / bw, vis.y / bh)
 		body.position = at
 		body.z_index = 99
+		body.modulate.a = 0.0
 		host.add_child(body)
+		var bt := body.create_tween()
+		bt.tween_property(body, "modulate:a", 1.0, 0.5 / sp)
 		_play_frames(body, el, pfx + "whirl%d", 1, 4, 0.035 / sp)
 		var t := body.create_tween()
 		t.tween_property(body, "scale", body.scale * Vector2(1.15, 1.05), 5.15 / sp)\
