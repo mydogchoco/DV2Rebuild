@@ -352,16 +352,37 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 			if not is_instance_valid(st):
 				continue
 			st.visible = true
-			# ASSUMPTION: 돌의 비행 궤적은 원작 `runFire` 의 조립을 자동 복원하지 못해
-			#   위로 튀었다 떨어지는 포물선으로 둔다(높이·시간은 우리 값).
-			var up := 60.0 + float(rng.randi() % 90)
-			var side := (float(rng.randi() % 120) - 60.0)
+			# 원작 `runFire` 의 돌 시퀀스(2026-08-05 `resolve_actions.py` 로 조립 순서 복원):
+			#   d  = (dx*(rand%3+1) + rand%90, (rand%8)*10 − 25),  dx = 돌.x − 폭발 중심.x
+			#   t  = (rand%4)*0.125 + 0.125,  sign = d.x ≥ 0 ? +1 : −1
+			#   Spawn(EaseInOut(JumpBy(t,      d,     (rand%400)+150, 1), 2t),
+			#         RotateBy(t,      sign*((rand%1080)+1080)))
+			#   Spawn(EaseInOut(JumpBy(0.75t,  d/5,   (rand%50)+100,  1), 2t),
+			#         RotateBy(0.75t,  sign*((rand%720)+720)))
+			#   Spawn(EaseInOut(JumpBy(0.5t,   d/10,  (rand%75)+25,   1), 2t),
+			#         RotateBy(0.5t,   sign*((rand%360)+360)))
+			#   Spawn(MoveBy(t, (d.x*0.1, 0)), RotateBy(t, d.x*0.1*7.5))
+			#   → Delay(0.25) → FadeTo(0.75, 0) → remove
+			var dx: float = st.position.x - pos.x
+			var d := Vector2(dx * float(rng.randi() % 3 + 1) + float(rng.randi() % 90),
+				float(rng.randi() % 8) * 10.0 - 25.0)
+			var jt := float(rng.randi() % 4) * 0.125 + 0.125
+			var sgn := 1.0 if d.x >= 0.0 else -1.0
 			var t2: Tween = st.create_tween()
-			t2.tween_property(st, "position", st.position + Vector2(side, -up), 0.28 / sp)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			t2.tween_property(st, "position", st.position + Vector2(side * 1.6, 40.0), 0.42 / sp)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			t2.parallel().tween_property(st, "modulate:a", 0.0, 0.42 / sp)
+			_jump_by(t2, st, d, float(rng.randi() % 400) + 150.0, 1, jt / sp, jt + jt)
+			t2.parallel().tween_property(st, "rotation_degrees",
+				sgn * (float(rng.randi() % 1080) + 1080.0), jt / sp).as_relative()
+			_jump_by(t2, st, d / 5.0, float(rng.randi() % 50) + 100.0, 1, jt * 0.75 / sp, jt + jt)
+			t2.parallel().tween_property(st, "rotation_degrees",
+				sgn * (float(rng.randi() % 720) + 720.0), jt * 0.75 / sp).as_relative()
+			_jump_by(t2, st, d / 10.0, float(rng.randi() % 75) + 25.0, 1, jt * 0.5 / sp, jt + jt)
+			t2.parallel().tween_property(st, "rotation_degrees",
+				sgn * (float(rng.randi() % 360) + 360.0), jt * 0.5 / sp).as_relative()
+			t2.tween_property(st, "position", Vector2(d.x * 0.1, 0.0), jt / sp).as_relative()
+			t2.parallel().tween_property(st, "rotation_degrees", d.x * 0.1 * 7.5, jt / sp)\
+				.as_relative()
+			t2.tween_interval(0.25 / sp)
+			t2.tween_property(st, "modulate:a", 0.0, 0.75 / sp)
 			t2.tween_callback(st.queue_free)
 
 	var host_tree := host.get_tree()
@@ -624,23 +645,32 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		t2.tween_property(q, "modulate:a", 0.0, 0.75 / sp)
 		t2.tween_callback(q.queue_free)
 
-	# 낙석 — 세 단계 점프 뒤 사라진다.
-	_swarm(host, el, pfx + "stone", EARTH_STONES, base, Vector2(200.0, 60.0), 95, rng,
+	# 낙석 — 원작 `runEarth` 조립 순서 그대로(2026-08-05 `resolve_actions.py` 복원):
+	#   Delay(base) → Delay(f + (rand%4)*0.05)
+	#   → Spawn( RotateBy(0.875, 3600°),
+	#            Seq( EaseInOut(JumpBy(0.5,   (2dx,−20), 2H,     1), 1.0),
+	#                 EaseInOut(JumpBy(0.25,  (2dx,  0), 0.75H,  1), 0.5),
+	#                 EaseInOut(JumpBy(0.125, (2dx,  0), 0.25H,  1), 0.25) ) )
+	#   → FadeTo(0.75, 0) → remove
+	#   dx = 돌.x − 부모 폭/2, H = 부모 contentSize.height.
+	#   ⚠️ 그 부모 노드(0x240 의 자식)를 우리 구조에 대응시킬 근거가 없어 H 는 낙석 무리의
+	#      세로 퍼짐(60)을 쓴다 — 비율(2 : 0.75 : 0.25)과 시간·회전은 원작 그대로다.
+	var stone_h := 60.0
+	_swarm(host, el, pfx + "stone", EARTH_STONES, base, Vector2(200.0, stone_h), 95, rng,
 		func(n: Node2D, i: int, r: RandomNumberGenerator) -> void:
-			var t3: Tween = n.create_tween()
-			var h := 90.0 if i % 3 == 0 else 40.0
-			# ASSUMPTION: 세 CCJumpBy(0.5/0.25/0.125)의 이동량을 못 살려 좌우로 흩는다.
-			t3.tween_interval(float(i % 8) * 0.06 / sp)
-			for k in 3:
-				var d := Vector2(dir * r.randf_range(10.0, 60.0), 0.0)
-				t3.tween_method(func(x: float) -> void:
-					if not is_instance_valid(n):
-						return
-					n.position += d * 0.1
-					n.position.y -= h * 0.25 * sin(x * PI) * 0.1,
-					0.0, 1.0, [0.5, 0.25, 0.125][k] / sp)
-			t3.tween_property(n, "modulate:a", 0.0, 0.75 / sp)
-			t3.tween_callback(n.queue_free))
+			var dx := n.position.x - base.x
+			var lag := float(r.randi() % 4) * 0.05 / sp     # 원작 `(rand%4)*0.05`
+			var t3: Tween = n.create_tween()               # Spawn 한쪽 = 10바퀴 회전
+			t3.tween_interval(lag)
+			t3.tween_property(n, "rotation_degrees", EARTH_SPIN_DEG, EARTH_SPIN_SEC / sp)\
+				.as_relative()
+			var t4: Tween = n.create_tween()               # Spawn 다른쪽 = 3단 점프
+			t4.tween_interval(lag)
+			_jump_by(t4, n, Vector2(dx + dx, -20.0), stone_h * 2.0, 1, 0.5 / sp, 1.0)
+			_jump_by(t4, n, Vector2(dx + dx, 0.0), stone_h * 0.75, 1, 0.25 / sp, 0.5)
+			_jump_by(t4, n, Vector2(dx + dx, 0.0), stone_h * 0.25, 1, 0.125 / sp, 0.25)
+			t4.tween_property(n, "modulate:a", 0.0, 0.75 / sp)
+			t4.tween_callback(n.queue_free))
 
 	# 두 번째 지진 + 먼지.
 	var q2 := _spr(el, pfx + "earthquake2")
@@ -714,10 +744,13 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		host.add_child(shark)
 		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
 		var kt := shark.create_tween()
-		# ASSUMPTION: 세 JumpTo/MoveBy 의 목적지를 못 살려 앞으로 가로지르게 둔다(높이는 원작 75·50).
-		_arc(kt, shark, at + Vector2(dir * 60.0, 0.0), 75.0, 0.25 / sp)
-		kt.tween_property(shark, "position", at + Vector2(dir * vis.x * 0.35, -20.0), 0.5 / sp)
-		_arc(kt, shark, at + Vector2(dir * vis.x * 0.6, 0.0), 50.0, 0.25 / sp)
+		# 원작 `runAqua` 조립(2026-08-05 복원): 목적지는 **화면 중앙**이지 앞이 아니다.
+		#   JumpTo(0.25, center, 75, 1) → MoveBy(0.5, (0,−50)) → JumpTo(0.25, center+(0,217.5), 50, 1)
+		#   → Delay(5.25) → FadeTo(0.5, 0)
+		var ctr := _screen_center(host)
+		_arc(kt, shark, ctr, 75.0, 0.25 / sp)
+		kt.tween_property(shark, "position", Vector2(0.0, 50.0), 0.5 / sp).as_relative()
+		_arc(kt, shark, ctr + Vector2(0.0, -217.5), 50.0, 0.25 / sp)
 		kt.tween_interval(5.25 / sp)
 		kt.tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
 		kt.tween_callback(shark.queue_free)
@@ -917,10 +950,18 @@ static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 
 # ── light (11.25초) — 별 750개를 깔고 태양이 뜬다 ────────────────────────────
-## 원작 `initLight` 이 `light_star` 를 **750개**(0x2ee) 만든다. 우리는 그 수를 그대로 두되
-## 한 장씩 트윈을 걸면 감당이 안 되므로 **별 무리를 한 노드로 묶어** 페이드한다.
-## # ASSUMPTION: 별 개별 안무를 원작에서 못 살렸다(루프 안이라 액션이 흩어져 있다).
-const LIGHT_STARS := 750
+## 원작 `initLight` 이 `light_star` 를 **750개**(0x2ee) 만든다.
+## 2026-08-05 `resolve_actions.py` 로 **별 안무가 두 무리로 갈린다**는 것을 복원했다:
+##   · 무리 A **30개**(tag 0x1883a~, 루프 상한 0x1e)
+##       Delay(base) → Delay(0.75) → Show → EaseIn(MoveTo((rand%11)*0.025+1.75, 화면 임의점), 0.1)
+##     = 화면 아무 데로나 **모여든다**.
+##   · 무리 B **720개**(tag 0x18858~, 루프 상한 0x2d0)
+##       Delay(base) → Delay(1.75) → Show → EaseIn(MoveBy((rand%45)*0.025+0.75, Δ), 0.1)
+##       Δ = (화면 임의점 − 중앙) × ((rand%9)*0.25 + 1.0)
+##     = 중앙에서 **바깥으로 뻗어 나간다**(별이 흐르는 그 연출).
+const LIGHT_STARS_IN := 30
+const LIGHT_STARS_OUT := 720
+const LIGHT_STARS := LIGHT_STARS_IN + LIGHT_STARS_OUT   # 30 + 720 = 750 (원작 0x2ee)
 
 static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -930,19 +971,35 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 	var field := Node2D.new()
 	field.z_index = 86
-	field.modulate.a = 0.0
 	host.add_child(field)
+	var ctr := _screen_center(host)
+	var half := vis * 0.5
 	for i in LIGHT_STARS:
 		var st := _spr(el, pfx + "star")
 		if st == null:
 			break
-		st.position = at + Vector2(rng.randf_range(-vis.x, vis.x),
-			rng.randf_range(-vis.y, vis.y)) * 0.6
+		st.position = ctr + Vector2(rng.randf_range(-half.x, half.x),
+			rng.randf_range(-half.y, half.y))
 		st.scale *= rng.randf_range(0.4, 1.0)
+		st.visible = false
 		field.add_child(st)
+		var spot := ctr + Vector2(rng.randf_range(-half.x, half.x),
+			rng.randf_range(-half.y, half.y))       # 원작 `rand() % VisibleRect` 임의점
+		var t: Tween = st.create_tween()
+		if i < LIGHT_STARS_IN:
+			t.tween_interval(0.75 / sp)
+			t.tween_callback(func() -> void: st.visible = true)
+			t.tween_property(st, "position", spot,
+				(float(rng.randi() % 11) * 0.025 + 1.75) / sp).set_ease(Tween.EASE_IN)
+		else:
+			t.tween_interval(1.75 / sp)
+			t.tween_callback(func() -> void: st.visible = true)
+			t.tween_property(st, "position",
+				(spot - ctr) * (float(rng.randi() % 9) * 0.25 + 1.0),
+				(float(rng.randi() % 45) * 0.025 + 0.75) / sp)\
+				.as_relative().set_ease(Tween.EASE_IN)
 	var ft := field.create_tween()
-	ft.tween_property(field, "modulate:a", 1.0, 0.75 / sp)
-	ft.tween_interval(7.0 / sp)
+	ft.tween_interval(7.5 / sp)
 	ft.tween_property(field, "modulate:a", 0.0, 1.0 / sp)
 	ft.tween_callback(field.queue_free)
 
@@ -973,6 +1030,7 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 const HOLY_SPEARS := 31
 const HOLY_ROUNDS := 3
 const HOLY_BASE_DY := 62.5
+const HOLY_SPEAR_GAP := 24.166666        # 원작 `initHoly`: x = i × 24.1667 (31개 = 화면 폭)
 
 static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -993,24 +1051,46 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		wt.tween_property(well, "modulate:a", 0.0, 0.75 / sp)
 		wt.tween_callback(well.queue_free)
 
+	# 창(spear) — 2026-08-05 `initHoly` + `runHoly` 를 함께 복원해 **연출이 통째로 바뀌었다**.
+	# 종전엔 "위에서 떨어진다"였는데 원작은 **가로 한 줄로 늘어서 초점으로 모여든다**:
+	#   배치(`initHoly`) : x = i × 24.1667 (31개가 화면 폭을 채운다)
+	#                      y = layer.y + 62.5 + sin(i × 6°) × 56.25
+	#                      rotation = 초점 `(layer.x, layer.y − 125)` 을 향하도록 atan2(...) − 90
+	#                      anchor (0.5, 0.1)
+	#   안무(`runHoly`)  : Delay(base) → Delay(r × 0.2) → Delay(i × 0.0125 + 1.25) → Show
+	#                      → FadeTo(0.25, 200)
+	#                      → EaseIn(MoveBy(1.775 − 0.1r − 0.0125i, 자기 방향 × 200), 0.3)
+	#                      → Spawn(ScaleBy(0.1, 1.2), MoveTo(0.1, 중심), FadeTo(0.1, 100))
+	#                      → Spawn(MoveBy(0.75, 자기 방향 × −50), FadeTo(0.5, 0)) → remove
+	#   라운드는 3(`if (2 < r) return`), 한 라운드에 두 벌(앞/뒤) × 31개.
+	var focus := base + Vector2(0.0, 125.0)         # cocos −125 ⇒ Godot +125(아래)
 	for r in HOLY_ROUNDS:
 		for i in HOLY_SPEARS:
-			for layer in 2:                     # 앞/뒤 두 벌
+			for layer in 2:                     # 앞/뒤 두 벌(원작 tag 0x18835 / +0x1f)
 				var s := _spr(el, pfx + "spear")
 				if s == null:
 					return
-				var x := base.x + rng.randf_range(-vis.x * 0.35, vis.x * 0.35)
-				var y := base.y - float(rng.randi() % 301)
-				s.position = Vector2(x, y - 260.0)
+				var x := base.x + (float(i) - float(HOLY_SPEARS - 1) * 0.5) * HOLY_SPEAR_GAP
+				var y := base.y - (HOLY_BASE_DY + sin(float(i) * PI / 30.0) * 56.25)
+				s.position = Vector2(x, y)
+				var v := (focus - s.position).normalized()
+				s.rotation = atan2(v.x, -v.y)
 				s.z_index = (95 + i) if layer == 0 else (84 - i / 8)
+				s.visible = false
+				s.modulate.a = 0.0
 				host.add_child(s)
+				var fly := maxf(0.1, 1.775 - 0.1 * float(r) - 0.0125 * float(i))
 				var t: Tween = s.create_tween()
-				t.tween_interval((float(r) * 2.4 + float(i) * 0.05) / sp)
-				# ASSUMPTION: 창의 낙하 시간을 원작에서 못 살렸다(0.35초로 둔다).
-				t.tween_property(s, "position", Vector2(x, y), 0.35 / sp)\
-					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-				t.tween_interval(0.35 / sp)
-				t.tween_property(s, "modulate:a", 0.0, 0.3 / sp)
+				t.tween_interval((float(r) * 0.2 + float(i) * 0.0125 + 1.25) / sp)
+				t.tween_callback(func() -> void: s.visible = true)
+				t.tween_property(s, "modulate:a", 200.0 / 255.0, 0.25 / sp)
+				t.tween_property(s, "position", v * 200.0, fly / sp)\
+					.as_relative().set_ease(Tween.EASE_IN)
+				t.tween_property(s, "position", base, 0.1 / sp)
+				t.parallel().tween_property(s, "scale", s.scale * 1.2, 0.1 / sp)
+				t.parallel().tween_property(s, "modulate:a", 100.0 / 255.0, 0.1 / sp)
+				t.tween_property(s, "position", v * -50.0, 0.75 / sp).as_relative()
+				t.parallel().tween_property(s, "modulate:a", 0.0, 0.5 / sp)
 				t.tween_callback(s.queue_free)
 
 
@@ -1118,13 +1198,54 @@ static func _run_shadow(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	t2.tween_callback(holder.queue_free)
 
 
-## 포물선 이동 한 구간(원작 `CCJumpTo` 한 번에 대응).
-static func _arc(t: Tween, n: Node2D, to: Vector2, h: float, sec: float) -> void:
-	var from := n.position
+## Cocos `CCEaseInOut(action, rate)` 의 시간 곡선.
+##   t*=2; t<1 ? 0.5*t^rate : 1 − 0.5*(2−t)^rate
+static func _ease_io(x: float, rate: float) -> float:
+	var t := x * 2.0
+	if t < 1.0:
+		return 0.5 * pow(t, rate)
+	return 1.0 - 0.5 * pow(2.0 - t, rate)
+
+
+## Cocos `CCJumpBy(sec, delta, height, jumps)` — 선형 이동 위에 포물선 hop 을 얹는다.
+##   frac = fmod(t*jumps, 1); y += height*4*frac*(1−frac); 그 위에 delta*t.
+##   ⚠️ delta·height 는 **cocos 좌표(y 위쪽 +)** 로 준다 — 여기서 뒤집는다.
+static func _jump_by(t: Tween, n: Node2D, delta: Vector2, h: float, jumps: int,
+		sec: float, rate := 0.0) -> void:
+	# ⚠️ 시작점은 **그 단계가 실제로 시작될 때** 읽어야 한다 — 트윈은 지금 조립되지만
+	#    앞 단계가 이미 노드를 옮겨 놓기 때문이다(연속 3단 점프에서 어긋났다).
+	var from := [Vector2.ZERO, false]
+	var j := maxi(1, jumps)
 	t.tween_method(func(x: float) -> void:
 		if not is_instance_valid(n):
 			return
-		var p := from.lerp(to, x)
+		if not bool(from[1]):
+			from[0] = n.position
+			from[1] = true
+		var u := x if rate <= 0.0 else _ease_io(x, rate)
+		var frac := fmod(u * float(j), 1.0)
+		var hop := h * 4.0 * frac * (1.0 - frac)
+		n.position = (from[0] as Vector2) + Vector2(delta.x * u, -(delta.y * u + hop)),
+		0.0, 1.0, maxf(0.01, sec))
+
+
+## 원작 `VisibleRect::center()` 를 **host 로컬 좌표**로. host 원점이 화면 원점이 아닐 수 있다
+## (대전=씬 Control 이라 같지만, 확인 창에서는 무대 노드다 — `_screen_veil` 과 같은 사정).
+static func _screen_center(host: CanvasItem) -> Vector2:
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	return host.get_global_transform_with_canvas().affine_inverse() * (vis * 0.5)
+
+
+## 포물선 이동 한 구간(원작 `CCJumpTo` 한 번에 대응).
+static func _arc(t: Tween, n: Node2D, to: Vector2, h: float, sec: float) -> void:
+	var from := [Vector2.ZERO, false]              # 시작점은 그 단계 시작 시점에 읽는다
+	t.tween_method(func(x: float) -> void:
+		if not is_instance_valid(n):
+			return
+		if not bool(from[1]):
+			from[0] = n.position
+			from[1] = true
+		var p := (from[0] as Vector2).lerp(to, x)
 		p.y -= h * 4.0 * x * (1.0 - x)
 		n.position = p,
 		0.0, 1.0, sec)
