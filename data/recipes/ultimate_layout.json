@@ -1,0 +1,2588 @@
+{
+ "_tool": "scripts/tools/extract_ultimate_layout.py",
+ "_source": "docs/ref/orig_code/decomp/UltimateLayer.c",
+ "elements": {
+  "fire": {
+   "initFire": [
+    {
+     "frame": "skill/ultimate/fire/fire_explosion1.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "ANCHOR[lVar6 * 8 + 0x2d8]"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "0.5"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), *(this + lVar6 * 4 + 0x3c8) * 5 + 1, iVar3 + 0x18844"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_earthquake.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(ANCHOR[lVar6 * 8 + 0x2d8] + 0.0,-5.0)"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "0.5"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), *(this + lVar6 * 4 + 0x3c8) * 5 + 2, iVar3 + 0x18858"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, 0xffffffff, uVar16 + 0x18877"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, 0xffffffff, uVar16 + 0x18895"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_fillar1.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "ANCHOR[lVar6 * 8 + 0x2d8]"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "0.5"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), *(this + lVar6 * 4 + 0x3c8) * 5, iVar3 + 0x1886c"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_stone.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar18 + (float)(iVar3 % 3) * 100.0,0.0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 8) * 0.1 + 0.25"
+      },
+      {
+       "op": "setRotation",
+       "arg": "(float)(iVar3 % 0x169)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/fire/fire_earthquake.png"
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_stone.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar18 + (float)(iVar3 % 0x1f) * 5.0,25.0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 4) * 0.25 + 0.5"
+      },
+      {
+       "op": "setRotation",
+       "arg": "(float)(iVar3 % 0x168)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/fire/fire_earthquake.png"
+    }
+   ],
+   "initFire_C": [
+    {
+     "frame": "skill/ultimate/fire/fire_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar11, iVar2 + -1, 9000"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar9, iVar2 + -1, 0x232a"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar10"
+      }
+     ],
+     "parent": "skill/ultimate/fire/fire_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar10"
+      }
+     ],
+     "parent": "skill/ultimate/fire/fire_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/fire/fire_fireball1.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_a0 + *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), *(this + lVar16 * 4 + 0x3c8) * 5, (int)lVar16 + 0x22470"
+      }
+     ]
+    }
+   ]
+  },
+  "aqua": {
+   "initAqua": [
+    {
+     "frame": "skill/ultimate/aqua/aqua_surface1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "100"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, 0, 0x18835"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "local_b8[0] / *pfVar12"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&local_c0 - 0.0,*(lVar13 + 4))"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_bubble.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_shark1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScaleY",
+       "arg": "1.75"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "fVar27 * 1.75"
+      },
+      {
+       "op": "setRotation",
+       "arg": "fVar27 * 15.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&local_c0 + fVar27 * (local_d0[0] + *pfVar12 * 1.5),-80.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 0, 0x18893"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_bubble.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "(float)(int)(uVar2 - iVar3 * iVar23),0.0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 5) * 0.25"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar24, iVar3 % 5, iVar4 + 0x18862"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "this_03, iVar3 % 5, iVar4 + 0x1883a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar10, iVar4 + 1, 0x18830"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_fish1.png",
+     "loop": 1,
+     "ops": []
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_fish2.png",
+     "loop": 1,
+     "ops": []
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_fish3.png",
+     "loop": 1,
+     "ops": []
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_fish4.png",
+     "loop": 1,
+     "ops": []
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_fish5.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(&local_c0 + fVar27 * (fVar25 + fVar26), (float)(int)(uVar2 - iVar3 * iVar23) + 150.0)"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "fVar27 * fVar25"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "(float)(iVar3 % 6) * 0.1 + 0.5"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_bubble.png"
+    }
+   ],
+   "initAqua_C": [
+    {
+     "frame": "skill/ultimate/aqua/aqua_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar9, iVar2 + -1, 0x232a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, iVar2 % 5, 0x18862"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, iVar2 % 5, 0x18863"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, iVar2 % 5, 0x18864"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, iVar3 % 5, iVar2 + 0x188c6"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar13 * 0.5,*(lVar11 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar12"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar12"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_bubble.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar2 % 5) * 0.25"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_bubble.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar2 % 5) * 0.25"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_bubble.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar2 % 5) * 0.25"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/aqua/aqua_bubble.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 5) * 0.25"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      }
+     ],
+     "parent": "skill/ultimate/aqua/aqua_circle1.png"
+    }
+   ]
+  },
+  "earth": {
+   "initEarth": [
+    {
+     "frame": "?",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + 0.0,90.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, uVar15 + 0x1fd5f"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_mountain.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + 0.0,-210.0)"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 4"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + -130.0,-50.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0x18844"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + 120.0,-20.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0x18845"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + -30.0,-140.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 4, 0x18846"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + 60.0,-120.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 3, 0x18847"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, 0xffffffff, 0x1888a"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust1.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar16 * 0.5,*(lVar8 + 4) / 3.0"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar12, 0, 0x18876"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_earthquake1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust2.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar16 * 0.5 + -50.0 + (float)(iVar2 % 100), fVar17 * 0.25 + (float)(iVar3 % 0x4b)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, 0xffffffff, uVar15 + 0x18859"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_dust1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_stone.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar16 * 0.25 + (float)(iVar4 - iVar3 * iVar14), *(lVar8 + 4) / 3.0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 0x4c + 0x19) / 100.0"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_dust2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + 0.0,-100.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 0x1884e"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, 0xffffffff, 0x1888a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, 0, iVar5 + 0x18877"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, 0xffffffff, uVar15 + 0x18859"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "*pfVar7 * 0.5,0.0"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.1"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_earthquake2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust2.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar16 * 0.5 + -150.0 + (float)(iVar2 % 300), fVar17 * 0.25 + (float)(iVar3 % 0x4b)"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_earthquake2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_stone.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar5 % 0x4c + 0x19) / 100.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar16 / 10.0 + (float)(iVar2 - iVar5 * iVar3), *(lVar8 + 4) * 0.25"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_earthquake2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_stone.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar5 % 0x4c + 0x19) / 100.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(aCStack_b0 + (float)(iVar5 % 0xc9) + -100.0,(float)(iVar2 % 0x7e))"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, uVar15 + 0x18859"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust2.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar16 * 0.5 + -150.0 + (float)(iVar5 % 300), fVar17 * 0.5 + (float)(iVar2 % 300)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, uVar15 + 0x18877"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_light.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "1.5"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "aCStack_b0"
+      },
+      {
+       "op": "setRotation",
+       "arg": "(float)iVar5 * 90.0"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, iVar5 + 0x18893"
+      }
+     ]
+    }
+   ],
+   "initEarth_C": [
+    {
+     "frame": "skill/ultimate/earth/earth_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar9, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar10, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar11, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.5,*(lVar13 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar14"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar14"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 - *(this + 0x22c) * 100.0,*(this + 0x22c) * 100.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * 1.25"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 3, 0xfffe77bc"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 - *(this + 0x22c) * 50.0,*(this + 0x22c) * 70.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * 1.25"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0xfffe77bb"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 - *(this + 0x22c) * 10.0,*(this + 0x22c) * 120.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * 1.25"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 4, 0xfffe77ba"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 - *(this + 0x22c) * 10.0,*(this + 0x22c) * 95.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * 1.25"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 0xfffe77b9"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, 0xffffffff, 0x1888a"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_earthquake1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 - *(this + 0x22c) * 0.0,*(this + 0x22c) * 100.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * 1.25"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 3, 0xfffe77b8"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust1.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.5,*(lVar13 + 4) / 3.0"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar9, 0, 0x18876"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_earthquake1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_dust2.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.5 - fVar19 * ((float)(iVar3 % 100) + 50.0), fVar20 * 0.25 + *(this + 0x22c) * (float)(iVar4 % 0x4b)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, 0xffffffff, uVar17 + 0x18859"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_dust1.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_stone.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * ((float)(iVar4 % 0x4c + 0x19) / 100.0)"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.25 + (float)(iVar5 - iVar4 * iVar16), *(lVar13 + 4) / 3.0"
+      }
+     ],
+     "parent": "skill/ultimate/earth/earth_dust2.png"
+    },
+    {
+     "frame": "skill/ultimate/earth/earth_stone.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) * ((float)(iVar3 % 0x4c + 0x19) / 100.0)"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(*(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5 + *(this + 0x22c) * 0.0,*(this + 0x22c) * -80.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 0, iVar2"
+      }
+     ]
+    }
+   ]
+  },
+  "wind": {
+   "initWind": [
+    {
+     "frame": "battle/combine_outline_white.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar9, 1, 0x18896"
+      },
+      {
+       "op": "addChild",
+       "arg": "*(this + 0x248), 1"
+      },
+      {
+       "op": "addChild",
+       "arg": "*(this + 0x250), 1"
+      }
+     ]
+    },
+    {
+     "frame": "battle/hurricane/combine_outline.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar9, 1, 0x18895"
+      }
+     ]
+    },
+    {
+     "frame": "battle/hurricane/combine_outline.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "200"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x250), uVar19, uVar19"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_whirl1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&local_b8 + aCStack_c0)"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "fVar23 / *pfVar7"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "local_b4 / *(lVar8 + 4)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 0, 0x299a0"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_whirl4.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(this_00 + 0.0,10.0)"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "fVar23 / (*pfVar7 * 0.8)"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "fVar23 * -0.75"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 2, 0x299a0"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_zmoon.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(&local_b8 + 0.0,10.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 0x18832"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_zmoon.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScale",
+       "arg": "0.75"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18832"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_wood.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(&local_b8 + 0.0,10.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "fVar21"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar20, iVar3 % 2, iVar2 + 0x18836"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "pVVar13, iVar3 % 3, iVar2 + 0x18836"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_wood.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "fVar21 * -0.75"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "fVar21 * 0.75"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_wood.png"
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_leaf.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(&local_b8 + 0.0,10.0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "fVar21"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar20, iVar2 % 3, uVar19 + 0x1884a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "pVVar13, iVar2 % 3, uVar19 + 0x1884a"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_leaf.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScale",
+       "arg": "fVar21 * 0.75"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_leaf.png"
+    }
+   ],
+   "initWind_C": [
+    {
+     "frame": "skill/ultimate/wind/wind_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar12 * 0.5,*(lVar10 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar5, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/wind/wind_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/wind/wind_circle1.png"
+    }
+   ]
+  },
+  "light": {
+   "initLight": [
+    {
+     "frame": "skill/ultimate/light/light_star.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar4"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar3 % 0x15) * 0.0125 + 0.125"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "(int)((float)(iVar3 % 0xb) * 10.0 + 155.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, iVar17 + 0x1883a"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "&CCPoint::ANCHOR_MIDDLE"
+      },
+      {
+       "op": "setPosition",
+       "arg": "local_98 + fVar18 * 0.5,local_a4 * 0.8"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "0.4"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 0, 0x19a66"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_flash.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.54,0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, 0xffffffff, 0x18831"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(0.54,0.5 + 60.0,60.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 1, 0x27290"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_flashwing.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScaleX",
+       "arg": "10"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.5,*(lVar15 + 4) * 0.5"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_flash.png"
+    },
+    {
+     "frame": "skill/ultimate/light/light_bomb.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar18 * 0.5,*(lVar15 + 4) * 0.5 + 60.0,60.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18832"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_sun.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "1"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar18 * 0.5,*(lVar15 + 4) * 0.5 + 60.0,60.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18835"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_sunlight.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "1"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar18 * 0.5,*(lVar15 + 4) * 0.5 + 60.0,60.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18833"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_sunwing.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "1"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar13, 0xffffffff, 0x18834"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar18 * 0.5,*(lVar15 + 4) * 0.5 + 60.0,60.0)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18834"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/light/light_sunwing.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setRotation",
+       "arg": "90"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar18 * 0.5,*(lVar15 + 4) * 0.5"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_sunwing.png"
+    }
+   ],
+   "initLight_C": [
+    {
+     "frame": "skill/ultimate/light/light_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/light/light_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar12 * 0.5,*(lVar10 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar5, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/light/light_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/light/light_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/light/light_circle1.png"
+    }
+   ]
+  },
+  "dark": {
+   "initDark": [
+    {
+     "frame": "battle/combine_outline_white.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar21 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x18832"
+      }
+     ]
+    },
+    {
+     "frame": "battle/dark/combine_outline.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar21 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x18831"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_hand14.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar21 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "0xbf800000"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 1, 0x18833"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_hand14.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar21 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x250), 1, 0x18834"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_punch.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(fVar21 * 0.5,*(lVar7 + 4) * 0.5 + aCStack_a0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "1.75"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 0x1883b"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_ball.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(fVar21 * 0.5,*(lVar7 + 4) * 0.5 + aCStack_a0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0x1883a"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_explosion1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(fVar21 * 0.5,*(lVar7 + 4) * 0.5 + aCStack_a0)"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0x1883c"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_explosion8.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(fVar21 * 0.5,*(lVar7 + 4) * 0.5 + aCStack_a0)"
+      },
+      {
+       "op": "setRotation",
+       "arg": "90"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, 0x1883d"
+      }
+     ]
+    }
+   ],
+   "initDark_C": [
+    {
+     "frame": "skill/ultimate/dark/dark_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/dark/dark_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar12 * 0.5,*(lVar10 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar5, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/dark/dark_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/dark/dark_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/dark/dark_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/dark/dark_shade.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar12 * 0.5,*(lVar10 + 4) * 0.5 + *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 5, 0x1883f"
+      }
+     ]
+    }
+   ]
+  },
+  "holy": {
+   "initHoly": [
+    {
+     "frame": "skill/ultimate/holy/holy_well.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "~(this_00 - 0.0,62.5)"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, iVar10 + 0x18831"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_spear.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setRotation",
+       "arg": "(fVar15 * 180.0) / 3.1415927 + -90.0"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScale",
+       "arg": "ABS(fVar15 - fVar16) * 0.0013333333 + 0.5"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar9, iVar2 + 1, iVar12 + iVar11"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_spear.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setRotation",
+       "arg": "(fVar16 * 180.0) / 3.1415927 + -90.0"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setScale",
+       "arg": "ABS(fVar15) * -0.0013333333 + 1.5"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar9, 0x179 - iVar2, iVar12 + iVar11"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_spear.png",
+     "loop": 2,
+     "ops": [
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(float)(iVar2 % 6) * 0.1 + 0.5"
+      },
+      {
+       "op": "setRotation",
+       "arg": "(float)(iVar2 % 0x168)"
+      },
+      {
+       "op": "setAnchorPoint",
+       "arg": "&local_b8"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar15 * 0.5,*(lVar7 + 4) * 0.5 + 0.0,(float)(iVar2 % 0x12d))"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 1, iVar13 + iVar11"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_well.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "uVar3"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 0, 0x18834"
+      }
+     ]
+    }
+   ],
+   "initHoly_C": [
+    {
+     "frame": "skill/ultimate/holy/holy_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar5, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/holy/holy_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar12 * 0.5,*(lVar10 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/holy/holy_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/holy/holy_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/holy/holy_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/holy/holy_circle1.png"
+    }
+   ]
+  },
+  "chaos": {
+   "initChaos": [
+    {
+     "frame": "battle/combine_outline_white.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar20 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x1883d"
+      },
+      {
+       "op": "addChild",
+       "arg": "*(this + 0x248), 1"
+      },
+      {
+       "op": "addChild",
+       "arg": "*(this + 0x250), 1"
+      }
+     ]
+    },
+    {
+     "frame": "battle/amagethon/combine_outline.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar20 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x1883c"
+      }
+     ]
+    },
+    {
+     "frame": "battle/amagethon/combine_outline.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "1.0,0.0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "200"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x250), uVar17, uVar17"
+      }
+     ]
+    },
+    {
+     "frame": "scene/colosseum/dust_cover.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "1.0,0.0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "200"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x250), iVar16, iVar2"
+      }
+     ]
+    },
+    {
+     "frame": "scene/colosseum/dust_cover.png",
+     "loop": 1,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "1.0,0.0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "200"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x250), iVar16, iVar2 + 1"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/chaos/chaos_dust1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(0.5,0.0 + aCStack_b8)"
+      },
+      {
+       "op": "setScaleX",
+       "arg": "*(this + 0x288)"
+      },
+      {
+       "op": "setScaleY",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 2, 0x1af40"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/chaos/chaos_meteo1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setAnchorPoint",
+       "arg": "0.5,0.049295776"
+      },
+      {
+       "op": "setPosition",
+       "arg": "0.5,0.049295776"
+      },
+      {
+       "op": "setScale",
+       "arg": "fVar20 / *pfVar6"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x248), 1, 0x1883a"
+      }
+     ]
+    }
+   ],
+   "initChaos_C": [
+    {
+     "frame": "skill/ultimate/chaos/chaos_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "*(this + 0x22c) + 0.25"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, 0xffffffff, 9000"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar8, iVar2 + -1, 0x232a"
+      }
+     ],
+     "parent": "skill/ultimate/chaos/chaos_circle2.png"
+    },
+    {
+     "frame": "skill/ultimate/chaos/chaos_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar12 * 0.5,*(lVar10 + 4) * 0.5"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar5, iVar2 + -1, 9000"
+      }
+     ],
+     "parent": "skill/ultimate/chaos/chaos_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/chaos/chaos_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/chaos/chaos_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/chaos/chaos_circle3.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar11"
+      }
+     ],
+     "parent": "skill/ultimate/chaos/chaos_circle1.png"
+    }
+   ]
+  },
+  "shadow": {
+   "initShadow": [
+    {
+     "frame": "battle/combine_outline_white.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar11 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x18832"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(pCVar10 + 0.0,150.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(pCVar10 + 0.0,150.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(pCVar10 + 0.0,150.0)"
+      },
+      {
+       "op": "setVisible",
+       "arg": "0"
+      }
+     ],
+     "parent": "battle/blackwind/combine_outline.png"
+    },
+    {
+     "frame": "battle/blackwind/combine_outline.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setPosition",
+       "arg": "fVar11 * 0.5,*(lVar7 + 4) * 0.5"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar8, 1, 0x18831"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, 100, 0x1883a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, 100, 0x1883b"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar4, 100, 0x1883c"
+      }
+     ]
+    }
+   ],
+   "initShadow_C": [
+    {
+     "frame": "skill/ultimate/shadow/shadow_marsh1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setScale",
+       "arg": "(*(this + 0x22c) + 0.25) * 0.0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(&CCPoint::ZERO - *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar16, iVar2 + -1, 9000"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/shadow/shadow_circle1.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "fVar17 * 0.5,*(lVar14 + 4) * 0.5"
+      },
+      {
+       "op": "addTo",
+       "arg": "plVar16, iVar2 + -1, 0x2329"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar6, iVar2 + -1, 0x232a"
+      },
+      {
+       "op": "addChildTag",
+       "arg": "plVar7, iVar2 + -1, 0x232b"
+      }
+     ]
+    },
+    {
+     "frame": "skill/ultimate/shadow/shadow_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar15"
+      }
+     ],
+     "parent": "skill/ultimate/shadow/shadow_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/shadow/shadow_circle2.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "uVar15"
+      }
+     ],
+     "parent": "skill/ultimate/shadow/shadow_circle1.png"
+    },
+    {
+     "frame": "skill/ultimate/shadow/shadow_twist.png",
+     "loop": 0,
+     "ops": [
+      {
+       "op": "setScale",
+       "arg": "0"
+      },
+      {
+       "op": "setOpacity",
+       "arg": "0"
+      },
+      {
+       "op": "setPosition",
+       "arg": "~(fVar17 * 0.5,*(lVar14 + 4) * 0.5 + *(this + 0x22c) * 0.0,*(this + 0x22c) * 87.5)"
+      },
+      {
+       "op": "addTo",
+       "arg": "*(this + 0x240), 5, 0x1883f"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
