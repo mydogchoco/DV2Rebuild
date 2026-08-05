@@ -413,7 +413,7 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 			stt.tween_property(st, "modulate:a", 0.0, 0.6 / sp)
 			stt.tween_callback(st.queue_free)
 
-	# `_C` 스파인(holy 날개 · shadow 본체)
+	# `_C` 스파인(holy 날개 · shadow 본체) — 연출 길이만큼 살고 정리된다.
 	var spn: Dictionary = RING_SPINE.get(el, {})
 	if not spn.is_empty() and ResourceLoader.exists(String(spn["scene"])):
 		var holder := Node2D.new()
@@ -425,6 +425,10 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		var ap := _find_anim_player(inst)
 		if ap != null and ap.has_animation(String(spn["anim"])):
 			ap.play(String(spn["anim"]))
+		var life := holder.create_tween()
+		life.tween_interval(maxf(1.0, (float(DURATION.get(el, 9.0)) - RUN_AT - 0.75)) / sp)
+		life.tween_property(holder, "modulate:a", 0.0, 0.75 / sp)
+		life.tween_callback(holder.queue_free)
 
 
 ## 링 본체 안무. 8속성이 같은 계열이고 fire·shadow 만 다르다(`run<El>_C` 실측).
@@ -1359,7 +1363,8 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 const HOLY_SPEARS := 31
 const HOLY_ROUNDS := 3
 const HOLY_BASE_DY := 62.5
-const HOLY_WELL_AT := 4.25      # 영상 신성 +5.7s 에 바닥 폭발이 터진다
+const HOLY_WELL_AT := 0.75      # ASSUMPTION: 영상 — 우물 광구는 창 세례 동안 바닥에서 빛난다
+const HOLY_WELL_OUT := 3.9      # 백색 섬광(run+3.775)과 함께 소멸(영상 +62.5s)
 const HOLY_SPEAR_GAP := 24.166666        # 원작 `initHoly`: x = i × 24.1667 (31개 = 화면 폭)
 
 static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
@@ -1379,12 +1384,12 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	fl.tween_property(flash, "color:a", 0.0, 0.25 / sp)
 	fl.tween_callback(flash.queue_free)
 
-	# 원작 `initHoly`: `holy_well` 은 레이어 중심 − (0, 62.5) 에 **`setScale(0)` · 숨김**으로
-	#   놓였다가 터져 나온다 — 영상(신성 +5.7s)의 바닥에서 솟는 노란 폭발이 이것이다.
-	#   종전엔 원래 크기로 떠 있다가 페이드만 했다.
+	# 원작 `initHoly`: `holy_well` 은 레이어 중심 − (0, 62.5) 에 **`setScale(0)` · 숨김**.
+	#   영상 실측 — 창 세례가 쏟아지는 동안 바닥에서 빛나는 광구가 이것이고,
+	#   백색 섬광(run+3.775)과 **함께 사라진다**(+62.5s). 종전엔 섬광 뒤에 나타나 12초까지 남았다.
 	var well := _spr(el, pfx + "well")
 	if well != null:
-		well.position = base
+		well.position = base + Vector2(0.0, HOLY_BASE_DY * 2.0)
 		well.z_index = 88
 		well.scale = Vector2.ZERO
 		well.visible = false
@@ -1393,9 +1398,9 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		wt.tween_interval(HOLY_WELL_AT / sp)
 		wt.tween_callback(func() -> void: well.visible = true)
 		wt.tween_property(well, "scale", Vector2.ONE, 0.35 / sp).set_ease(Tween.EASE_OUT)
-		wt.tween_property(well, "scale", Vector2.ONE * 1.35, 1.5 / sp)
-		wt.tween_interval(2.5 / sp)
-		wt.tween_property(well, "modulate:a", 0.0, 0.75 / sp)
+		wt.tween_property(well, "scale", Vector2.ONE * 1.35,
+			maxf(0.1, HOLY_WELL_OUT - HOLY_WELL_AT - 0.6) / sp)
+		wt.tween_property(well, "modulate:a", 0.0, 0.25 / sp)
 		wt.tween_callback(well.queue_free)
 
 	# 창(spear) — 2026-08-05 `initHoly` + `runHoly` 를 함께 복원해 **연출이 통째로 바뀌었다**.
@@ -1414,14 +1419,18 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	for r in HOLY_ROUNDS:
 		for i in HOLY_SPEARS:
 			for layer in 2:                     # 앞/뒤 두 벌(원작 tag 0x18835 / +0x1f)
-				var s := _spr(el, pfx + "spear")
+				# 원작 앵커 (0.5, 0.1) — 창(세로로 긴 불꽃 줄기)의 **아래 끝**이 축이라
+				# 몸통이 위로 뻗는다 ⇒ 화면 위쪽을 채우는 '쏟아지는 세례'가 된다(영상 +60.5s).
+				var s := _spr_a(el, pfx + "spear", Vector2(0.5, 0.1))
 				if s == null:
 					return
 				var x := base.x + (float(i) - float(HOLY_SPEARS - 1) * 0.5) * HOLY_SPEAR_GAP
 				var y := base.y - (HOLY_BASE_DY + sin(float(i) * PI / 30.0) * 56.25)
 				s.position = Vector2(x, y)
 				var v := (focus - s.position).normalized()
-				s.rotation = atan2(v.x, -v.y)
+				# 창끝(앵커 반대쪽이 아래)이 초점을 향하도록 — 종전 회전은 180° 뒤집혀
+				# 부채가 **위로** 펼쳐졌다(영상과 반대).
+				s.rotation = atan2(-v.x, v.y)
 				s.z_index = (95 + i) if layer == 0 else (84 - i / 8)
 				s.visible = false
 				s.modulate.a = 0.0
@@ -1448,7 +1457,6 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 const CHAOS_FLASH_AT := 5.0     # 착탄 백색 섬광(영상 혼돈 +7.1s = 구간 내 5.0초쯤)
 const CHAOS_DUST_SEC := 0.05
 const CHAOS_COVERS := 18
-const CHAOS_METEOS := 12
 const CHAOS_METEO_ANCHOR_Y := 0.049295776   # 원작 앵커 — 운석 **꼬리 끝**이 축이다
 
 static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
@@ -1458,24 +1466,25 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	var s_ring := RING_DY
 
-	# 운석 — 원작 `initChaos`: **화면 폭에 맞춰 `setScale(화면폭 / 운석폭)`** 하고
-	#   앵커가 `(0.5, 0.0493)` = **꼬리 끝**이다(그 점을 축으로 기울어 떨어진다).
-	#   영상(혼돈 +3.9s ~ +5.5s)에서도 화면을 가로지르는 큰 운석 하나다 — 여러 개가 아니다.
+	# 운석 — 원작 `initChaos` 의 운석 노드는 **둘뿐**이다(meteo1 = `setScale(W/운석폭)` 화면 폭,
+	#   meteo2 짝). 앵커 `(0.5, 0.0493)` = **꼬리 끝**이 축. 종전의 12개 연속 낙하는 자작이라
+	#   제거(0xc 루프는 dust_cover 몫이었다). 낙하 시각은 영상 실측 — 붉은 물들임(run+0~3) 중에
+	#   빠르게 가로질러 착탄 섬광(run+3~5)으로 이어진다.
 	var mw := float(manifest(el).get(pfx + "meteo1", {}).get("w", 1.0)) * Design.ASSET_SCALE
-	var msc := (vis.x / mw) if mw > 1.0 else 1.0
-	for i in CHAOS_METEOS:
-		var m := _spr_a(el, pfx + ("meteo1" if i % 2 == 0 else "meteo2"),
+	var msc := (vis.x * 0.5 / mw) if mw > 1.0 else 1.0   # W = contentSize.x = 화면 폭 절반
+	for i in 2:
+		var m := _spr_a(el, pfx + ("meteo1" if i == 0 else "meteo2"),
 			Vector2(0.5, CHAOS_METEO_ANCHOR_Y))
 		if m == null:
 			break
-		var tx := at.x + rng.randf_range(-vis.x * 0.25, vis.x * 0.25)
-		m.scale = Vector2.ONE * msc * (1.0 if i == 0 else 0.45)
+		var tx := at.x + (0.0 if i == 0 else rng.randf_range(-vis.x * 0.2, vis.x * 0.2))
+		m.scale = Vector2.ONE * msc * (1.0 if i == 0 else 0.6)
 		m.position = Vector2(tx - dir * 260.0, at.y - 420.0)
 		m.z_index = 100
 		m.rotation = atan2(420.0, dir * 260.0) - PI * 0.5
 		host.add_child(m)
 		var t: Tween = m.create_tween()
-		t.tween_interval(float(i) * 0.28 / sp)
+		t.tween_interval((1.5 + 1.0 * float(i)) / sp)
 		t.tween_property(m, "position", Vector2(tx, at.y), 0.45 / sp)
 		t.tween_property(m, "modulate:a", 0.0, 0.15 / sp)
 		t.tween_callback(m.queue_free)
