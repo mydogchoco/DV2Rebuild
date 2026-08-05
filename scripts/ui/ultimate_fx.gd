@@ -880,10 +880,12 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		mt.scale = Vector2(1.0, 0.0)
 		host.add_child(mt)
 		var t := mt.create_tween()
-		t.tween_property(mt, "scale", Vector2.ONE, 2.0 / sp)
-		# 원작은 `earth_mountain1~15` 를 **낱개 스프라이트 15장**으로 base + (0, 90) 에
-		# 미리 깔아 두고(z=2, tag 0x1fd5f+i, 처음 숨김) 차례로 보인다.
-		_play_frames(mt, el, pfx + "mountain%d", 1, 15, 0.08 / sp)
+		# 영상 실측(2026-08-05) — 산은 즉시가 아니라 **run+1.4쯤부터** 솟아 +2.5에 완성된다
+		# (첫 파도들이 먼저, 산은 그 위에 늦게 선다).
+		t.tween_interval(1.3 / sp)
+		t.tween_callback(func() -> void:
+			_play_frames(mt, el, pfx + "mountain%d", 1, 15, 0.08 / sp))
+		t.tween_property(mt, "scale", Vector2.ONE, 1.3 / sp)
 		t.tween_interval(1.5 / sp)
 		t.tween_property(mt, "modulate:a", 0.0, 0.5 / sp)
 		t.tween_callback(mt.queue_free)
@@ -1188,76 +1190,41 @@ static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		t.tween_property(body, "modulate:a", 0.0, 0.75 / sp)
 		t.tween_callback(body.queue_free)
 
-	# 토네이도 깔때기 — **`wind_whirl4`(바람살 조각) 복제 45장**을 세로로 쌓아 깔때기를
-	#   이룬다(원작 45조각 루프의 몫 — 룬 링을 썼던 종전 배선은 오배정, 사용자 확정 2026-08-05.
-	#   마법진은 바닥의 합체 문양 하나뿐이다). 각 층이 납작하게 돌며 아래부터 차오른다.
-	var n_ring := 45
-	for i in n_ring:
-		var seg := _spr(el, pfx + "whirl%d" % (2 + i % 3))    # whirl2~4 를 섞어 층을 쌓는다
+	# 🔴 2026-08-05 영상 프레임 실측 — **세로 깔때기는 원작에 없다**(룬 링 스택도, whirl 스택도
+	#   전부 자작 오판이었다). 원작 화면(31.5~35.2s) = ① 화면 전체를 **가로로 쓸어가는 강풍
+	#   줄기**(위 whirl 본체) ② 바닥의 초록 룬 링(합체 문양) ③ 잎·가지가 바람 방향으로
+	#   **가로로 날아가는** 흐름 ④ 그 속에서 피격자들이 굴러다니는 것 — 이 넷뿐이다.
+	#   45조각 루프는 아래의 **끊임없이 흘러가는 잔해 스트림** 몫으로 본다.
+	var n_stream := 45
+	for i in n_stream:
+		var seg := _spr(el, pfx + ("leaf" if i % 5 != 4 else "wood"))
 		if seg == null:
 			break
-		var h01 := float(i) / float(n_ring - 1)      # 0 = 바닥, 1 = 꼭대기
-		var rw := lerpf(0.2, 1.35, h01)              # 깔때기 폭(아래 좁고 위 넓다)
-		seg.position = at + Vector2(0.0, -8.0 - h01 * vis.y * 0.86)
-		seg.scale = Vector2.ZERO
-		seg.z_index = 92 + (i % 3)
+		var band_y := at.y - vis.y * (0.12 + 0.55 * rng.randf())   # 중상단 바람띠
+		var spd := rng.randf_range(0.7, 1.3)          # 화면을 가로지르는 시간
+		var t0 := 0.3 + rng.randf() * 3.6             # 4초에 걸쳐 계속 흘러든다
+		seg.position = Vector2(at.x + dir * (vis.x * 0.55 + rng.randf_range(0.0, 220.0)),
+			band_y)                                   # 시전자 진영 밖에서 흘러든다
+		seg.scale *= rng.randf_range(0.6, 1.1)
+		seg.z_index = 96 + (i % 3)
 		seg.modulate.a = 0.0
+		seg.rotation_degrees = rng.randf_range(0.0, 360.0)
 		host.add_child(seg)
-		var rt := seg.create_tween()
-		rt.tween_interval((0.25 + h01 * 0.9) / sp)   # 아래부터 차오른다
-		rt.tween_property(seg, "modulate:a", 0.85, 0.3 / sp)
-		rt.parallel().tween_property(seg, "scale", Vector2(rw, rw * 0.22), 0.4 / sp)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		rt.tween_interval((3.6 - h01 * 0.9) / sp)
-		rt.tween_property(seg, "modulate:a", 0.0, 0.6 / sp)
-		rt.tween_callback(seg.queue_free)
-		var rspin := seg.create_tween()              # 층이 돈다(회오리 회전)
-		rspin.tween_property(seg, "rotation_degrees",
-			WIND_SPIN_DEG * (1.0 if i % 2 == 0 else -1.0), WIND_SPIN_SEC / sp)
-		# 좌우로 흔들리는 축 — 토네이도가 살아 있는 느낌.
-		var sway := seg.create_tween().set_loops(3)
-		sway.tween_property(seg, "position:x", at.x + sin(h01 * 5.0) * 20.0 + 25.0, 0.9 / sp)\
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		sway.tween_property(seg, "position:x", at.x + sin(h01 * 5.0) * 20.0 - 25.0, 0.9 / sp)\
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		var tw := seg.create_tween()
+		tw.tween_interval(t0 / sp)
+		tw.tween_property(seg, "modulate:a", 1.0, 0.1 / sp)
+		# 바람 방향(−dir = 시전자→피격자)으로 가로지른다 — 살짝 물결치며.
+		tw.tween_property(seg, "position",
+			Vector2(-dir * (vis.x + 260.0), rng.randf_range(-60.0, 60.0)), spd / sp)\
+			.as_relative()
+		tw.tween_callback(seg.queue_free)
+		var rot := seg.create_tween()
+		rot.tween_interval(t0 / sp)
+		rot.tween_property(seg, "rotation_degrees",
+			(360.0 + rng.randf() * 360.0) * (1.0 if i % 2 == 0 else -1.0),
+			spd / sp).as_relative()
 
-	# 잔해 — 🔴 2026-08-05 재구성: 원작은 **토네이도**다(45조각 루프 + 나무·잎이 깔때기를
-	#   감아 돈다). 종전엔 각자 제자리 회전만 해서 토네이도 형상이 안 만들어졌다(사용자 실측).
-	#   조립(궤도 수식)은 스택 소실이라 우리 재구성(ASSUMPTION) — 프레임·개수는 원작 그대로:
-	#   잎 `rand%8+12` · 나무 `rand%3`(+2 하한) · 45조각 루프.
-	#   깔때기: 바닥 반지름 40 → 꼭대기 반지름 화면폭 0.45, 조각이 축을 돌며 상승한다.
-	var funnel := func(nd: Node2D, i: int, r: RandomNumberGenerator) -> void:
-		var period := r.randf_range(0.55, 0.9)          # 한 바퀴 도는 시간
-		var rise := r.randf_range(2.2, 3.4)             # 바닥→꼭대기 상승 시간
-		var phase := r.randf_range(0.0, TAU)
-		var life := r.randf_range(4.5, 6.0)
-		var base_s: Vector2 = nd.scale
-		nd.modulate.a = 0.0
-		var tw: Tween = nd.create_tween()
-		tw.tween_interval(float(i) * 0.06 / sp)
-		tw.tween_property(nd, "modulate:a", 1.0, 0.2 / sp)
-		var mt: Tween = nd.create_tween()
-		mt.tween_method(func(x: float) -> void:
-			if not is_instance_valid(nd):
-				return
-			var h := fmod(x / rise, 1.0)                 # 0(바닥) → 1(꼭대기) 반복
-			var radius := lerpf(40.0, vis.x * 0.45, h)
-			var ang := phase + TAU * x / period
-			nd.position = at + Vector2(cos(ang) * radius, -20.0 - h * (vis.y * 0.78))
-			# 축 뒤로 돌 때 작아지고 앞에서 커진다 — 깊이감.
-			var depth := 0.75 + 0.35 * (0.5 + 0.5 * sin(ang))
-			nd.scale = base_s * depth * (0.8 + h * 0.5)
-			nd.z_index = 98 if sin(ang) > 0.0 else 91
-			nd.rotation = ang * 0.5,
-			0.0, life, life / sp)
-		var ft2: Tween = nd.create_tween()
-		ft2.tween_interval((float(i) * 0.06 + life - 0.4) / sp)
-		ft2.tween_property(nd, "modulate:a", 0.0, 0.4 / sp)
-		ft2.tween_callback(nd.queue_free)
-	_swarm(host, el, pfx + "leaf", int(rng.randi() % 8) + WIND_LEAVES, at,
-		Vector2(30.0, 20.0), 96, rng, funnel)
-	_swarm(host, el, pfx + "wood", int(rng.randi() % 3) + WIND_WOODS, at,
-		Vector2(30.0, 20.0), 95, rng, funnel)
+	# (잔해는 위의 가로 스트림 45조각이 전부다 — 종전의 궤도 깔때기 잔해는 자작이라 제거.)
 
 	# zmoon — ⚫ 표시하지 않는다(2026-08-05). `initWind` 가 두 장을 만들지만(tag 0x18832)
 	#   위치 인자가 추출에서 소실됐고, **레퍼런스 영상 바람 구간 전체에서 한 번도 보이지 않는다**
