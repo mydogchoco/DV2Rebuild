@@ -1535,70 +1535,86 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	fl.tween_property(flash, "color:a", 0.0, 0.25 / sp)
 	fl.tween_callback(flash.queue_free)
 
-	# 원작 `initHoly`: `holy_well` 은 레이어 중심 − (0, 62.5) 에 **`setScale(0)` · 숨김**.
-	#   영상 실측 — 창 세례가 쏟아지는 동안 바닥에서 빛나는 광구가 이것이고,
-	#   백색 섬광(run+3.775)과 **함께 사라진다**(+62.5s). 종전엔 섬광 뒤에 나타나 12초까지 남았다.
+	# 우물 — 🔴 2026-08-05 영상 프레임 실측: 작은 광구가 먼저 맺혀 있다가(58.6~59.3s)
+	#   **run 직후 웅덩이로 터지고**(59.5s), 거기서 창 분수가 솟는다. 섬광과 함께 소멸.
+	var pool := base + Vector2(0.0, HOLY_BASE_DY * 2.0)
 	var well := _spr(el, pfx + "well")
 	if well != null:
-		well.position = base + Vector2(0.0, HOLY_BASE_DY * 2.0)
+		well.position = pool
 		well.z_index = 88
-		well.scale = Vector2.ZERO
-		well.visible = false
+		well.scale = Vector2.ONE * 0.35            # 맺힌 광구
 		host.add_child(well)
 		var wt := well.create_tween()
-		wt.tween_interval(HOLY_WELL_AT / sp)
-		wt.tween_callback(func() -> void: well.visible = true)
-		wt.tween_property(well, "scale", Vector2.ONE, 0.35 / sp).set_ease(Tween.EASE_OUT)
+		wt.tween_interval(0.2 / sp)
+		wt.tween_property(well, "scale", Vector2.ONE, 0.3 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)   # 웅덩이로 폭발
 		wt.tween_property(well, "scale", Vector2.ONE * 1.35,
-			maxf(0.1, HOLY_WELL_OUT - HOLY_WELL_AT - 0.6) / sp)
+			maxf(0.1, HOLY_WELL_OUT - 0.5) / sp)
 		wt.tween_property(well, "modulate:a", 0.0, 0.25 / sp)
 		wt.tween_callback(well.queue_free)
 
-	# 창(spear) — 2026-08-05 `initHoly` + `runHoly` 를 함께 복원해 **연출이 통째로 바뀌었다**.
-	# 종전엔 "위에서 떨어진다"였는데 원작은 **가로 한 줄로 늘어서 초점으로 모여든다**:
-	#   배치(`initHoly`) : x = i × 24.1667 (31개가 화면 폭을 채운다)
-	#                      y = layer.y + 62.5 + sin(i × 6°) × 56.25
-	#                      rotation = 초점 `(layer.x, layer.y − 125)` 을 향하도록 atan2(...) − 90
-	#                      anchor (0.5, 0.1)
-	#   안무(`runHoly`)  : Delay(base) → Delay(r × 0.2) → Delay(i × 0.0125 + 1.25) → Show
-	#                      → FadeTo(0.25, 200)
-	#                      → EaseIn(MoveBy(1.775 − 0.1r − 0.0125i, 자기 방향 × 200), 0.3)
-	#                      → Spawn(ScaleBy(0.1, 1.2), MoveTo(0.1, 중심), FadeTo(0.1, 100))
-	#                      → Spawn(MoveBy(0.75, 자기 방향 × −50), FadeTo(0.5, 0)) → remove
-	#   라운드는 3(`if (2 < r) return`), 한 라운드에 두 벌(앞/뒤) × 31개.
-	var focus := base + Vector2(0.0, 125.0)         # cocos −125 ⇒ Godot +125(아래)
+	# 창(spear) — 🔴 2026-08-05 영상 프레임 실측 재구성: 하늘에서 떨어지는 게 아니라
+	#   **웅덩이에서 분수처럼 위로 분출**했다가(59.7~61.3s 부채꼴 fountain) 되돌아 떨어진다.
+	#   해독된 `runHoly` 와도 부합한다 — `MoveBy(자기 방향 × 200)`(분출) → `MoveTo(중심)`(낙하).
+	#   배치만 종전 해석(가로 한 줄)이 틀렸다: 시작점 = 웅덩이, 방향 = 위쪽 부채꼴.
 	for r in HOLY_ROUNDS:
 		for i in HOLY_SPEARS:
 			for layer in 2:                     # 앞/뒤 두 벌(원작 tag 0x18835 / +0x1f)
-				# 원작 앵커 (0.5, 0.1) — 창(세로로 긴 불꽃 줄기)의 **아래 끝**이 축이라
-				# 몸통이 위로 뻗는다 ⇒ 화면 위쪽을 채우는 '쏟아지는 세례'가 된다(영상 +60.5s).
 				var s := _spr_a(el, pfx + "spear", Vector2(0.5, 0.1))
 				if s == null:
 					return
-				var x := base.x + (float(i) - float(HOLY_SPEARS - 1) * 0.5) * HOLY_SPEAR_GAP
-				var y := base.y - (HOLY_BASE_DY + sin(float(i) * PI / 30.0) * 56.25)
-				s.position = Vector2(x, y)
-				var v := (focus - s.position).normalized()
-				# 창끝(앵커 반대쪽이 아래)이 초점을 향하도록 — 종전 회전은 180° 뒤집혀
-				# 부채가 **위로** 펼쳐졌다(영상과 반대).
-				s.rotation = atan2(-v.x, v.y)
+				s.position = pool + Vector2(rng.randf_range(-50.0, 50.0),
+					rng.randf_range(-14.0, 6.0))
+				# 위쪽 부채꼴(−160°~−20°) — 라운드마다 살짝 어긋난다.
+				var ang := deg_to_rad(lerpf(-160.0, -20.0, float(i) / float(HOLY_SPEARS - 1))
+					+ float(r) * 7.0 + rng.randf_range(-4.0, 4.0))
+				var v := Vector2(cos(ang), sin(ang))
+				s.rotation = atan2(v.x, -v.y)      # 창끝이 분출 방향을 향한다(앵커 0.5/0.1)
 				s.z_index = (95 + i) if layer == 0 else (84 - i / 8)
 				s.visible = false
 				s.modulate.a = 0.0
 				host.add_child(s)
 				var fly := maxf(0.1, 1.775 - 0.1 * float(r) - 0.0125 * float(i))
+				var reach := rng.randf_range(210.0, 380.0)   # 원작 `자기 방향 × 200` + 산포
+				var land := Vector2(base.x + v.x * rng.randf_range(160.0, 420.0),
+					base.y + HOLY_BASE_DY + rng.randf_range(40.0, 110.0))
 				var t: Tween = s.create_tween()
-				t.tween_interval((float(r) * 0.2 + float(i) * 0.0125 + 1.25) / sp)
+				t.tween_interval((float(r) * 0.2 + float(i) * 0.0125 + 0.4) / sp)
 				t.tween_callback(func() -> void: s.visible = true)
-				t.tween_property(s, "modulate:a", 200.0 / 255.0, 0.25 / sp)
-				t.tween_property(s, "position", v * 200.0, fly / sp)\
-					.as_relative().set_ease(Tween.EASE_IN)
-				t.tween_property(s, "position", base, 0.1 / sp)
-				t.parallel().tween_property(s, "scale", s.scale * 1.2, 0.1 / sp)
-				t.parallel().tween_property(s, "modulate:a", 100.0 / 255.0, 0.1 / sp)
-				t.tween_property(s, "position", v * -50.0, 0.75 / sp).as_relative()
-				t.parallel().tween_property(s, "modulate:a", 0.0, 0.5 / sp)
+				t.tween_property(s, "modulate:a", 200.0 / 255.0, 0.15 / sp)
+				t.parallel().tween_property(s, "position", v * reach, fly * 0.55 / sp)\
+					.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)  # 분출
+				t.tween_property(s, "position", land, fly * 0.45 / sp)\
+					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)                 # 낙하
+				t.parallel().tween_property(s, "modulate:a", 100.0 / 255.0, fly * 0.45 / sp)
+				t.tween_property(s, "modulate:a", 0.0, 0.3 / sp)
 				t.tween_callback(s.queue_free)
+
+	# 깃털 — 영상 64.0~65.0s: 섬광이 걷히며 **흰 깃털이 화면 가득** 흩날린다.
+	#   프레임 = `common/feather1~6`(레벨업 연출과 공유하는 실물 보유분).
+	for i in 24:
+		var fe := AtlasUI.spr_cocos("common_ui", "common_feather%d" % (1 + i % 6))
+		if fe == null:
+			break
+		var ctr_h := _screen_center(host)
+		fe.position = ctr_h + Vector2(rng.randf_range(-vis.x * 0.5, vis.x * 0.5),
+			rng.randf_range(-vis.y * 0.55, -vis.y * 0.1))
+		fe.scale = Vector2.ONE * rng.randf_range(0.7, 1.2)
+		fe.z_index = Z_FLASH + 1                   # 섬광이 걷힐 때 그 위에서 떨어진다
+		fe.modulate.a = 0.0
+		fe.rotation_degrees = rng.randf_range(-40.0, 40.0)
+		host.add_child(fe)
+		var ft2 := fe.create_tween()
+		ft2.tween_interval((3.9 + float(i % 8) * 0.08) / sp)
+		ft2.tween_property(fe, "modulate:a", 1.0, 0.2 / sp)
+		ft2.tween_property(fe, "position",
+			Vector2(rng.randf_range(-70.0, 70.0), vis.y * rng.randf_range(0.35, 0.6)),
+			rng.randf_range(1.2, 2.0) / sp).as_relative()\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		ft2.parallel().tween_property(fe, "rotation_degrees",
+			rng.randf_range(-90.0, 90.0), 1.6 / sp).as_relative()
+		ft2.tween_property(fe, "modulate:a", 0.0, 0.4 / sp)
+		ft2.tween_callback(fe.queue_free)
 
 
 # ── chaos (10.65초) — 운석과 먼지 ────────────────────────────────────────────
@@ -1792,8 +1808,8 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	var back := 0.0
 
 	match el:
-		"fire", "dark", "shadow":
-			# fire 실측(dark·shadow 는 ASSUMPTION 근사): 홉 → 상승 → 대기 → 복귀
+		"fire", "shadow":
+			# fire 실측(shadow 는 ASSUMPTION 근사): 홉 → 상승 → 대기 → 복귀
 			var t := n.create_tween()
 			t.tween_interval((ACT_AT + 0.25) / sp)
 			_jump_by(t, n, Vector2(0.0, s * 75.0), 50.0, 1, 0.15 / sp)
@@ -1805,6 +1821,21 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			# 격양(입 벌림)은 화이트아웃 직전 — 영상 정합(사용자 확정 2026-08-05).
 			anim_at.call(ACT_AT + 4.2, "ultimate2")
 			back = ACT_AT + 0.25 + 0.15 + 4.35 + 3.0 + 0.15
+		"dark":
+			# 영상 실측(+48.25~48.75s): 시전 직후 **흑자색으로 물들며 소멸** — 소용돌이가
+			# 대신 싸우고, 폭발 뒤(run+7.6쯤) 제자리에 재등장한다.
+			var t := n.create_tween()
+			t.tween_interval((LEAD + 0.2) / sp)
+			t.tween_property(n, "modulate", Color(0.25, 0.1, 0.35), 0.25 / sp)
+			t.tween_property(n, "modulate:a", 0.0, 0.3 / sp)
+			t.tween_interval(7.3 / sp)
+			t.tween_callback(func() -> void:
+				if is_instance_valid(n):
+					n.modulate = Color(1, 1, 1, 0)
+					n.position = home)
+			t.tween_property(n, "modulate:a", 1.0, 0.4 / sp)
+			anim_at.call(LEAD + 0.1, "ultimate1")
+			back = LEAD + 0.2 + 0.25 + 0.3 + 7.3 + 0.4
 		"aqua":
 			var t := n.create_tween()
 			t.tween_interval((ACT_AT + 2.75) / sp)

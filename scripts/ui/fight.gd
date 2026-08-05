@@ -1561,6 +1561,10 @@ func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
 	var vis := _vis()
 	var stage := Vector2(ULT_DX if bool(v.get("mine", false)) else vis.x - ULT_DX,
 		vis.y * 0.5 + ULT_DROP)
+	# 어둠 — 피격자는 무대점이 아니라 **소용돌이 중심**(화면 중앙 중단)으로 빨려 들어가
+	# 그 안에서 저글링당하다 폭발에 튕겨 나온다(영상 51.25~53.5s 실측).
+	if element == "dark":
+		stage = Vector2(vis.x * 0.5, vis.y * 0.45)
 	var lead := maxf(float(k[0]), at_sec - (sec + gap) * float(n_j) - 0.6)
 	var old = v.get("move_tw")
 	if old is Tween and (old as Tween).is_valid():

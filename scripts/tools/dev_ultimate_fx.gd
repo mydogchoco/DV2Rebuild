@@ -377,6 +377,16 @@ func _play() -> void:
 		# `runSpineWithAnimationName`), 끝나면 wait 복귀.
 		# 높이는 원작 그대로(S×) — 종전 ×0.35 축소는 영상(화면 절반까지 던져진다)과 달랐다.
 		var home := _target_home
+		if el == "dark":
+			# 어둠 — 소용돌이 중심(화면 중앙 중단)으로 빨려 들어가 저글링(영상 실측).
+			var vis2 := get_viewport_rect().size
+			var suck := Vector2(vis2.x * 0.5, vis2.y * 0.45)
+			var pull := _target.create_tween()
+			pull.tween_interval(UltimateFx.RUN_AT + 2.3)
+			pull.tween_property(_target, "position", suck, 0.4)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			_actor_tweens.append(pull)
+			home = suck
 		var k: Array = FightScene.ULT_KNOCK.get(el, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
 		var n_j := int(k[1])
 		var jsec := float(k[2])
@@ -417,6 +427,9 @@ func _play() -> void:
 		tt.tween_property(_target, "position", home, 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tt.tween_callback(func() -> void: tplay.call("wait"))
+		if home != _target_home:            # 흡입형(어둠)은 마지막에 제자리로 떨어진다
+			tt.tween_property(_target, "position", _target_home, 0.3)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		_actor_tweens.append(tt)
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
