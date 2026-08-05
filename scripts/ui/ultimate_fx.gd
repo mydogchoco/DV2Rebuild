@@ -128,7 +128,17 @@ const FALLBACK_FRAME_SEC := 0.08
 
 # ── 진입점 ──────────────────────────────────────────────────────────────────
 ## 각성기 재생. host 아래에 스프라이트를 붙인다(좌표는 host 로컬).
-##   ctx = {element, at(몸통 중앙), scale(S), dir(+1/-1), speed, alive(Callable), mat}
+##   ctx = {element, at(**화면 중앙**), ring_at(시전자 발밑), scale(S), dir(+1/-1),
+##          speed, alive(Callable), mat}
+##
+## 🔴 2026-08-05 기준점 정정 — 연출 본체는 **시전자가 아니라 화면 중앙 기준**이다.
+##   근거: `initAqua` 가 자기 `getPosition()` 을 `this+0x270` 에 저장해 **`dir`(±1) 을 고르는
+##   데에만** 쓰고, 실제 배치는 전부 `this->getContentSize()`(= 화면 크기)의 `W*0.5, H*0.5`
+##   에서 잰다. 다른 속성도 같다(`initFire` 앵커표 = `중심 + dir*W*0.25 …`).
+##   ⇒ 시전자는 **좌우 반전 방향만** 정하고, 불기둥·물·태양·구슬은 화면 한가운데 난다.
+##   사용자 제공 원작 영상(콜로세움)이 이를 뒷받침한다 — 불은 화면 바닥을 가로지르고,
+##   물은 화면을 채우고, 어둠 구슬은 화면 가운데다.
+##   단 **콜로세움 바닥 링**(`init<El>_C`)만은 `CCPoint::ZERO − (0, S*87.5)` = 시전자 발밑이다.
 ## 반환 = 총 길이(초). 원작 `getDuration()` 콜로세움 표.
 static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	if not is_instance_valid(host) or not host.is_inside_tree():
@@ -138,6 +148,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	if man.is_empty():
 		return 0.0
 	var at: Vector2 = ctx.get("at", Vector2.ZERO)
+	var ring_at: Vector2 = ctx.get("ring_at", at)
 	var s := float(ctx.get("scale", 1.0))
 	var dir := float(ctx.get("dir", 1.0))
 	var sp := maxf(0.05, float(ctx.get("speed", 1.0)))
@@ -148,7 +159,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
 	_combine_outline(host, el, at, sp)   # dark·shadow·wind·chaos 만 갖는 회전 문양
-	_build_ring(host, el, at, s, sp, mat)
+	_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	match el:

@@ -329,9 +329,13 @@ func _play() -> void:
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
 	# 1vs1 기준(scale 1.0), 시전자는 왼쪽에 선 것으로 본다(dir +1).
 	# `at` = **시전자 몸통 중앙**(대전에서도 발밑이 아니라 몸통 중앙을 넘긴다).
+	# 대전과 같은 인자 모양 — 본체는 **화면 중앙**, 바닥 링만 시전자 발밑.
 	_last_dur = UltimateFx.play(_stage, {
-		"element": el, "at": Vector2(-STAGE_DX, -_caster_h * 0.5), "scale": 1.0, "dir": 1.0,
-		"speed": 1.0, "mat": _pma,
+		"element": el,
+		"at": _stage.get_global_transform_with_canvas().affine_inverse()
+			* (get_viewport_rect().size * 0.5),
+		"ring_at": Vector2(-STAGE_DX, -_caster_h * 0.5),
+		"scale": 1.0, "dir": 1.0, "speed": 1.0, "mat": _pma,
 	})
 
 

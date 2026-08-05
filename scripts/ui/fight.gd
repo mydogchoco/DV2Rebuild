@@ -3084,9 +3084,13 @@ func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 		var vis := _vis()
 		caster = Vector2(ULT_DX if bool(atk.get("mine", false)) else vis.x - ULT_DX,
 			vis.y * 0.5 + ULT_DROP) - Vector2(0.0, float(atk.get("dragon_h", DRAGON_H)) * 0.5)
+	# 🔴 2026-08-05 — 연출 본체의 기준은 **화면 중앙**이다(원작 `init<El>` 이 전부
+	#   `this->getContentSize()` 의 W*0.5·H*0.5 에서 잰다). 시전자는 좌우 반전 방향만 정한다.
+	#   바닥 링만 `init<El>_C` 대로 시전자 발밑(`ring_at`)이다.
 	UltimateFx.play(self, {
 		"element": String(atk.get("element", "")),
-		"at": caster,
+		"at": _vis() * 0.5,
+		"ring_at": caster,
 		# 원작 `this+0x22c` = 시전자 레이어 스케일(3v3 = 0.75, 1v1 = 1.0).
 		"scale": DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO,
 		# 내 팀은 왼쪽에 선다 ⇒ 오른쪽으로 편다(+1).
