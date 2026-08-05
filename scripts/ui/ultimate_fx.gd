@@ -319,10 +319,14 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		base.scale *= (s + 0.25)       # 원작 `setScale(S + 0.25)` — 시작 배율부터 크다
 		host.add_child(base)
 		# nest = base 의 **자식**. 원작은 base 의 contentSize 중심에 놓는다 = 로컬 (0,0).
+		# ⚠️ 원작 circle2 는 `setOpacity(0)` 시작이고 cocos 는 부모 알파가 전파되지 않는다 —
+		#   Godot 은 전파되므로 self_modulate 로 따로 꺼 둔다(안 끄면 base 의 ×10 버스트 때
+		#   문양이 화면을 다 덮는다 — 2026-08-05 땅 캡처 실측).
 		if String(cfg.get("nest", "")) != "":
 			var nest := _spr(el, pfx + String(cfg["nest"]))
 			if nest != null:
 				nest.z_index = -1
+				nest.modulate.a = 0.0
 				base.add_child(nest)
 		_anim_ring_base(base, el, s, sp)
 
@@ -345,6 +349,62 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 			e.position = pos
 			e.z_index = 95
 			host.add_child(e)
+
+	# 땅 전용 — `initEarth_C` 는 링 자리에 **지진 조각 5장(S×1.25) + 먼지 + 돌**을 더 깐다.
+	# 레퍼런스 영상: 시전자 발밑이 통째로 먼지구름에 싸인다(+25s 오른쪽 구름).
+	# 오프셋 5벌 = 레이아웃 추출값. ASSUMPTION: 등장/소멸 타이밍(runEarth_C 세부 미해독) —
+	# 영상 실측(등장 run+0.3 · 유지 ~5초)으로 맞춘다.
+	if el == "earth":
+		var qoff := [Vector2(-100, -100), Vector2(-50, -70), Vector2(-10, -120),
+			Vector2(-10, -95), Vector2(0, -100)]
+		for i in qoff.size():
+			var q := _spr(el, pfx + "earthquake1")
+			if q == null:
+				break
+			q.position = pos + (qoff[i] as Vector2) * s
+			q.scale *= s * 1.25
+			q.z_index = 94
+			q.modulate.a = 0.0
+			host.add_child(q)
+			var qt := q.create_tween()
+			qt.tween_interval((0.3 + 0.1 * float(i)) / sp)
+			qt.tween_property(q, "modulate:a", 1.0, 0.25 / sp)
+			qt.tween_interval(4.0 / sp)
+			qt.tween_property(q, "modulate:a", 0.0, 0.75 / sp)
+			qt.tween_callback(q.queue_free)
+		for k in 2:
+			var du := _spr(el, pfx + ("dust1" if k == 0 else "dust2"))
+			if du == null:
+				break
+			du.position = pos + Vector2(-40.0 + 80.0 * float(k), -30.0)
+			du.z_index = 96
+			du.modulate.a = 0.0
+			host.add_child(du)
+			var dt := du.create_tween()
+			dt.tween_interval(0.4 / sp)
+			dt.tween_property(du, "modulate:a", 1.0, 0.3 / sp)
+			dt.parallel().tween_property(du, "scale", du.scale * 1.35, 4.0 / sp)
+			dt.tween_interval(3.2 / sp)
+			dt.tween_property(du, "modulate:a", 0.0, 0.75 / sp)
+			dt.tween_callback(du.queue_free)
+		var rng2 := RandomNumberGenerator.new()
+		rng2.randomize()
+		for k in 8:
+			var st := _spr(el, pfx + "stone")
+			if st == null:
+				break
+			st.position = pos + Vector2(rng2.randf_range(-90.0, 90.0),
+				rng2.randf_range(-70.0, 10.0))
+			st.scale *= s * (float(rng2.randi() % 0x4c + 0x19) / 100.0)   # 원작 (rand%76+25)/100
+			st.z_index = 95
+			st.modulate.a = 0.0
+			host.add_child(st)
+			var stt := st.create_tween()
+			stt.tween_interval((0.5 + 0.08 * float(k)) / sp)
+			stt.tween_property(st, "modulate:a", 1.0, 0.2 / sp)
+			stt.tween_interval(3.6 / sp)
+			stt.tween_property(st, "modulate:a", 0.0, 0.6 / sp)
+			stt.tween_callback(st.queue_free)
 
 	# `_C` 스파인(holy 날개 · shadow 본체)
 	var spn: Dictionary = RING_SPINE.get(el, {})
@@ -767,7 +827,8 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		host.add_child(lg)
 		var lt := lg.create_tween()
 		lt.tween_interval((0.6 + float(i) * 0.1) / sp)
-		lt.tween_property(lg, "modulate:a", 1.0, 0.25 / sp)
+		# ASSUMPTION: 최대 알파 — 레퍼런스에서 광선이 화면을 지배하지 않는다(은은한 배광).
+		lt.tween_property(lg, "modulate:a", 0.55, 0.25 / sp)
 		lt.tween_interval(1.5 / sp)
 		lt.tween_property(lg, "modulate:a", 0.0, 0.75 / sp)
 		lt.tween_callback(lg.queue_free)
@@ -889,28 +950,42 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		st.tween_property(surf, "modulate:a", 0.0, 0.5 / sp)
 		st.tween_callback(surf.queue_free)
 
-	# 상어 — 원작 `initAqua`: scaleY 1.75 · scaleX = dir×1.75 · rotation = dir×15° ·
+	# 상어(tag 0x18893) — 원작 `initAqua`: scaleY 1.75 · scaleX = dir×1.75 · rotation = dir×15° ·
 	#   pos = 화면중앙 + (dir×(중앙x + 상어폭×1.5), −80) = **화면 밖 옆구리**에서 들어온다.
+	#
+	# 🔴 2026-08-05 재이식 — 종전의 "JumpTo(75)→MoveBy→JumpTo(50)" 는 **다른 노드**(tag 0x18830)의
+	#   시퀀스였다. 진짜 상어(0x18893)는 `runAqua` 실측(sequences.md L1745):
+	#   Delay(5.0) → [Rotate+MoveTo(0.15)] → [Rotate+MoveTo(0.12)] → 히트스톱(0.2)
+	#   → [ScaleTo(0.15, ×1.8/1.825)+Rotate+MoveTo] → 히트스톱 해제 → [물기 펄스+MoveTo(0.05)]
+	#   → [MoveBy(0.5)+RotateBy(−)+ScaleTo(0.05)×2] → [MoveBy(0.5)+FadeTo(0.5, 0)]
+	#   = **5초 뒤에 나타나 1.5초 만에 물고 지나가는 돌진**이다(영상 +17.3s 실측 일치).
+	#   MoveTo 목적지들은 스택 소실 → 피격 지점(base)으로 수렴하는 경유점으로 근사(ASSUMPTION).
 	var shark := _spr(el, pfx + "shark1")
 	if shark != null:
 		var vis: Vector2 = host.get_viewport().get_visible_rect().size
 		var sk_w := float(manifest(el).get(pfx + "shark1", {}).get("w", 200.0)) * Design.ASSET_SCALE
-		shark.position = ctr0 + Vector2(dir * (vis.x * 0.5 + sk_w * 1.5), 80.0)
-		shark.z_index = 100
-		shark.scale = Vector2(-dir * AQUA_SHARK_S, AQUA_SHARK_S)
-		shark.rotation_degrees = -dir * 15.0
+		var start := ctr0 + Vector2(dir * -(vis.x * 0.5 + sk_w * 1.5), 80.0)
+		shark.position = start
+		shark.z_index = 96                       # 원작 z 0 — 거품(z rand%5)보다 뒤
+		shark.scale = Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S)
+		shark.rotation_degrees = dir * 15.0
 		host.add_child(shark)
 		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
+		var bite := at                            # 피격 진영 기준점
 		var kt := shark.create_tween()
-		# 원작 `runAqua` 조립(2026-08-05 복원): 목적지는 **화면 중앙**이지 앞이 아니다.
-		#   JumpTo(0.25, center, 75, 1) → MoveBy(0.5, (0,−50)) → JumpTo(0.25, center+(0,217.5), 50, 1)
-		#   → Delay(5.25) → FadeTo(0.5, 0)
-		var ctr := ctr0
-		_arc(kt, shark, ctr, 75.0, 0.25 / sp)
-		kt.tween_property(shark, "position", Vector2(0.0, 50.0), 0.5 / sp).as_relative()
-		_arc(kt, shark, ctr + Vector2(0.0, -217.5), 50.0, 0.25 / sp)
-		kt.tween_interval(5.25 / sp)
-		kt.tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
+		kt.tween_interval(5.0 / sp)
+		kt.tween_property(shark, "position", start.lerp(bite, 0.5), 0.15 / sp)
+		kt.parallel().tween_property(shark, "rotation_degrees", dir * 5.0, 0.15 / sp)
+		kt.tween_property(shark, "position", start.lerp(bite, 0.8), 0.12 / sp)
+		kt.tween_property(shark, "position", bite, 0.15 / sp)
+		kt.parallel().tween_property(shark, "scale",
+			Vector2(dir * AQUA_SHARK_S * 1.03, 1.825), 0.15 / sp)
+		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, 1.7), 0.05 / sp)
+		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S), 0.05 / sp)
+		kt.tween_property(shark, "position", Vector2(dir * 90.0, -40.0), 0.5 / sp).as_relative()
+		kt.parallel().tween_property(shark, "rotation_degrees", -dir * 25.0, 0.5 / sp)
+		kt.tween_property(shark, "position", Vector2(dir * 220.0, -60.0), 0.5 / sp).as_relative()
+		kt.parallel().tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
 		kt.tween_callback(shark.queue_free)
 
 	# 거품 — 원작은 **화면 바닥 전폭**에 뿌린다(pos = (rand % 화면폭, 0)), scale (rand%5)×0.25,
@@ -929,18 +1004,25 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 			t.tween_property(n, "modulate:a", 0.0, 0.25 / sp)
 			t.tween_callback(n.queue_free))
 
-	# 물고기 5종.
+	# 물고기 5종 — 원작(sequences.md L1253): Delay(f + 2.5) → MoveTo((i%4)*0.1+0.1)
+	#   → MoveBy(0.75)×2 → MoveBy(0.15) → MoveTo(0.05) = **2.5초부터 빠르게 가로지른다**.
 	for i in 5:
 		var f := _spr(el, pfx + "fish%d" % (i + 1))
 		if f == null:
 			break
-		f.position = at + Vector2(-dir * 300.0, rng.randf_range(-80.0, 40.0))
+		f.position = at + Vector2(-dir * 340.0, rng.randf_range(-80.0, 40.0))
 		f.z_index = 97
 		f.scale *= (float(i % 6) * 0.1 + 0.75)
+		if dir < 0.0:
+			f.scale.x = -f.scale.x
 		host.add_child(f)
 		var t6 := f.create_tween()
-		t6.tween_interval(float(i) * 0.35 / sp)
-		t6.tween_property(f, "position", f.position + Vector2(dir * 620.0, -40.0), 1.6 / sp)
+		t6.tween_interval((2.5 + float(i) * 0.2) / sp)
+		t6.tween_property(f, "position", f.position + Vector2(dir * 260.0, -20.0),
+			(float(i % 4) * 0.1 + 0.1) / sp)
+		t6.tween_property(f, "position", Vector2(dir * 200.0, -10.0), 0.75 / sp).as_relative()
+		t6.tween_property(f, "position", Vector2(dir * 200.0, -10.0), 0.75 / sp).as_relative()
+		t6.tween_property(f, "position", Vector2(dir * 60.0, 0.0), 0.15 / sp).as_relative()
 		t6.tween_property(f, "modulate:a", 0.0, 0.25 / sp)
 		t6.tween_callback(f.queue_free)
 
