@@ -975,10 +975,13 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	if shark != null:
 		var vis: Vector2 = host.get_viewport().get_visible_rect().size
 		var sk_w := float(manifest(el).get(pfx + "shark1", {}).get("w", 200.0)) * Design.ASSET_SCALE
-		var start := ctr0 + Vector2(dir * -(vis.x * 0.5 + sk_w * 1.5), 80.0)
+		# 원작 리터럴 그대로: pos = 중앙 + (dir×(중앙x + 상어폭×1.5), −80) — dir 은 레이어→중앙
+		# 방향이므로 **시전자 진영 밖**에서 들어와 피격 지점(−dir 쪽)으로 돌진한다.
+		# ⚠️ 2026-08-05 부호 실수 정정 — `-dir` 로 뒤집어 물기 지점 옆에서 시작하고 있었다.
+		var start := ctr0 + Vector2(dir * (vis.x * 0.5 + sk_w * 1.5), 80.0)
 		shark.position = start
 		shark.z_index = 96                       # 원작 z 0 — 거품(z rand%5)보다 뒤
-		shark.scale = Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S)
+		shark.scale = Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S)   # 원작 setScaleX(dir×1.75)
 		shark.rotation_degrees = dir * 15.0
 		host.add_child(shark)
 		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
@@ -993,9 +996,10 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 			Vector2(dir * AQUA_SHARK_S * 1.03, 1.825), 0.15 / sp)
 		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, 1.7), 0.05 / sp)
 		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S), 0.05 / sp)
-		kt.tween_property(shark, "position", Vector2(dir * 90.0, -40.0), 0.5 / sp).as_relative()
+		# 물고 지나간다 — 진행 방향(−dir)으로 빠져나가며 사라진다.
+		kt.tween_property(shark, "position", Vector2(-dir * 90.0, -40.0), 0.5 / sp).as_relative()
 		kt.parallel().tween_property(shark, "rotation_degrees", -dir * 25.0, 0.5 / sp)
-		kt.tween_property(shark, "position", Vector2(dir * 220.0, -60.0), 0.5 / sp).as_relative()
+		kt.tween_property(shark, "position", Vector2(-dir * 220.0, -60.0), 0.5 / sp).as_relative()
 		kt.parallel().tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
 		kt.tween_callback(shark.queue_free)
 
@@ -1017,23 +1021,27 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 	# 물고기 5종 — 원작(sequences.md L1253): Delay(f + 2.5) → MoveTo((i%4)*0.1+0.1)
 	#   → MoveBy(0.75)×2 → MoveBy(0.15) → MoveTo(0.05) = **2.5초부터 빠르게 가로지른다**.
+	# ⚠️ 2026-08-05 방향 정정 — 시전자 진영 밖에서 나타나 물살 방향(−dir = 피격 진영 쪽)으로
+	#   헤엄친다. 종전엔 부호가 뒤집혀 **뒤로**(피격 진영 → 시전자) 갔다.
+	var vis1: Vector2 = host.get_viewport().get_visible_rect().size
 	for i in 5:
 		var f := _spr(el, pfx + "fish%d" % (i + 1))
 		if f == null:
 			break
-		f.position = at + Vector2(-dir * 340.0, rng.randf_range(-80.0, 40.0))
+		f.position = at + Vector2(dir * (vis1.x * 0.75 + 60.0 * float(i)),
+			rng.randf_range(-80.0, 40.0))
 		f.z_index = 97
 		f.scale *= (float(i % 6) * 0.1 + 0.75)
 		if dir < 0.0:
-			f.scale.x = -f.scale.x
+			f.scale.x = -f.scale.x            # 진행 방향(−dir)을 보게 — 원본은 왼쪽 보기
 		host.add_child(f)
 		var t6 := f.create_tween()
 		t6.tween_interval((2.5 + float(i) * 0.2) / sp)
-		t6.tween_property(f, "position", f.position + Vector2(dir * 260.0, -20.0),
+		t6.tween_property(f, "position", f.position + Vector2(-dir * 300.0, -20.0),
 			(float(i % 4) * 0.1 + 0.1) / sp)
-		t6.tween_property(f, "position", Vector2(dir * 200.0, -10.0), 0.75 / sp).as_relative()
-		t6.tween_property(f, "position", Vector2(dir * 200.0, -10.0), 0.75 / sp).as_relative()
-		t6.tween_property(f, "position", Vector2(dir * 60.0, 0.0), 0.15 / sp).as_relative()
+		t6.tween_property(f, "position", Vector2(-dir * 300.0, -10.0), 0.75 / sp).as_relative()
+		t6.tween_property(f, "position", Vector2(-dir * 300.0, -10.0), 0.75 / sp).as_relative()
+		t6.tween_property(f, "position", Vector2(-dir * 120.0, 0.0), 0.15 / sp).as_relative()
 		t6.tween_property(f, "modulate:a", 0.0, 0.25 / sp)
 		t6.tween_callback(f.queue_free)
 

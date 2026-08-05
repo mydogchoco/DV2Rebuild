@@ -111,86 +111,94 @@ const CASTER_ID := 777
 const TARGET_ID := 666
 const CASTER_NAME := "한울"
 const TARGET_NAME := "샛별"
-const STAGE_DX := 190.0            # 무대 폭이 좁아 대전의 225 를 줄여 쓴다(연출 좌표엔 영향 없음)
 const CM := "common_ui"
 
 var _caster: Node2D
 var _target: Node2D
 var _caster_h := 240.0
 var _target_h := 240.0
+var _gy := 0.0                     # 무대 바닥 y = vis.y*0.5 + ULT_DROP (인게임과 동일)
+var _ui: Node2D                    # 정보 패널 오버레이(TAB 토글)
 
 
 func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
 	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
+	# 🔴 2026-08-05 재배치 — 무대가 창 오른쪽 절반에 욱여넣어져 인게임과 비율이 달랐다.
+	#   이제 무대 = **화면 전체**(인게임과 같은 1024×692 캔버스), 배우 = 원작 각성 무대 좌표
+	#   (`initPosition` 의 ±225, H/2−50 — fight.gd `ULT_DX`/`ULT_DROP` 와 동일).
+	#   정보 패널은 TAB 토글 오버레이로 뺐다.
 	var vis := get_viewport_rect().size
+	_gy = vis.y * 0.5 + FightScene.ULT_DROP
 	var bg := ColorRect.new()
 	bg.color = Color(0.08, 0.09, 0.12)
 	bg.size = vis
 	add_child(bg)
 
+	var ground := Line2D.new()
+	ground.width = 1.0
+	ground.default_color = Color(1, 1, 1, 0.18)
+	ground.add_point(Vector2(0.0, _gy))
+	ground.add_point(Vector2(vis.x, _gy))
+	add_child(ground)
+
+	_stage = Node2D.new()                 # 원점 = 화면 원점(대전의 씬 Control 과 같은 사정)
+	add_child(_stage)
+
+	# 드래곤 두 마리는 **재생마다 지워지지 않게** _stage 바깥(별도 노드)에 세운다.
+	# 자리 = 각성 무대점(내 진영 225 · 상대 vis.x−225). 시전자는 어차피 그 자리로 뛰므로
+	# 처음부터 무대점에 세워 두면 연출-배우 정합을 눈으로 확인할 수 있다.
+	var actors := Node2D.new()
+	add_child(actors)
+	_caster = _make_actor(CASTER_ID, FightScene.ULT_DX, true)
+	_target = _make_actor(TARGET_ID, vis.x - FightScene.ULT_DX, false)
+	for a in [_caster, _target]:
+		if a != null:
+			actors.add_child(a)
+
+	# ── 오버레이 UI(TAB 토글) ──
+	_ui = Node2D.new()
+	_ui.z_index = 200
+	add_child(_ui)
 	var title := Label.new()
 	title.text = "각성기(UltimateLayer) 연출 확인 — fight.gd 가 부르는 UltimateFx.play() 를 그대로 재생"
 	title.position = Vector2(20, 12)
 	title.add_theme_font_size_override("font_size", 17)
-	add_child(title)
-
-	# 왼쪽 = 속성 목록 + 한 줄 판정
+	_ui.add_child(title)
 	var panel := ColorRect.new()
-	panel.color = Color(0.12, 0.13, 0.17)
+	panel.color = Color(0.12, 0.13, 0.17, 0.88)
 	panel.position = Vector2(16, 44)
 	panel.size = Vector2(430, vis.y - 60)
-	add_child(panel)
+	_ui.add_child(panel)
 	for i in ELEMENTS.size():
 		var l := Label.new()
 		l.position = Vector2(28, 56 + i * 30)
 		l.size = Vector2(410, 28)
 		l.add_theme_font_size_override("font_size", 15)
-		add_child(l)
+		_ui.add_child(l)
 		_list.append(l)
-
-	# 아래 = 선택 속성 상세(원작 리터럴 ↔ 우리가 쓰는 것)
 	_detail = Label.new()
 	_detail.position = Vector2(28, 56 + ELEMENTS.size() * 30 + 14)
 	_detail.size = Vector2(408, 300)
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.add_theme_font_size_override("font_size", 13)
 	_detail.modulate = Color(0.78, 0.86, 1.0)
-	add_child(_detail)
+	_ui.add_child(_detail)
+	_ui.visible = false                   # 연출을 가리지 않게 기본은 숨김 — TAB 으로 연다
 
-	# 오른쪽 = 재생 무대. 바닥선을 그려 링이 어디 깔리는지 보이게 한다.
-	var stage_x := 470.0
-	var ground := Line2D.new()
-	ground.width = 1.0
-	ground.default_color = Color(1, 1, 1, 0.18)
-	ground.add_point(Vector2(stage_x, vis.y * 0.62))
-	ground.add_point(Vector2(vis.x - 20.0, vis.y * 0.62))
-	add_child(ground)
-
-	_stage = Node2D.new()
-	_stage.position = Vector2((stage_x + vis.x - 20.0) * 0.5, vis.y * 0.62)
-	add_child(_stage)
-
-	# 드래곤 두 마리는 **재생마다 지워지지 않게** _stage 바깥(별도 노드)에 세운다.
-	var actors := Node2D.new()
-	actors.position = _stage.position
-	add_child(actors)
-	_caster = _make_actor(CASTER_ID, -STAGE_DX, true)
-	_target = _make_actor(TARGET_ID, STAGE_DX, false)
-	for a in [_caster, _target]:
-		if a != null:
-			actors.add_child(a)
 	var who := Label.new()
 	who.text = "시전 %s(%d) ▶   ◀ 피격 %s(%d)" % [CASTER_NAME, CASTER_ID, TARGET_NAME, TARGET_ID]
-	who.position = Vector2(stage_x, vis.y - 56)
+	who.position = Vector2(20, vis.y - 56)
 	who.add_theme_font_size_override("font_size", 14)
 	who.modulate = Color(0.8, 0.88, 1.0)
+	who.z_index = 200
 	add_child(who)
 
 	_hint = Label.new()
-	_hint.position = Vector2(stage_x, vis.y - 34)
+	_hint.position = Vector2(20, vis.y - 34)
 	_hint.add_theme_font_size_override("font_size", 14)
+	_hint.z_index = 200
 	add_child(_hint)
 
 	# 자산 사용량은 **재생하면서** 쌓이므로(`UltimateFx.used_keys`) 패널을 주기적으로 다시 그린다.
@@ -289,6 +297,9 @@ func _unhandled_input(e: InputEvent) -> void:
 			_auto = not _auto
 			_t = AUTO_SEC
 			_refresh()
+		KEY_TAB:
+			if _ui != null:
+				_ui.visible = not _ui.visible
 		KEY_ESCAPE:
 			get_tree().quit()
 
@@ -296,9 +307,9 @@ func _unhandled_input(e: InputEvent) -> void:
 ## 대전과 같은 호출. 여기가 `fight.gd::_awaken_fx` 와 다르면 이 창은 의미가 없다.
 ## 무대 배우 한 마리 — 대전(`fight.gd::_build_side`)과 같은 구성:
 ## 발밑 `common/shadow` + 성체 스파인(정규화 없음, 1vs1 배율 1.0) + 왼쪽 진영만 flipX.
-func _make_actor(id: int, dx: float, mine: bool) -> Node2D:
+func _make_actor(id: int, x: float, mine: bool) -> Node2D:
 	var holder := Node2D.new()
-	holder.position = Vector2(dx, 0.0)
+	holder.position = Vector2(x, _gy)
 	var sh := AtlasUI.spr_cocos(CM, "common_shadow")
 	if sh != null:
 		sh.z_index = -1
@@ -348,19 +359,38 @@ func _play() -> void:
 		mv.tween_interval(3.0)
 		mv.tween_property(_caster, "position", home, 0.15)
 	if _target != null:
+		# 피격 반응 — 대전의 `_ultimate_knockback`(원작 `damage<El>_C` 실측 표)을 그대로 흉내:
+		# 저글링 n회 + 마무리 큰 띄우기, 그동안 스파인은 **damaged** 모션(원작
+		# `runSpineWithAnimationName`), 끝나면 wait 복귀.
 		var home := _target.position
+		var k: Array = FightScene.ULT_KNOCK.get(el, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
+		var n_j := int(k[1])
+		var jsec := float(k[2])
+		var gap := float(k[3])
+		var hop := float(k[4]) * 0.35
+		var big := float(k[5]) * 0.35
+		var at_sec := UltimateFx.damage_at(el, 1.0)
+		var lead := maxf(float(k[0]), at_sec - (jsec + gap) * float(n_j) - 0.6)
+		var tap := FightScene._find_anim_player(_target)
 		var tt := _target.create_tween()
-		tt.tween_interval(UltimateFx.damage_at(el, 1.0))
-		for i in 4:
-			tt.tween_property(_target, "position", home - Vector2(0.0, 52.0), 0.1)\
+		tt.tween_interval(lead)
+		tt.tween_callback(func() -> void:
+			if tap != null and tap.has_animation("damaged"):
+				tap.play("damaged"))
+		for i in n_j:
+			var d := Vector2(20.0 * float(i + 1), 0.0)      # 상대 진영은 +x 로 밀린다
+			tt.tween_property(_target, "position", home + d - Vector2(0.0, hop), jsec * 0.5)\
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tt.tween_property(_target, "position", home, 0.1)\
+			tt.tween_property(_target, "position", home + d, jsec * 0.5)\
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			tt.tween_interval(0.1)
-		tt.tween_property(_target, "position", home - Vector2(0.0, 280.0), 0.35)\
+			tt.tween_interval(gap)
+		tt.tween_property(_target, "position", home - Vector2(0.0, big), 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tt.tween_property(_target, "position", home, 0.4)\
+		tt.tween_property(_target, "position", home, 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tt.tween_callback(func() -> void:
+			if tap != null and tap.has_animation("wait"):
+				tap.play("wait"))
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
 	# 1vs1 기준(scale 1.0), 시전자는 왼쪽(내) 진영. 기준점·방향은 UltimateFx 가
@@ -368,7 +398,7 @@ func _play() -> void:
 	_last_dur = UltimateFx.play(_stage, {
 		"element": el,
 		"mine": true,
-		"ring_at": Vector2(-STAGE_DX, -_caster_h * 0.5),
+		"ring_at": Vector2(FightScene.ULT_DX, _gy - _caster_h * 0.5),
 		"scale": 1.0, "speed": 1.0, "mat": _pma,
 	})
 
@@ -485,4 +515,5 @@ func _refresh() -> void:
 			float(UltimateFx.DURATION.get(el2, 0.0)), float(UltimateFx.DMG_TIME.get(el2, 0.0))])
 	_detail.text = "\n".join(lines)
 
-	_hint.text = "1~9 / ←→ 속성 · SPACE 재생 · A 자동순환 %s · ESC 종료" % ("ON" if _auto else "OFF")
+	_hint.text = "1~9 / ←→ 속성 · SPACE 재생 · A 자동순환 %s · TAB 정보 패널 · ESC 종료" \
+		% ("ON" if _auto else "OFF")
