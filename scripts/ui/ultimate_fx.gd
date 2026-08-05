@@ -916,6 +916,7 @@ static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 ## 원작 `initDark`: `dark_punch`·`dark_ball` 이 화면 좌우 `(W×∓0.5, 200)` 에서 들어오고,
 ##   손 애니 4벌(`dark_hand1~4`, **전부 0.025초/프레임**), 폭발 두 벌
 ##   (`explosion1~7` 0.04초 · `explosion8~10` 0.025초).
+const DARK_PUNCH_S := 1.75      # 원작 setScale(1.75)
 const DARK_HAND_SEC := 0.025
 const DARK_EXPL_SEC := 0.04
 const DARK_EXPL2_SEC := 0.025
@@ -926,34 +927,52 @@ static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var pfx := prefix(el)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 
-	# 좌우에서 들어오는 주먹·구슬.
-	for i in 2:
-		var key := "punch" if i == 0 else "ball"
-		var n := _spr(el, pfx + key)
-		if n == null:
-			continue
-		var side := -1.0 if i == 0 else 1.0
-		n.position = at + Vector2(side * vis.x * 0.5, -200.0)
-		n.z_index = 96
-		host.add_child(n)
-		var t: Tween = n.create_tween()
-		t.tween_interval((0.4 + 0.3 * float(i)) / sp)
-		t.tween_property(n, "position", at, 0.45 / sp)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t.tween_property(n, "modulate:a", 0.0, 0.2 / sp)
-		t.tween_callback(n.queue_free)
+	# 원작 `initDark` — **전부 레이어 중심 한 자리**에 겹쳐 둔다(좌우에서 날아오지 않는다).
+	#   `dark_punch`      setScale(**1.75**) · 숨김 · z 2 (tag 0x1883b)
+	#   `dark_ball`       setScale(0)        · z 1 (tag 0x1883a)
+	#   `dark_explosion1` setScale(0) · z 1 / `dark_explosion8` setScale(0) · **rotation 90** · z 1
+	#   `dark_hand14` ×2 — 한 장은 **setScaleX(−1)** 로 뒤집어 반대편 손이 된다(각기 다른 배치노드)
+	var punch := _spr(el, pfx + "punch")
+	if punch != null:
+		punch.position = at
+		punch.scale = Vector2.ONE * DARK_PUNCH_S
+		punch.z_index = 97
+		punch.visible = false
+		host.add_child(punch)
+		var pt: Tween = punch.create_tween()
+		pt.tween_interval(0.4 / sp)
+		pt.tween_callback(func() -> void: punch.visible = true)
+		pt.tween_property(punch, "scale", Vector2.ONE * DARK_PUNCH_S * 1.2, 0.2 / sp)
+		pt.tween_property(punch, "modulate:a", 0.0, 0.3 / sp)
+		pt.tween_callback(punch.queue_free)
+	var ball := _spr(el, pfx + "ball")
+	if ball != null:
+		ball.position = at
+		ball.scale = Vector2.ZERO
+		ball.z_index = 96
+		host.add_child(ball)
+		var bt: Tween = ball.create_tween()
+		bt.tween_interval(0.7 / sp)
+		bt.tween_property(ball, "scale", Vector2.ONE, 0.35 / sp)
+		bt.tween_interval(0.5 / sp)
+		bt.tween_property(ball, "modulate:a", 0.0, 0.2 / sp)
+		bt.tween_callback(ball.queue_free)
 
-	# 손 — 잡았다 놓는다(원작이 hand2,3,4,3,2,1×8,2,3,4 순으로 프레임을 쌓는다).
-	var hand := _spr(el, pfx + "hand1")
-	if hand != null:
-		hand.position = at
-		hand.z_index = 99
-		host.add_child(hand)
-		_play_frames(hand, el, pfx + "hand%d", 1, 20, DARK_HAND_SEC / sp)
-		var ht := hand.create_tween()
+	# 손 — 원작은 `dark_hand14` 를 **두 장** 두고 한 장을 뒤집는다. 프레임은 그 위에서 갈아 낀다.
+	for i in 2:
+		var hd := _spr(el, pfx + "hand1")
+		if hd == null:
+			break
+		hd.position = at
+		hd.z_index = 99
+		if i == 1:
+			hd.scale = Vector2(-hd.scale.x, hd.scale.y)
+		host.add_child(hd)
+		_play_frames(hd, el, pfx + "hand%d", 1, 20, DARK_HAND_SEC / sp)
+		var ht: Tween = hd.create_tween()
 		ht.tween_interval(20.0 * DARK_HAND_SEC / sp + 3.0 / sp)
-		ht.tween_property(hand, "modulate:a", 0.0, 0.5 / sp)
-		ht.tween_callback(hand.queue_free)
+		ht.tween_property(hd, "modulate:a", 0.0, 0.5 / sp)
+		ht.tween_callback(hd.queue_free)
 
 	# 폭발 — 두 벌을 시차로.
 	for i in 2:
@@ -1000,6 +1019,9 @@ static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 ##       Delay(base) → Delay(1.75) → Show → EaseIn(MoveBy((rand%45)*0.025+0.75, Δ), 0.1)
 ##       Δ = (화면 임의점 − 중앙) × ((rand%9)*0.25 + 1.0)
 ##     = 중앙에서 **바깥으로 뻗어 나간다**(별이 흐르는 그 연출).
+const LIGHT_SUN_DX := 60.0        # 원작 태양 뭉치 = 레이어 중심 + (60, 60)
+const LIGHT_SUN_DY := 60.0
+const LIGHT_FLASHWING_SX := 10.0  # 원작 setScaleX(10) — 가로로 길게 찢어지는 섬광
 const LIGHT_STARS_IN := 30
 const LIGHT_STARS_OUT := 720
 const LIGHT_STARS := LIGHT_STARS_IN + LIGHT_STARS_OUT   # 30 + 720 = 750 (원작 0x2ee)
@@ -1045,6 +1067,14 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	ft.tween_callback(field.queue_free)
 
 	# 태양·행성·섬광 — 원작이 쓰는 단품들을 차례로 띄운다.
+	# 원작 `initLight` — 태양 뭉치는 전부 **레이어 중심 + (60, 60)**(cocos) 한 자리에 겹친다.
+	#   `light_sun`/`sunlight`/`sunwing` : setScale(1) · setOpacity(0) · z 0 (tag 0x18835/33/34)
+	#   `light_flash`  : setScale(0) · **anchor(0.54, 0.5)** · pos 중심+(60,60) · z 1
+	#   `light_flashwing`: flash 의 **자식**, setScaleX(10) · pos = flash 중앙
+	#   `light_bomb`   : setScale(0) · pos 중심+(60,60) · z 0
+	#   `light_sunwing` 은 **자기 복제본을 자식**으로 갖는다(scale 0 · opacity 0 · rotation 90).
+	#   `light_earth`  : anchor 중앙 · pos (중심x + w*0.5, h*0.8) · scale 0.4 · 숨김
+	var sun_at := at + Vector2(LIGHT_SUN_DX, -LIGHT_SUN_DY)
 	var seq := [["sun", 0.5, 101], ["sunlight", 0.6, 100], ["sunwing", 0.7, 99],
 		["saturn", 1.4, 98], ["earth", 1.8, 98], ["flash", 2.4, 103],
 		["flashwing", 2.5, 102], ["bomb", 3.0, 104]]
@@ -1052,7 +1082,9 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		var n := _spr(el, pfx + String(e[0]))
 		if n == null:
 			continue
-		n.position = at
+		n.position = sun_at
+		if String(e[0]) == "flashwing":
+			n.scale = Vector2(LIGHT_FLASHWING_SX, 1.0)   # 원작 setScaleX(10)
 		n.z_index = int(e[2])
 		n.modulate.a = 0.0
 		host.add_child(n)
