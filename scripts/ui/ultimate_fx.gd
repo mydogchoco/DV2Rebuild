@@ -718,6 +718,7 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 const AQUA_TINT1 := Color(194.0 / 255.0, 1.0, 1.0)
 const AQUA_TINT2 := Color(25.0 / 255.0, 60.0 / 255.0, 125.0 / 255.0)
 const AQUA_BUBBLES := 49        # 원작 루프 상한 0x31
+const AQUA_SHARK_S := 1.75      # 원작 setScaleX/Y(1.75)
 
 static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -733,32 +734,59 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	vt.tween_property(veil, "color:a", 0.0, 0.5 / sp)
 	vt.tween_callback(veil.queue_free)
 
-	# 수면.
-	var surf := _spr(el, pfx + "surface1")
+	# 수면 — 원작 `initAqua`: **화면 폭에 맞춰 늘리고 화면 바닥**에 둔다.
+	#   `setOpacity(100)` · `setScaleX(화면폭 / 수면폭)` · pos = VisibleRect::bottom() − (0, 수면높이)
+	#   그 **자식**으로 물빛 `CCLayerColor`(anchor 0.5/1, 수면 폭·화면 높이)를 매달아
+	#   수면 아래를 채운다 ⇒ 물이 차오르는 그림이다(종전엔 화면 전체 틴트였다).
+	var vis0: Vector2 = host.get_viewport().get_visible_rect().size
+	var ctr0 := _screen_center(host)
+	var surf := _spr_a(el, pfx + "surface1", Vector2(0.5, 0.5))
 	if surf != null:
-		surf.position = at
+		var sw := 1.0
+		var man0 := manifest(el)
+		var info: Dictionary = man0.get(pfx + "surface1", {})
+		var fw := float(info.get("w", 1.0)) * Design.ASSET_SCALE
+		var fh := float(info.get("h", 1.0)) * Design.ASSET_SCALE
+		if fw > 1.0:
+			sw = vis0.x / fw
+		surf.scale = Vector2(sw, 1.0)
+		surf.position = Vector2(ctr0.x, ctr0.y + vis0.y * 0.5 - fh)
 		surf.z_index = 86
+		surf.modulate.a = 100.0 / 255.0
 		host.add_child(surf)
+		var water := ColorRect.new()          # 원작 CCLayerColor(수면의 자식, anchor 0.5/1)
+		water.color = Color(AQUA_TINT2.r, AQUA_TINT2.g, AQUA_TINT2.b, 0.0)
+		water.size = Vector2(fw, vis0.y)
+		water.position = Vector2(-fw * 0.5, 0.0)
+		water.z_index = -1
+		water.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		surf.add_child(water)
+		var wt := water.create_tween()
+		wt.tween_property(water, "color:a", 0.45, 1.0 / sp)
 		_play_frames(surf, el, pfx + "surface%d", 2, 4, 0.1 / sp)
 		var st := surf.create_tween()
-		st.tween_interval(6.25 / sp)
+		st.tween_property(surf, "position", Vector2(ctr0.x, ctr0.y - vis0.y * 0.1), 1.5 / sp)
+		st.tween_interval(4.75 / sp)
 		st.tween_property(surf, "modulate:a", 0.0, 0.5 / sp)
 		st.tween_callback(surf.queue_free)
 
-	# 상어 — 화면을 가로지른다.
+	# 상어 — 원작 `initAqua`: scaleY 1.75 · scaleX = dir×1.75 · rotation = dir×15° ·
+	#   pos = 화면중앙 + (dir×(중앙x + 상어폭×1.5), −80) = **화면 밖 옆구리**에서 들어온다.
 	var shark := _spr(el, pfx + "shark1")
 	if shark != null:
 		var vis: Vector2 = host.get_viewport().get_visible_rect().size
-		shark.position = at + Vector2(-dir * vis.x * 0.6, 0.0)
+		var sk_w := float(manifest(el).get(pfx + "shark1", {}).get("w", 200.0)) * Design.ASSET_SCALE
+		shark.position = ctr0 + Vector2(dir * (vis.x * 0.5 + sk_w * 1.5), 80.0)
 		shark.z_index = 100
-		shark.scale = Vector2(-dir if dir > 0.0 else dir, 1.0) * shark.scale
+		shark.scale = Vector2(-dir * AQUA_SHARK_S, AQUA_SHARK_S)
+		shark.rotation_degrees = -dir * 15.0
 		host.add_child(shark)
 		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
 		var kt := shark.create_tween()
 		# 원작 `runAqua` 조립(2026-08-05 복원): 목적지는 **화면 중앙**이지 앞이 아니다.
 		#   JumpTo(0.25, center, 75, 1) → MoveBy(0.5, (0,−50)) → JumpTo(0.25, center+(0,217.5), 50, 1)
 		#   → Delay(5.25) → FadeTo(0.5, 0)
-		var ctr := _screen_center(host)
+		var ctr := ctr0
 		_arc(kt, shark, ctr, 75.0, 0.25 / sp)
 		kt.tween_property(shark, "position", Vector2(0.0, 50.0), 0.5 / sp).as_relative()
 		_arc(kt, shark, ctr + Vector2(0.0, -217.5), 50.0, 0.25 / sp)
@@ -766,8 +794,10 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		kt.tween_property(shark, "modulate:a", 0.0, 0.5 / sp)
 		kt.tween_callback(shark.queue_free)
 
-	# 거품 49개 — 떠오른다.
-	_swarm(host, el, pfx + "bubble", AQUA_BUBBLES, at, Vector2(220.0, 90.0), 98, rng,
+	# 거품 — 원작은 **화면 바닥 전폭**에 뿌린다(pos = (rand % 화면폭, 0)), scale (rand%5)×0.25,
+	#   opacity 0, z = rand%5. 시전자 주변이 아니다.
+	_swarm(host, el, pfx + "bubble", AQUA_BUBBLES,
+		Vector2(ctr0.x, ctr0.y + vis0.y * 0.5), Vector2(vis0.x * 0.5, 0.0), 98, rng,
 		func(n: Node2D, i: int, r: RandomNumberGenerator) -> void:
 			var t: Tween = n.create_tween()
 			t.tween_interval(float(i % 12) * 0.12 / sp)
