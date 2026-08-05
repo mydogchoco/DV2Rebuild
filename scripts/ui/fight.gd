@@ -1802,7 +1802,7 @@ const ANIM_IDLE := "wait"
 ##   실측 2026-08-05: `_e` 씬 **134/134 에 `attack` 이 있다** ⇒ 전투 모션도 문제 없다.
 ##   콜로세움은 입장 레벨 25 이상이라 유생·아성체는 애초에 못 들어오지만,
 ##   각성 스파인이 없는 종(`_e` 미보유)은 성체로 안전하게 떨어진다.
-func _dragon_spine(id: int, stage := "adult") -> Node2D:
+static func _dragon_spine(id: int, stage := "adult") -> Node2D:
 	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [id, stage]
 	if id <= 0 or not ResourceLoader.exists(path):
 		path = "res://scenes/dragons/dragon_%d_adult.tscn" % id
@@ -1829,7 +1829,7 @@ func _has_anim(v: Dictionary, name: String) -> bool:
 		and (ap as AnimationPlayer).has_animation(name)
 
 
-func _find_anim_player(n: Node) -> AnimationPlayer:
+static func _find_anim_player(n: Node) -> AnimationPlayer:
 	if n is AnimationPlayer:
 		return n
 	for c in n.get_children():

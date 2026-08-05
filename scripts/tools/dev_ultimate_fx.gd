@@ -102,6 +102,23 @@ var _hint: Label
 var _pma: CanvasItemMaterial
 var _last_dur := 0.0        # 마지막 재생의 원작 길이(getDuration 콜로세움 표)
 
+# ── 무대에 세우는 드래곤 (사용자 지정 2026-08-05) ────────────────────────────
+## 시전자 = 한울(777, 불) · 피격자 = 샛별(666, 혼돈). 둘 다 커스텀 6성 성체다.
+## 스파인 로드는 **`fight.gd::_dragon_spine` 을 그대로** 부른다 — 대전과 같은 코드여야
+## 이 창이 대전을 대변한다(정규화하는 `PartySelect._spine_node` 는 편성 카드용이라 안 쓴다).
+const FightScene := preload("res://scripts/ui/fight.gd")
+const CASTER_ID := 777
+const TARGET_ID := 666
+const CASTER_NAME := "한울"
+const TARGET_NAME := "샛별"
+const STAGE_DX := 190.0            # 무대 폭이 좁아 대전의 225 를 줄여 쓴다(연출 좌표엔 영향 없음)
+const CM := "common_ui"
+
+var _caster: Node2D
+var _target: Node2D
+var _caster_h := 240.0
+var _target_h := 240.0
+
 
 func _ready() -> void:
 	_pma = CanvasItemMaterial.new()
@@ -154,6 +171,22 @@ func _ready() -> void:
 	_stage = Node2D.new()
 	_stage.position = Vector2((stage_x + vis.x - 20.0) * 0.5, vis.y * 0.62)
 	add_child(_stage)
+
+	# 드래곤 두 마리는 **재생마다 지워지지 않게** _stage 바깥(별도 노드)에 세운다.
+	var actors := Node2D.new()
+	actors.position = _stage.position
+	add_child(actors)
+	_caster = _make_actor(CASTER_ID, -STAGE_DX, true)
+	_target = _make_actor(TARGET_ID, STAGE_DX, false)
+	for a in [_caster, _target]:
+		if a != null:
+			actors.add_child(a)
+	var who := Label.new()
+	who.text = "시전 %s(%d) ▶   ◀ 피격 %s(%d)" % [CASTER_NAME, CASTER_ID, TARGET_NAME, TARGET_ID]
+	who.position = Vector2(stage_x, vis.y - 56)
+	who.add_theme_font_size_override("font_size", 14)
+	who.modulate = Color(0.8, 0.88, 1.0)
+	add_child(who)
 
 	_hint = Label.new()
 	_hint.position = Vector2(stage_x, vis.y - 34)
@@ -235,15 +268,69 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 ## 대전과 같은 호출. 여기가 `fight.gd::_awaken_fx` 와 다르면 이 창은 의미가 없다.
+## 무대 배우 한 마리 — 대전(`fight.gd::_build_side`)과 같은 구성:
+## 발밑 `common/shadow` + 성체 스파인(정규화 없음, 1vs1 배율 1.0) + 왼쪽 진영만 flipX.
+func _make_actor(id: int, dx: float, mine: bool) -> Node2D:
+	var holder := Node2D.new()
+	holder.position = Vector2(dx, 0.0)
+	var sh := AtlasUI.spr_cocos(CM, "common_shadow")
+	if sh != null:
+		sh.z_index = -1
+		holder.add_child(sh)
+	var sp := FightScene._dragon_spine(id, "adult")
+	if sp == null:
+		return holder
+	if mine:
+		sp.scale = Vector2(-absf(sp.scale.x), sp.scale.y)
+	holder.add_child(sp)
+	var r := PartySelect._bounds(sp, Transform2D.IDENTITY)
+	var h := r.size.y if r.size.y > 1.0 else 240.0
+	if mine:
+		_caster_h = h
+	else:
+		_target_h = h
+	return holder
+
+
 func _play() -> void:
 	for c in _stage.get_children():
 		c.queue_free()
 	var el: String = ELEMENTS[_sel]
 	Bgm.sfx("effect_bigbang")
+	var dur := float(UltimateFx.DURATION.get(el, 9.0))
+
+	# 시전자 각성 모션 + 원작 `action<El>_C` 의 페이드(연출이 화면을 가져가는 동안 사라진다).
+	# 대상은 `damage<El>_C` 의 저글링을 흉내 내 피해 시각에 튀어 오른다.
+	if _caster != null:
+		var ap := FightScene._find_anim_player(_caster)
+		if ap != null and ap.has_animation("ultimate1"):
+			ap.play("ultimate1")
+		var back := 9.0
+		_caster.modulate.a = 1.0
+		var ct := _caster.create_tween()
+		ct.tween_property(_caster, "modulate:a", 0.0, 1.0)
+		ct.tween_interval(minf(back, maxf(0.5, dur - 3.0)))
+		ct.tween_property(_caster, "modulate:a", 1.0, 1.0)
+	if _target != null:
+		var home := _target.position
+		var tt := _target.create_tween()
+		tt.tween_interval(UltimateFx.damage_at(el, 1.0))
+		for i in 4:
+			tt.tween_property(_target, "position", home - Vector2(0.0, 52.0), 0.1)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tt.tween_property(_target, "position", home, 0.1)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tt.tween_interval(0.1)
+		tt.tween_property(_target, "position", home - Vector2(0.0, 280.0), 0.35)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tt.tween_property(_target, "position", home, 0.4)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
 	# 1vs1 기준(scale 1.0), 시전자는 왼쪽에 선 것으로 본다(dir +1).
+	# `at` = **시전자 몸통 중앙**(대전에서도 발밑이 아니라 몸통 중앙을 넘긴다).
 	_last_dur = UltimateFx.play(_stage, {
-		"element": el, "at": Vector2.ZERO, "scale": 1.0, "dir": 1.0,
+		"element": el, "at": Vector2(-STAGE_DX, -_caster_h * 0.5), "scale": 1.0, "dir": 1.0,
 		"speed": 1.0, "mat": _pma,
 	})
 
