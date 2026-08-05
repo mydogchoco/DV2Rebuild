@@ -1565,27 +1565,40 @@ func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
 	var old = v.get("move_tw")
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
+	# 선행 포즈 — 원작 `damage<El>_C`(물 = 침수에 `down` → 물고기 떼에 `love`).
+	for pre in UltimateFx.TGT_PRE_POSE.get(element, []):
+		var pt := node.create_tween()
+		pt.tween_interval(maxf(0.01, float(pre[0])))
+		var pname := String(pre[1])
+		pt.tween_callback(func() -> void: _play_anim(v, pname))
 	var t := create_tween()
 	v["move_tw"] = t
 	t.tween_interval(lead - 0.25)
 	_tween_jump(t, node, home, stage, 150.0 * s, 0.25, 1.0)   # 무대점으로 끌려간다
 	for i in n_j:
-		# 타격음 — 원작은 매 타에 피격음을 낸다(`runSpineWithAnimationName` @0104f468 이
-		# `(rand()%6)*0.05 + 0.25` 볼륨으로 재생). 두 음원을 번갈아 쓴다.
+		# 타격마다 — 피격음(두 음원 교대, 원작 볼륨식) + **damaged 재생**(원작은 연타마다
+		# runSpine "damaged" 를 다시 튼다 — fire 13·dark 13·shadow 15회 실측).
 		var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
 		t.tween_callback(func() -> void:
-			Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25))
+			Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25)
+			_play_anim(v, "damaged"))
 		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
 		_tween_jump(t, node, stage + d * float(i), stage + d * float(i + 1),
 			hop * s, sec, 1.0)
 		t.tween_interval(gap)
-	# 마지막 — 크게 띄웠다가 제자리로.
+	# 마지막 — `down` 으로 엎어진 채 크게 띄워졌다가 제자리로, `wait` 복귀(원작 3단계).
+	t.tween_callback(func() -> void: _play_anim(v, "down"))
 	_tween_jump(t, node, node.position, stage, big * s, 0.6, 1.0)
 	t.tween_interval(0.35)
 	_tween_jump(t, node, stage, home, 150.0 * s, 0.25, 1.0)
 	t.tween_callback(func() -> void:
 		if is_instance_valid(node):
-			node.position = v.get("home", home))
+			node.position = v.get("home", home)
+		var ap = v.get("anim")
+		if ap is AnimationPlayer and is_instance_valid(ap) \
+				and (ap as AnimationPlayer).has_animation("wait"):
+			(ap as AnimationPlayer).get_animation("wait").loop_mode = Animation.LOOP_LINEAR
+			(ap as AnimationPlayer).play("wait"))
 
 
 

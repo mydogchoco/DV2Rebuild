@@ -386,29 +386,37 @@ func _play() -> void:
 		var at_sec := UltimateFx.damage_at(el, 1.0)
 		var lead := maxf(float(k[0]), at_sec - (jsec + gap) * float(n_j) - 0.6)
 		var tap := FightScene._find_anim_player(_target)
+		var tplay := func(anim_name: String) -> void:
+			if tap != null and tap.has_animation(anim_name):
+				tap.play(anim_name)
+		# 선행 포즈 — 원작 damage<El>_C(물 = 침수 down → 물고기 떼 love).
+		for pre in UltimateFx.TGT_PRE_POSE.get(el, []):
+			var ppt := _target.create_tween()
+			ppt.tween_interval(maxf(0.01, float(pre[0])))
+			var pname := String(pre[1])
+			ppt.tween_callback(func() -> void: tplay.call(pname))
+			_actor_tweens.append(ppt)
 		var tt := _target.create_tween()
 		tt.tween_interval(lead)
-		tt.tween_callback(func() -> void:
-			if tap != null and tap.has_animation("damaged"):
-				tap.play("damaged"))
 		for i in n_j:
-			# 타격음 — 매 타마다(원작 배선). 두 음원을 번갈아, 볼륨 (rand%6)*0.05+0.25.
+			# 타격마다 — 피격음 + damaged 재생(원작은 연타마다 다시 튼다).
 			var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
 			tt.tween_callback(func() -> void:
-				Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25))
+				Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25)
+				tplay.call("damaged"))
 			var d := Vector2(20.0 * float(i + 1), 0.0)      # 상대 진영은 +x 로 밀린다
 			tt.tween_property(_target, "position", home + d - Vector2(0.0, hop), jsec * 0.5)\
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 			tt.tween_property(_target, "position", home + d, jsec * 0.5)\
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			tt.tween_interval(gap)
+		# 마무리 — down 으로 엎어진 채 크게 떴다가 착지, wait 복귀(원작 3단계).
+		tt.tween_callback(func() -> void: tplay.call("down"))
 		tt.tween_property(_target, "position", home - Vector2(0.0, big), 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tt.tween_property(_target, "position", home, 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tt.tween_callback(func() -> void:
-			if tap != null and tap.has_animation("wait"):
-				tap.play("wait"))
+		tt.tween_callback(func() -> void: tplay.call("wait"))
 		_actor_tweens.append(tt)
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.

@@ -1770,6 +1770,18 @@ static func _run_shadow(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	t2.tween_callback(holder.queue_free)
 
 
+# ── 피격자 포즈 — 원작 `damage<El>_C` 스파인 문자열 전수 채굴 (2026-08-05) ────
+#
+# 모든 속성이 3단계다: **`damaged`(타격마다 재생) → `down`(엎어짐) → `wait`(복귀)**.
+#   runSpine 호출 수 실측: fire 13 · dark 13 · shadow 15 · earth 12(= 연타마다 damaged) ·
+#   aqua/wind/light/chaos/holy 3(한 번씩).
+# 물만 **`love`** 가 있다 — 물고기 떼가 에워싸는 구간(영상 14.75~16.3s)의 포즈다.
+# 아래 표 = 저글링 앞에 따로 트는 **선행 포즈**(시전 0초 기준). damaged/down/wait 는
+# 저글링 쪽(fight `_ultimate_knockback` · dev 창)이 타격/마무리에 맞춰 튼다.
+const TGT_PRE_POSE := {
+	"aqua": [[3.25, "down"], [4.05, "love"]],   # 침수에 엎어졌다가 물고기 떼에 love
+}
+
 # ── 시전자 무대 안무 — 원작 `action<El>_C` 실측 (2026-08-05 전수 채굴) ────────
 #
 # 각 속성의 시전자 레이어(this_00)·몸통(tag 1)·그림자(-50×el) 시퀀스를 옮긴 것.
