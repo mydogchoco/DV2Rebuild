@@ -217,10 +217,22 @@ func _build_close() -> void:
 
 
 # ============================================================ 무대(단상 슬롯)
+## 🟦 2026-08-05 사용자 확정 — 무대(단상+드래곤)를 통째로 오른쪽으로 옮긴다.
+const STAGE_SHIFT_X := 80.0
+
+## 동굴 도감 상세(`cave.gd::_build_dragon_book_info`)의 **단상 대비 드래곤** 비율.
+##   동굴: 단상 `Design.ASSET_SCALE × 1.1` · 드래곤 스파인 `1.1`(ASSET_SCALE 없음)
+##   ⇒ 드래곤 배율 / 단상 배율 = 1 / ASSET_SCALE = **0.75**
+## 세로도 같은 기준: 동굴은 단상 밑변이 화면중앙+220, 드래곤 원점이 +15 ⇒ 단상 중심
+## (=밑변 − 그려진높이/2)보다 **그려진 높이의 0.665 만큼 위**에 발이 온다.
+const CAVE_DRAGON_RATIO := 0.75
+const CAVE_FOOT_RATIO := 0.665
+
 func _build_stage() -> void:
 	var S := Design.ASSET_SCALE
 	var three := _need >= 3
-	var stage := Vector2(STAGE_DX, _vis.y * 0.5 - (STAGE_DY_3 if three else STAGE_DY_1))
+	var stage := Vector2(STAGE_DX + STAGE_SHIFT_X,
+		_vis.y * 0.5 - (STAGE_DY_3 if three else STAGE_DY_1))
 	var offs: Array = SLOTS_3 if three else [SLOT_1]
 	var st_scale := (STAND_SCALE_3 if three else STAND_SCALE_1) * S
 	var glow_up := GLOW_UP_3 if three else GLOW_UP_1
@@ -264,8 +276,12 @@ func _build_stage() -> void:
 		sh.modulate.a = 0.0
 		stand.add_child(sh)
 
+		# 드래곤이 설 자리 — **단상 기준**으로 잡는다(동굴과 같은 비율, 위 상수 주석).
+		#   종전엔 슬롯 좌표에 그냥 세워서 단상 대비 위치가 어색했다(사용자 지적 2026-08-05).
+		var st_h := AtlasUI.size_pt(ST, st_key).y * (STAND_SCALE_3 if three else STAND_SCALE_1)
 		_slots.append({"stand": stand, "glow3": glow3, "glow4": glow4, "shadow": sh,
-			"pos": slot})
+			"pos": slot, "foot": stand_pos - Vector2(0.0, st_h * CAVE_FOOT_RATIO),
+			"dscale": (STAND_SCALE_3 if three else STAND_SCALE_1) * S * CAVE_DRAGON_RATIO})
 
 
 func _spin(n: Node2D, deg: float) -> void:
@@ -300,10 +316,11 @@ func _refresh_slots() -> void:
 		var d := UserDB.get_dragon(uid)
 		if d.is_empty():
 			continue
-		var node := _dragon_spine(d)
+		var node := _dragon_spine(d, float(s.get("dscale", DRAGON_SCALE * Design.ASSET_SCALE)))
 		if node == null:
 			continue
-		node.position = s["pos"]
+		# 발 위치도 단상 기준(동굴과 같은 비율) — 슬롯 좌표가 아니다.
+		node.position = s.get("foot", s["pos"])
 		_dragon_layer.add_child(node)
 		# 단상 위 드래곤을 누르면 선택 해제(원작 `cancelSelect` — 원작은 드래그로 뺐다).
 		var hit := Button.new()
@@ -320,16 +337,19 @@ func _fade(n: CanvasItem, a: float) -> void:
 
 
 ## 원작 `ColosseumManager::getSpine(i)` — setScaleX(-0.6)/setScaleY(0.6), 애니 `wait`.
-func _dragon_spine(d: Dictionary) -> Node2D:
+func _dragon_spine(d: Dictionary, dscale := -1.0) -> Node2D:
 	var id := int(d.get("id", 0))
 	var S := Design.ASSET_SCALE
+	# 🔴 2026-08-05 — 배율은 **단상 기준**으로 호출측이 준다(동굴과 같은 비율).
+	#   원작 리터럴 0.6 은 단상 배율이 0.6 일 때의 값이라 1vs1(단상 1.0)에서 어긋났다.
+	var ds := dscale if dscale > 0.0 else DRAGON_SCALE * S
 	for st in [Growth.spine_stage(d), "adult", "child", "baby"]:
 		var p := "res://scenes/dragons/dragon_%d_%s.tscn" % [id, st]
 		if not ResourceLoader.exists(p):
 			continue
 		var holder := Node2D.new()
 		# 원작 그대로 x 를 뒤집는다 — 후보 띠의 초상과 같은 방향(왼쪽)을 본다.
-		holder.scale = Vector2(-DRAGON_SCALE * S, DRAGON_SCALE * S)
+		holder.scale = Vector2(-ds, ds)
 		var inst := (load(p) as PackedScene).instantiate()
 		holder.add_child(inst)
 		var ap := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
