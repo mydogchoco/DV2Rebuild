@@ -40,6 +40,50 @@ const DMG_TIME := {
 	"holy": 8.5, "light": 7.75, "wind": 8.0, "shadow": 8.0,
 }
 
+# ── 화면 색 레이어 (`run<El>` 의 `CCLayerColor`) ─────────────────────────────
+#
+# 🔴 2026-08-05 — 원작은 **속성마다 화면 전체를 색으로 덮는다.** 우리는 불·물만 했다.
+#   사용자 제공 원작 영상에서 이게 가장 눈에 띄는 차이였다(신성·혼돈·그림자 구간은
+#   화면이 통째로 어두워지거나 붉게/청록으로 물든다).
+#
+# 색은 `CCLayerColor::create((ccColor4B*)&c, W, H)` 의 상수를 그대로 디코드한 것이다:
+#   혼돈 `0x1932c8` → RGBA(200, 50, 25, 0) · 신성 `0xffffff` → (255,255,255,0)
+#   물 `3.7778792e+22` → (194,255,255,100) · 불/빛 → (255,255,255,0)
+# `TintTo` 목표색은 `run<El>` 의 화면 레이어 시퀀스에서 실측했다:
+#   물 (194,255,255) → (25,60,125) · 어둠 (23,36,74) · 혼돈 (200,50,25)
+#   그림자 (0,185,205) → (0,70,80) → (255,255,255)
+#
+# ⚠️ ASSUMPTION: 레이어가 **얼마나 짙게** 올라오는지(FadeTo 목표 알파)는 못 찾았다
+#   (`ccColor4B` 의 알파는 0 이고 올려 주는 액션이 CallFunc 안에 있다).
+#   영상에서 배경이 실루엣으로 비치는 정도라 `TINT_A` 로 뒀다 — 한 줄만 고치면 된다.
+const TINT_A := 0.62
+const TINT := {
+	"chaos":  [[3.0, Color8(200, 50, 25)], [2.0, Color8(200, 50, 25)]],
+	"dark":   [[3.3, Color8(23, 36, 74)], [2.0, Color8(23, 36, 74)]],
+	"shadow": [[0.2, Color8(0, 185, 205)], [1.0, Color8(0, 70, 80)],
+		[2.0, Color8(0, 70, 80)], [0.2, Color8(255, 255, 255)]],
+	"holy":   [[1.0, Color8(255, 255, 255)], [5.75, Color8(255, 255, 255)]],
+	"earth":  [[1.0, Color8(120, 96, 64)], [4.75, Color8(120, 96, 64)]],
+	"wind":   [[0.75, Color8(0, 0, 0)], [4.4, Color8(0, 0, 0)]],
+}
+const TINT_OUT := {"chaos": 0.0, "dark": 1.0, "shadow": 0.5, "holy": 0.25,
+	"earth": 0.25, "wind": 0.25}
+
+static func _screen_tint(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
+	var steps: Array = TINT.get(el, [])
+	if steps.is_empty():
+		return
+	var first: Color = steps[0][1]
+	var r := _screen_veil(host, at, first, 84)
+	var t := r.create_tween()
+	for i in steps.size():
+		var d := float(steps[i][0]) / sp
+		var c: Color = steps[i][1]
+		t.tween_property(r, "color", Color(c.r, c.g, c.b, TINT_A), d)
+	t.tween_property(r, "color:a", 0.0, maxf(0.1, float(TINT_OUT.get(el, 0.5))) / sp)
+	t.tween_callback(r.queue_free)
+
+
 # ── §4 바닥 링 — `init<El>_C` 실측 구성 ─────────────────────────────────────
 ## 원작은 스프라이트 3~4장을 만들어 **하나를 다른 하나의 자식으로 겹친다**(형제가 아니다).
 ##     layer.addChild(base,  z=el-1, tag 9000)      base 안에 nest 가 z=-1 로 들어간다
@@ -158,6 +202,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat = CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
+	_screen_tint(host, el, at, sp)       # 속성별 화면 색(원작 CCLayerColor)
 	# 합체 문양은 **바닥 높이**에 깔린다 — 원작 영상(어둠 +3.7초 · 바람 +5.4초)에서 링이
 	# 화면 세로 중앙이 아니라 드래곤 발치에 눕는다. 가로는 화면 중앙이다.
 	# (원작 컨테이너 위치는 `this->getPosition()` 인데, 그 값이 시전자인지 화면 중앙인지는
