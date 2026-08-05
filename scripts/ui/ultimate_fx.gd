@@ -113,7 +113,9 @@ const FIRE_DELAYS := [
 const FIRE_Z := [5, 2, 7, 1, 4, 9, 10, 8, 3, 6, 11, 2, 13, 3, 1, 16, 1, 18, 4, 20]
 const FIRE_EXPL_SEC := 0.06    # 애니 explosion2~6
 const FIRE_PILLAR_SEC := 0.03  # 애니 fillar3~7
-const FIRE_STONE_MIN := 14     # 지점당 돌 `idx%6 + 14` 개
+const FIRE_STONE_MIN := 14     # 지점당 돌 `rand()%6 + 14` 개 (원작 루프 상한)
+const FIRE_START_SX := 0.5     # 원작 setScaleX(0.5) — 세로는 0 에서 솟는다
+const FIRE_LAG := 0.225        # 기둥·지진·돌은 폭발보다 0.225초 늦다
 ## 화면 백색 암전 — `runFire`: Delay(base+4.25) → FadeTo(1.0,255) → Delay(1.0) → FadeTo(0.5,0)
 const FIRE_FLASH_AT := 4.25
 const FIRE_FLASH_IN := 1.0
@@ -291,13 +293,11 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 	rng.randomize()
 	for i in FIRE_POINTS.size():
 		var p: Array = FIRE_POINTS[i]
-		# 원작 `dir * (W*wf + dx)` — cocos y-up 이라 dy 부호를 뒤집어 Godot 으로 옮긴다.
-		var dx := dir * (vis.x * float(p[0]) + float(p[1]))
-		var pos := at + Vector2(dx, -float(p[2]))
-		var zbase := int(FIRE_Z[i]) * 5
-		var delay := float(FIRE_DELAYS[i]) / sp
-		var n_stone := (i % 6) + FIRE_STONE_MIN
-		_fire_burst(host, pfx, pos, zbase, delay, n_stone, s, sp, mat, alive, rng)
+		# 원작 앵커표(`this + i*8 + 0x2d8`) = 레이어 중심 + `dir*(W*wf + dx)` + dy.
+		# cocos y-up 이라 dy 부호를 뒤집어 Godot 으로 옮긴다.
+		var pos := at + Vector2(dir * (vis.x * float(p[0]) + float(p[1])), -float(p[2]))
+		_fire_burst(host, pfx, pos, int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
+			rng.randi() % 6 + FIRE_STONE_MIN, s, sp, mat, alive, rng)
 
 	# 화면 백색 암전
 	var flash := _screen_veil(host, at, Color(1, 1, 1), 120)
@@ -309,68 +309,115 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 	ft.tween_callback(flash.queue_free)
 
 
-## 폭발 지점 하나 — 지진(z+2) · 폭발(z+1) · 화염기둥(z+0) · 돌 여러 개.
+## 폭발 지점 하나 — 원작 `initFire` 배치 + `runFire` 안무를 그대로.
+##
+## 배치(`initFire`, 앵커 i 마다):
+##   `fire_fillar1`     anchor(0.5, 0) · pos=A[i]        · scale(0.5, 0) · z = Z[i]*5
+##   `fire_explosion1`  anchor(0.5, 0) · pos=A[i]        · scale(0.5, 0) · z = Z[i]*5 + 1
+##   `fire_earthquake`  anchor(0.5, 0) · pos=A[i]+(0,−5) · scale(0.5, 0) · z = Z[i]*5 + 2
+##   `fire_stone` ×(rand%6 + 14) — **지진의 자식**, z=−1, 처음엔 숨김
+##       A: local(−100 + (rand%3)*100, 0)   scale (rand%8)*0.1+0.25  rot rand%361
+##       B: local(−75 + (rand%31)*5, +25)   scale (rand%4)*0.25+0.5  rot rand%360  (조건부)
+##       ⚠️ 원작 local 은 지진의 **왼쪽 아래** 기준이라 x 에 폭/2 가 붙는다 —
+##          우리 홀더 원점은 앵커(0.5,0)=아래 **가운데**라 그 항이 상쇄돼 위 값이 된다.
+##
+## 안무(`runFire`, d = FIRE_DELAYS[i]):
+##   폭발    Delay(d)         → ScaleTo(0.1, 1.0)  → 애니 explosion2~6
+##                            → Spawn(FadeTo(0.1,0), ScaleTo(0.1,1.25)) → 제거
+##   화염기둥 Delay(0.225 + d) → ScaleTo(0.1, 1.25) → 애니 fillar3~7 → 제거
+##   지진    Delay(0.225 + d) → ScaleTo(0.1, 1.1) → ScaleTo(0.05, 1.0)
+##                            → Delay(0.75) → FadeTo(1.0, 0) → 제거
+##   ⇒ 셋 다 **세로 0 에서 솟는다**(scaleY 0 시작). 종전엔 통짜로 떠 있다가 페이드만 했다.
 static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 		delay: float, n_stone: int, s: float, sp: float, mat: CanvasItemMaterial,
 		alive: Callable, rng: RandomNumberGenerator) -> void:
-	var quake := _spr("fire", pfx + "earthquake")
-	var pillar := _spr("fire", pfx + "fillar1")
-	var expl := _spr("fire", pfx + "explosion1")
-	for pair in [[quake, zbase + 2], [pillar, zbase], [expl, zbase + 1]]:
+	var pillar := _spr_a("fire", pfx + "fillar1", BOTTOM)
+	var expl := _spr_a("fire", pfx + "explosion1", BOTTOM)
+	var quake := _spr_a("fire", pfx + "earthquake", BOTTOM)
+	for pair in [[pillar, zbase], [expl, zbase + 1], [quake, zbase + 2]]:
 		var n: Node2D = pair[0]
 		if n == null:
 			continue
-		n.position = pos
+		n.position = pos + (Vector2(0.0, 5.0) if n == quake else Vector2.ZERO)
 		n.z_index = int(pair[1])
-		n.visible = false
+		n.scale = Vector2(FIRE_START_SX, 0.0)      # 원작 setScaleX(0.5) · setScaleY(0)
 		host.add_child(n)
-	# 돌 — 원작이 `rand()%3 * 100` 으로 x 를 흩는다(§5-fire).
+
+	# 돌 — 지진의 **자식**이라 지진과 함께 솟았다가 튄다.
 	var stones: Array = []
-	for k in n_stone:
-		var st := _spr("fire", pfx + "stone")
-		if st == null:
-			break
-		st.position = pos + Vector2(float(rng.randi() % 3) * 100.0 - 100.0, 0.0)
-		st.z_index = zbase + 3
-		st.visible = false
-		host.add_child(st)
-		stones.append(st)
+	if quake != null:
+		for k in n_stone:
+			var st := _spr("fire", pfx + "stone")
+			if st == null:
+				break
+			st.position = Vector2(-100.0 + float(rng.randi() % 3) * 100.0, 0.0)
+			st.scale *= float(rng.randi() % 8) * 0.1 + 0.25
+			st.rotation_degrees = float(rng.randi() % 361)
+			st.z_index = -1
+			st.visible = false
+			quake.add_child(st)
+			stones.append(st)
+			if k > rng.randi() % 3:
+				continue
+			var st2 := _spr("fire", pfx + "stone")
+			if st2 == null:
+				continue
+			st2.position = Vector2(-75.0 + float(rng.randi() % 31) * 5.0, -25.0)
+			st2.scale *= float(rng.randi() % 4) * 0.25 + 0.5
+			st2.rotation_degrees = float(rng.randi() % 360)
+			st2.z_index = -1
+			st2.visible = false
+			quake.add_child(st2)
+			stones.append(st2)
 
 	var go := func() -> void:
 		if alive.is_valid() and not bool(alive.call()):
 			return
-		if is_instance_valid(quake):
-			quake.visible = true
-			var qt := quake.create_tween()
-			qt.tween_property(quake, "modulate:a", 0.0, 0.6 / sp)
-			qt.tween_callback(quake.queue_free)
-		if is_instance_valid(pillar):
-			pillar.visible = true
-			_play_frames(pillar, "fire", pfx + "fillar%d", 3, 7, FIRE_PILLAR_SEC / sp, true)
 		if is_instance_valid(expl):
-			expl.visible = true
-			_play_frames(expl, "fire", pfx + "explosion%d", 2, 6, FIRE_EXPL_SEC / sp, true)
+			var et := expl.create_tween()
+			et.tween_property(expl, "scale", Vector2.ONE, 0.1 / sp)
+			et.tween_callback(func() -> void:
+				_play_frames(expl, "fire", pfx + "explosion%d", 2, 6, FIRE_EXPL_SEC / sp))
+			et.tween_interval(FIRE_EXPL_SEC * 5.0 / sp)
+			et.tween_property(expl, "modulate:a", 0.0, 0.1 / sp)
+			et.parallel().tween_property(expl, "scale", Vector2.ONE * 1.25, 0.1 / sp)
+			et.tween_callback(expl.queue_free)
+		if is_instance_valid(pillar):
+			var lt := pillar.create_tween()
+			lt.tween_interval(FIRE_LAG / sp)
+			lt.tween_property(pillar, "scale", Vector2.ONE * 1.25, 0.1 / sp)
+			lt.tween_callback(func() -> void:
+				_play_frames(pillar, "fire", pfx + "fillar%d", 3, 7, FIRE_PILLAR_SEC / sp))
+			lt.tween_interval(FIRE_PILLAR_SEC * 5.0 / sp)
+			lt.tween_property(pillar, "modulate:a", 0.0, 0.25 / sp)
+			lt.tween_callback(pillar.queue_free)
+		if is_instance_valid(quake):
+			var qt := quake.create_tween()
+			qt.tween_interval(FIRE_LAG / sp)
+			qt.tween_property(quake, "scale", Vector2(1.1, 1.1), 0.1 / sp)
+			qt.tween_property(quake, "scale", Vector2.ONE, 0.05 / sp)
+			qt.tween_interval(0.75 / sp)
+			qt.tween_property(quake, "modulate:a", 0.0, 1.0 / sp)
+			qt.tween_callback(quake.queue_free)
 		for st in stones:
 			if not is_instance_valid(st):
 				continue
 			st.visible = true
-			# 원작 `runFire` 의 돌 시퀀스(2026-08-05 `resolve_actions.py` 로 조립 순서 복원):
+			# 원작 `runFire` 의 돌 시퀀스(`resolve_actions.py` 로 조립 순서 복원):
 			#   d  = (dx*(rand%3+1) + rand%90, (rand%8)*10 − 25),  dx = 돌.x − 폭발 중심.x
 			#   t  = (rand%4)*0.125 + 0.125,  sign = d.x ≥ 0 ? +1 : −1
-			#   Spawn(EaseInOut(JumpBy(t,      d,     (rand%400)+150, 1), 2t),
-			#         RotateBy(t,      sign*((rand%1080)+1080)))
-			#   Spawn(EaseInOut(JumpBy(0.75t,  d/5,   (rand%50)+100,  1), 2t),
-			#         RotateBy(0.75t,  sign*((rand%720)+720)))
-			#   Spawn(EaseInOut(JumpBy(0.5t,   d/10,  (rand%75)+25,   1), 2t),
-			#         RotateBy(0.5t,   sign*((rand%360)+360)))
+			#   Spawn(EaseInOut(JumpBy(t,     d,    (rand%400)+150, 1), 2t), RotateBy(t,     sign*((rand%1080)+1080)))
+			#   Spawn(EaseInOut(JumpBy(0.75t, d/5,  (rand%50)+100,  1), 2t), RotateBy(0.75t, sign*((rand%720)+720)))
+			#   Spawn(EaseInOut(JumpBy(0.5t,  d/10, (rand%75)+25,   1), 2t), RotateBy(0.5t,  sign*((rand%360)+360)))
 			#   Spawn(MoveBy(t, (d.x*0.1, 0)), RotateBy(t, d.x*0.1*7.5))
-			#   → Delay(0.25) → FadeTo(0.75, 0) → remove
-			var dx: float = st.position.x - pos.x
+			#   → Delay(0.25) → FadeTo(0.75, 0) → 제거
+			var dx: float = st.position.x
 			var d := Vector2(dx * float(rng.randi() % 3 + 1) + float(rng.randi() % 90),
 				float(rng.randi() % 8) * 10.0 - 25.0)
 			var jt := float(rng.randi() % 4) * 0.125 + 0.125
 			var sgn := 1.0 if d.x >= 0.0 else -1.0
 			var t2: Tween = st.create_tween()
+			t2.tween_interval(FIRE_LAG / sp)
 			_jump_by(t2, st, d, float(rng.randi() % 400) + 150.0, 1, jt / sp, jt + jt)
 			t2.parallel().tween_property(st, "rotation_degrees",
 				sgn * (float(rng.randi() % 1080) + 1080.0), jt / sp).as_relative()
@@ -381,8 +428,7 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 			t2.parallel().tween_property(st, "rotation_degrees",
 				sgn * (float(rng.randi() % 360) + 360.0), jt * 0.5 / sp).as_relative()
 			t2.tween_property(st, "position", Vector2(d.x * 0.1, 0.0), jt / sp).as_relative()
-			t2.parallel().tween_property(st, "rotation_degrees", d.x * 0.1 * 7.5, jt / sp)\
-				.as_relative()
+			t2.parallel().tween_property(st, "rotation_degrees", d.x * 0.1 * 7.5, jt / sp)				.as_relative()
 			t2.tween_interval(0.25 / sp)
 			t2.tween_property(st, "modulate:a", 0.0, 0.75 / sp)
 			t2.tween_callback(st.queue_free)
@@ -1330,6 +1376,15 @@ static func _tex(element: String, key: String) -> Texture2D:
 ## 종전엔 창이 "가장 긴 계열 + circle1" 이라는 추측으로 표시해서, 이식을 마친 뒤에도
 ## `spear`·`well`·`stone` 을 "안 쓰는 단품" 으로 잘못 적었다(2026-08-05).
 static var used_keys := {}
+
+## 앵커를 지정해 만든다. 원작은 대부분 **아래 가운데**(0.5, 0)로 세워 바닥에 붙인다 —
+## 기본값(가운데)으로 두면 스프라이트가 제 높이의 절반만큼 떠 보인다.
+const BOTTOM := Vector2(0.5, 0.0)
+
+static func _spr_a(element: String, key: String, anchor: Vector2) -> Node2D:
+	used_keys[element + "/" + key] = true
+	return AtlasUI.spr_cocos(DIR_PREFIX + element, key, 1.0, anchor)
+
 
 static func _spr(element: String, key: String) -> Node2D:
 	used_keys[element + "/" + key] = true
