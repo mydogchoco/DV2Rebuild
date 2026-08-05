@@ -305,6 +305,12 @@ func _play() -> void:
 		var ap := FightScene._find_anim_player(_caster)
 		if ap != null and ap.has_animation("ultimate1"):
 			ap.play("ultimate1")
+		# 도약 스쿼시 — 원작 `initPosition` 이 무대로 뛰기 0.2초 뒤 ScaleTo(0.1, 1.05, 0.95).
+		var b0: Vector2 = _caster.scale
+		var tk := _caster.create_tween()
+		tk.tween_interval(0.2)
+		tk.tween_property(_caster, "scale", Vector2(b0.x * 1.05, b0.y * 0.95), 0.1)
+		tk.tween_property(_caster, "scale", b0, 0.1)
 		var back := 9.0
 		_caster.modulate.a = 1.0
 		var ct := _caster.create_tween()

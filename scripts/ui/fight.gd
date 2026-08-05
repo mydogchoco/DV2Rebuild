@@ -2920,6 +2920,7 @@ const ULT_JUMP_H := 150.0           # 원작 s × 150
 const ULT_LAND_LAG := 0.5           # 원작 Delay(hold + d + 0.5)
 const ULT_SQUASH := [Vector2(1.0, 0.95), Vector2(1.0, 1.05), Vector2(1.0, 1.0)]
 const ULT_SQUASH_SEC := 0.1
+const ULT_TAKEOFF_LAG := 0.2        # 원작 initPosition: 도약 0.2초 뒤 ScaleTo(0.1, 1.05, 0.95)
 const ULT_SHADOW_PULSE := [1.75, 2.0]
 const ULT_SHADOW_SEC := 0.125
 ## 원작 `initPosition` 이 쓰는 hold 표(`DAT_021af270`, 탐험 쪽). 기록용 — 위 ⚠️ 참조.
@@ -2985,6 +2986,16 @@ func _ultimate_position(atk: Dictionary) -> float:
 			sw.tween_property(shadow, "scale", bs * m, ULT_SHADOW_SEC)
 		sw.tween_interval(maxf(0.0, hold - ULT_SHADOW_SEC * 2.0))
 		sw.tween_property(shadow, "scale", bs, ULT_JUMP_SEC)
+
+	# 도약 스쿼시 — 🔵 2026-08-05 추가. 원작 `initPosition` 은 무대로 뛰기 **0.2초 뒤**에
+	#   `ScaleTo(0.1, ±1.05, 0.95)` 로 한 번 눌러 준다(발 구르는 반동). 종전엔 착지 쪽만 있었다.
+	var sp0 = atk.get("spine")
+	if sp0 is Node2D and is_instance_valid(sp0):
+		var b0: Vector2 = (sp0 as Node2D).scale
+		var tk := (sp0 as Node2D).create_tween()
+		tk.tween_interval(ULT_TAKEOFF_LAG)
+		tk.tween_property(sp0, "scale", Vector2(b0.x * 1.05, b0.y * 0.95), ULT_SQUASH_SEC)
+		tk.tween_property(sp0, "scale", b0, ULT_SQUASH_SEC)
 
 	# 착지 스쿼시 — 원작은 `hold + d + 0.5` 에 시작한다.
 	var sp = atk.get("spine")
