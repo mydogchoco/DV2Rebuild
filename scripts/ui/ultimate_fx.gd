@@ -1251,23 +1251,31 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 ## 원작 `initChaos`: `chaos_meteo1/2` + `chaos_dust1~3`(애니 0.05초/프레임) +
 ##   `scene/colosseum/dust`·`dust_cover` 를 **18개**(0x12) · 12개(0xc) 루프로 깐다.
 ##   운석 앵커가 `(0.5, 0.0493)` = 꼬리 끝 기준이다.
+const CHAOS_FLASH_AT := 5.0     # 착탄 백색 섬광(영상 혼돈 +7.1s = 구간 내 5.0초쯤)
 const CHAOS_DUST_SEC := 0.05
 const CHAOS_COVERS := 18
 const CHAOS_METEOS := 12
-const CHAOS_METEO_ANCHOR_Y := 0.0493
+const CHAOS_METEO_ANCHOR_Y := 0.049295776   # 원작 앵커 — 운석 **꼬리 끝**이 축이다
 
 static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "chaos"
 	var pfx := prefix(el)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var s_ring := RING_DY
 
-	# 운석 — 위에서 비스듬히 떨어진다.
+	# 운석 — 원작 `initChaos`: **화면 폭에 맞춰 `setScale(화면폭 / 운석폭)`** 하고
+	#   앵커가 `(0.5, 0.0493)` = **꼬리 끝**이다(그 점을 축으로 기울어 떨어진다).
+	#   영상(혼돈 +3.9s ~ +5.5s)에서도 화면을 가로지르는 큰 운석 하나다 — 여러 개가 아니다.
+	var mw := float(manifest(el).get(pfx + "meteo1", {}).get("w", 1.0)) * Design.ASSET_SCALE
+	var msc := (vis.x / mw) if mw > 1.0 else 1.0
 	for i in CHAOS_METEOS:
-		var m := _spr(el, pfx + ("meteo1" if i % 2 == 0 else "meteo2"))
+		var m := _spr_a(el, pfx + ("meteo1" if i % 2 == 0 else "meteo2"),
+			Vector2(0.5, CHAOS_METEO_ANCHOR_Y))
 		if m == null:
 			break
-		var tx := at.x + rng.randf_range(-vis.x * 0.4, vis.x * 0.4)
+		var tx := at.x + rng.randf_range(-vis.x * 0.25, vis.x * 0.25)
+		m.scale = Vector2.ONE * msc * (1.0 if i == 0 else 0.45)
 		m.position = Vector2(tx - dir * 260.0, at.y - 420.0)
 		m.z_index = 100
 		m.rotation = atan2(420.0, dir * 260.0) - PI * 0.5
@@ -1278,12 +1286,25 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		t.tween_property(m, "modulate:a", 0.0, 0.15 / sp)
 		t.tween_callback(m.queue_free)
 
-	# 먼지 기둥.
-	var du := _spr(el, pfx + "dust1")
+	# 착탄 백색 섬광 — 영상 혼돈 +7.1s 가 화면 전체 화이트아웃이다.
+	var bang := _screen_veil(host, at, Color(1, 1, 1), 121)
+	var bt := bang.create_tween()
+	bt.tween_interval(CHAOS_FLASH_AT / sp)
+	bt.tween_property(bang, "color:a", 1.0, 0.1 / sp)
+	bt.tween_interval(0.35 / sp)
+	bt.tween_property(bang, "color:a", 0.0, 0.6 / sp)
+	bt.tween_callback(bang.queue_free)
+
+	# 먼지 기둥 — 원작 앵커 `(0.5, 0)` · `setScaleY(0)` ⇒ **바닥에서 솟는다**.
+	var du := _spr_a(el, pfx + "dust1", BOTTOM)
 	if du != null:
-		du.position = at
+		du.position = at + Vector2(0.0, s_ring)
 		du.z_index = 92
+		du.scale = Vector2(1.0, 0.0)
 		host.add_child(du)
+		var dg := du.create_tween()
+		dg.tween_interval(CHAOS_FLASH_AT / sp)
+		dg.tween_property(du, "scale", Vector2.ONE, 0.35 / sp)
 		_play_frames(du, el, pfx + "dust%d", 1, 3, CHAOS_DUST_SEC / sp)
 		var t2 := du.create_tween()
 		t2.tween_interval(6.0 / sp)
