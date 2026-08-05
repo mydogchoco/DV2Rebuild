@@ -40,47 +40,69 @@ const DMG_TIME := {
 	"holy": 8.5, "light": 7.75, "wind": 8.0, "shadow": 8.0,
 }
 
-# ── 화면 색 레이어 (`run<El>` 의 `CCLayerColor`) ─────────────────────────────
+# ── 마스터 타임라인 — `runUltimate` @00fe6e98 실측 (2026-08-05 재작성) ────────
 #
-# 🔴 2026-08-05 — 원작은 **속성마다 화면 전체를 색으로 덮는다.** 우리는 불·물만 했다.
-#   사용자 제공 원작 영상에서 이게 가장 눈에 띄는 차이였다(신성·혼돈·그림자 구간은
-#   화면이 통째로 어두워지거나 붉게/청록으로 물든다).
-#
-# 색은 `CCLayerColor::create((ccColor4B*)&c, W, H)` 의 상수를 그대로 디코드한 것이다:
-#   혼돈 `0x1932c8` → RGBA(200, 50, 25, 0) · 신성 `0xffffff` → (255,255,255,0)
-#   물 `3.7778792e+22` → (194,255,255,100) · 불/빛 → (255,255,255,0)
-# `TintTo` 목표색은 `run<El>` 의 화면 레이어 시퀀스에서 실측했다:
-#   물 (194,255,255) → (25,60,125) · 어둠 (23,36,74) · 혼돈 (200,50,25)
-#   그림자 (0,185,205) → (0,70,80) → (255,255,255)
-#
-# ⚠️ ASSUMPTION: 레이어가 **얼마나 짙게** 올라오는지(FadeTo 목표 알파)는 못 찾았다
-#   (`ccColor4B` 의 알파는 0 이고 올려 주는 액션이 CallFunc 안에 있다).
-#   영상에서 배경이 실루엣으로 비치는 정도라 `TINT_A` 로 뒀다 — 한 줄만 고치면 된다.
-const TINT_A := 0.62
-const TINT := {
-	"chaos":  [[3.0, Color8(200, 50, 25)], [2.0, Color8(200, 50, 25)]],
-	"dark":   [[3.3, Color8(23, 36, 74)], [2.0, Color8(23, 36, 74)]],
-	"shadow": [[0.2, Color8(0, 185, 205)], [1.0, Color8(0, 70, 80)],
-		[2.0, Color8(0, 70, 80)], [0.2, Color8(255, 255, 255)]],
-	"holy":   [[1.0, Color8(255, 255, 255)], [5.75, Color8(255, 255, 255)]],
-	"earth":  [[1.0, Color8(120, 96, 64)], [4.75, Color8(120, 96, 64)]],
-	"wind":   [[0.75, Color8(0, 0, 0)], [4.4, Color8(0, 0, 0)]],
-}
-const TINT_OUT := {"chaos": 0.0, "dark": 1.0, "shadow": 0.5, "holy": 0.25,
-	"earth": 0.25, "wind": 0.25}
+# 원작 콜로세움 호출 = `showCutIn(actor, 0.5)` 직후 `runUltimate(1.0)`:
+#   장막(0x238): Delay(1.0) → FadeTo(1.0, 200)                       ← 화면 암전
+#   레이어:     Delay(1.0) → Delay(0.5=initPosition 반환) → Delay(0.75)
+#               → action<El>_C() → Delay(0.5) → run<El>()
+#   ⇒ 시전 0초 기준: 시전자 점프 1.0 · **action_C 2.25 · run<El> 2.75**.
+#   run<El> 은 첫 줄에서 run<El>_C(링 안무)를 부른다 — 링도 2.75 에 시작한다.
+# 레퍼런스 영상 교차검증(배속 x1 = timeScale 1.35): 불 시전 로그 +1.0s 점프 착지,
+#   +2.2s 링, +2.4s 첫 불기둥, +5.8s 화이트아웃 — 전부 이 표와 일치.
+const LEAD := 1.0                  # runUltimate(delay) — FightScene 이 1.0 을 넘긴다
+const POS_RET := 0.5               # initPosition 반환값(0x3f000000 실측)
+const ACT_AT := LEAD + POS_RET + 0.75      # = 2.25, action<El>_C 시각
+const RUN_AT := ACT_AT + 0.5               # = 2.75, run<El>(+run<El>_C) 시각
 
-static func _screen_tint(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
-	var steps: Array = TINT.get(el, [])
-	if steps.is_empty():
-		return
-	var first: Color = steps[0][1]
-	var r := _screen_veil(host, at, first, 84)
+# ── 화면 장막 — `setElement` 가 만드는 검은 `CCLayerColor`(tag 0x60044) ───────
+#
+# 🔵 2026-08-05 실측 재작성 — 종전의 "속성별 색 레이어 + ASSUMPTION 알파 0.62"는
+#   반쪽이었다. 원작은 **화면보다 50pt 큰 검은 CCLayerColor 한 장**(this+0x238)을 만들어
+#   `runUltimate` 가 `Delay(1.0) → FadeTo(1.0, 200)` 으로 깔고, 각 `run<El>` 이 **같은 장막**에
+#   TintTo/FadeTo 시퀀스를 건다. 알파는 추측이 아니라 **200/255** 다.
+# 아래 표 = 각 `run<El>` 이 장막에 거는 시퀀스(디컴프 리터럴 전수, run 시작 기준):
+#   aqua   TintTo(1, 194,255,255) → Delay(3) → TintTo(1, 25,60,125) → Delay(.75) → FadeTo(.5, 0)
+#   chaos  TintTo(3, 200,50,25) → Delay(2) → …(콜백)
+#   dark   Delay(1) → TintTo(3.3, 23,36,74) → Delay(2) → FadeTo(1, 0)
+#   earth  Delay(5.75) → FadeTo(.25, 0)
+#   fire   Delay(6.5) → FadeTo(.25, 0)
+#   holy   Delay(6.75) → FadeTo(.25, 0)
+#   shadow TintTo(.2, 0,185,205) → Delay(.2) → TintTo(1, 0,70,80) → Delay(2)
+#          → TintTo(.2, 255,255,255) → Delay(.2) → FadeTo(.5, 0)
+#   light/wind — 장막 액션이 디컴프 범위에서 특정 안 됨(빛은 별도 백색 레이어가 주역).
+#          ASSUMPTION: holy 와 같은 시각(run+6.75)에 걷는다.
+const VEIL_A := 200.0 / 255.0
+## steps = run<El> 시작 기준 [지연, [동작…]] 목록. 동작 = ["tint", 초, Color] | ["fade", 초, 알파]
+const VEIL := {
+	"aqua":   [["tint", 1.0, Color8(194, 255, 255)], ["wait", 3.0], ["tint", 1.0, Color8(25, 60, 125)],
+		["wait", 0.75], ["fade", 0.5, 0.0]],
+	"chaos":  [["tint", 3.0, Color8(200, 50, 25)], ["wait", 2.0], ["fade", 1.0, 0.0]],
+	"dark":   [["wait", 1.0], ["tint", 3.3, Color8(23, 36, 74)], ["wait", 2.0], ["fade", 1.0, 0.0]],
+	"earth":  [["wait", 5.75], ["fade", 0.25, 0.0]],
+	"fire":   [["wait", 6.5], ["fade", 0.25, 0.0]],
+	"holy":   [["wait", 6.75], ["fade", 0.25, 0.0]],
+	"light":  [["wait", 6.75], ["fade", 0.25, 0.0]],   # ASSUMPTION(위 주석)
+	"wind":   [["wait", 6.75], ["fade", 0.25, 0.0]],   # ASSUMPTION(위 주석)
+	"shadow": [["tint", 0.2, Color8(0, 185, 205)], ["wait", 0.2], ["tint", 1.0, Color8(0, 70, 80)],
+		["wait", 2.0], ["tint", 0.2, Color8(255, 255, 255)], ["wait", 0.2], ["fade", 0.5, 0.0]],
+}
+
+static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
+	var r := _screen_veil(host, at, Color(0, 0, 0), 84)
 	var t := r.create_tween()
-	for i in steps.size():
-		var d := float(steps[i][0]) / sp
-		var c: Color = steps[i][1]
-		t.tween_property(r, "color", Color(c.r, c.g, c.b, TINT_A), d)
-	t.tween_property(r, "color:a", 0.0, maxf(0.1, float(TINT_OUT.get(el, 0.5))) / sp)
+	t.tween_interval(LEAD / sp)
+	t.tween_property(r, "color:a", VEIL_A, 1.0 / sp)
+	t.tween_interval((RUN_AT - LEAD - 1.0) / sp)
+	for step in VEIL.get(el, []):
+		match String(step[0]):
+			"wait":
+				t.tween_interval(float(step[1]) / sp)
+			"tint":
+				var c: Color = step[2]
+				t.tween_property(r, "color", Color(c.r, c.g, c.b, VEIL_A), float(step[1]) / sp)
+			"fade":
+				t.tween_property(r, "color:a", float(step[2]), float(step[1]) / sp)
 	t.tween_callback(r.queue_free)
 
 
@@ -170,19 +192,52 @@ const FIRE_FLASH_OUT := 0.5
 const FALLBACK_FRAME_SEC := 0.08
 
 
+# ── 기준점 — `initWithDragon` @00fdef1c 의 race 스위치 (2026-08-05 재확정) ────
+#
+# 🔴 종전의 "화면 중앙" 가정은 **틀렸다.** 원작은 레이어 위치를 **속성별로** 잡고,
+#   `init<El>` 의 모든 좌표(`contentSize*0.5` 기준)는 그 위치에 얹힌다(앵커 0.5/0.5).
+#   레퍼런스 영상 교차검증: 불 = 시전자 왼쪽 → 불기둥이 오른쪽(≈0.66W)에서 솟고,
+#   땅 = 시전자 오른쪽 → 산이 왼쪽(≈0.2W)에서 솟는다. 둘 다 아래 표와 일치.
+#
+#   race 스위치(초안 좌표는 cocos y-up, H=692 · `mine` = 시전자가 왼쪽 진영):
+#     earth·fire·shadow : left|right ± (225, −50)      ← **시전자 반대편**(피격 진영)
+#     aqua              : leftBottom|rightBottom ± (335, 262.5)   ← 반대편
+#     wind·dark·chaos   : (W*0.5, 262.5 − 95 = 167.5)
+#     light             : center
+#     holy              : (W*0.5, 262.5)
+#   반대편 판정 = `getDragonLayer()->getTag() ∈ {0xb,0xd,0xf}`(내 진영 태그)면 right.
+#
+# dir 은 `initFire` 실측 — `getPosition().x <= center.x ? +1 : −1` = **레이어 → 화면 중앙 방향**.
+# W(좌표 수식의 `contentSize.x`) = `VisibleRect::top().x` = **화면 폭의 절반**(1024 기준 512).
+const BASE_EDGE := {"earth": 225.0, "fire": 225.0, "shadow": 225.0, "aqua": 335.0}
+
+## 연출 기준점(host 로컬, y-down). mine = 시전자가 왼쪽(내) 진영인가.
+static func base_at(host: CanvasItem, el: String, mine: bool) -> Vector2:
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var p: Vector2
+	match el:
+		"earth", "fire", "shadow":
+			p = Vector2((vis.x - BASE_EDGE[el]) if mine else BASE_EDGE[el],
+				vis.y * 0.5 + 50.0)                      # cocos −50 ⇒ 아래로 +50
+		"aqua":
+			p = Vector2((vis.x - BASE_EDGE[el]) if mine else BASE_EDGE[el],
+				vis.y - 262.5)
+		"wind", "dark", "chaos":
+			p = Vector2(vis.x * 0.5, vis.y - 167.5)
+		"holy":
+			p = Vector2(vis.x * 0.5, vis.y - 262.5)
+		_:                                               # light = 화면 중앙
+			p = vis * 0.5
+	return host.get_global_transform_with_canvas().affine_inverse() * p
+
+
 # ── 진입점 ──────────────────────────────────────────────────────────────────
 ## 각성기 재생. host 아래에 스프라이트를 붙인다(좌표는 host 로컬).
-##   ctx = {element, at(**화면 중앙**), ring_at(시전자 발밑), scale(S), dir(+1/-1),
+##   ctx = {element, mine(시전자가 왼쪽 진영?), ring_at(시전자 발밑), scale(S),
 ##          speed, alive(Callable), mat}
 ##
-## 🔴 2026-08-05 기준점 정정 — 연출 본체는 **시전자가 아니라 화면 중앙 기준**이다.
-##   근거: `initAqua` 가 자기 `getPosition()` 을 `this+0x270` 에 저장해 **`dir`(±1) 을 고르는
-##   데에만** 쓰고, 실제 배치는 전부 `this->getContentSize()`(= 화면 크기)의 `W*0.5, H*0.5`
-##   에서 잰다. 다른 속성도 같다(`initFire` 앵커표 = `중심 + dir*W*0.25 …`).
-##   ⇒ 시전자는 **좌우 반전 방향만** 정하고, 불기둥·물·태양·구슬은 화면 한가운데 난다.
-##   사용자 제공 원작 영상(콜로세움)이 이를 뒷받침한다 — 불은 화면 바닥을 가로지르고,
-##   물은 화면을 채우고, 어둠 구슬은 화면 가운데다.
-##   단 **콜로세움 바닥 링**(`init<El>_C`)만은 `CCPoint::ZERO − (0, S*87.5)` = 시전자 발밑이다.
+## 기준점 `at` 과 방향 `dir` 은 **여기서 계산**한다(위 `base_at` — 원작 `initWithDragon`).
+## 바닥 링(`init<El>_C`)만은 `CCPoint::ZERO − (0, S*87.5)` = 시전자 발밑(`ring_at`)이다.
 ## 반환 = 총 길이(초). 원작 `getDuration()` 콜로세움 표.
 static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	if not is_instance_valid(host) or not host.is_inside_tree():
@@ -191,10 +246,13 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	var man := manifest(el)
 	if man.is_empty():
 		return 0.0
-	var at: Vector2 = ctx.get("at", Vector2.ZERO)
+	var mine := bool(ctx.get("mine", true))
+	var at := base_at(host, el, mine)
 	var ring_at: Vector2 = ctx.get("ring_at", at)
 	var s := float(ctx.get("scale", 1.0))
-	var dir := float(ctx.get("dir", 1.0))
+	# 원작 dir = 레이어가 왼쪽 절반이면 +1(중앙 쪽으로 편다), 오른쪽이면 −1.
+	var ctr := _screen_center(host)
+	var dir := 1.0 if at.x <= ctr.x else -1.0
 	var sp := maxf(0.05, float(ctx.get("speed", 1.0)))
 	var alive: Callable = ctx.get("alive", Callable())
 	var mat: CanvasItemMaterial = ctx.get("mat", null)
@@ -202,26 +260,36 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat = CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
-	_screen_tint(host, el, at, sp)       # 속성별 화면 색(원작 CCLayerColor)
-	# 합체 문양은 **바닥 높이**에 깔린다 — 원작 영상(어둠 +3.7초 · 바람 +5.4초)에서 링이
-	# 화면 세로 중앙이 아니라 드래곤 발치에 눕는다. 가로는 화면 중앙이다.
-	# (원작 컨테이너 위치는 `this->getPosition()` 인데, 그 값이 시전자인지 화면 중앙인지는
-	#  `FightScene::FUN_00f8ed78` 을 더 파야 확정된다 — 영상과 맞는 쪽으로 둔다.)
-	_combine_outline(host, el, at + Vector2(0.0, s * RING_DY), sp)
-	_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	match el:
-		"fire":   _run_fire(host, at, s, dir, sp, mat, alive)
-		"earth":  _run_earth(host, at, dir, sp, rng)
-		"aqua":   _run_aqua(host, at, dir, sp, rng)
-		"wind":   _run_wind(host, at, dir, sp, rng)
-		"dark":   _run_dark(host, at, dir, sp, rng)
-		"light":  _run_light(host, at, dir, sp, rng)
-		"holy":   _run_holy(host, at, dir, sp, rng)
-		"chaos":  _run_chaos(host, at, dir, sp, rng)
-		"shadow": _run_shadow(host, at, dir, sp, rng)
-		_:        _run_fallback(host, el, at, sp, mat, alive)
+	_master_veil(host, el, at, sp)       # 화면 장막(원작 0x238) — Delay(1.0) 부터 암전
+	# run<El>(+run<El>_C 링, 합체 문양 회전)은 **시전 후 2.75초**에 시작한다(마스터 타임라인).
+	# 합체 문양 = 원작이 `contentSize*0.5`(= 기준점 `at`)에 놓는다(`initDark` 등).
+	# wind·dark·chaos 의 기준점 y(167.5)가 이미 바닥 높이라 별도 보정이 필요 없다.
+	var run_body := func() -> void:
+		if alive.is_valid() and not bool(alive.call()):
+			return
+		if not is_instance_valid(host) or not host.is_inside_tree():
+			return
+		_combine_outline(host, el, at, sp)
+		_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		match el:
+			"fire":   _run_fire(host, at, s, dir, sp, mat, alive)
+			"earth":  _run_earth(host, at, dir, sp, rng)
+			"aqua":   _run_aqua(host, at, dir, sp, rng)
+			"wind":   _run_wind(host, at, dir, sp, rng)
+			"dark":   _run_dark(host, at, dir, sp, rng)
+			"light":  _run_light(host, at, dir, sp, rng)
+			"holy":   _run_holy(host, at, dir, sp, rng)
+			"chaos":  _run_chaos(host, at, dir, sp, rng)
+			"shadow": _run_shadow(host, at, dir, sp, rng)
+			_:        _run_fallback(host, el, at, sp, mat, alive)
+	var start := Timer.new()               # host 자식 Timer — 씬과 함께 정리된다(§_fire_burst 주석)
+	start.one_shot = true
+	start.wait_time = RUN_AT / sp
+	start.autostart = true
+	start.timeout.connect(run_body)
+	host.add_child(start)
 	return float(DURATION.get(el, 9.0)) / sp
 
 
@@ -248,6 +316,7 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		base.position = pos
 		base.z_index = 90
 		base.modulate.a = 0.0          # 원작도 FadeTo 로 들어온다(시작 투명)
+		base.scale *= (s + 0.25)       # 원작 `setScale(S + 0.25)` — 시작 배율부터 크다
 		host.add_child(base)
 		# nest = base 의 **자식**. 원작은 base 의 contentSize 중심에 놓는다 = 로컬 (0,0).
 		if String(cfg.get("nest", "")) != "":
@@ -313,10 +382,11 @@ static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
 			t.tween_property(n, "modulate:a", 0.0, RING_FADE_IN / sp)
 		_:
 			# 공통: 떠올랐다가 **10배로 퍼지며** 사라지는 충격파.
+			# (시작 배율이 이미 S+0.25 라 여기서는 ×10 만 곱한다 = 원작 ScaleTo((S+0.25)*10))
 			t.tween_interval(RING_LEAD / sp)
 			t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
 			t.tween_interval(RING_HOLD / sp)
-			t.tween_property(n, "scale", n.scale * (s + 0.25) * RING_BURST_MUL, RING_BURST / sp)
+			t.tween_property(n, "scale", n.scale * RING_BURST_MUL, RING_BURST / sp)
 			t.parallel().tween_property(n, "modulate:a", 25.0 / 255.0, RING_DIM / sp)
 			t.tween_property(n, "modulate:a", 0.0, RING_OUT / sp)
 	t.tween_callback(n.queue_free)
@@ -349,13 +419,14 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 		sp: float, mat: CanvasItemMaterial, alive: Callable) -> void:
 	var pfx := prefix("fire")
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var w_half := vis.x * 0.5           # 원작 W = contentSize.x = VisibleRect::top().x = 화면 폭 절반
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	for i in FIRE_POINTS.size():
 		var p: Array = FIRE_POINTS[i]
-		# 원작 앵커표(`this + i*8 + 0x2d8`) = 레이어 중심 + `dir*(W*wf + dx)` + dy.
+		# 원작 앵커표(`this + i*8 + 0x2d8`) = 기준점 + `dir*(W*wf + dx)` + dy.
 		# cocos y-up 이라 dy 부호를 뒤집어 Godot 으로 옮긴다.
-		var pos := at + Vector2(dir * (vis.x * float(p[0]) + float(p[1])), -float(p[2]))
+		var pos := at + Vector2(dir * (w_half * float(p[0]) + float(p[1])), -float(p[2]))
 		_fire_burst(host, pfx, pos, int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
 			rng.randi() % 6 + FIRE_STONE_MIN, s, sp, mat, alive, rng)
 
@@ -656,7 +727,6 @@ const EARTH_QUAKE_POS := [Vector2(-130.0, -50.0), Vector2(120.0, -20.0),
 const EARTH_QUAKE_Z := [1, 1, 4, 3]
 const EARTH_SPIN_SEC := 0.875
 const EARTH_SPIN_DEG := 3600.0
-const WIND_GLOOM := 0.55        # 원작 영상에서 바람 구간은 화면이 어두워진다
 const EARTH_LIGHT_SCALE := 1.5   # 원작 setScale(1.5) — 빛기둥 4개(0/90/180/270°)
 const EARTH_STONES := 49        # 원작 `rand()%26 + 49` 의 하한
 
@@ -770,13 +840,10 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 
 # ── aqua (11.0초) — 화면이 물빛으로 물들고 상어가 지나간다 ────────────────────
-## 원작 `runAqua`: 화면 막을 **TintTo** 로 두 번 물들인다(물속에 잠기는 색조).
-##     TintTo(1.0, 194,255,255) → Delay(3.0) → TintTo(1.0, 25,60,125) → Delay(0.75)
-##     → FadeTo(0.5, 0) → Delay(5.0)
+## 원작 `runAqua`: 물빛 색조는 **마스터 장막**(`_master_veil` 의 `VEIL.aqua`)이 낸다.
 ## 상어(tag 0x18830) = RepeatForever(애니) + JumpTo(0.25, …, 75) → MoveBy(0.5) →
 ##     JumpTo(0.25, …, 50) → Delay(5.25) → FadeTo(0.5, 0)
 ## 거품 **49개** · 물고기 5종 · 수면(0x18835)은 Delay(6.25) → FadeTo(0.5, 0).
-const AQUA_TINT1 := Color(194.0 / 255.0, 1.0, 1.0)
 const AQUA_TINT2 := Color(25.0 / 255.0, 60.0 / 255.0, 125.0 / 255.0)
 const AQUA_BUBBLES := 49        # 원작 루프 상한 0x31
 const AQUA_SHARK_S := 1.75      # 원작 setScaleX/Y(1.75)
@@ -785,15 +852,6 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "aqua"
 	var pfx := prefix(el)
-
-	var veil := _screen_veil(host, at, AQUA_TINT1, 85)
-	var vt := veil.create_tween()
-	vt.tween_property(veil, "color", Color(AQUA_TINT1.r, AQUA_TINT1.g, AQUA_TINT1.b, 0.45), 1.0 / sp)
-	vt.tween_interval(3.0 / sp)
-	vt.tween_property(veil, "color", Color(AQUA_TINT2.r, AQUA_TINT2.g, AQUA_TINT2.b, 0.45), 1.0 / sp)
-	vt.tween_interval(0.75 / sp)
-	vt.tween_property(veil, "color:a", 0.0, 0.5 / sp)
-	vt.tween_callback(veil.queue_free)
 
 	# 수면 — 원작 `initAqua`: **화면 폭에 맞춰 늘리고 화면 바닥**에 둔다.
 	#   `setOpacity(100)` · `setScaleX(화면폭 / 수면폭)` · pos = VisibleRect::bottom() − (0, 수면높이)
@@ -903,14 +961,7 @@ static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "wind"
 	var pfx := prefix(el)
-
-	# 원작 `initWind` — 화면을 어둡게 깔고 그 위에서 돈다(영상 바람 +5.4초: 화면이 어두워진다).
-	var gloom := _screen_veil(host, at, Color(0, 0, 0), 82)
-	var gt := gloom.create_tween()
-	gt.tween_property(gloom, "color:a", WIND_GLOOM, 0.75 / sp)
-	gt.tween_interval(7.5 / sp)
-	gt.tween_property(gloom, "color:a", 0.0, 1.0 / sp)
-	gt.tween_callback(gloom.queue_free)
+	# 화면 암전은 마스터 장막(`_master_veil`)이 낸다 — 종전의 개별 gloom 은 중복이라 제거.
 
 	# 회오리 본체 — 원작은 `setScaleX(화면폭 / 프레임폭)` · `setScaleY(화면높이 / 프레임높이)` 로
 	#   **화면을 채우도록** 늘리고 처음엔 숨긴다(`setVisible(0)` · `setOpacity(0)`).
@@ -1112,6 +1163,21 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var pfx := prefix(el)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 
+	# 백색 섬광 두 번 — `runLight` 의 별도 CCLayerColor 실측(2026-08-05):
+	#   Delay(0.5) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.1, 0)
+	#   → Delay(3.65) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.75, 0)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), 121)
+	var fl := flash.create_tween()
+	fl.tween_interval(0.5 / sp)
+	fl.tween_property(flash, "color:a", 1.0, 0.1 / sp)
+	fl.tween_interval(0.75 / sp)
+	fl.tween_property(flash, "color:a", 0.0, 0.1 / sp)
+	fl.tween_interval(3.65 / sp)
+	fl.tween_property(flash, "color:a", 1.0, 0.1 / sp)
+	fl.tween_interval(0.75 / sp)
+	fl.tween_property(flash, "color:a", 0.0, 0.75 / sp)
+	fl.tween_callback(flash.queue_free)
+
 	var field := Node2D.new()
 	field.z_index = 86
 	host.add_child(field)
@@ -1192,6 +1258,16 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var pfx := prefix(el)
 	var base := at - Vector2(0.0, HOLY_BASE_DY)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+
+	# 백색 섬광 — `runHoly` 의 별도 CCLayerColor 실측(2026-08-05):
+	#   Delay(3.775) → FadeTo(0.75, 255) → Delay(0.1) → FadeTo(0.25, 0)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), 121)
+	var fl := flash.create_tween()
+	fl.tween_interval(3.775 / sp)
+	fl.tween_property(flash, "color:a", 1.0, 0.75 / sp)
+	fl.tween_interval(0.1 / sp)
+	fl.tween_property(flash, "color:a", 0.0, 0.25 / sp)
+	fl.tween_callback(flash.queue_free)
 
 	# 원작 `initHoly`: `holy_well` 은 레이어 중심 − (0, 62.5) 에 **`setScale(0)` · 숨김**으로
 	#   놓였다가 터져 나온다 — 영상(신성 +5.7s)의 바닥에서 솟는 노란 폭발이 이것이다.
@@ -1294,13 +1370,16 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		t.tween_property(m, "modulate:a", 0.0, 0.15 / sp)
 		t.tween_callback(m.queue_free)
 
-	# 착탄 백색 섬광 — 영상 혼돈 +7.1s 가 화면 전체 화이트아웃이다.
-	var bang := _screen_veil(host, at, Color(1, 1, 1), 121)
+	# 착탄 섬광 — `runChaos` 의 별도 CCLayerColor 실측(2026-08-05):
+	#   Delay(3.0) → FadeTo(1.0, 175) → [TintTo(1.0, white) ∥ FadeTo(1.0, 255)] → Delay(0.5) → …
+	#   붉은 하늘이 1초에 걸쳐 차오르고, 다시 1초에 걸쳐 하얗게 타 버린다(영상 +70s→+72s).
+	var bang := _screen_veil(host, at, Color8(200, 50, 25), 121)
 	var bt := bang.create_tween()
-	bt.tween_interval(CHAOS_FLASH_AT / sp)
-	bt.tween_property(bang, "color:a", 1.0, 0.1 / sp)
-	bt.tween_interval(0.35 / sp)
-	bt.tween_property(bang, "color:a", 0.0, 0.6 / sp)
+	bt.tween_interval(3.0 / sp)
+	bt.tween_property(bang, "color:a", 175.0 / 255.0, 1.0 / sp)
+	bt.tween_property(bang, "color", Color(1, 1, 1, 1), 1.0 / sp)
+	bt.tween_interval(0.5 / sp)
+	bt.tween_property(bang, "color:a", 0.0, 1.0 / sp)   # ASSUMPTION: 걷는 시간(콜백 뒤 미상)
 	bt.tween_callback(bang.queue_free)
 
 	# 먼지 기둥 — 원작 앵커 `(0.5, 0)` · `setScaleY(0)` ⇒ **바닥에서 솟는다**.

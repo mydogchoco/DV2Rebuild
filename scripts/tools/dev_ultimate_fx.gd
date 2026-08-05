@@ -206,28 +206,54 @@ func _ready() -> void:
 
 
 ## 육안 확인을 사람 손 없이 남길 때 —
-##   godot --path . res://scenes/dev_ultimate_fx.tscn -- --el=fire --shot=scratch_shots/x.png
+##   godot --path . res://scenes/dev_ultimate_fx.tscn -- --el=fire --cap=scratch_shots/x.png
+##   연속 캡처(레퍼런스 영상 대조용): --el=fire --cap=scratch_shots/f.png --series=0.5
+##     → f_t0.00.png, f_t0.50.png … 재생 길이(+1초)까지. --dur=N 으로 상한 지정 가능.
+## ⚠️ 인자 이름이 `--cap=` 인 이유: `--shot=` 은 ShotHelper 오토로드가 가로채
+##   자기 스케줄로 스크린샷을 찍고 **트리를 닫아 버린다**(2026-08-05 실측 — 8장에서 끊겼다).
 ## (헤드리스 아님 — 렌더가 필요하다.)
 func _maybe_shot() -> void:
 	var out := ""
 	var delay := 6
+	var series := 0.0
+	var dur_cap := 0.0
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--shot="):
-			out = a.substr(7)
+		if a.begins_with("--cap="):
+			out = a.substr(6)
 		elif a.begins_with("--el="):
 			var i := ELEMENTS.find(a.substr(5))
 			if i >= 0:
 				_sel = i
 		elif a.begins_with("--frame="):
 			delay = int(a.substr(8))
+		elif a.begins_with("--series="):
+			series = float(a.substr(9))
+		elif a.begins_with("--dur="):
+			dur_cap = float(a.substr(6))
 	if out == "":
 		return
 	_refresh()
 	_play()
-	for i in delay:
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(out)
+	if series <= 0.0:
+		for i in delay:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(out)
+		get_tree().quit()
+		return
+	# 연속 캡처 — 재생 시작 시각 기준으로 series 간격. 파일명 = <stem>_t<초>.png
+	var total := dur_cap if dur_cap > 0.0 else _last_dur + 1.0
+	var stem := out.get_basename()
+	var ext := out.get_extension()
+	var t0 := Time.get_ticks_msec()
+	var t := 0.0
+	while t <= total + 1e-4:
+		var wait := t - float(Time.get_ticks_msec() - t0) / 1000.0
+		if wait > 0.0:
+			await get_tree().create_timer(wait).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s_t%05.2f.%s" % [stem, t, ext])
+		t += series
 	get_tree().quit()
 
 
@@ -299,24 +325,28 @@ func _play() -> void:
 	Bgm.sfx("effect_bigbang")
 	var dur := float(UltimateFx.DURATION.get(el, 9.0))
 
-	# 시전자 각성 모션 + 원작 `action<El>_C` 의 페이드(연출이 화면을 가져가는 동안 사라진다).
+	# 시전자 — 원작 `initPosition`+`action<El>_C`: **몸통은 사라지지 않는다**(사라지는 건 HUD 뿐).
+	#   Delay(1.0+0.2) 스쿼시 → action_C(2.25)부터 홉 + 4.35초 상승 비행 → 제자리.
 	# 대상은 `damage<El>_C` 의 저글링을 흉내 내 피해 시각에 튀어 오른다.
 	if _caster != null:
 		var ap := FightScene._find_anim_player(_caster)
 		if ap != null and ap.has_animation("ultimate1"):
 			ap.play("ultimate1")
-		# 도약 스쿼시 — 원작 `initPosition` 이 무대로 뛰기 0.2초 뒤 ScaleTo(0.1, 1.05, 0.95).
+		_caster.modulate.a = 1.0
 		var b0: Vector2 = _caster.scale
 		var tk := _caster.create_tween()
-		tk.tween_interval(0.2)
+		tk.tween_interval(UltimateFx.LEAD + 0.2)
 		tk.tween_property(_caster, "scale", Vector2(b0.x * 1.05, b0.y * 0.95), 0.1)
+		tk.tween_property(_caster, "scale", Vector2(b0.x * 0.95, b0.y * 1.05), 0.1)
 		tk.tween_property(_caster, "scale", b0, 0.1)
-		var back := 9.0
-		_caster.modulate.a = 1.0
-		var ct := _caster.create_tween()
-		ct.tween_property(_caster, "modulate:a", 0.0, 1.0)
-		ct.tween_interval(minf(back, maxf(0.5, dur - 3.0)))
-		ct.tween_property(_caster, "modulate:a", 1.0, 1.0)
+		var home := _caster.position
+		var mv := _caster.create_tween()
+		mv.tween_interval(UltimateFx.ACT_AT + 0.25)
+		mv.tween_property(_caster, "position", home + Vector2(0.0, -75.0), 0.15)
+		mv.tween_property(_caster, "position", Vector2(0.0, -50.0), 4.35).as_relative()\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		mv.tween_interval(3.0)
+		mv.tween_property(_caster, "position", home, 0.15)
 	if _target != null:
 		var home := _target.position
 		var tt := _target.create_tween()
@@ -333,15 +363,13 @@ func _play() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
-	# 1vs1 기준(scale 1.0), 시전자는 왼쪽에 선 것으로 본다(dir +1).
-	# `at` = **시전자 몸통 중앙**(대전에서도 발밑이 아니라 몸통 중앙을 넘긴다).
-	# 대전과 같은 인자 모양 — 본체는 **화면 중앙**, 바닥 링만 시전자 발밑.
+	# 1vs1 기준(scale 1.0), 시전자는 왼쪽(내) 진영. 기준점·방향은 UltimateFx 가
+	# 원작 `initWithDragon` 대로 계산한다(불·땅 등은 시전자 **반대편**에 선다).
 	_last_dur = UltimateFx.play(_stage, {
 		"element": el,
-		"at": _stage.get_global_transform_with_canvas().affine_inverse()
-			* (get_viewport_rect().size * 0.5),
+		"mine": true,
 		"ring_at": Vector2(-STAGE_DX, -_caster_h * 0.5),
-		"scale": 1.0, "dir": 1.0, "speed": 1.0, "mat": _pma,
+		"scale": 1.0, "speed": 1.0, "mat": _pma,
 	})
 
 
