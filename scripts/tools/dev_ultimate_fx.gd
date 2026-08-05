@@ -119,6 +119,9 @@ var _caster_h := 240.0
 var _target_h := 240.0
 var _gy := 0.0                     # 무대 바닥 y = vis.y*0.5 + ULT_DROP (인게임과 동일)
 var _ui: Node2D                    # 정보 패널 오버레이(TAB 토글)
+var _caster_home := Vector2.ZERO   # 배우 초기 자리 — 재생마다 여기로 리셋(드리프트 방지)
+var _target_home := Vector2.ZERO
+var _actor_tweens: Array[Tween] = []   # 재생 중 배우에 건 트윈 — 다음 재생 때 전부 죽인다
 
 
 func _ready() -> void:
@@ -156,6 +159,8 @@ func _ready() -> void:
 	for a in [_caster, _target]:
 		if a != null:
 			actors.add_child(a)
+	_caster_home = _caster.position if _caster != null else Vector2.ZERO
+	_target_home = _target.position if _target != null else Vector2.ZERO
 
 	# ── 오버레이 UI(TAB 토글) ──
 	_ui = Node2D.new()
@@ -332,6 +337,18 @@ func _make_actor(id: int, x: float, mine: bool) -> Node2D:
 func _play() -> void:
 	for c in _stage.get_children():
 		c.queue_free()
+	# 이전 재생의 배우 트윈을 전부 끊고 제자리로 — 안 끊으면 상대 이동이 누적돼
+	# 재생할수록 드래곤이 떠오른다(2026-08-05 사용자 실측).
+	for tw in _actor_tweens:
+		if tw != null and tw.is_valid():
+			tw.kill()
+	_actor_tweens.clear()
+	if _caster != null:
+		_caster.position = _caster_home
+		_caster.modulate.a = 1.0
+	if _target != null:
+		_target.position = _target_home
+		_target.modulate.a = 1.0
 	var el: String = ELEMENTS[_sel]
 	Bgm.sfx("effect_bigbang")
 	var dur := float(UltimateFx.DURATION.get(el, 9.0))
@@ -350,7 +367,8 @@ func _play() -> void:
 		tk.tween_property(_caster, "scale", Vector2(b0.x * 1.05, b0.y * 0.95), 0.1)
 		tk.tween_property(_caster, "scale", Vector2(b0.x * 0.95, b0.y * 1.05), 0.1)
 		tk.tween_property(_caster, "scale", b0, 0.1)
-		var home := _caster.position
+		_actor_tweens.append(tk)
+		var home := _caster_home
 		var mv := _caster.create_tween()
 		mv.tween_interval(UltimateFx.ACT_AT + 0.25)
 		mv.tween_property(_caster, "position", home + Vector2(0.0, -75.0), 0.15)
@@ -358,17 +376,19 @@ func _play() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		mv.tween_interval(3.0)
 		mv.tween_property(_caster, "position", home, 0.15)
+		_actor_tweens.append(mv)
 	if _target != null:
 		# 피격 반응 — 대전의 `_ultimate_knockback`(원작 `damage<El>_C` 실측 표)을 그대로 흉내:
 		# 저글링 n회 + 마무리 큰 띄우기, 그동안 스파인은 **damaged** 모션(원작
 		# `runSpineWithAnimationName`), 끝나면 wait 복귀.
-		var home := _target.position
+		# 높이는 원작 그대로(S×) — 종전 ×0.35 축소는 영상(화면 절반까지 던져진다)과 달랐다.
+		var home := _target_home
 		var k: Array = FightScene.ULT_KNOCK.get(el, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
 		var n_j := int(k[1])
 		var jsec := float(k[2])
 		var gap := float(k[3])
-		var hop := float(k[4]) * 0.35
-		var big := float(k[5]) * 0.35
+		var hop := float(k[4])
+		var big := float(k[5])
 		var at_sec := UltimateFx.damage_at(el, 1.0)
 		var lead := maxf(float(k[0]), at_sec - (jsec + gap) * float(n_j) - 0.6)
 		var tap := FightScene._find_anim_player(_target)
@@ -391,6 +411,7 @@ func _play() -> void:
 		tt.tween_callback(func() -> void:
 			if tap != null and tap.has_animation("wait"):
 				tap.play("wait"))
+		_actor_tweens.append(tt)
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
 	# 1vs1 기준(scale 1.0), 시전자는 왼쪽(내) 진영. 기준점·방향은 UltimateFx 가

@@ -1531,7 +1531,9 @@ const ULT_KNOCK := {
 	"chaos":  [1.95, 1, 6.0,  0.0,  30.0,  30.0],
 	"dark":   [2.75, 1, 0.25, 1.25, 100.0, 300.0],
 	"earth":  [1.0,  4, 0.2,  0.3,  150.0, 800.0],
-	"fire":   [1.0,  6, 0.35, 0.15, 150.0, 150.0],
+	# fire = 감쇠 연타 20타(0.5→0.1초 · 높이 200→50, damageFire_C L1505)의 근사 —
+	# 잦은 타수·짧은 간격이 영상의 "폭발마다 튀는" 저글링을 낸다.
+	"fire":   [1.0,  14, 0.18, 0.03, 150.0, 150.0],
 	"holy":   [4.5,  1, 0.95, 0.2,  100.0, 100.0],
 	"light":  [2.5,  2, 0.1,  0.05, 75.0,  150.0],
 	"shadow": [3.0,  5, 0.2,  0.2,  150.0, 1000.0],
@@ -1551,22 +1553,31 @@ func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
 	var gap := float(k[3])
 	var hop := float(k[4])
 	var big := float(k[5])
-	# 원작은 `Delay(T)` 로 시작하지만 우리 피해 시각(`_ult_dmg_plan`)과 어긋나면 안 되므로
-	# **마무리 띄우기가 피해 시각에 맞물리도록** 앞에서 뺀다(원작도 그 무렵이다).
+	# 🔴 2026-08-05 재작성 — `damageFire_C` 실측(sequences.md L1505):
+	#   Delay(1.0) → **JumpTo(0.25, 무대점, S×150)** ← 피격자가 연출 지점으로 끌려간다
+	#   → 감쇠 저글링(S×200→50, 매 타 shakeLayerToVertical) → … → JumpTo(0.25, 제자리, S×150)
+	#   종전엔 ① 무대점 이동이 없어 피격자가 슬롯에서 튀었고 ② 높이에 ×0.35 를 곱해
+	#   원작(영상: 화면 절반까지 던져진다)보다 훨씬 낮았다.
+	var vis := _vis()
+	var stage := Vector2(ULT_DX if bool(v.get("mine", false)) else vis.x - ULT_DX,
+		vis.y * 0.5 + ULT_DROP)
 	var lead := maxf(float(k[0]), at_sec - (sec + gap) * float(n_j) - 0.6)
 	var old = v.get("move_tw")
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
 	var t := create_tween()
 	v["move_tw"] = t
-	t.tween_interval(lead)
+	t.tween_interval(lead - 0.25)
+	_tween_jump(t, node, home, stage, 150.0 * s, 0.25, 1.0)   # 무대점으로 끌려간다
 	for i in n_j:
 		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
-		_tween_jump(t, node, node.position + d * float(i), node.position + d * float(i + 1),
-			hop * s * 0.35, sec, 1.0)
+		_tween_jump(t, node, stage + d * float(i), stage + d * float(i + 1),
+			hop * s, sec, 1.0)
 		t.tween_interval(gap)
 	# 마지막 — 크게 띄웠다가 제자리로.
-	_tween_jump(t, node, node.position, home, big * s * 0.35, 0.6, 1.0)
+	_tween_jump(t, node, node.position, stage, big * s, 0.6, 1.0)
+	t.tween_interval(0.35)
+	_tween_jump(t, node, stage, home, 150.0 * s, 0.25, 1.0)
 	t.tween_callback(func() -> void:
 		if is_instance_valid(node):
 			node.position = v.get("home", home))

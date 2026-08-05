@@ -88,8 +88,14 @@ const VEIL := {
 		["wait", 2.0], ["tint", 0.2, Color8(255, 255, 255)], ["wait", 0.2], ["fade", 0.5, 0.0]],
 }
 
+## z 규약(2026-08-05 실측 교정) — 원작은 장막(z0) < UltimateLayer(z7) 라 **연출 전체가 장막
+## 위**에서 밝게 탄다. 종전엔 장막 z84 가 불기둥(z 5~102)을 덮어 캐스케이드가 어둡게 깔렸다.
+##   장막 80 < 합체 문양 85 < 링 89~96 < 속성 안무 90~ < 백색 섬광 250
+const Z_VEIL := 80
+const Z_FLASH := 250
+
 static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
-	var r := _screen_veil(host, at, Color(0, 0, 0), 84)
+	var r := _screen_veil(host, at, Color(0, 0, 0), Z_VEIL)
 	var t := r.create_tween()
 	t.tween_interval(LEAD / sp)
 	t.tween_property(r, "color:a", VEIL_A, 1.0 / sp)
@@ -104,6 +110,44 @@ static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -
 			"fade":
 				t.tween_property(r, "color:a", float(step[2]), float(step[1]) / sp)
 	t.tween_callback(r.queue_free)
+
+
+# ── 속성별 효과음 — libgame.so 문자열 실측 (2026-08-05) ─────────────────────
+#
+# 원작은 각성기마다 전용 효과음 세트를 쓴다. **이름은 전부 libgame.so 리터럴**이고
+# (`effect_aqua1/2` `effect_fire1/2` `effect_fire_fillar` `effect_earth1/2` `effect_wind`
+#  `effect_light` `effect_dark(_clap/_explosion)` `effect_holy_*` `effect_chaos_*`
+#  `effect_blackhall_1/2`), `SoundManager::playEffect` 는 안무 람다(PTR_FUN_*) 안에서 불려
+# **재생 시각은 디컴프 범위 밖**이다 — 시각은 안무 정렬로 둔다(ASSUMPTION).
+# ⚠️ aqua1/2 · earth1/2 · fire1/2 · light · dark 는 **덤프에 mp3 가 없다**(판본 갭) —
+#   `Bgm.sfx` 가 없는 파일을 조용히 건너뛰므로 원작 이름 그대로 예약해 둔다(확보 시 자동).
+## [시각(초, 시전 기준), 트랙] 목록.
+const SFX := {
+	"fire":   [[RUN_AT, "effect_fire1"], [RUN_AT + 0.35, "effect_fire_fillar"],
+		[RUN_AT + 3.3, "effect_fire_fillar"], [RUN_AT + 4.25, "effect_fire2"]],
+	"aqua":   [[RUN_AT, "effect_aqua1"], [RUN_AT + 5.0, "effect_aqua2"]],
+	"earth":  [[RUN_AT, "effect_earth1"], [RUN_AT + 2.0, "effect_earth2"]],
+	"wind":   [[RUN_AT, "effect_wind"]],
+	"light":  [[RUN_AT, "effect_light"]],
+	"dark":   [[RUN_AT, "effect_dark"], [RUN_AT + 1.35, "effect_dark_clap"],
+		[RUN_AT + 5.9, "effect_dark_explosion"]],
+	"holy":   [[ACT_AT, "effect_holy_wing"], [RUN_AT + 0.75, "effect_holy_well_1"],
+		[RUN_AT + 1.25, "effect_holy_spear"], [RUN_AT + 3.0, "effect_holy_well_2"],
+		[RUN_AT + 3.775, "effect_holy_fade"]],
+	"chaos":  [[RUN_AT, "effect_chaos_dust"], [RUN_AT + 1.5, "effect_chaos_drop_1"],
+		[RUN_AT + 2.5, "effect_chaos_drop_2"], [RUN_AT + 4.0, "effect_chaos_explosion"]],
+	"shadow": [[RUN_AT, "effect_blackhall_1"], [RUN_AT + 3.0, "effect_blackhall_2"]],
+}
+
+static func _schedule_sfx(host: CanvasItem, el: String, sp: float) -> void:
+	for e in SFX.get(el, []):
+		var tm := Timer.new()              # host 자식 — 씬과 함께 정리(§_fire_burst 주석)
+		tm.one_shot = true
+		tm.wait_time = maxf(0.01, float(e[0]) / sp)
+		tm.autostart = true
+		var track := String(e[1])
+		tm.timeout.connect(func() -> void: Bgm.sfx(track))
+		host.add_child(tm)
 
 
 # ── §4 바닥 링 — `init<El>_C` 실측 구성 ─────────────────────────────────────
@@ -261,6 +305,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
 
 	_master_veil(host, el, at, sp)       # 화면 장막(원작 0x238) — Delay(1.0) 부터 암전
+	_schedule_sfx(host, el, sp)          # 속성별 효과음(libgame 리터럴 이름)
 	# run<El>(+run<El>_C 링, 합체 문양 회전)은 **시전 후 2.75초**에 시작한다(마스터 타임라인).
 	# 합체 문양 = 원작이 `contentSize*0.5`(= 기준점 `at`)에 놓는다(`initDark` 등).
 	# wind·dark·chaos 의 기준점 y(167.5)가 이미 바닥 높이라 별도 보정이 필요 없다.
@@ -498,11 +543,12 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 		# 원작 앵커표(`this + i*8 + 0x2d8`) = 기준점 + `dir*(W*wf + dx)` + dy.
 		# cocos y-up 이라 dy 부호를 뒤집어 Godot 으로 옮긴다.
 		var pos := at + Vector2(dir * (w_half * float(p[0]) + float(p[1])), -float(p[2]))
-		_fire_burst(host, pfx, pos, int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
+		# z = 장막 위 밑단(90) + 원작 층×5.
+		_fire_burst(host, pfx, pos, 90 + int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
 			rng.randi() % 6 + FIRE_STONE_MIN, s, sp, mat, alive, rng)
 
 	# 화면 백색 암전 — 원작 `runFire` 의 `CCLayerColor(0xffffff)`
-	var flash := _screen_veil(host, at, Color(1, 1, 1), 120)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
 	var ft := flash.create_tween()
 	ft.tween_interval(FIRE_FLASH_AT / sp)
 	ft.tween_property(flash, "color:a", 1.0, FIRE_FLASH_IN / sp)
@@ -585,9 +631,15 @@ static func _fire_burst(host: CanvasItem, pfx: String, pos: Vector2, zbase: int,
 			et.parallel().tween_property(expl, "scale", Vector2.ONE * 1.25, 0.1 / sp)
 			et.tween_callback(expl.queue_free)
 		if is_instance_valid(pillar):
+			# 세로는 **기둥 꼭대기가 화면 밖으로 나가도록** 늘린다 — 원작 영상에서 기둥
+			# 윗단(프레임의 평평한 캔버스 끝)이 화면 안에 보이는 프레임이 없다.
+			# ASSUMPTION: 원작 리터럴은 ScaleTo(0.1, 1.25) 균일이지만 fillar 프레임(323px)
+			# ×1.25 로는 위쪽 앵커점이 화면 안에 남는 지점이 있어, 세로만 필요한 만큼 더 편다.
+			var fh := 323.0 * Design.ASSET_SCALE
+			var sy := maxf(1.25, (pos.y + 40.0) / fh)
 			var lt := pillar.create_tween()
 			lt.tween_interval(FIRE_LAG / sp)
-			lt.tween_property(pillar, "scale", Vector2.ONE * 1.25, 0.1 / sp)
+			lt.tween_property(pillar, "scale", Vector2(1.25, sy), 0.1 / sp)
 			lt.tween_callback(func() -> void:
 				_play_frames(pillar, "fire", pfx + "fillar%d", 3, 7, FIRE_PILLAR_SEC / sp))
 			lt.tween_interval(FIRE_PILLAR_SEC * 5.0 / sp)
@@ -689,7 +741,7 @@ static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: floa
 	# 컨테이너 = 원작 `CCLayerColor`(tag 0x1d650). 눌린 배율만 갖고 **회전하지 않는다**.
 	var holder := Node2D.new()
 	holder.position = at
-	holder.z_index = 83                 # 드래곤 뒤(바닥 링보다 아래)
+	holder.z_index = 85                 # 장막(Z_VEIL) 위 · 바닥 링(89~) 아래
 	holder.scale = Vector2(COMBINE_SCALE, COMBINE_SCALE_Y)
 	host.add_child(holder)
 	# 흰 외곽선(0x18832) — 원작 `setScale(0)` 으로 시작해 `EaseIn(ScaleTo(0.25, 1.0), 0.5)` 로 편다.
@@ -1272,7 +1324,7 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	# 백색 섬광 두 번 — `runLight` 의 별도 CCLayerColor 실측(2026-08-05):
 	#   Delay(0.5) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.1, 0)
 	#   → Delay(3.65) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.75, 0)
-	var flash := _screen_veil(host, at, Color(1, 1, 1), 121)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
 	var fl := flash.create_tween()
 	fl.tween_interval(0.5 / sp)
 	fl.tween_property(flash, "color:a", 1.0, 0.1 / sp)
@@ -1384,7 +1436,7 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 	# 백색 섬광 — `runHoly` 의 별도 CCLayerColor 실측(2026-08-05):
 	#   Delay(3.775) → FadeTo(0.75, 255) → Delay(0.1) → FadeTo(0.25, 0)
-	var flash := _screen_veil(host, at, Color(1, 1, 1), 121)
+	var flash := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
 	var fl := flash.create_tween()
 	fl.tween_interval(3.775 / sp)
 	fl.tween_property(flash, "color:a", 1.0, 0.75 / sp)
@@ -1500,7 +1552,7 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	# 착탄 섬광 — `runChaos` 의 별도 CCLayerColor 실측(2026-08-05):
 	#   Delay(3.0) → FadeTo(1.0, 175) → [TintTo(1.0, white) ∥ FadeTo(1.0, 255)] → Delay(0.5) → …
 	#   붉은 하늘이 1초에 걸쳐 차오르고, 다시 1초에 걸쳐 하얗게 타 버린다(영상 +70s→+72s).
-	var bang := _screen_veil(host, at, Color8(200, 50, 25), 121)
+	var bang := _screen_veil(host, at, Color8(200, 50, 25), Z_FLASH)
 	var bt := bang.create_tween()
 	bt.tween_interval(3.0 / sp)
 	bt.tween_property(bang, "color:a", 175.0 / 255.0, 1.0 / sp)
@@ -1782,7 +1834,10 @@ const BOTTOM := Vector2(0.5, 0.0)
 
 static func _spr_a(element: String, key: String, anchor: Vector2) -> Node2D:
 	used_keys[element + "/" + key] = true
-	return AtlasUI.spr_cocos(DIR_PREFIX + element, key, 1.0, anchor)
+	var n := AtlasUI.spr_cocos(DIR_PREFIX + element, key, 1.0, anchor)
+	if n != null:
+		n.set_meta("anchor", anchor)   # `_set_frame` 이 프레임 교체 때 같은 앵커를 다시 쓴다
+	return n
 
 
 static func _spr(element: String, key: String) -> Node2D:
@@ -1790,7 +1845,12 @@ static func _spr(element: String, key: String) -> Node2D:
 	return AtlasUI.spr_cocos(DIR_PREFIX + element, key)
 
 
-## `_spr` 홀더의 프레임을 갈아 끼운다 — **트림 오프셋도 함께 다시 잡는다**.
+## `_spr` 홀더의 프레임을 갈아 끼운다 — **트림 오프셋·앵커를 함께 다시 잡는다**.
+##
+## 🔴 2026-08-05 앵커 정정 — 종전엔 앵커 항을 빼먹어(가운데 앵커 가정) BOTTOM 앵커였던
+##   불기둥이 첫 프레임 교체 순간 **절반 높이만큼 아래로 떨어졌다**(밑변이 화면 바닥에 붙고
+##   평평한 꼭대기가 화면 중간에 걸렸다 — 사용자 실측 지적의 진범). 앵커는 `_spr_a` 가
+##   홀더 meta 에 남긴 것을 그대로 쓴다.
 static func _set_frame(holder: Node2D, element: String, key: String) -> bool:
 	if not is_instance_valid(holder) or holder.get_child_count() == 0:
 		return false
@@ -1807,7 +1867,10 @@ static func _set_frame(holder: Node2D, element: String, key: String) -> bool:
 	var src: Array = info.get("src", [float(info.get("w", t.get_width())),
 		float(info.get("h", t.get_height()))])
 	var off: Array = info.get("off", [0, 0])
+	var anchor: Vector2 = holder.get_meta("anchor", Vector2(0.5, 0.5))
 	s.texture = t
-	# `spr_cocos` 의 앵커 (0.5,0.5) 기준 식과 같다 — 앵커 항이 0 이라 오프셋만 남는다.
-	s.position = Vector2(float(off[0]) * S, -float(off[1]) * S)
+	# `spr_cocos` 와 같은 식(앵커 기준 원본 캔버스 중심 + 트림 오프셋).
+	s.position = Vector2(
+		(0.5 - anchor.x) * float(src[0]) * S + float(off[0]) * S,
+		(anchor.y - 0.5) * float(src[1]) * S - float(off[1]) * S)
 	return true
