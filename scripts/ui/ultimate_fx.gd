@@ -596,6 +596,7 @@ const EARTH_QUAKE_POS := [Vector2(-130.0, -50.0), Vector2(120.0, -20.0),
 const EARTH_QUAKE_Z := [1, 1, 4, 3]
 const EARTH_SPIN_SEC := 0.875
 const EARTH_SPIN_DEG := 3600.0
+const EARTH_LIGHT_SCALE := 1.5   # 원작 setScale(1.5) — 빛기둥 4개(0/90/180/270°)
 const EARTH_STONES := 49        # 원작 `rand()%26 + 49` 의 하한
 
 static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
@@ -604,20 +605,41 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var pfx := prefix(el)
 	var base := at - Vector2(0.0, EARTH_BASE_DY)     # cocos +37.5(위) ⇒ Godot 은 −
 
-	# 산 — 솟아오른다.
-	var mt := _spr(el, pfx + "mountain")
+	# 산 — 원작 `initEarth`: `earth_mountain` 을 base + (0, −210) 에 **anchor(0.5, 0)** 로 두고
+	#   `setScaleY(0)` 으로 눌러 둔다 ⇒ 바닥에서 **솟아오른다**. (종전엔 통짜로 0.2 → 0.5 였다.)
+	var mt := _spr_a(el, pfx + "mountain", BOTTOM)
 	if mt != null:
-		mt.position = base + Vector2(0.0, 210.0)
+		mt.position = base + Vector2(0.0, 210.0)      # cocos −210 ⇒ Godot +210
 		mt.z_index = 92
-		mt.scale = Vector2(0.2, 0.2)
+		mt.scale = Vector2(1.0, 0.0)
 		host.add_child(mt)
 		var t := mt.create_tween()
-		t.tween_property(mt, "scale", Vector2(0.5, 0.5), 2.0 / sp)
-		# 원작이 `mountain1~15` 애니를 함께 돌린다(프레임 15장).
+		t.tween_property(mt, "scale", Vector2.ONE, 2.0 / sp)
+		# 원작은 `earth_mountain1~15` 를 **낱개 스프라이트 15장**으로 base + (0, 90) 에
+		# 미리 깔아 두고(z=2, tag 0x1fd5f+i, 처음 숨김) 차례로 보인다.
 		_play_frames(mt, el, pfx + "mountain%d", 1, 15, 0.08 / sp)
 		t.tween_interval(1.5 / sp)
 		t.tween_property(mt, "modulate:a", 0.0, 0.5 / sp)
 		t.tween_callback(mt.queue_free)
+
+	# 빛기둥 4개 — 원작 `initEarth` 끝: `earth_light` 를 base 에 **anchor(0.5,0)** · scale 1.5 ·
+	#   opacity 0 · rotation i×90° 로 넷 깐다(z=2, tag 0x18893+i).
+	for i in 4:
+		var lg := _spr_a(el, pfx + "light", BOTTOM)
+		if lg == null:
+			break
+		lg.position = base
+		lg.scale = Vector2.ONE * EARTH_LIGHT_SCALE
+		lg.rotation_degrees = float(i) * 90.0
+		lg.z_index = 92
+		lg.modulate.a = 0.0
+		host.add_child(lg)
+		var lt := lg.create_tween()
+		lt.tween_interval((0.6 + float(i) * 0.1) / sp)
+		lt.tween_property(lg, "modulate:a", 1.0, 0.25 / sp)
+		lt.tween_interval(1.5 / sp)
+		lt.tween_property(lg, "modulate:a", 0.0, 0.75 / sp)
+		lt.tween_callback(lg.queue_free)
 
 	# 회전 파편 4개.
 	for i in EARTH_QUAKE_POS.size():
