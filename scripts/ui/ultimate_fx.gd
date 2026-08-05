@@ -163,7 +163,10 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	return float(DURATION.get(el, 9.0)) / sp
 
 
-## 피해 수치가 떠야 하는 시각(초). 호출측이 각성기 시작 시점에서 재면 된다.
+## 피해 수치가 떠야 하는 시각(초) — 원작 `getDamageTextTime`.
+## ⚠️ 2026-08-05: 실제로 숫자를 예약하는 쪽은 `UltimateLayer::calculateDamage` 였고 값이 다르다
+##   (fire 는 여기 7.8, 저기 4.8). 전투 배선은 `fight.gd::_ult_dmg_plan` 을 따른다.
+##   이 함수는 확인 창의 표시용으로만 남는다.
 static func damage_at(element: String, speed := 1.0) -> float:
 	return float(DMG_TIME.get(element, 8.0)) / maxf(0.05, speed)
 
