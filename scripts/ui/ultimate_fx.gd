@@ -1183,6 +1183,7 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 const HOLY_SPEARS := 31
 const HOLY_ROUNDS := 3
 const HOLY_BASE_DY := 62.5
+const HOLY_WELL_AT := 4.25      # 영상 신성 +5.7s 에 바닥 폭발이 터진다
 const HOLY_SPEAR_GAP := 24.166666        # 원작 `initHoly`: x = i × 24.1667 (31개 = 화면 폭)
 
 static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
@@ -1192,15 +1193,22 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var base := at - Vector2(0.0, HOLY_BASE_DY)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 
+	# 원작 `initHoly`: `holy_well` 은 레이어 중심 − (0, 62.5) 에 **`setScale(0)` · 숨김**으로
+	#   놓였다가 터져 나온다 — 영상(신성 +5.7s)의 바닥에서 솟는 노란 폭발이 이것이다.
+	#   종전엔 원래 크기로 떠 있다가 페이드만 했다.
 	var well := _spr(el, pfx + "well")
 	if well != null:
 		well.position = base
 		well.z_index = 88
-		well.modulate.a = 0.0
+		well.scale = Vector2.ZERO
+		well.visible = false
 		host.add_child(well)
 		var wt := well.create_tween()
-		wt.tween_property(well, "modulate:a", 1.0, 0.6 / sp)
-		wt.tween_interval(7.5 / sp)
+		wt.tween_interval(HOLY_WELL_AT / sp)
+		wt.tween_callback(func() -> void: well.visible = true)
+		wt.tween_property(well, "scale", Vector2.ONE, 0.35 / sp).set_ease(Tween.EASE_OUT)
+		wt.tween_property(well, "scale", Vector2.ONE * 1.35, 1.5 / sp)
+		wt.tween_interval(2.5 / sp)
 		wt.tween_property(well, "modulate:a", 0.0, 0.75 / sp)
 		wt.tween_callback(well.queue_free)
 
