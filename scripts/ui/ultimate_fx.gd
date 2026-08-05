@@ -538,6 +538,11 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 	var pfx := prefix("fire")
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	var w_half := vis.x * 0.5           # 원작 W = contentSize.x = VisibleRect::top().x = 화면 폭 절반
+	# 🔴 2026-08-05 영상 프레임 실측 — 불의 dir 은 **바깥 방향**이다: 첫 기둥(+0.25W)이
+	#   화면 바깥 가장자리(0.93W)에서 서고 캐스케이드가 중앙 쪽으로 쓸려 온다.
+	#   (물 상어의 진입 방향 실측과 반대 부호 — initFire/initAqua 가 각자 dir 을 계산하며
+	#    디컴프의 비교 방향이 흐려 두 실측을 각자 따른다.)
+	dir = -dir
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	for i in FIRE_POINTS.size():
@@ -1101,28 +1106,36 @@ static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	#   → MoveBy(0.75)×2 → MoveBy(0.15) → MoveTo(0.05) = **2.5초부터 빠르게 가로지른다**.
 	# ⚠️ 2026-08-05 방향 정정 — 시전자 진영 밖에서 나타나 물살 방향(−dir = 피격 진영 쪽)으로
 	#   헤엄친다. 종전엔 부호가 뒤집혀 **뒤로**(피격 진영 → 시전자) 갔다.
-	# 물고기 — 원작 `initAqua` setScaleY((i%6)*0.1+0.5) = **작은** 물고기들이 화면 중단을
-	#   무리지어 가로지른다(영상: 수면 아래 중간 높이). 위치·크기 사용자 실측 교정.
+	# 물고기 — 🔴 2026-08-05 영상 프레임 실측 재구성: 배경 단역이 아니라 **공격 무리**다.
+	#   물고기 떼가 시전자 쪽에서 몰려와(run+1.15) **피격자를 에워싸고 두들기다**(~run+2.7,
+	#   피해 틱 2·6·9·10 이 이 구간) 지나간다. 크기도 소형이 아니라 중형(0.7~1.1).
 	var vis1: Vector2 = host.get_viewport().get_visible_rect().size
+	var prey := at + Vector2(0.0, -30.0)              # 피격자 자리(물기 지점과 같은 진영)
 	for i in 5:
 		var f := _spr(el, pfx + "fish%d" % (i + 1))
 		if f == null:
 			break
-		f.position = Vector2(ctr0.x + dir * (vis1.x * 0.6 + 60.0 * float(i)),
-			ctr0.y + rng.randf_range(-vis1.y * 0.18, vis1.y * 0.12))
+		var off_f := Vector2(rng.randf_range(-70.0, 70.0), rng.randf_range(-50.0, 50.0))
+		f.position = Vector2(ctr0.x + dir * (vis1.x * 0.55 + 60.0 * float(i)),
+			prey.y + off_f.y)
 		f.z_index = 97
-		f.scale *= (float(i % 6) * 0.1 + 0.5)           # 원작 0.5~1.0 소형
+		f.scale *= (float(i % 5) * 0.1 + 0.7)
 		if dir < 0.0:
 			f.scale.x = -f.scale.x            # 진행 방향(−dir)을 보게 — 원본은 왼쪽 보기
 		host.add_child(f)
 		var t6 := f.create_tween()
-		t6.tween_interval((2.5 + float(i) * 0.2) / sp)
-		t6.tween_property(f, "position", f.position + Vector2(-dir * 300.0, -20.0),
-			(float(i % 4) * 0.1 + 0.1) / sp)
-		t6.tween_property(f, "position", Vector2(-dir * 300.0, -10.0), 0.75 / sp).as_relative()
-		t6.tween_property(f, "position", Vector2(-dir * 300.0, -10.0), 0.75 / sp).as_relative()
-		t6.tween_property(f, "position", Vector2(-dir * 120.0, 0.0), 0.15 / sp).as_relative()
-		t6.tween_property(f, "modulate:a", 0.0, 0.25 / sp)
+		t6.tween_interval((1.15 + float(i) * 0.12) / sp)
+		# 돌진 → 피격자 주위에서 3번 들이받고 → 관성으로 빠져나간다.
+		t6.tween_property(f, "position", prey + off_f, 0.5 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		for k in 3:
+			t6.tween_property(f, "position", Vector2(-dir * 26.0, -12.0), 0.18 / sp)\
+				.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			t6.tween_property(f, "position", Vector2(dir * 18.0, 12.0), 0.18 / sp)\
+				.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t6.tween_property(f, "position", Vector2(-dir * (vis1.x * 0.35), -30.0), 0.6 / sp)\
+			.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t6.tween_property(f, "modulate:a", 0.0, 0.2 / sp)
 		t6.tween_callback(f.queue_free)
 
 
