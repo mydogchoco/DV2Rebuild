@@ -83,7 +83,7 @@ const VEIL := {
 	"fire":   [["wait", 6.5], ["fade", 0.25, 0.0]],
 	"holy":   [["wait", 6.75], ["fade", 0.25, 0.0]],
 	"light":  [["wait", 6.75], ["fade", 0.25, 0.0]],   # ASSUMPTION(위 주석)
-	"wind":   [["wait", 6.75], ["fade", 0.25, 0.0]],   # ASSUMPTION(위 주석)
+	"wind":   [["wait", 5.0], ["fade", 0.5, 0.0]],     # 영상 실측 — run+5.5쯤 걷힌다(+35.5s)
 	"shadow": [["tint", 0.2, Color8(0, 185, 205)], ["wait", 0.2], ["tint", 1.0, Color8(0, 70, 80)],
 		["wait", 2.0], ["tint", 0.2, Color8(255, 255, 255)], ["wait", 0.2], ["fade", 0.5, 0.0]],
 }
@@ -341,14 +341,21 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		host.add_child(sib)
 		_anim_ring_sib(sib, el, sp, i)
 
-	# `_C` 추가 프레임(dark shade · shadow twist) — 원작 z=5, tag 0x1883f
+	# `_C` 추가 프레임(dark shade · shadow twist) — 원작 z=5, tag 0x1883f · setScale(0)·setOpacity(0)
+	# ⚠️ 종전엔 애니도 정리도 없이 영원히 남았다(2026-08-05 캡처 실측 — 대전에선 전투 내내 잔상).
 	var ex := String(RING_EXTRA.get(el, ""))
 	if ex != "":
 		var e := _spr(el, pfx + ex)
 		if e != null:
 			e.position = pos
 			e.z_index = 95
+			e.modulate.a = 0.0
 			host.add_child(e)
+			var et := e.create_tween()
+			et.tween_property(e, "modulate:a", 1.0, 0.5 / sp)
+			et.tween_interval(4.0 / sp)
+			et.tween_property(e, "modulate:a", 0.0, 0.75 / sp)
+			et.tween_callback(e.queue_free)
 
 	# 땅 전용 — `initEarth_C` 는 링 자리에 **지진 조각 5장(S×1.25) + 먼지 + 돌**을 더 깐다.
 	# 레퍼런스 영상: 시전자 발밑이 통째로 먼지구름에 싸인다(+25s 오른쪽 구름).
@@ -1108,56 +1115,31 @@ static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	debris.call("leaf", WIND_LEAVES, 96)
 	debris.call("wood", WIND_WOODS, 95)
 
-	# zmoon — 뒤늦게 밝아진다.
-	for i in 2:
-		var zm := _spr(el, pfx + ("zmoon" if i == 0 else "zmoon%d" % (i + 1)))
-		if zm == null:
-			continue
-		zm.position = at
-		zm.z_index = 87 + i
-		zm.modulate.a = 0.0
-		host.add_child(zm)
-		var t5 := zm.create_tween()
-		t5.tween_interval((0.15 + 0.75) / sp)
-		t5.tween_property(zm, "modulate:a", 1.0, 0.5 / sp)
-		t5.tween_interval(3.5 / sp)
-		t5.tween_property(zm, "modulate:a", 0.0, 0.75 / sp)
-		t5.tween_callback(zm.queue_free)
+	# zmoon — ⚫ 표시하지 않는다(2026-08-05). `initWind` 가 두 장을 만들지만(tag 0x18832)
+	#   위치 인자가 추출에서 소실됐고, **레퍼런스 영상 바람 구간 전체에서 한 번도 보이지 않는다**
+	#   (회오리 안쪽 화면 밖 좌표로 추정). 종전엔 화면 중앙에 4초간 떠서 원작에 없는 그림을 냈다.
+	#   근거가 생기면(좌표 복원) 여기 되살린다.
 
 
-# ── dark (11.0초) — 손아귀가 잡고 폭발한다 ──────────────────────────────────
-## 원작 `initDark`: `dark_punch`·`dark_ball` 이 화면 좌우 `(W×∓0.5, 200)` 에서 들어오고,
-##   손 애니 4벌(`dark_hand1~4`, **전부 0.025초/프레임**), 폭발 두 벌
-##   (`explosion1~7` 0.04초 · `explosion8~10` 0.025초).
+# ── dark (11.0초) — 소용돌이가 화면을 삼키고 손아귀가 잡는다 ─────────────────
+## 원작 `runDark` 실측(sequences.md, 2026-08-05 재이식 — 시각은 run 기준):
+##   구슬(0x1883a)  Delay(1.5) → [ScaleTo(0.25,1)+RotateBy(0.25,−30)]
+##                  → [EaseOut(RotateBy(3.0,−3600°)) ∥ ScaleTo(3.0, **2.5**)] → ScaleTo(0.075,0)
+##                  = 10바퀴 돌며 화면을 채우는 소용돌이 → 순간 붕괴
+##   손(0x18833/4)  Delay(1.0) → Show → [MoveBy+RotateBy(−45/−25)+**ScaleBy(0.35, 2.0)**]
+##                  → 스쿼시 펄스 → 3초 배회 → [ScaleBy(0.25,1.5)+FadeTo(0.1,0)]  (좌우 두 벌)
+##   펀치(0x1883b)  Delay(4.8) → Show → 스쿼시 → [ScaleBy(1.0,0.8)+RotateBy(−45)] → Hide
+##   폭발(0x1883c)  Delay(5.9) → [ScaleTo(0.04, **3.75**)+…] → [RotateBy(360)+ScaleTo(0)+Fade](0.05)
+##                  ← 절대시각 8.65 = getDamageTextTime(dark) 와 일치(피해가 여기 뜬다)
 const DARK_PUNCH_S := 1.75      # 원작 setScale(1.75)
 const DARK_HAND_SEC := 0.025
-const DARK_EXPL_SEC := 0.04
-const DARK_EXPL2_SEC := 0.025
 
 static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "dark"
 	var pfx := prefix(el)
-	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 
-	# 원작 `initDark` — **전부 레이어 중심 한 자리**에 겹쳐 둔다(좌우에서 날아오지 않는다).
-	#   `dark_punch`      setScale(**1.75**) · 숨김 · z 2 (tag 0x1883b)
-	#   `dark_ball`       setScale(0)        · z 1 (tag 0x1883a)
-	#   `dark_explosion1` setScale(0) · z 1 / `dark_explosion8` setScale(0) · **rotation 90** · z 1
-	#   `dark_hand14` ×2 — 한 장은 **setScaleX(−1)** 로 뒤집어 반대편 손이 된다(각기 다른 배치노드)
-	var punch := _spr(el, pfx + "punch")
-	if punch != null:
-		punch.position = at
-		punch.scale = Vector2.ONE * DARK_PUNCH_S
-		punch.z_index = 97
-		punch.visible = false
-		host.add_child(punch)
-		var pt: Tween = punch.create_tween()
-		pt.tween_interval(0.4 / sp)
-		pt.tween_callback(func() -> void: punch.visible = true)
-		pt.tween_property(punch, "scale", Vector2.ONE * DARK_PUNCH_S * 1.2, 0.2 / sp)
-		pt.tween_property(punch, "modulate:a", 0.0, 0.3 / sp)
-		pt.tween_callback(punch.queue_free)
+	# 구슬 — 화면을 삼키는 소용돌이.
 	var ball := _spr(el, pfx + "ball")
 	if ball != null:
 		ball.position = at
@@ -1165,61 +1147,91 @@ static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		ball.z_index = 96
 		host.add_child(ball)
 		var bt: Tween = ball.create_tween()
-		bt.tween_interval(0.7 / sp)
-		bt.tween_property(ball, "scale", Vector2.ONE, 0.35 / sp)
-		bt.tween_interval(0.5 / sp)
-		bt.tween_property(ball, "modulate:a", 0.0, 0.2 / sp)
+		bt.tween_interval(1.5 / sp)
+		bt.tween_property(ball, "scale", Vector2.ONE, 0.25 / sp)
+		bt.parallel().tween_property(ball, "rotation_degrees", -30.0, 0.25 / sp)\
+			.as_relative().set_ease(Tween.EASE_IN)
+		bt.tween_property(ball, "scale", Vector2.ONE * 2.5, 3.0 / sp)
+		bt.parallel().tween_property(ball, "rotation_degrees", -3600.0, 3.0 / sp)\
+			.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		bt.tween_property(ball, "scale", Vector2.ZERO, 0.075 / sp)
 		bt.tween_callback(ball.queue_free)
 
-	# 손 — 원작은 `dark_hand14` 를 **두 장** 두고 한 장을 뒤집는다. 프레임은 그 위에서 갈아 낀다.
+	# 손 — 좌우 두 벌이 2배로 커지며 움켜쥔다.
 	for i in 2:
 		var hd := _spr(el, pfx + "hand1")
 		if hd == null:
 			break
-		hd.position = at
+		hd.position = at + Vector2((-1.0 if i == 0 else 1.0) * 120.0, -20.0)
 		hd.z_index = 99
 		if i == 1:
 			hd.scale = Vector2(-hd.scale.x, hd.scale.y)
+		hd.visible = false
 		host.add_child(hd)
 		_play_frames(hd, el, pfx + "hand%d", 1, 20, DARK_HAND_SEC / sp)
+		var sgn := -1.0 if i == 0 else 1.0
 		var ht: Tween = hd.create_tween()
-		ht.tween_interval(20.0 * DARK_HAND_SEC / sp + 3.0 / sp)
-		ht.tween_property(hd, "modulate:a", 0.0, 0.5 / sp)
+		ht.tween_interval(1.0 / sp)
+		ht.tween_callback(func() -> void:
+			if is_instance_valid(hd):
+				hd.visible = true)
+		ht.tween_property(hd, "scale", hd.scale * 2.0, 0.35 / sp)
+		ht.parallel().tween_property(hd, "rotation_degrees", sgn * -45.0, 0.35 / sp)\
+			.as_relative()
+		ht.parallel().tween_property(hd, "position", Vector2(sgn * -60.0, 0.0), 0.35 / sp)\
+			.as_relative()
+		ht.tween_property(hd, "scale", hd.scale * 2.0 * 1.05, 0.025 / sp)
+		ht.tween_property(hd, "scale", hd.scale * 2.0, 0.025 / sp)
+		ht.tween_property(hd, "rotation_degrees", sgn * 35.0, 3.0 / sp).as_relative()
+		ht.tween_interval(1.1 / sp)
+		ht.tween_property(hd, "scale", hd.scale * 3.0, 0.25 / sp)
+		ht.parallel().tween_property(hd, "modulate:a", 0.0, 0.25 / sp)
 		ht.tween_callback(hd.queue_free)
 
-	# 폭발 — 두 벌을 시차로.
+	# 펀치 — 충돌 순간의 주먹 플래시.
+	var punch := _spr(el, pfx + "punch")
+	if punch != null:
+		punch.position = at
+		punch.scale = Vector2.ONE * DARK_PUNCH_S
+		punch.z_index = 100
+		punch.visible = false
+		host.add_child(punch)
+		var pt: Tween = punch.create_tween()
+		pt.tween_interval(4.8 / sp)
+		pt.tween_callback(func() -> void:
+			if is_instance_valid(punch):
+				punch.visible = true)
+		pt.tween_property(punch, "position", Vector2(dir * 40.0, 0.0), 0.1 / sp).as_relative()
+		pt.parallel().tween_property(punch, "scale",
+			Vector2(DARK_PUNCH_S, DARK_PUNCH_S * 1.1), 0.05 / sp)
+		pt.tween_property(punch, "scale", Vector2.ONE * DARK_PUNCH_S, 0.05 / sp)
+		pt.tween_property(punch, "scale", Vector2.ONE * DARK_PUNCH_S * 0.8, 1.0 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		pt.parallel().tween_property(punch, "rotation_degrees", -45.0, 1.0 / sp).as_relative()
+		pt.tween_callback(punch.queue_free)
+
+	# 폭발 — 피해 시각(run+5.9)의 대폭발. explosion8 은 rotation 90 짝(초기 배치 그대로).
 	for i in 2:
 		var e := _spr(el, pfx + ("explosion1" if i == 0 else "explosion8"))
 		if e == null:
 			continue
 		e.position = at
 		e.z_index = 101 + i
-		e.visible = false
+		e.scale = Vector2.ZERO
+		if i == 1:
+			e.rotation_degrees = 90.0
 		host.add_child(e)
-		var d := (1.2 + 1.4 * float(i)) / sp
 		var t2: Tween = e.create_tween()
-		t2.tween_interval(d)
-		t2.tween_callback(func() -> void:
-			if not is_instance_valid(e):
-				return
-			e.visible = true
-			if i == 0:
-				_play_frames(e, el, pfx + "explosion%d", 1, 7, DARK_EXPL_SEC / sp, true)
-			else:
-				_play_frames(e, el, pfx + "explosion%d", 8, 10, DARK_EXPL2_SEC / sp, true))
+		t2.tween_interval((5.9 + 0.05 * float(i)) / sp)
+		t2.tween_property(e, "scale", Vector2.ONE * 3.75, 0.04 / sp)
+		t2.tween_interval(0.2 / sp)
+		t2.tween_property(e, "scale", Vector2.ZERO, 0.05 / sp)
+		t2.parallel().tween_property(e, "rotation_degrees", 360.0, 0.05 / sp).as_relative()
+		t2.parallel().tween_property(e, "modulate:a", 0.0, 0.05 / sp)
+		t2.tween_callback(e.queue_free)
 
-	# 그림자 장막.
-	var shade := _spr(el, pfx + "shade")
-	if shade != null:
-		shade.position = at
-		shade.z_index = 84
-		shade.modulate.a = 0.0
-		host.add_child(shade)
-		var t3 := shade.create_tween()
-		t3.tween_property(shade, "modulate:a", 1.0, 0.5 / sp)
-		t3.tween_interval(6.0 / sp)
-		t3.tween_property(shade, "modulate:a", 0.0, 0.75 / sp)
-		t3.tween_callback(shade.queue_free)
+	# 그림자 장막(shade)은 `init<El>_C` 몫이라 `_build_ring` 의 RING_EXTRA 가 낸다 — 여기서
+	# 또 만들면 두 장이 겹친다(2026-08-05 중복 제거).
 
 
 # ── light (11.25초) — 별 750개를 깔고 태양이 뜬다 ────────────────────────────
@@ -1303,25 +1315,41 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	#   `light_sunwing` 은 **자기 복제본을 자식**으로 갖는다(scale 0 · opacity 0 · rotation 90).
 	#   `light_earth`  : anchor 중앙 · pos (중심x + w*0.5, h*0.8) · scale 0.4 · 숨김
 	var sun_at := at + Vector2(LIGHT_SUN_DX, -LIGHT_SUN_DY)
-	var seq := [["sun", 0.5, 101], ["sunlight", 0.6, 100], ["sunwing", 0.7, 99],
-		["saturn", 1.4, 98], ["earth", 1.8, 98], ["flash", 2.4, 103],
-		["flashwing", 2.5, 102], ["bomb", 3.0, 104]]
+	# 행성 — 원작 `initLight`: `light_earth` 는 (중심x + W*0.5, H*0.8) · scale 0.4 = **우상단
+	#   가장자리**(영상 +41.5s 파란 행성 실측 일치). saturn 위치는 추출 소실 —
+	#   ASSUMPTION: 영상 실측(+43.5s 좌하단 가장자리 조각)으로 둔다.
+	var seq := [["sun", 0.5, 101, sun_at], ["sunlight", 0.6, 100, sun_at],
+		["sunwing", 0.7, 99, sun_at],
+		["saturn", 1.4, 98, _screen_center(host) + Vector2(-vis.x * 0.38, vis.y * 0.42)],
+		["earth", 1.8, 98, _screen_center(host) + Vector2(vis.x * 0.46, -vis.y * 0.3)],
+		["flash", 2.4, 103, sun_at], ["flashwing", 2.5, 102, sun_at],
+		["bomb", 3.0, 104, sun_at]]
 	for e in seq:
 		var n := _spr(el, pfx + String(e[0]))
 		if n == null:
 			continue
-		n.position = sun_at
-		if String(e[0]) == "flashwing":
+		n.position = e[3]
+		var name := String(e[0])
+		if name == "flashwing":
 			n.scale = Vector2(LIGHT_FLASHWING_SX, 1.0)   # 원작 setScaleX(10)
+		elif name == "earth":
+			n.scale *= 0.4                               # 원작 setScale(0.4)
 		n.z_index = int(e[2])
 		n.modulate.a = 0.0
 		host.add_child(n)
 		var t: Tween = n.create_tween()
 		t.tween_interval(float(e[1]) / sp)
-		t.tween_property(n, "modulate:a", 1.0, 0.3 / sp)
-		t.parallel().tween_property(n, "scale", n.scale * 1.15, 1.2 / sp)
-		t.tween_interval(2.5 / sp)
-		t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
+		if name == "flash" or name == "flashwing":
+			# 수평 섬광 — 레퍼런스에선 잠깐 스치는 플레어다(3초 파란 빔이 아니라).
+			t.tween_property(n, "modulate:a", 0.85, 0.25 / sp)
+			t.parallel().tween_property(n, "scale", n.scale * 1.2, 0.9 / sp)
+			t.tween_interval(0.5 / sp)
+			t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
+		else:
+			t.tween_property(n, "modulate:a", 1.0, 0.3 / sp)
+			t.parallel().tween_property(n, "scale", n.scale * 1.15, 1.2 / sp)
+			t.tween_interval(2.5 / sp)
+			t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
 		t.tween_callback(n.queue_free)
 
 
