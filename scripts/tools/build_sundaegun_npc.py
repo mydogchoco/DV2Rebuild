@@ -217,6 +217,9 @@ def main() -> None:
 
     print("[sundaegun] body %d×%d · mouth %d×%d @(%d,%d) · 입중심 최종(%.1f,%.1f) -> %s"
           % (body.width, body.height, pw, ph, px0, py0, mcx, mcy, OUT))
+    # ⚠️ 게임은 .godot/imported/ 캐시를 읽는다 — PNG 를 **바꿔도** 재임포트 전엔 옛 그림이
+    #   나온다(2026-08-07 실제로 냈던 사고: v2 재빌드 후 창을 띄웠는데 v1 입이 그대로 보였다).
+    print("[sundaegun] ⚠️ 재임포트 필수:  godot --headless --path . --import")
 
 
 if __name__ == "__main__":
