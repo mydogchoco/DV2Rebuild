@@ -160,32 +160,65 @@ static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -
 	t.tween_callback(r.queue_free)
 
 
-# ── 속성별 효과음 — libgame.so 문자열 실측 (2026-08-05) ─────────────────────
+# ── 속성별 효과음 ───────────────────────────────────────────────────────────
 #
-# 원작은 각성기마다 전용 효과음 세트를 쓴다. **이름은 전부 libgame.so 리터럴**이고
-# (`effect_aqua1/2` `effect_fire1/2` `effect_fire_fillar` `effect_earth1/2` `effect_wind`
-#  `effect_light` `effect_dark(_clap/_explosion)` `effect_holy_*` `effect_chaos_*`
-#  `effect_blackhall_1/2`), `SoundManager::playEffect` 는 안무 람다(PTR_FUN_*) 안에서 불려
-# **재생 시각은 디컴프 범위 밖**이다 — 시각은 안무 정렬로 둔다(ASSUMPTION).
-# ⚠️ aqua1/2 · earth1/2 · fire1/2 · light · dark 는 **덤프에 mp3 가 없다**(판본 갭) —
-#   `Bgm.sfx` 가 없는 파일을 조용히 건너뛰므로 원작 이름 그대로 예약해 둔다(확보 시 자동).
+# 🔴 2026-08-06 전면 정정 — 종전 표는 **소리가 아닌 이름**을 절반 넘게 담고 있었다.
+#
+# `UltimateLayer.c` 에는 `playEffect` 가 **한 건도 없다.** 소리는 안무 시퀀스 중간의
+# `CCCallFunc(std::function)` 람다 안에서 울리고, 디컴프 C 에는 `local_e0 = &PTR_FUN_02825828`
+# 같은 대입만 남는다. 종전 표는 그래서 libgame.so **문자열 전수 검색으로 이름만 주워** 만든
+# 것이었는데, `effect_light`·`effect_fire1`·`effect_aqua1` 은 실은 **파티클 plist 이름**이다
+# (`AdventureScene.c` : `"particle/scene/adventure/effect_light.plist"`). mp3 가 없으니
+# `Bgm.sfx` 가 조용히 건너뛰어 **그 속성은 무음**이었다(사용자 지적 2026-08-06).
+# ⇒ 종전 주석의 "덤프에 mp3 가 없다(판본 갭)" 는 오진이었다. 없는 게 아니라 **소리가 아니었다.**
+#
+# 실측 도구 = `scripts/tools/ultimate_sfx.py`
+#   ① `&PTR_FUN_x` 를 함수별로 수집 → ② ELF 재배치 테이블에서 그 std::function vtable 의
+#   실제 함수 주소를 읽고 → ③ 본문의 `adrp`+`add` 로 `.rodata` 문자열을 꺼낸다.
+#   결과: 람다 213개에서 효과음 **211건**, 전부 `DV2/music` 에 실재한다(미보유 0).
+# 시각은 같은 람다 앞에 쌓인 `CCDelayTime` 합(`ultimate_layer_sequences.md`)이라 **정확**하다 —
+# 종전의 "재생 시각은 디컴프 범위 밖(ASSUMPTION)" 도 함께 폐기.
+#
+# ⚠️ 아래에서 **light 만** 실측으로 갈아 끼웠다(프레임 대조를 마친 속성). 나머지 8속성은
+#   `ultimate_sfx.py <el>` 결과를 주석으로 달아 뒀으니 그 속성 재대조 때 함께 옮긴다.
 ## [시각(초, 시전 기준), 트랙] 목록.
 const SFX := {
-	# fire 의 `effect_fire_fillar` 는 여기(고정 시각)가 아니라 **기둥마다** 낸다(`_fire_burst`).
-	# `effect_fire2` 는 백색 섬광과 같은 박자다 = `0x228(1.0) + 4.25`(위 ELEMENT_DELAY).
+	# 🟠 실측: runFire = effect_bomb · effect_fire_fillar / runFire_C = effect_critical_fire_1.
+	#   fire 의 `effect_fire_fillar` 는 여기(고정 시각)가 아니라 **기둥마다** 낸다(`_fire_burst`).
 	"fire":   [[RUN_AT, "effect_fire1"], [RUN_AT + 5.25, "effect_fire2"]],
-	# aqua 도 `0x228`(=1.25) 을 앞에 얹는다 — 1 = 물 차오름, 2 = 상어 돌진(`0x228 + 5.0`).
+	# 🟠 실측: runAqua = effect_water_fill · effect_water_in ×2 · effect_bite · effect_chaos_drop_2.
 	"aqua":   [[RUN_AT + 1.25, "effect_aqua1"], [RUN_AT + 6.25, "effect_aqua2"]],
+	# 🟠 실측: runEarth = effect_bomb ×4 · effect_skill_50_destroy ×6.
 	"earth":  [[RUN_AT, "effect_earth1"], [RUN_AT + 2.0, "effect_earth2"]],
-	"wind":   [[RUN_AT, "effect_wind"]],
-	"light":  [[RUN_AT, "effect_light"]],
+	"wind":   [[RUN_AT, "effect_wind"]],       # ✔ 실측 일치(runWind 가 4번 낸다)
+	# ✅ 실측 완료(2026-08-06). blink 2발은 `actionLight_C` 의 시전자 몸통 —
+	#   ScaleTo 로 납작해진 직후 `Hide`(사라짐) / `Delay(0.9) → Show`(재등장) 양쪽에 붙는다.
+	#   나머지 4발은 `runLight` 의 네 람다이고 전부 `0x228`(=1.4)을 앞에 진다:
+	#     flash    `Delay(0x228) → ScaleTo(0.5, 0.15) → ★ → ScaleTo(0.1, 5.0)`  = 화이트아웃
+	#     bomb     `Delay(0x228+1.6) → ★ → ScaleTo(0.5, 7.5)`                   = 태양 착화
+	#     sun      `Delay(0x228+1.6) → Spawn(…, Seq(Delay(1.75) → ★))`          = 태양 연소
+	#     sunlight `Delay(0x228+1.6) → …ScaleTo(1.0,0.75) → ScaleTo(2.5,2.0) → Delay(0.25) → ★`
+	#                                                                            = 2차 섬광
+	"light":  [[ACT_AT + 0.90, "effect_blink"], [ACT_AT + 1.80, "effect_blink"],
+		[RUN_AT + 1.4 + 0.5, "effect_flash"], [RUN_AT + 1.4 + 1.6, "effect_bigbang"],
+		[RUN_AT + 1.4 + 3.35, "effect_burn"], [RUN_AT + 1.4 + 5.35, "effect_bigbang"]],
+	# 🟠 실측: actionDark_C = effect_skill_110 ×2 / runDark = effect_circle · effect_skill_110 ×2 ·
+	#   effect_blackhall_1 ×2 · effect_blackhall_2 ×2 · effect_dark_clap · effect_dark_explosion ·
+	#   effect_bomb. ⇒ `effect_dark` 만 허수고 나머지 둘은 이름이 맞았다.
 	"dark":   [[RUN_AT, "effect_dark"], [RUN_AT + 1.35, "effect_dark_clap"],
 		[RUN_AT + 5.9, "effect_dark_explosion"]],
+	# 🟠 실측: actionHoly_C = effect_holy_wing / runHoly = effect_holy_well_1 ×3 ·
+	#   effect_holy_well_2 ×3 · effect_critical_ice_1 ×2 · effect_critical_ice_2 · effect_holy_fade.
+	#   ⇒ `effect_holy_spear` 는 원작이 안 쓴다(창 소리는 critical_ice 계열이다).
 	"holy":   [[ACT_AT, "effect_holy_wing"], [RUN_AT + 0.75, "effect_holy_well_1"],
 		[RUN_AT + 1.25, "effect_holy_spear"], [RUN_AT + 3.0, "effect_holy_well_2"],
 		[RUN_AT + 3.775, "effect_holy_fade"]],
+	# 🟠 실측: actionChaos_C = effect_skill_21 · effect_cut_in ×2 / runChaos = effect_chaos_dust ×2 ·
+	#   effect_chaos_drop_1 · effect_chaos_drop_2 · effect_chaos_explosion · effect_circle ×2.
 	"chaos":  [[RUN_AT, "effect_chaos_dust"], [RUN_AT + 1.5, "effect_chaos_drop_1"],
 		[RUN_AT + 2.5, "effect_chaos_drop_2"], [RUN_AT + 4.0, "effect_chaos_explosion"]],
+	# 🟠 실측: actionShadow_C = effect_skill_110 ×2 / runShadow = effect_circle · effect_buildup ×4 /
+	#   runShadow_C = effect_generate. ⇒ 그림자는 blackhall 을 안 쓴다(그건 dark 것이다).
 	"shadow": [[RUN_AT, "effect_blackhall_1"], [RUN_AT + 3.0, "effect_blackhall_2"]],
 }
 
@@ -1588,6 +1621,7 @@ static func _wind_debris(host: CanvasItem, el: String, pfx: String, at: Vector2,
 		# 원작은 두 통과 사이에 `Delay(3.8375)` 를 두는데, 그대로 넣으면 1차가 끝난 뒤 화면이
 		# 텅 빈다. 영상은 run+1.6~6.6 내내 잎이 흐르므로 **출발 시차를 넓게 흩어** 메운다.
 		var lead := ed + WIND_DEBRIS_LEAD + rng.randf() * 1.6
+		var t := seg.create_tween()
 		t.tween_interval(lead / sp)
 		for pass_i in 2:
 			var move_sec := 1.0 if pass_i == 0 else 1.5
@@ -1597,7 +1631,10 @@ static func _wind_debris(host: CanvasItem, el: String, pfx: String, at: Vector2,
 						seg.position = home
 						seg.scale = base_scale
 						seg.modulate.a = 200.0 / 255.0)
-				t.tween_interval(rng.randf_range(0.3, 1.1) / sp)
+				# 2차 통과가 **본체 종료(run+ed+5.25)를 넘지 않게** 간격을 조인다 —
+				# 원작은 잎·회오리·링이 한꺼번에 걷힌다(영상 seg +7.05).
+				var slack := ed + WIND_BODY_LIFE - 1.75 - 1.25 - lead
+				t.tween_interval(clampf(rng.randf_range(0.6, 2.2), 0.2, maxf(0.2, slack)) / sp)
 			t.tween_property(seg, "position", cross, move_sec / sp).as_relative()
 			t.parallel().tween_property(seg, "scale", base_scale * 1.25,
 				(0.9 if pass_i == 0 else 1.4) / sp)
@@ -2404,9 +2441,217 @@ static func _run_shadow(host: CanvasItem, at: Vector2, dir: float, sp: float,
 # 물만 **`love`** 가 있다 — 물고기 떼가 에워싸는 구간(영상 14.75~16.3s)의 포즈다.
 # 아래 표 = 저글링 앞에 따로 트는 **선행 포즈**(시전 0초 기준). damaged/down/wait 는
 # 저글링 쪽(fight `_ultimate_knockback` · dev 창)이 타격/마무리에 맞춰 튼다.
+# ⚠️ 2026-08-06 — 그 "저글링 골격"은 `damageFire_C` 의 모양이라 **속성마다 맞지 않는다**.
+#    리터럴을 그대로 이식한 속성은 아래 `target_fx`(§TGT_FX_ON)로 옮겼다.
 const TGT_PRE_POSE := {
 	"aqua": [[3.25, "down"], [4.05, "love"]],   # 침수에 엎어졌다가 물고기 떼에 love
 }
+
+
+# ── 피격자 무대 안무 — 원작 `damage<El>_C` 실측 ──────────────────────────────
+#
+# 🔴 2026-08-06 신설. 호출자(`fight.gd::_ultimate_knockback` · 확인 창)가 쓰던 공통 골격
+#   (**무대점으로 JumpTo → 저글링 n회 → down + 크게 띄우기**)은 `damageFire_C` 의 모양이라
+#   속성에 따라 아주 다르다. 혼돈은 그 골격이 통째로 틀렸다 —
+#   `damageChaos_C` @010101f0 리터럴(`docs/ref/design/ultimate_layer_sequences.md` L653)에
+#   **JumpTo(무대점)도 저글링 반복도 없다**:
+#
+#     레이어  Delay(1.95) → CCJumpBy(6.0, Δ, (i%11)*2.5+25, **1**) → MoveTo(0, 제자리)
+#     몸통    Delay(1.95) → CallFuncN(=runSpine) → **CCRotateBy(6.0, fVar32)** → CallFuncN
+#             → MoveBy(0) → RotateBy(0, −fVar32)
+#             → **ScaleTo(0, ×1.25, ×0.35)**  ← 지면에 납작하게 뻗는다
+#             → Delay(1.0) → CallFunc(=runSpine) → ScaleTo(0, 원복) → MoveTo(0, 제자리)
+#             → ScaleTo(0.1, ×0.95,1.05) → ScaleTo(0.1, ×1.05,0.95) → ScaleTo(0.1, 원복)
+#     그림자  Delay(1.95) → [MoveBy(6.0, Δ) ∥ ScaleTo(3.0, S+0.9) → ScaleTo(3.0, S+1.0)] → …
+#
+#   영상 교차검증(혼돈 구간): 68.30~71.50 에 피격 3마리가 **제자리에서 천천히 기울고**
+#   (= RotateBy 6초), 백색이 걷힌 72.95~73.35 에 **바닥에 납작하게 뻗어** 있다가
+#   73.45 에 한 번에 일어선다(= ScaleTo 납작 → Delay(1.0) → 원복 + 착지 스쿼시 3단).
+#   ⇒ 종전 구현이 하던 "무대점으로 끌려가 6초 저글링"은 영상 어디에도 없다.
+#
+## a = {node(Node2D), anim(AnimationPlayer|null), shadow(Node2D|null), home(Vector2),
+##      scale(float), mine(bool — 피격자가 왼쪽 진영인가)}
+## 반환 = 복귀 시각(초). **이식된 속성만** 0 이상을 돌려준다 — 그 외에는 −1 이라
+##   호출자가 종전 저글링 골격을 그대로 쓴다(8속성은 아직 이 축으로 재대조 전).
+const TGT_FX_ON := ["chaos", "wind"]
+const CH_TGT_AT := 1.95          # Delay(1.95) — 레이어·몸통·그림자 공통
+const CH_TGT_RIDE := 6.0         # JumpBy / RotateBy 길이
+const CH_TGT_HOP := 35.0         # (i%11)*2.5 + 25 = 25~50 — 슬롯 번호 미상이라 중앙값
+const CH_TGT_DRIFT := 25.0       # ASSUMPTION: JumpBy Δ 는 스택 소실 — 영상의 미세 표류
+const CH_TGT_LEAN := 40.0        # ASSUMPTION: fVar32 스택 소실 — 영상 68.3~71.5 실측 ≈ 40°
+const CH_TGT_FLAT := Vector2(1.25, 0.35)   # ScaleTo(0, ×1.25, ×0.35) — 리터럴
+const CH_TGT_HOLD := 1.0         # 납작한 채 Delay(1.0)
+const CH_TGT_SQUASH := 0.1       # 착지 스쿼시 3단 각 0.1초
+
+## 🌪 바람 — 원작 `damageWind_C` @0101c61c. 저글링이 아니라 **회오리에 실려 화면을 도는** 그림이다.
+##
+## 원작이 잡는 점(전부 리터럴, cocos y-up · `L` = 레이어 y · `W` = 화면 폭 · `Y1~Y5` = `rand%(H−150)+75`):
+##   P0 (−250, L+100+Y1·0.5)  Q0 (W+300, L+100+Y2·0.5)
+##   P1 (W+250, Y2)           Q1 (−300, Y3)
+##   P2 (−250, L+100+Y3·0.5)  Q2 (W+300, L+100+Y4·0.5)
+##   P3 (W+250, Y4)           Q3 (−300, Y5)
+##   P4 (−250, L+100+Y5·0.5)  Q4 (center.x + rand%center.x, **top.y×1.5**) ← 화면 위로 솟구친다
+## 매 구간 앞에 `CCPlace(Pn)` 이 있다 = **반대편 화면 밖으로 순간이동해 다시 들어온다**
+##   (회오리를 한 바퀴 돌아 나온 표현). 그래서 좌→우→좌→우→좌 로 5번 가로지른다.
+## 배율은 `ScaleBy(d, sN) → EaseOut(ScaleTo(d, S), 0.25)` 로 **작아졌다 커졌다** 번갈아:
+##   s1 `(rand%6)*0.05+0.5`(0.50~0.75) · s2 `(rand%11)*0.05+1.5`(1.50~2.00) · s3 · s4 · s5 동형
+##   ⇒ 멀어졌다 가까워졌다 하는 원근. 지연은 **0.75 → 0.5 → 0.3 → 0.15** 로 점점 빨라진다.
+## 스파인은 3단계뿐이다(SSO 문자열 복원): `damaged` 한 번 → 전 구간 유지 → `down` → `wait`.
+## 마무리 = `ScaleTo(0, S)` → `Place(제자리)` → `MoveTo(0.25)` → `MoveBy(0.25) EaseIn`
+##   → `MoveTo(0.25) EaseOut` (착지 바운스).
+##
+## ⚠️ ASSUMPTION 2건: ① `MoveTo` 구간 길이 일부(`fVar59/60/62`)가 Ghidra 스택에서 소실돼
+##    실측된 0.5 로 통일했다. ② 좌우 분기는 원작이 피격자 `scaleX` 부호(바라보는 방향)로
+##    가르는데, 우리는 `mine`(왼쪽 진영인가)으로 대신하고 x 를 미러링한다.
+const WD_LEAD := 2.0             # Delay(2.0 + (rand%6)*0.005)
+const WD_IN := 0.25              # MoveTo(0.25, P0) — 회오리로 끌려 들어간다
+const WD_GAPS := [0.75, 0.5, 0.3, 0.15]    # 구간 사이 지연(점점 빨라진다)
+## 구간 길이 — 앞 둘만 리터럴이다(`MoveTo(fVar63+0.5)` · `MoveTo(0.5)`). 뒤 셋(`fVar60`·
+## `fVar59`·`fVar62`)은 Ghidra 스택에서 소실됐다. ASSUMPTION: **0.3** — 지연이 0.3→0.15 로
+## 빨라지는 흐름과 맞고, 이 값이라야 착지가 장막 걷힘(run+6.65 = 절대 9.4)과 맞물린다.
+## 0.5 로 통일하면 밝아진 화면에 피격자가 1초 늦게 튀어나온다(2026-08-06 캡처 실측).
+const WD_MOVES := [0.5, 0.5, 0.3, 0.3, 0.3]
+const WD_OUT_X := 250.0
+const WD_OUT_X2 := 300.0
+const WD_LAND := 0.2
+
+static func _wind_tumble(n: Node2D, a: Dictionary, sp: float) -> float:
+	var vis: Vector2 = n.get_viewport().get_visible_rect().size
+	var home: Vector2 = a.get("home", n.position)
+	var bs := n.scale
+	var mine := bool(a.get("mine", true))
+	var ap = a.get("anim")
+	var play := func(anim_name: String) -> void:
+		if ap is AnimationPlayer and is_instance_valid(ap) \
+				and (ap as AnimationPlayer).has_animation(anim_name):
+			(ap as AnimationPlayer).play(anim_name)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	# cocos(y-up) → godot. 레이어 y(cocos) = vis.y − home 기준선이 아니라 **바람 기준점**이지만,
+	# 원작이 쓰는 건 `L + 100 + Y*0.5` 라 화면 안쪽 높이로 떨어진다 — 기준점 y 를 그대로 쓴다.
+	var base_y := vis.y * 0.5 + 95.0            # wind 레이어 = (center.x, 262.5−95) → godot
+	var ys: Array[float] = []
+	for i in 5:
+		ys.append(float(rng.randi() % int(maxf(1.0, vis.y - 150.0))) + 75.0)
+	# x 미러링 — 왼쪽 진영 피격자면 좌우를 뒤집는다(원작은 바라보는 방향으로 가른다).
+	var mx := func(x: float) -> float: return (vis.x - x) if mine else x
+	var lo := func(off: float) -> float: return mx.call(-off)
+	var hi := func(off: float) -> float: return mx.call(vis.x + off)
+	var side_y := func(i: int) -> float: return base_y - 100.0 - ys[i] * 0.5
+	var pts := [                                 # [Place 지점, MoveTo 목표, 배율]
+		[Vector2(lo.call(WD_OUT_X), side_y.call(0)),
+			Vector2(hi.call(WD_OUT_X2), side_y.call(1)), 0],
+		[Vector2(hi.call(WD_OUT_X), vis.y - ys[1]),
+			Vector2(lo.call(WD_OUT_X2), vis.y - ys[2]), 1],
+		[Vector2(lo.call(WD_OUT_X), side_y.call(2)),
+			Vector2(hi.call(WD_OUT_X2), side_y.call(3)), 0],
+		[Vector2(hi.call(WD_OUT_X), vis.y - ys[3]),
+			Vector2(lo.call(WD_OUT_X2), vis.y - ys[4]), 1],
+		[Vector2(lo.call(WD_OUT_X), side_y.call(4)),
+			Vector2(vis.x * 0.5 + float(rng.randi() % int(maxf(1.0, vis.x * 0.5))),
+				-vis.y * 0.5), 0],               # 마지막은 화면 **위 밖**(top×1.5)
+	]
+	# ⏱ `damage<El>_C` 의 시계는 **`run<El>` 과 같이** 시작한다(RUN_AT). 근거: 같은 함수가 부르는
+	#   `calculateDamage` 의 잔타 시각 `2.75 + i×0.1`(45발)이 영상의 수치 흐름
+	#   seg +4.0~+7.0(= run+2.5~6.6)과 맞아떨어진다. 이걸 빼면 피격자가 **회오리가 뜨기도 전에**
+	#   날아간다(2026-08-06 캡처 실측 — 종전 판이 그랬다).
+	var lead := RUN_AT + WD_LEAD + float(rng.randi() % 6) * 0.005
+	var t := n.create_tween()
+	t.tween_interval(lead / sp)
+	t.tween_callback(func() -> void: play.call("damaged"))
+	t.tween_property(n, "position", (pts[0][0] as Vector2), WD_IN / sp)
+	t.tween_interval((float(rng.randi() % 6) * 0.005 + 0.5) / sp)
+	var when := lead + WD_IN + 0.5                # 배율 트윈을 걸 시각(별도 트윈으로 병렬)
+	for i in pts.size():
+		var row: Array = pts[i]
+		var dst: Vector2 = row[1]
+		var small := int(row[2]) == 0
+		var f := (float(rng.randi() % 6) * 0.05 + 0.5) if small \
+			else (float(rng.randi() % 11) * 0.05 + 1.5)
+		t.tween_callback(func() -> void:
+			if is_instance_valid(n):
+				n.position = (row[0] as Vector2))   # CCPlace — 반대편 밖으로 순간이동
+		var mv := float(WD_MOVES[i])
+		t.tween_property(n, "position", dst, mv / sp)
+		# 배율: ScaleBy(d, f) → EaseOut(ScaleTo(d, S)) — 위치와 **병렬**이라 트윈을 따로 건다.
+		var st := n.create_tween()
+		st.tween_interval(when / sp)
+		st.tween_property(n, "scale", bs * f, mv * 0.5 / sp)
+		st.tween_property(n, "scale", bs, mv * 0.5 / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		when += mv
+		if i < WD_GAPS.size():
+			t.tween_interval(float(WD_GAPS[i]) / sp)
+			when += float(WD_GAPS[i])
+	# 마무리 — 제자리로 되돌리고 착지 바운스, down → wait.
+	t.tween_callback(func() -> void:
+		if is_instance_valid(n):
+			n.scale = bs
+			n.position = home + Vector2(0.0, -vis.y * 0.35)
+		play.call("down"))
+	t.tween_property(n, "position", home, WD_LAND / sp)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_property(n, "position", home - Vector2(0.0, 60.0), WD_LAND / sp)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(n, "position", home, WD_LAND / sp)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_callback(func() -> void: play.call("wait"))
+	return when + WD_LAND * 3.0
+
+
+static func target_fx(a: Dictionary, el: String, sp := 1.0) -> float:
+	if not TGT_FX_ON.has(el):
+		return -1.0
+	var node = a.get("node")
+	if not (node is Node2D) or not is_instance_valid(node):
+		return -1.0
+	var n := node as Node2D
+	if el == "wind":
+		return _wind_tumble(n, a, sp)
+	var ap = a.get("anim")
+	var home: Vector2 = a.get("home", n.position)
+	var bs := n.scale
+	var play := func(anim_name: String) -> void:
+		if ap is AnimationPlayer and is_instance_valid(ap) \
+				and (ap as AnimationPlayer).has_animation(anim_name):
+			(ap as AnimationPlayer).play(anim_name)
+	# 피격자는 **시전자 반대쪽으로** 기운다(영상: 왼쪽 진영 3마리가 전부 왼쪽으로).
+	var away := -1.0 if bool(a.get("mine", true)) else 1.0
+	var s := float(a.get("scale", 1.0))
+
+	# 레이어 — 낮은 포물선 **한 번**(6초). 무대점으로 끌려가지 않는다.
+	var t := n.create_tween()
+	t.tween_interval(CH_TGT_AT / sp)
+	_jump_by(t, n, Vector2(away * CH_TGT_DRIFT * s, 0.0), CH_TGT_HOP * s, 1,
+		CH_TGT_RIDE / sp)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(n):
+			n.position = home)                      # MoveTo(0.0, 제자리)
+
+	# 몸통 — 회전 → 원복 → 납작 → 1초 유지 → 원복 + 착지 스쿼시 3단
+	var b := n.create_tween()
+	b.tween_interval(CH_TGT_AT / sp)
+	b.tween_callback(func() -> void: play.call("damaged"))
+	b.tween_property(n, "rotation_degrees", away * CH_TGT_LEAN, CH_TGT_RIDE / sp)
+	b.tween_callback(func() -> void:
+		if is_instance_valid(n):
+			n.rotation_degrees = 0.0                # RotateBy(0.0, −fVar32)
+			n.scale = Vector2(bs.x * CH_TGT_FLAT.x, bs.y * CH_TGT_FLAT.y)
+		play.call("down"))
+	b.tween_interval(CH_TGT_HOLD / sp)
+	b.tween_callback(func() -> void:
+		if is_instance_valid(n):
+			n.scale = bs
+			n.position = home
+		play.call("wait"))
+	b.tween_property(n, "scale", Vector2(bs.x * 0.95, bs.y * 1.05), CH_TGT_SQUASH / sp)
+	b.tween_property(n, "scale", Vector2(bs.x * 1.05, bs.y * 0.95), CH_TGT_SQUASH / sp)
+	b.tween_property(n, "scale", bs, CH_TGT_SQUASH / sp)
+
+	# ⚪ 그림자(`MoveBy(6.0, Δ) ∥ ScaleTo(3.0, S+0.9) → S+1.0`)는 미이식 —
+	#   원작 값이 cocos 절대 배율(S+0.9 ≈ 1.9)이라 우리 그림자 노드의 기준 배율과
+	#   대응을 못 짚었다. 근거 없이 배율을 지어내지 않는다.
+	return (CH_TGT_AT + CH_TGT_RIDE + CH_TGT_HOLD + CH_TGT_SQUASH * 3.0) / sp
 
 # ── 시전자 무대 안무 — 원작 `action<El>_C` 실측 (2026-08-05 전수 채굴) ────────
 #
@@ -2726,7 +2971,12 @@ static func _run_fallback(host: CanvasItem, el: String, at: Vector2,
 ## `<fmt>` 의 번호를 lo..hi 로 갈아 끼우며 프레임을 돌린다. 끝나면 free(옵션).
 static func _play_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 		sec: float, free_at_end := false) -> void:
-	var n := lo
+	# 🔴 2026-08-06 — `n` 을 지역 int 로 두면 **프레임이 안 넘어간다.** GDScript 람다는
+	#   지역 변수를 **값으로 캡처**하고 그 캡처는 호출마다 다시 바인딩되므로, 람다 안의
+	#   `n += 1` 은 호출이 끝나면 사라진다 ⇒ 매번 `lo` 프레임만 그린다(9속성 공통 증상:
+	#   회오리·폭발·물결이 첫 프레임에 얼어 있었다). 참조형(Array)에 담아야 상태가 남는다.
+	#   같은 함정 = [[dv2-gdscript-lambda-self-capture]]. 바로 아래 `elapsed` 는 원래 맞았다.
+	var n := [lo]
 	var t := Timer.new()
 	t.wait_time = maxf(0.01, sec)
 	t.autostart = true
@@ -2734,20 +2984,20 @@ static func _play_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 	t.timeout.connect(func() -> void:
 		if not is_instance_valid(spr):
 			return
-		if n > hi:
+		if n[0] > hi:
 			if free_at_end:
 				spr.queue_free()
 			else:
 				t.stop()
 			return
-		_set_frame(spr, el, fmt % n)
-		n += 1)
+		_set_frame(spr, el, fmt % n[0])
+		n[0] += 1)
 
 
 ## `<fmt>` 의 lo..hi 프레임을 **반복** 재생한다(원작 CCRepeatForever). `total` 초 뒤 멈춘다(0=무한).
 static func _loop_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 		sec: float, total := 0.0) -> void:
-	var n := lo
+	var n := [lo]                       # ⚠️ 람다 캡처 — 위 `_play_frames` 주석 참조
 	var t := Timer.new()
 	t.wait_time = maxf(0.01, sec)
 	t.autostart = true
@@ -2760,15 +3010,15 @@ static func _loop_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 		if total > 0.0 and elapsed[0] >= total:
 			t.stop()
 			return
-		_set_frame(spr, el, fmt % n)
-		n = lo if n >= hi else n + 1)
+		_set_frame(spr, el, fmt % n[0])
+		n[0] = lo if n[0] >= hi else n[0] + 1)
 
 
 ## `_loop_frames` 의 역방향판(hi → lo). 원작 `initWind` 의 두 번째 CCAnimation 이
 ## `whirl4 → whirl3 → whirl2 → whirl1`(0.025초)로 **거꾸로** 도는 겹을 만든다.
 static func _loop_frames_rev(spr: Node2D, el: String, fmt: String, hi: int, lo: int,
 		sec: float, total := 0.0) -> void:
-	var n := hi
+	var n := [hi]                       # ⚠️ 람다 캡처 — 위 `_play_frames` 주석 참조
 	var t := Timer.new()
 	t.wait_time = maxf(0.01, sec)
 	t.autostart = true
@@ -2781,8 +3031,8 @@ static func _loop_frames_rev(spr: Node2D, el: String, fmt: String, hi: int, lo: 
 		if total > 0.0 and elapsed[0] >= total:
 			t.stop()
 			return
-		_set_frame(spr, el, fmt % n)
-		n = hi if n <= lo else n - 1)
+		_set_frame(spr, el, fmt % n[0])
+		n[0] = hi if n[0] <= lo else n[0] - 1)
 
 
 static func _find_anim_player(n: Node) -> AnimationPlayer:
