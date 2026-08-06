@@ -78,7 +78,12 @@ def lambdas_by_func(src: str) -> dict[str, list[int]]:
     out: dict[str, list[int]] = {}
     cur = "?"
     for line in src.splitlines():
-        m = re.match(r"^\w[\w:*<>\s,&]*?cocos2d::UltimateLayer::(\w+)\s*\(", line)
+        # ⚠️ Ghidra 는 반환형이 **앞 줄로 빠진** 함수의 헤더를 한 칸 들여쓴 채 클래스명부터 쓴다
+        #    (` cocos2d::UltimateLayer::calculateDamage(...)`). 종전 `^\w[...]*?cocos2d::` 는
+        #    그 `^\w` 가 'c' 를 먼저 먹어 **그런 헤더를 통째로 놓쳤고**, 그 안의 람다가 앞 함수
+        #    몫으로 잘못 붙었다(2026-08-06: damaged 48건이 actionWind_C/createAndAdd 로 밀려 있었다).
+        #    본문의 호출문(`  cocos2d::UltimateLayer::initLight(this);`)과는 **`;` 유무**로 가른다.
+        m = None if ";" in line else re.search(r"cocos2d::UltimateLayer::(\w+)\s*\(", line)
         if m:
             cur = m.group(1)
         for a in re.findall(r"&PTR_FUN_([0-9a-f]{6,8})", line):
