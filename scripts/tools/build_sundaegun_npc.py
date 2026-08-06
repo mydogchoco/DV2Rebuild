@@ -19,12 +19,10 @@ DV2 규약과 다른 점 셋:
      263×338 실측). 전신을 그대로 넣으면 같은 화면에서 머리가 혼자 작아 보인다 →
      `CROP_BOTTOM` 에서 자른다.
   ③ **눈·입 파츠가 원화에 없다** — 원작 NPC 는 `eye_<e>_<f>`/`mouth_<e>_<f>` 를 따로
-     움직이지만 이 그림은 통짜 1장이다. 입만 여기서 **자작**한다(🟦 사용자 지시 2026-08-06 —
-     "입 에셋만 그림체에 맞게 임의로 제작, 말할 때는 웃는 모양"). 방식:
-       · 프레임 1(다뭄) = 몸통 최종본에서 입 자리를 **그대로 잘라낸 것** — 몸통과 픽셀 동일이라
-         쉬는 자세에서 이음새가 없다.
-       · 프레임 2·3(반개/전개) = 원화의 다문 입 라인을 지운 바탕 위에, 원화 라인 색을 쓴
-         **입꼬리가 올라간 초승달형 웃는 입**을 8배 슈퍼샘플로 그려 합성.
+     움직이지만 이 그림은 통짜 1장이다. 입은 🟦 사용자 확정(2026-08-07)대로 **원작 포포의
+     입 프레임 18종(표정 1~6 × 3)을 이식**한다 — 음영 컷·회전·앵커는 아래 상수 블록 참조.
+     몸통에서는 원화의 다문 입 라인을 지운다(입 파츠가 항상 얹힌다). 자작 입(초승달→반달
+     draw_smile)은 이 확정으로 폐기됐다(이력은 git — 83bc411 까지).
      눈은 계속 없다(깜빡임 프레임 미제작) — `NpcPortrait` 는 눈 없이도 정상 동작한다.
      좌표는 `_face.json` 사이드카로 남기고 `data/npc_face.json` 에도 직접 병합한다
      (그 파일은 `extract_npc_face.py` 가 통째로 재생성하므로 추출기 쪽에도 병합 훅이 있다).
@@ -34,7 +32,7 @@ DV2 규약과 다른 점 셋:
 from __future__ import annotations
 import json, os, sys
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(REPO)
@@ -52,30 +50,28 @@ CROP_BOTTOM = 0.65
 #   자른 상자 높이 944 × 0.36 ≈ 340. 라온(338) · 아이다(341) 와 같은 급이 된다.
 TARGET_H = 340
 
-# ── 입 프레임 ────────────────────────────────────────────────────────────
-# 원화의 다문 입 라인을 알파 상자 기준 좌표계에서 **탐색**한다(하드코딩 좌표가 아니라
-# 어두운 픽셀 스캔 — 실측 2026-08-06: bbox x394~406 · y324~328, 코점 (388,302)은 창 밖).
-MOUTH_SCAN = (375, 310, 425, 345)        # (x0, y0, x1, y1) 탐색창
-MOUTH_DARK = 480                          # r+g+b 이 이 미만이면 라인 픽셀(피부는 ≈760)
-# 입 파츠 상자(최종 몸통 px, 입 중심 기준 오프셋). 전개 웃는 입(w11·h7)+여백이 들어가는 크기.
-# 위 6px 은 코점(중심에서 -8px)을 안 건드리고, 아래 12px 도 턱 라인(+20px)에 못 미친다.
-PATCH_L, PATCH_R, PATCH_T, PATCH_B = 13, 13, 6, 12
-# 웃는 입 모양 — 원작 딜리스(`npc_dilis_mouth_1_2/3` 11×10~12px)·포포를 참조한 **반달(D형)**:
-#   거의 평평한 윗선(u 작게) + 깊고 둥근 아래 호(v). 🟦 사용자 피드백 2026-08-07 —
-#   "초승달이 아니라 반달형으로, 조금 더 크게, 얼굴 구도·각도에 맞게".
-#   u/v = 입꼬리 기준 윗/아랫입술 중앙 깊이(px, 최종 몸통 기준). 프레임 2 = 반개, 3 = 전개.
-SMILE = {2: {"w": 10.5, "u": 0.8, "v": 5.0},
-         3: {"w": 13.5, "u": 1.1, "v": 8.5}}
-# 얼굴 각도 반영 — 이 원화는 고개를 기울인 3/4 구도다(정중앙 대칭 입은 어색하다는
-# 사용자 피드백). 실측: 눈동자 중심 좌(324,292)·우(452,256) ⇒ 눈선 **-15.7°**(뷰어 왼쪽이
-# 낮다), 입 중심(400)이 눈 중점(388)보다 오른쪽 = 얼굴을 뷰어 **왼쪽**으로 살짝 돌림.
-# 다문 입 라인 자체는 거의 수평(-1°)으로 그려져 있어 눈선을 다 따르지 않고 6할만 준다.
-TILT_DEG = -9.5                           # 반달 전체 회전(음수 = 뷰어 왼쪽 입꼬리가 내려감)
-NEAR_BULGE = 0.18                         # 아래 호 비대칭 — 가까운 쪽(뷰어 오른쪽)을 더 볼록하게
-LINE_RGB = (40, 30, 62)                   # 원화 입 라인 실측색(어두운 보라) — 윗선/윤곽
-FILL_RGB = (201, 114, 122)                # 입 안 — 딜리스 실측 새먼(238,136,119)을 이 원화의
-                                          #   수채 채도에 맞춰 로즈모브로 한 단 눌렀다
-SS = 8                                    # 슈퍼샘플 배율(그리고 LANCZOS 축소로 AA)
+# ── 입 프레임 — 원작 **포포** 입 18종(표정 1~6 × 프레임 3) 이식 ──────────────
+# 🟦 사용자 확정 2026-08-07: 자작 반달(종전 draw_smile)을 폐기하고 원작 포포의 입 프레임을
+# 그대로 이식한다(형제 NPC 에셋 재사용 — 사용자가 참조 NPC 로 포포를 지정·확정).
+# 파라미터는 몽타주 4회 반복 검수로 확정(scratch_shots/popo_mouth_montage_up1.png):
+#   · 위치 = 입 중심 (148,121)  — 실측 중심(144,119)에서 사용자 보정 +4x +2y
+#   · 각도 = 15° 반시계        — 눈선 실측 -15.7°(눈동자 중심 좌(324,292)·우(452,256))에 정합
+#   · 포포 원본의 입 아래 음영(고정 아랫입술)은 **제거** — 이 원화에 없는 요소
+POPO = "assets/converted/npc_popo"
+MOUTH_POS = (148, 121)                    # 최종 몸통 px, 입(원본 상자) 중심
+TILT = 15.0                               # PIL rotate 양수 = 반시계(뷰어 오른쪽 입꼬리 위)
+SS = 8                                    # 슈퍼샘플 배율(회전 후 LANCZOS 축소로 AA)
+EMOS = (1, 2, 3, 4, 5, 6)
+# 입 아래 음영 시작 행(프레임 로컬 y) — 18프레임 픽셀 맵 전수 실측 2026-08-07.
+# 이 행부터 아래를 전부 지운다(열린 입의 연한 아랫변은 보존되는 행으로 잡았다).
+CUTS = {(1, 1): 4, (1, 2): 7, (1, 3): 10, (2, 1): 4, (2, 2): 7, (2, 3): 10,
+        (3, 1): 4, (3, 2): 8, (3, 3): 12, (4, 1): 4, (4, 2): 7, (4, 3): 12,
+        (5, 1): 5, (5, 2): 8, (5, 3): 9, (6, 1): 5, (6, 2): 9, (6, 3): 14}
+# 몸통에서 원화의 다문 입 라인을 지운다(클론 스탬프, 최종 몸통 px) — 입 파츠가 항상
+# 얹히므로 원작 NPC 몸통처럼 입 없는 몸통이 맞다. 스탬프 소스는 입 **위** 깨끗한 피부
+# (입 아래 y123~ 는 마이크 붐 라인이 지나가 오염된다 — 몽타주 v1 실사고).
+STAMP_SRC = (136, 105, 154, 111)
+STAMP_DST = (136, 114)
 
 
 def premultiply(im: Image.Image) -> Image.Image:
@@ -96,118 +92,107 @@ def write_tres(path: str, png_res: str, w: int, h: int) -> None:
         f.write("filter_clip = true\n")
 
 
-def find_mouth(im2: Image.Image) -> tuple[float, float]:
-    """알파 상자 기준 원화에서 다문 입 라인의 중심(px)을 찾는다."""
-    x0, y0, x1, y1 = MOUTH_SCAN
-    px = im2.load()
-    xs, ys = [], []
-    for y in range(y0, y1):
-        for x in range(x0, x1):
+def unpremultiply(im: Image.Image) -> Image.Image:
+    """PMA(변환 산출물) → 스트레이트 알파. 합성·회전은 스트레이트에서 하고 저장 때 되곱한다."""
+    im = im.copy()
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
             r, g, b, a = px[x, y]
-            if a > 200 and r + g + b < MOUTH_DARK:
-                xs.append(x)
-                ys.append(y)
-    if not xs:
-        sys.exit("입 라인을 못 찾았다 — 원화가 바뀌었으면 MOUTH_SCAN 을 다시 실측할 것")
-    return (min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0
+            if a:
+                px[x, y] = (min(255, r * 255 // a), min(255, g * 255 // a),
+                            min(255, b * 255 // a), a)
+    return im
 
 
-def draw_smile(patch: Image.Image, cx: float, cy: float, w: float, u: float, v: float) -> Image.Image:
-    """patch(최종 몸통 px) 위에 웃는 반달 입을 그린다. (cx,cy) = 입꼬리 높이의 중심.
+def load_popo_frame(key: str, atlas: Image.Image) -> Image.Image:
+    """포포 입 프레임 로드(스트레이트 알파). 낱장 PNG 가 없는 프레임은 tres region 으로."""
+    import re
+    p = os.path.join(POPO, key + ".png")
+    if os.path.exists(p):
+        return unpremultiply(Image.open(p).convert("RGBA"))
+    t = open(os.path.join(POPO, key + ".tres"), encoding="utf-8").read()
+    m = re.search(r"region = Rect2\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)", t)
+    x, y, w, h = (int(float(v)) for v in m.groups())
+    return unpremultiply(atlas.crop((x, y, x + w, y + h)))
 
-    모양 = 입꼬리 (±w/2, cy) 두 점 사이의 **반달(D형)**: 거의 평평한 윗선(깊이 u) +
-    둥근 아래 호(깊이 v, `NEAR_BULGE` 만큼 뷰어 오른쪽이 더 볼록) — 딜리스 입 프레임 참조.
-    전체를 `TILT_DEG` 회전해 원화의 기울인 얼굴 각도에 맞춘다.
-    SS 배로 그려 LANCZOS 축소 — 원화의 부드러운 수채 라인에 맞춘다.
+
+def prep_mouth(e: int, f: int, pman: dict, atlas: Image.Image) -> Image.Image:
+    """포포 프레임 1장 → 선대군용: 음영 컷 → 트림 복원(src 상자 정위치) → 15° 회전.
+
+    반환 이미지의 **중심**이 입 앵커(MOUTH_POS)다 — 프레임마다 크기가 달라도 원본 상자
+    중심을 공유하므로, 매니페스트 `src` 를 공통 상자로 적으면 `NpcPortrait._place` 가
+    같은 점에 중심을 맞춘다(off=[0,0] + src 공통 ⇒ 중심 고정).
     """
-    import math
-    th = math.radians(TILT_DEG)
-    co, si = math.cos(th), math.sin(th)
-
-    def rot(x: float, y: float) -> tuple[float, float]:
-        # (cx,cy) 중심 회전 → SS 좌표
-        dx0, dy0 = x - cx, y - cy
-        return ((cx + dx0 * co - dy0 * si) * SS, (cy + dx0 * si + dy0 * co) * SS)
-
-    ov = Image.new("RGBA", (patch.width * SS, patch.height * SS), (0, 0, 0, 0))
-    d = ImageDraw.Draw(ov)
-    pts_top, pts_bot = [], []
-    n = 24
-    for i in range(n + 1):
-        t = i / n * 2.0 - 1.0                 # -1(왼 입꼬리) ~ +1(오른 입꼬리)
-        x = cx + t * w * 0.5
-        pts_top.append(rot(x, cy + u * (1.0 - t * t)))
-        # 아래 호: 포물선 깊이에 (1 + k·t) — 얼굴이 돌아간 반대쪽(가까운 쪽)이 더 둥글다
-        pts_bot.append(rot(x, cy + v * (1.0 - t * t) * (1.0 + NEAR_BULGE * t)))
-    d.polygon(pts_top + pts_bot[::-1], fill=FILL_RGB + (255,))
-    # 윤곽 — 원화의 입 라인처럼 윗선을 또렷하게, 아래 호는 반 톤 얇게.
-    d.line(pts_top, fill=LINE_RGB + (255,), width=SS)
-    d.line(pts_bot, fill=LINE_RGB + (185,), width=max(1, SS // 2))
-    ov = ov.resize(patch.size, Image.LANCZOS)
-    out = patch.copy()
-    out.alpha_composite(ov)
-    return out
+    key = "npc_popo_mouth_%d_%d" % (e, f)
+    info = pman[key]
+    im = load_popo_frame(key, atlas)
+    px = im.load()
+    for y in range(CUTS[(e, f)], im.height):        # 입 아래 음영 제거
+        for x in range(im.width):
+            px[x, y] = (0, 0, 0, 0)
+    w, h, src, off = info["w"], info["h"], info["src"], info["off"]
+    box = Image.new("RGBA", (src[0], src[1]), (0, 0, 0, 0))
+    box.alpha_composite(im, ((src[0] - w) // 2 + off[0], (src[1] - h) // 2 - off[1]))
+    big = box.resize((src[0] * SS, src[1] * SS), Image.LANCZOS)
+    big = big.rotate(TILT, resample=Image.BICUBIC, expand=True)
+    return big.resize((big.width // SS, big.height // SS), Image.LANCZOS)
 
 
 def main() -> None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # cp949 콘솔에서 ⚠️ 등이 죽는다
+    except Exception:
+        pass
     if not os.path.exists(SRC):
         sys.exit("원본 없음: %s" % SRC)
     im = Image.open(SRC).convert("RGBA")
     box = im.getbbox()                      # 원본 캔버스의 투명 여백 제거
     if box is None:
         sys.exit("원본이 전부 투명하다: %s" % SRC)
-    im2 = im.crop(box)                      # 알파 상자 좌표계(입 탐색 기준)
-    mx, my = find_mouth(im2)
+    im2 = im.crop(box)                      # 알파 상자 좌표계
     im = im2.crop((0, 0, im2.width, round(im2.height * CROP_BOTTOM)))
     box2 = im.getbbox()                     # 자르고 나면 좌우 여백이 다시 생긴다
-    dx = 0
     if box2 is not None:
-        dx = box2[0]
         im = im.crop((box2[0], 0, box2[2], im.height))
     w = max(1, round(im.width * TARGET_H / im.height))
-    rx, ry = w / im.width, TARGET_H / im.height
-    body = im.resize((w, TARGET_H), Image.LANCZOS)   # 스트레이트 알파 최종본(입 프레임 원판)
+    body = im.resize((w, TARGET_H), Image.LANCZOS)   # 스트레이트 알파 최종본
+    # 원화의 다문 입 라인 제거 — 입 파츠(포포 이식)가 항상 얹히므로, 원작 NPC 몸통처럼
+    # 몸통에는 입이 없어야 한다(안 지우면 다문 입 위에 포포 입이 겹친다).
+    body.paste(body.crop(STAMP_SRC), STAMP_DST)
 
-    # ── 입 프레임 3장 (최종 몸통 px 좌표계) ──
-    mcx, mcy = (mx - dx) * rx, my * ry               # 다문 입 라인 중심
-    px0, py0 = round(mcx) - PATCH_L, round(mcy) - PATCH_T
-    pw, ph = PATCH_L + PATCH_R, PATCH_T + PATCH_B
-    f1 = body.crop((px0, py0, px0 + pw, py0 + ph))   # 프레임 1 = 몸통과 픽셀 동일(다뭄)
-    # 바탕: 다문 입 라인을 지운다 — 라인 상자(+여백)를 **아래쪽 깨끗한 피부**로 클론 스탬프.
-    # (위쪽은 코점이 가까워서 못 쓴다. 피부는 거의 균일한 백색이라 이걸로 충분하다.)
-    clean = f1.copy()
-    lw, lh = round(7 * rx) + 4, round(5 * ry) + 4    # 원화 라인 13×5px → 최종 ≈5×2 + 여백
-    lx, ly = round(mcx) - px0 - lw // 2, round(mcy) - py0 - lh // 2
-    stamp = f1.crop((lx, ly + lh + 2, lx + lw, ly + 2 * lh + 2))
-    clean.paste(stamp, (lx, ly))
-    frames = {1: f1}
-    ccx, ccy = mcx - px0, mcy - py0 - 1.0            # 입꼬리 기준선 = 원래 라인보다 1px 위
-    for fi, s in SMILE.items():
-        frames[fi] = draw_smile(clean, ccx, ccy, s["w"], s["u"], s["v"])
+    # ── 입 프레임 18장 — 포포 이식(음영 컷 → 트림 복원 → 15° 회전) ──
+    pman = json.load(open(os.path.join(POPO, "_manifest.json"), encoding="utf-8"))
+    atlas = Image.open(os.path.join(POPO, "popo.png")).convert("RGBA")
+    frames = {(e, f): prep_mouth(e, f, pman, atlas) for e in EMOS for f in (1, 2, 3)}
+    # 공통 원본 상자 = 회전 후 최대 크기. 모든 프레임의 매니페스트 src 를 이걸로 적으면
+    # `NpcPortrait._place` 가 프레임 크기와 무관하게 **중심**을 같은 점에 맞춘다.
+    bw = max(f.width for f in frames.values())
+    bh = max(f.height for f in frames.values())
 
-    # ── 저장: 몸통 + 입 3장 + 매니페스트 ──
+    # ── 저장: 몸통 + 입 18장 + 매니페스트 ──
     os.makedirs(OUT, exist_ok=True)
     man: dict[str, dict] = {}
 
-    def save(key: str, img: Image.Image) -> None:
+    def save(key: str, img: Image.Image, src: list | None = None) -> None:
         premultiply(img).save(os.path.join(OUT, key + ".png"))
         write_tres(os.path.join(OUT, key + ".tres"),
                    "res://assets/converted/%s/%s.png" % (SUB, key), img.width, img.height)
-        # `off`/`src` = 트림 없음 — 프레임 간 중심 흔들림(dv2-atlas-trim-offset)이 없다.
         man[key] = {"rotated": False, "w": img.width, "h": img.height,
-                    "off": [0, 0], "src": [img.width, img.height]}
+                    "off": [0, 0], "src": src or [img.width, img.height]}
 
     save(KEY, body)
-    for fi in sorted(frames):
-        save("npc_sundaegun_mouth_1_%d" % fi, frames[fi])
+    for (e, f), img in sorted(frames.items()):
+        save("npc_sundaegun_mouth_%d_%d" % (e, f), img, [bw, bh])
     json.dump(man, open(os.path.join(OUT, "_manifest.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
 
     # ── 파츠 좌표 → 사이드카 + data/npc_face.json 병합 ──
-    # `npc_face.json` 규약(NpcPortrait._attach_part): 값 = 파츠 **좌상단**의 몸통 좌상단 기준
-    # [x, 아래로 내려간 y] **포인트**(= 텍스처 px × 4/3). 표정 키 "?" = 모든 표정 공용.
+    # `npc_face.json` 규약(NpcPortrait._attach_part): 값 = 파츠 **원본 상자 좌상단**의 몸통
+    # 좌상단 기준 [x, 아래로 내려간 y] **포인트**(= 텍스처 px × 4/3). "?" = 모든 표정 공용.
     S = 4.0 / 3.0
-    face = {"sundaegun": {"?": {"mouth": [round(px0 * S, 3), round(py0 * S, 3)]}}}
+    tlx, tly = MOUTH_POS[0] - bw * 0.5, MOUTH_POS[1] - bh * 0.5
+    face = {"sundaegun": {"?": {"mouth": [round(tlx * S, 3), round(tly * S, 3)]}}}
     json.dump(face, open(os.path.join(OUT, "_face.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     npc_face_path = "data/npc_face.json"
@@ -215,8 +200,8 @@ def main() -> None:
     doc.setdefault("npc", {}).update(face)
     json.dump(doc, open(npc_face_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
-    print("[sundaegun] body %d×%d · mouth %d×%d @(%d,%d) · 입중심 최종(%.1f,%.1f) -> %s"
-          % (body.width, body.height, pw, ph, px0, py0, mcx, mcy, OUT))
+    print("[sundaegun] body %d×%d · mouth %d장(공통상자 %d×%d, 중심 %s) -> %s"
+          % (body.width, body.height, len(frames), bw, bh, MOUTH_POS, OUT))
     # ⚠️ 게임은 .godot/imported/ 캐시를 읽는다 — PNG 를 **바꿔도** 재임포트 전엔 옛 그림이
     #   나온다(2026-08-07 실제로 냈던 사고: v2 재빌드 후 창을 띄웠는데 v1 입이 그대로 보였다).
     print("[sundaegun] ⚠️ 재임포트 필수:  godot --headless --path . --import")
