@@ -341,7 +341,7 @@ static func _card(host: Node, d: Dictionary, picked: Array, pma: CanvasItemMater
 	lvl.size = Vector2(CARD_W - 20.0, 20.0)
 	cell.add_child(lvl)
 	# 속성 뱃지 — 원작 item/item_small/ele_*(updateDragonBtn switch), 상자 우상단 안쪽.
-	var elk := Icons.element_small_frame(String(ddef.get("element", "")))
+	var elk := Icons.element_small_frame(Icons.element_of(d))   # 개체 상속 속성(커스텀 종 600·700)
 	if elk != "":
 		var eb := _spr("item_small_ui", elk, 0.62 * S, pma)
 		if eb:
@@ -354,7 +354,8 @@ static func _card(host: Node, d: Dictionary, picked: Array, pma: CanvasItemMater
 	if sh:
 		sh.position = feet + Vector2(0.0, -4.0)
 		cell.add_child(sh)
-	var sp := _spine_node(id, _stage_of(d), box_h * 0.86)
+	# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 스파인이 없다).
+	var sp := _spine_node(Icons.art_id_of(d), _stage_of(d), box_h * 0.86)
 	if sp:
 		sp.position = feet
 		cell.add_child(sp)

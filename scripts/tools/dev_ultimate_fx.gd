@@ -398,63 +398,18 @@ func _play() -> void:
 			"node": _caster, "anim": ap, "shadow": null,
 			"home": _caster_home, "stage": _caster_home, "scale": 1.0, "host": _stage,
 		}, el)
-	# 피격 반응 — 원작 `damage<El>_C` 를 그대로 이식한 속성(§UltimateFx.TGT_FX_ON)은 그쪽,
-	# 나머지는 대전의 `_ultimate_knockback` 골격을 흉내 낸다. 둘 다 **대전과 같은 코드**여야
-	# 이 창이 대전을 대변한다.
-	# 어둠의 소용돌이 중심 = `_run_dark` 의 `dk`(시전자 무대점 x · 화면 세로 중앙)와 같아야 한다.
+	# 피격 반응 — 아홉 속성 전부 `UltimateFx.target_fx` 한 곳에서 난다(§TGT_STEPS).
+	# 대전(`fight.gd::_ultimate_knockback`)과 **같은 코드**여야 이 창이 대전을 대변한다 —
+	# 종전엔 여기 저글링 골격이 따로 복사돼 있었고, 그게 어긋나면 이 창이 거짓말을 한다.
+	# 무대점·소용돌이 중심도 대전과 같은 규약으로 준다(피격자는 오른쪽 진영).
 	var vis1 := get_viewport_rect().size
-	var tgt_ported := _target != null and UltimateFx.target_fx({
-		"node": _target, "anim": FightScene._find_anim_player(_target), "shadow": null,
-		"home": _target_home, "scale": 1.0, "mine": false,
-		"vortex": Vector2(FightScene.ULT_DX, vis1.y * 0.5),
-	}, el) >= 0.0
-	if _target != null and not tgt_ported:
-		# 피격 반응 — 대전의 `_ultimate_knockback`(원작 `damage<El>_C` 실측 표)을 그대로 흉내:
-		# 저글링 n회 + 마무리 큰 띄우기, 그동안 스파인은 **damaged** 모션(원작
-		# `runSpineWithAnimationName`), 끝나면 wait 복귀.
-		# 높이는 원작 그대로(S×) — 종전 ×0.35 축소는 영상(화면 절반까지 던져진다)과 달랐다.
-		var home := _target_home
-		var k: Array = FightScene.ULT_KNOCK.get(el, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
-		var n_j := int(k[1])
-		var jsec := float(k[2])
-		var gap := float(k[3])
-		var hop := float(k[4])
-		var big := float(k[5])
-		var at_sec := UltimateFx.damage_at(el, 1.0)
-		var lead := maxf(float(k[0]), at_sec - (jsec + gap) * float(n_j) - 0.6)
-		var tap := FightScene._find_anim_player(_target)
-		var tplay := func(anim_name: String) -> void:
-			if tap != null and tap.has_animation(anim_name):
-				tap.play(anim_name)
-		# 선행 포즈 — 원작 damage<El>_C(물 = 침수 down → 물고기 떼 love).
-		for pre in UltimateFx.TGT_PRE_POSE.get(el, []):
-			var ppt := _target.create_tween()
-			ppt.tween_interval(maxf(0.01, float(pre[0])))
-			var pname := String(pre[1])
-			ppt.tween_callback(func() -> void: tplay.call(pname))
-			_actor_tweens.append(ppt)
-		var tt := _target.create_tween()
-		tt.tween_interval(lead)
-		for i in n_j:
-			# 타격마다 — 피격음 + damaged 재생(원작은 연타마다 다시 튼다).
-			var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
-			tt.tween_callback(func() -> void:
-				Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25)
-				tplay.call("damaged"))
-			var d := Vector2(20.0 * float(i + 1), 0.0)      # 상대 진영은 +x 로 밀린다
-			tt.tween_property(_target, "position", home + d - Vector2(0.0, hop), jsec * 0.5)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tt.tween_property(_target, "position", home + d, jsec * 0.5)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			tt.tween_interval(gap)
-		# 마무리 — down 으로 엎어진 채 크게 떴다가 착지, wait 복귀(원작 3단계).
-		tt.tween_callback(func() -> void: tplay.call("down"))
-		tt.tween_property(_target, "position", home - Vector2(0.0, big), 0.3)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tt.tween_property(_target, "position", home, 0.3)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tt.tween_callback(func() -> void: tplay.call("wait"))
-		_actor_tweens.append(tt)
+	if _target != null:
+		UltimateFx.target_fx({
+			"node": _target, "anim": FightScene._find_anim_player(_target), "shadow": null,
+			"home": _target_home,
+			"stage": Vector2(vis1.x - FightScene.ULT_DX, vis1.y * 0.5 + FightScene.ULT_DROP),
+			"scale": 1.0, "mine": false,
+		}, el)
 
 	# 피해 **분할 표시**(다단히트) — 대전과 같은 표(`FightScene._ult_dmg_plan`, 원작
 	# `calculateDamage` 실측)를 그대로 읽어 수치를 띄운다. 🔴 2026-08-06 신설:
@@ -470,6 +425,8 @@ func _play() -> void:
 		"mine": true,
 		# 링·불덩이 기준점 = 무대 좌표 그대로(대전 `_awaken_fx` 와 같은 값).
 		"ring_at": Vector2(FightScene.ULT_DX, _gy),
+		# 피격자 자리 — 이 창은 1마리뿐이다(대전은 3v3 라 최대 3개가 넘어간다).
+		"foes": [Vector2(_target_home.x, _gy)],
 		"caster_w": _caster_w,
 		"scale": 1.0, "speed": 1.0, "mat": _pma,
 	})
@@ -484,8 +441,8 @@ func _schedule_damage(el: String) -> void:
 	var plan: Array = FightScene._ult_dmg_plan(el)
 	var chips: Array = plan[0]
 	var share := float(plan[1])
-	# 표의 시각은 **run<El> 기준**이라 RUN_AT 을 더한다 — 대전(`_ultimate_damage`)과 같은 보정.
-	var at0 := UltimateFx.RUN_AT
+	# 표의 시각은 **action<El>_C 기준**이라 ACT_AT 을 더한다(§TGT_AXIS) — 대전과 같은 보정.
+	var at0 := UltimateFx.ACT_AT
 	var spent := 0
 	for ct: float in chips:
 		var amount := 1 if share < 0.0 else int(float(DEMO_DAMAGE) * share)

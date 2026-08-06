@@ -86,14 +86,37 @@ func _init() -> void:
 	var caster := Battle.make_combatant("CAST", "ally", "fire", {"hp": 1, "att": 100, "def": 1, "cri": 0, "evd": 0, "blk": 0})
 	var e1 := Battle.make_combatant("E1", "enemy", "wind", {"hp": 99999, "att": 1, "def": 50, "cri": 0, "evd": 70, "blk": 70})
 	var e2 := Battle.make_combatant("E2", "enemy", "wind", {"hp": 99999, "att": 1, "def": 50, "cri": 0, "evd": 70, "blk": 70})
+	var hp_a0 := int(e1["hp"]) + int(e2["hp"])
 	var aev := Battle.resolve_awaken(caster, [e1, e2], _rng(5), cfg)
-	fails += _eq("awaken hits all", aev.size(), 2)
+	# 🟦 2026-08-06 — 각성기는 총 피해량을 정한 뒤 **타수만큼 쪼개** 이벤트로 낸다
+	#   (원작 `UltimateLayer::calculateDamage`). 불 = 20타 × 대상 2 = 40건, `lead` 는 1건.
+	var fire_hits := int((cfg.get("awaken", {}).get("hits_by_element", {})
+		.get("fire", {}) as Dictionary).get("hits", 1))
+	fails += _eq("awaken hits all", aev.size(), fire_hits * 2)
 	fails += _eq("awaken type", aev[0]["type"], "awaken")
 	fails += _eq("awaken ignore evade", aev[0]["miss"], false)
-	var ad := int(aev[0]["damage"])
+	var leads := 0
+	var lasts := 0
+	var per := {"E1": 0, "E2": 0}
+	for e in aev:
+		if bool((e as Dictionary).get("volley_lead", false)):
+			leads += 1
+		if bool((e as Dictionary).get("volley_last", false)):
+			lasts += 1
+		per[String((e as Dictionary)["defender"])] += int((e as Dictionary).get("damage", 0))
+	fails += _eq("awaken lead once", leads, 1)
+	fails += _eq("awaken lead is first", bool(aev[0].get("volley_lead", false)), true)
+	# 🔴 2026-08-06 — 마지막 이벤트에만 `volley_last`. 재생 루프(`fight.gd::_evt_delay`)가
+	#   연출 길이만큼 기다리는 지점이라, 이게 앞으로 옮겨가면 남은 타의 피해 예약이
+	#   그 대기 뒤로 밀려 **다음 턴들로 샌다**(사용자 지적 2026-08-06).
+	fails += _eq("awaken last once", lasts, 1)
+	fails += _eq("awaken last is final", bool(aev[aev.size() - 1].get("volley_last", false)), true)
+	# 분할 합 == 실제 HP 감소 (마무리 타가 나머지를 먹으므로 어긋날 수 없다)
+	fails += _eq("awaken split sums to hp loss",
+		int(per["E1"]) + int(per["E2"]), hp_a0 - (int(e1["hp"]) + int(e2["hp"])))
 	var ad_lo := Battle.damage(100, 50, 0.0, 1.25, 2.0, 0.95, cfg)
 	var ad_hi := Battle.damage(100, 50, 0.0, 1.25, 2.0, 1.05, cfg)
-	fails += _eq("awaken x2 range", ad >= ad_lo and ad <= ad_hi, true)
+	fails += _eq("awaken x2 range", int(per["E1"]) >= ad_lo and int(per["E1"]) <= ad_hi, true)
 
 	# === 스킬 엔진 (효과는 발동 확정 후 결정적 → 직접 호출로 검증) ===
 	# 패시브(90 신속이동 lv1): 회피 +7+1 상시
@@ -249,6 +272,35 @@ func _init() -> void:
 	Battle._apply_skill_effect(cl, {"id": 26, "level": 1}, [cl], [], _rng(1), cfg, sdb)
 	fails += _eq("cleanse flag", Battle._has_flag(cl, "no_evade"), false)
 	fails += _eq("cleanse stat", Battle._eff(cl, "att"), 100)     # -50% 제거 → base
+	# 🔴 2026-08-06 회귀 — 정화 후보 판정이 **이로운 효과·상시 특성**을 디버프로 세던 버그.
+	#   ① 각성스킬의 "받는 피해 N% 감소"는 `dmg_taken` **음수**다(음수 = 감소 규약).
+	#   ② 각성/장비가 전투 전에 심는 상시 특성은 `src`(문자열)를 단다 — 전투 중 디버프(`source`)와 다르다.
+	var aw_buff := _cb("AWB", "ally", "fire", 100, 100, [])
+	aw_buff["effects"].append({"kind": "dmg_taken", "pct": -25, "turns": -1, "src": "aw:10"})
+	aw_buff["effects"].append({"kind": "stat", "stat": "att", "mode": "pct", "value": -20, "turns": -1, "src": "aw:11"})
+	fails += _eq("cleanse gate: 패시브만이면 후보 아님", Battle._any_debuffed([aw_buff]), false)
+	Battle._cleanse(aw_buff)
+	fails += _eq("cleanse: 상시 특성 보존", (aw_buff["effects"] as Array).size(), 2)
+	var aw_hurt := _cb("AWH", "ally", "fire", 100, 100, [])
+	aw_hurt["effects"].append({"kind": "dmg_taken", "pct": 10, "turns": -1, "source": 23})   # 23 상처 파악
+	fails += _eq("cleanse gate: 진짜 디버프면 후보", Battle._any_debuffed([aw_hurt]), true)
+	Battle._cleanse(aw_hurt)
+	fails += _eq("cleanse: 진짜 디버프 제거", (aw_hurt["effects"] as Array).size(), 0)
+	# 치유의 빛(29) 체력 게이트는 **아군 전체**를 본다(target=ally_all). 25/30/36 은 시전자 자신.
+	var healer := _cb("HL", "ally", "fire", 100, 100, [])
+	var dying := _cb("DY", "ally", "fire", 100, 100, [])
+	dying["hp"] = int(dying["hp_max"]) / 5
+	var fine := _cb("FN", "ally", "fire", 100, 100, [])
+	fails += _eq("heal gate: 빈사 아군 있으면 통과",
+		Battle._hp_gate_ok(healer, 29, cfg, sdb["29"], [healer, dying]), true)
+	fails += _eq("heal gate: 전원 멀쩡하면 차단",
+		Battle._hp_gate_ok(healer, 29, cfg, sdb["29"], [healer, fine]), false)
+	var low_self := _cb("LS", "ally", "fire", 100, 100, [])
+	low_self["hp"] = int(low_self["hp_max"]) / 5
+	fails += _eq("self gate(30): 시전자 체력만 본다",
+		Battle._hp_gate_ok(low_self, 30, cfg, sdb["30"], [low_self, fine]), true)
+	fails += _eq("self gate(30): 아군만 빈사면 차단",
+		Battle._hp_gate_ok(healer, 30, cfg, sdb["30"], [healer, dying]), false)
 	# 암흑의 사슬(15): stun
 	var st := _cb("ST", "enemy", "wind", 100, 100, [])
 	Battle._apply_skill_effect(_cb("SC","ally","fire",100,100,[]), {"id": 15, "level": 1}, [], [st], _rng(1), cfg, sdb)

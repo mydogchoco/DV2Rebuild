@@ -109,6 +109,14 @@ static func resolve(d: Dictionary, ddef: Dictionary, delta: Dictionary,
 		if not is_equal_approx(sm, 1.0):
 			for sk: String in Colosseum.stage_stats():
 				stats[sk] = int(round(float(int(stats.get(sk, 0))) * sm))
+	# 🟦 관통(pure) 상한 — 사용자 확정 2026-08-05. **장비·아이템·젬·팀버프로 쌓은 몫**만 자른다.
+	#   여기가 그 합계가 완성되는 마지막 지점이다(임의 스탯 대입 직전).
+	#   각성 스킬의 pure 증감은 전투 중(`Battle._pure_damage` 의 `pure_pct`/flat)에 이 값 위로
+	#   얹히므로, 각성효과가 있으면 실적용은 100을 넘을 수 있다 — 상한은 장비 몫에만 건다.
+	#   값·근거 = data/combat.json `judge.pure_cap`(모든 PvE/PvP 공용, 한 곳 노브).
+	var pcap := int((Data.combat.get("judge", {}) as Dictionary).get("pure_cap", 0))
+	if pcap > 0 and int(stats.get("pure", 0)) > pcap:
+		stats["pure"] = pcap
 	# 🟦 임의 스탯(레코드가 직접 들고 오는 값) — 콜로세움 **연승방지봇**처럼 도감·성장곡선과
 	#   무관한 이벤트성 상대에 쓴다(출처 = docs/input/sheets/colosseum_guard.csv).
 	#   여기가 마지막이어야 한다: 적힌 칸은 **젬·장비·팀버프·드링크를 다 계산한 뒤의 최종값**을
@@ -171,15 +179,30 @@ static func summary_of(records: Array, kades: bool, field_element: String,
 		# 각성 스킬·장비 조건부 효과(`apply_passives`)가 읽는 필드들도 같이 채운다 —
 		# 전투(`battle.gd::_apply_awaken_skills`)가 쓰는 것과 같은 이름·같은 출처.
 		# ⚠️ UserDB 를 거치지 않는다 — 레코드가 들고 있는 장착 정보로 직접 센다(봇 호환).
+		# 장착 스킬 자체도 실어 보낸다 — 전투(`fight.gd::_combatants`)가 `Battle.make_combatant`
+		# 에 그대로 넘긴다. 종전엔 콜로세움이 이 값을 못 받아 **양쪽 다 스킬 없이** 싸웠다.
+		# `UserDB.dragon_battle_skills` 와 같은 규칙(빈 칸은 건너뛰고 타입 배열을 함께 좁힌다).
 		var lvsum := 0
+		var skills: Array = []
+		var slot_types: Array = []
+		var types: Array = Loadout.slot_types(d)
 		for i in Loadout.SKILL_SLOTS:
 			var e := Loadout.equipped_entry(d, i)
-			if not e.is_empty():
-				lvsum += int(e.get("level", 1))
+			if e.is_empty():
+				continue
+			lvsum += int(e.get("level", 1))
+			skills.append(e)
+			slot_types.append(String(types[i]) if i < types.size() else "star")
+		# 🔴 2026-08-07 — 속성·그림은 **개체 상속값**을 쓴다. 커스텀 종 600·700(드래곤 소환)은
+		#   마스터에 `element` 도 초상도 없고 소환 재료에게서 물려받는다(`Summon.plan` inherit).
+		#   종전엔 마스터만 읽어서 속성 상성·무대 버프가 무속성으로 취급되고, 전투 화면은
+		#   없는 `portrait_600` 을 찾아 초상이 비었다. `art_id` 는 render 가 그림을 고를 때 쓴다.
+		var el := Icons.element_of(d)
 		out.append({
 			"id": int(d["id"]), "uid": int(d["uid"]), "level": int(d.get("level", 1)),
 			"name": Icons.name_of(d),
-			"element": String(ddef.get("element", "")),
+			"art_id": Icons.art_id_of(d),
+			"element": el,
 			"stats": stats,
 			"hp": clampi(hp0, 0, hpmax), "hp_max": hpmax,
 			"awakened": bool(d.get("awakened", false)),
@@ -190,9 +213,10 @@ static func summary_of(records: Array, kades: bool, field_element: String,
 				d.get("gain_log", []), Data.level_curve.get("grade", {})),
 			"atk_type": String(ddef.get("type", "")),
 			"skill_level_sum": lvsum,
+			"skills": skills, "skill_slots": slot_types,
 			# 무대 속성 일치 여부 — render 가 버프 스파인을 붙일 대상 판정에 그대로 쓴다
 			# (원작 `checkStageBuff` 의 `getRace(d) == 무대종족` 과 같은 조건).
-			"stage_buff": stage_element != "" and String(ddef.get("element", "")) == stage_element,
+			"stage_buff": stage_element != "" and el == stage_element,
 		})
 	return out
 

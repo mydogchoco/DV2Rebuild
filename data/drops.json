@@ -10,7 +10,8 @@
   "**아티팩트는 '유타칸 – 카데스의 공간' 탐험 드롭으로만** 얻는다.",
   "**먹이**는 각 탐험 지역 **속성에 맞는 것만** 드롭한다(2026-07-30).",
   "**드래곤 알**은 그 탐험지 팝업에 **등재된 드래곤만** 드롭하고, **H(영웅) 표시는 영웅 난이도에서만 희귀 드롭**이다(2026-07-30).",
-  "탐험에서는 **드래곤 알 · 일반 젬 · 먹이 · 그 지역 속성의 정기 · CSV로 지정한 특수 드랍**만 나온다. 그 밖의 아이템은 드랍되지 않는다(2026-07-31). 장비·아티팩트는 젬과 같이 전 지역 공통으로 유지."
+  "탐험에서는 **드래곤 알 · 일반 젬 · 먹이 · 그 지역 속성의 정기 · CSV로 지정한 특수 드랍**만 나온다. 그 밖의 아이템은 드랍되지 않는다(2026-07-31). 장비·아티팩트는 젬과 같이 전 지역 공통으로 유지.",
+  "**2026-08-04 추가** — 위 화이트리스트에 두 줄을 더한다: **희귀 속성**(신성·혼돈·그림자의 정기·큰 먹이, `rare_element` — 일반/밤은 보스 처치, 영웅·카데스는 전투 승리, 25%)과 **드링크 1·2단계**(`drink` — 모든 전투 승리, 10%). 둘 다 그때까지 수급처가 전무했던 품목을 여는 경로다."
  ],
  "_wiki_basis": [
   "아티팩트 획득처: etc.pdf §2.2 '유타 칸 카데스와 베르나에서 얻을 수 있는 아이템으로 스킬을 더 강하게 해주는 아티팩트'. 베르나는 에셋 부재로 CUT(CLAUDE.md) → 카데스의 공간만.",
@@ -71,7 +72,7 @@
  },
  "food": {
   "_note": "먹이 드롭 = 지역 속성 일치분만(사용자 확정 2026-07-30, 엄격 기준). 후보 산출은 Drops.food_pool 이 data/items.json 에서 category=food + element 일치로 뽑는다 — 이 파일에 품목을 복제하지 않는다(§8.1 정의 단일 출처). stages.json 의 지역 element 는 ground/water 표기, items.json 의 먹이 element 는 earth/aqua 표기라 Drops.normalize_element 가 눕힌다.",
-  "_coverage_note": "지역 속성은 6종(ground/water/fire/wind/light/dark)뿐이라 chaos·holy·shadow 먹이는 탐험에서 나오지 않는다. 상점의 작은 변형(food_chaos_tadpole/food_holy_small_ginseng/food_shadow_chocolate_piece)만 입수 가능하고 큰 변형은 현재 경로 없음. 지역 배정이 생기면 stages.json 의 element 만 채우면 따라온다.",
+  "_coverage_note": "지역 속성은 6종(ground/water/fire/wind/light/dark)뿐이라 chaos·holy·shadow 먹이는 **이 표로는** 나오지 않는다. 작은 변형(food_chaos_tadpole/food_holy_small_ginseng/food_shadow_chocolate_piece)은 상점에서 팔고, 큰 변형 3종은 2026-08-04 부터 아래 `rare_element`(난이도 조건 드랍)가 준다. 지역 배정이 생기면 stages.json 의 element 만 채우면 이 표가 따라온다.",
   "chance": {
    "normal": 0.1,
    "chest": 0.3,
@@ -498,6 +499,6 @@
    }
   },
   "_items_note": "아이템 키는 data/items.json 실제 키로 확인했다(2026-07-29).",
-  "_later_done": "사용자 확정(2026-08-02): 해골요새·발록·피오드 특수 장비 12종을 상점 '특수장비 뽑기'(1회 100다이아)에서 획득하도록 추가했다. 원작 온라인 획득처를 대신하는 오프라인 경로이며 gacha.equip.grades.special 이 구현한다."
+  "_later_done": "사용자 확정(2026-08-02): 해골요새·발록·피오드 특수 장비 12종을 상점 '특수장비 뽑기'(1회 100다이아)에서 획득하도록 추가했다. 원작 온라인 획득처를 대신하는 오프라인 경로이며 gacha.equip.grades.special 이 구현한다. 🟦 **2026-08-06 갱신**: 그 상품을 ITEM 탭(100다이아)에서 **PVP 탭(777 콜로세움 주화)으로 옮기고 다이아 수급처는 삭제**했다(사용자 확정) — 원작 획득처가 전부 온라인(길드 토벌전·원정 상점)이었던 만큼 대전으로 버는 쪽이 성격에 맞는다. 표는 data/shop.json `tabs[pvp].gacha`."
  }
 }

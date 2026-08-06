@@ -230,9 +230,7 @@ func _attach_part(slot: String, slot_pos) -> Sprite2D:
 	# 눈맞춤 보정 — `data/npc_face.json` `nudge`(디자인 px). 원작 좌표는 그대로 두고
 	# 우리 몸통 프레임 기준이 달라 어긋나는 NPC 만 밀어 준다(extract_npc_face.py NUDGE).
 	# 예: pong 은 몸통 그림에 이미 눈이 그려져 있어 어긋나면 **눈이 네 개**로 보인다.
-	var nd: Array = (Data.npc_face.get("nudge", {}) as Dictionary).get(npc_name, [])
-	if nd.size() >= 2:
-		tl += Vector2(float(nd[0]), float(nd[1])) / S
+	tl += _nudge(slot) / S
 	if slot == "eye":
 		_eye_tl = tl
 	else:
@@ -240,6 +238,33 @@ func _attach_part(slot: String, slot_pos) -> Sprite2D:
 	_body.add_child(s)
 	_place(s, key, tl)
 	return s
+
+## 눈맞춤 보정(`data/npc_face.json` `nudge`, **디자인 px**) — 원작 좌표는 그대로 두고
+## 우리 몸통 프레임 기준이 달라 어긋나는 것만 밀어 준다(`extract_npc_face.py` NUDGE).
+##
+## 두 형식을 받는다:
+##   `[dx, dy]`                                   그 NPC 전체
+##   `{"body_5": {"mouth": [dx, dy]}}`            포즈·슬롯별(`"*"` = 전부)
+## 뒤 형식이 필요한 이유: 같은 NPC라도 **포즈마다 얼굴 각도가 달라** 한 벌로는 못 맞춘다
+## (유리아 정면 포즈 body_5 의 입 — 사용자 실측 2026-08-04).
+func _nudge(slot: String) -> Vector2:
+	var nd = (Data.npc_face.get("nudge", {}) as Dictionary).get(npc_name, null)
+	if nd is Array:
+		return Vector2(float(nd[0]), float(nd[1])) if (nd as Array).size() >= 2 else Vector2.ZERO
+	if not (nd is Dictionary):
+		return Vector2.ZERO
+	# `_body_key` = `npc_<이름>_body_<n>` → 뒤의 `body_<n>` 만 쓴다.
+	var bkey := _body_key.trim_prefix("npc_%s_" % npc_name)
+	var total := Vector2.ZERO
+	for bk in [bkey, "*"]:
+		var per = (nd as Dictionary).get(bk, null)
+		if not (per is Dictionary):
+			continue
+		for sk in [slot, "*"]:
+			var v = (per as Dictionary).get(sk, null)
+			if v is Array and (v as Array).size() >= 2:
+				total += Vector2(float(v[0]), float(v[1]))
+	return total
 
 ## 좌상단 앵커(원작 0,1) → Godot 중앙 앵커 스프라이트 위치.
 ## 원작 앵커는 **트리밍 전 원본 박스**(`src`) 기준이므로 그 절반을 더한 뒤,
@@ -301,6 +326,11 @@ func _set_frame(spr: Sprite2D, slot: String, frame: int) -> void:
 	_place(spr, key, _eye_tl if slot == "eye" else _mouth_tl)
 
 # ── 유틸 ─────────────────────────────────────────────────────────────────
+## 이 NPC 의 초상 그림이 있나(원본에 없는 오리지널 캐릭터를 걸러내는 용도).
+## ⚠️ 없다고 다른 NPC 얼굴로 대체하지 않는다 — 대사창만 띄운다(CLAUDE.md §3).
+static func has_art(npc: String) -> bool:
+	return npc != "" and not _manifest("npc_%s" % npc).is_empty()
+
 static func _manifest(dir: String) -> Dictionary:
 	var p := "res://assets/converted/%s/_manifest.json" % dir
 	if not FileAccess.file_exists(p):

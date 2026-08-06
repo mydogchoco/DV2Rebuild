@@ -72,6 +72,7 @@ var _flow: Array = []
 var _flow_i := 0
 var _bg_layer: TextureRect       # changeBackGround 가 갈아 끼우는 장면 배경
 var _illust: TextureRect         # drawIllust 가 띄우는 삽화(원작은 배경 위 별도 레이어)
+var _cut: TextureRect            # showCut 이 한 장씩 갈아 끼우는 컷(1~78화 인라인 경로)
 
 var _label: Label
 var _name_label: Label
@@ -195,7 +196,14 @@ func _build_backdrop(sc: Dictionary) -> void:
 			push_warning("[story] 초기 배경 변환본 없음: %s" % ib)
 	# 흐름이 있는 회차는 배경·삽화를 **원작 스텝이** 통제한다(changeBackGround/drawIllust).
 	# 여기서 삽화를 배경으로 깔면 그 위를 덮어 버린다.
-	if not _flow.is_empty():
+	#
+	# ⚠️ 단 **그림 스텝을 하나도 못 복원한 회차**는 예외다(39·44·72·80).
+	#    원작 1~78화는 `drawIllust` 를 인라인해 두고 파일명을 `CCString::createWithFormat`
+	#    으로 만드는 구간이 있어(문자열 리터럴이 `scenario/main_story/sn_39/` 접두사까지만
+	#    남아 있다) 경로 스캔으로는 그 회차만 안 잡힌다.
+	#    ASSUMPTION: 원작은 특정 스텝에서 띄우지만 그 스텝을 못 짚어 **회차 내내** 깔아 둔다.
+	#    (종전에는 이 예외가 없어서 흐름이 생긴 1~78화 삽화가 통째로 사라져 있었다.)
+	if not _flow.is_empty() and _flow_has_art():
 		return
 	var illust: Array = sc.get("illust", [])
 	if illust.is_empty():
@@ -211,6 +219,14 @@ func _build_backdrop(sc: Dictionary) -> void:
 	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tr)
+
+## 이 회차의 흐름이 그림(삽화·컷)을 직접 통제하는가.
+func _flow_has_art() -> bool:
+	const ART := ["drawIllust", "showCut", "drawillust_3", "drawillust_8", "drawillust_9"]
+	for o in _flow:
+		if String((o as Dictionary).get("op", "")) in ART:
+			return true
+	return false
 
 func _build_textbox() -> void:
 	var vis := _vis()
@@ -296,8 +312,9 @@ func _build_skip() -> void:
 ## 건너뛰기 확인 — 원작 문자열 `<ScenarioSkipTitle>`("시나리오 Skip") ·
 ## `<ScenarioSkip>`("해당 시나리오를 패스 하시겠습니끼?" — 원작 오타 그대로).
 ## 종전에는 확인 없이 바로 종료해서 오조작으로 회차를 날릴 수 있었다.
+## 🔴 이 화면의 팝업은 **반드시 `_popup_above_all`** 로 띄운다 — 아래 함수 주석 참조.
 func _confirm_skip() -> void:
-	var p := OrigPopup.open(self, "시나리오 Skip", Vector2(620.0, 330.0))
+	var p := _popup_above_all("시나리오 Skip", Vector2(620.0, 330.0))
 	var l := Label.new()
 	l.text = "해당 시나리오를 패스 하시겠습니끼?"
 	l.add_theme_font_size_override("font_size", 22)
@@ -327,7 +344,9 @@ func _play_flow() -> void:
 				_name_label.text = Data.npc_name(folder) if folder != "" else ""
 				if folder != "":
 					# state = 표정(= 파츠 번호). 원작 setTalker 가 eye/mouth/양팔에 같은 값을 넘긴다.
-					_show_npc(folder, 1, int(o.get("state", 0)), int(o.get("pos", 3)))
+					# `b3` = setNpcTalk 의 3번째 bool → 그대로 setTalker 의 등장 플래그가 된다.
+					_show_npc(folder, 1, int(o.get("state", 0)), int(o.get("pos", 3)),
+						o.get("b3"))
 				_next_line()
 				return
 			"setTalker":
@@ -337,7 +356,8 @@ func _play_flow() -> void:
 				_name_label.text = Data.npc_name(f2) if f2 != "" else ""
 				if f2 != "":
 					_show_npc(f2, maxi(int(o.get("body", 1)), 1),
-						maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)))
+						maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)),
+						o.get("enter"))
 				_next_line()
 				return
 			"setTalk":
@@ -345,6 +365,15 @@ func _play_flow() -> void:
 				#   this+0x1d8 = 화자(`NPC_nuri`) · this+0x1f0 = 대사 키(`ScenarioTalk1_1`)
 				# ⇒ 줄 번호가 확정이라 순서 추정이 필요 없고, **화자도 유실이 아니었다.**
 				var f3 := _str(o, "npc_name")
+				# 🔴 2026-08-04 정정 — `ScenarioWiring.md §11` 의 "화자 대입이 없는 스텝은
+				#    **직전 화자 유지**가 원작 동작"은 **틀렸다**(사용자 신고: 46화 독백에
+				#    누리 이름이 붙는다). 원작 `ScenarioLayer::setTalk` @016c69d0 은 끝에서
+				#    화자 멤버를 **비운다**:
+				#        assign(this+0x1d8, "", 0)   ← 0x1f0/0x208/0x220/0x238 과 함께
+				#    그리고 `ScenarioTextBox::setString` 은 이름 길이가 0이면 이름 노드를
+				#    `setVisible(false)` 로 감춘다 ⇒ 화자 대입이 없는 스텝은 **이름 칸이 빈다.**
+				#    (초상은 그대로 서 있는다 — 그건 `setOutTalker` 만 치운다.)
+				_name_label.text = ""
 				if f3 != "":
 					_name_label.text = Data.npc_name(f3)
 					# `body`/`state` 는 **`setTalker` 로 합류한 스텝에만** 있다(`via` 참조).
@@ -352,7 +381,8 @@ func _play_flow() -> void:
 					# — 그 NPC 가 이미 서 있으면 **그대로 둔다**(자세·표정 유지).
 					if o.get("body") != null or o.get("state") != null:
 						_show_npc(f3, maxi(int(o.get("body", 1)), 1),
-							maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)))
+							maxi(int(o.get("state", 1)), 1), int(o.get("pos", 3)),
+							o.get("enter"))
 					else:
 						_keep_or_show_npc(f3)
 				_line_by_key(_str(o, "key"))
@@ -362,6 +392,22 @@ func _play_flow() -> void:
 				_name_label.text = ""
 				_next_line()
 				return
+			"playBackground":
+				# 회차 BGM. 원작 1~78화는 `SoundManager::playBackground("music/<트랙>.mp3", true)`
+				# 를 스텝 안에서 **직접** 부른다(번호를 받는 `playBackGroundFieldMusic` 과 다른
+				# 함수라 종전 규칙엔 안 걸렸고, 그래서 1~78화가 통째로 무음이었다).
+				var trk := _str(o, "track")
+				if trk != "":
+					Bgm.play(trk)
+			"playEffect":
+				# 같은 자리에서 부르는 효과음(`SoundManager::playEffect`). 문 열림·폭발 등.
+				var sfx := _str(o, "track")
+				if sfx != "":
+					Bgm.sfx(sfx)
+			"showCut":
+				# 1~78화의 컷 한 장. 원작이 인라인해 둔 프레임 경로에서 복원했다
+				# (`extract_switch_flow.art_ops`). 묶음 재생(`drawillust_N`)과 다른 경로다.
+				_show_cut(_str(o, "frame"))
 			"changeBackGround", "changeBackGroundPass":
 				_apply_bg(int(o.get("bg", 0)))
 			"drawIllust":
@@ -847,25 +893,55 @@ func _bg_res(orig: String) -> String:
 			return c
 	return ""
 
-## 삽화 — 원작 `drawIllust(no, kind, bool)`. 파일명은 `sn_<회차>_<n>_illust.jpg`.
+## 삽화 — 원작 `ScenarioSupport::drawIllust(no, kind, bool)` @0165b2b4.
+## 파일명은 그 함수의 포맷 그대로 `sn_<회차>_<kind>_illust.jpg` 다 —
+## `scenario.json` 의 `illust` 배열을 인덱스로 뒤지면 회차마다 번호가 건너뛰는 경우
+## (sn_46 은 1·6 만 있다) 엉뚱한 장이 뜬다.
+## 배치도 원작대로: 앵커(0.5,0.5) 화면 중앙 · **z=3**(화자보다 뒤) · Delay(0.5)→FadeTo(0.5, 255).
 func _apply_illust(no: int, kind: int) -> void:
-	var sc: Dictionary = Data.scenario_def(str(no))
-	var arr: Array = sc.get("illust", [])
-	if arr.is_empty():
-		return
-	var pick := String(arr[clampi(kind - 1, 0, arr.size() - 1)])
-	var p := "%s/%s" % [ART_DIR, pick]
+	var p := "%s/sn_%d_%d_illust.jpg" % [ART_DIR, no, maxi(kind, 1)]
 	if not ResourceLoader.exists(p):
-		return
+		# 예전 경로(배열 인덱스)로 한 번 더 — kind 를 못 복원한 스텝의 안전망.
+		var arr: Array = Data.scenario_def(str(no)).get("illust", [])
+		if arr.is_empty():
+			return
+		p = "%s/%s" % [ART_DIR, String(arr[clampi(kind - 1, 0, arr.size() - 1)])]
+		if not ResourceLoader.exists(p):
+			return
 	if not is_instance_valid(_illust):
 		_illust = TextureRect.new()
 		_illust.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_illust.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		_illust.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_illust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_illust.z_index = 3          # 원작 addChild(..., 3) — 화자(z=99)보다 뒤
 		add_child(_illust)
 	_illust.texture = load(p)
 	_illust.visible = true
+	# 원작 `CCSequence(CCDelayTime(0.5), CCFadeTo(0.5, 255))`.
+	_illust.modulate.a = 0.0
+	var t := _illust.create_tween()
+	t.tween_interval(0.5)
+	t.tween_property(_illust, "modulate:a", 1.0, 0.5)
+
+## 컷 한 장 — 원작 1~78화는 `sn_<회차>/<n>.png` 프레임을 스텝마다 한 장씩 얹는다
+## (컷 묶음을 한 번에 재생하는 `drawillust_N`(94·99·100화)과 다른 경로다).
+func _show_cut(frame: String) -> void:
+	var p := "res://assets/converted/scenario_cut/%s.tres" % frame
+	if not ResourceLoader.exists(p):
+		return
+	if not is_instance_valid(_cut):
+		_cut = TextureRect.new()
+		_cut.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_cut.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_cut.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_cut.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_cut.z_index = 3
+		add_child(_cut)
+	_cut.texture = load(p)
+	_cut.visible = true
+	_cut.modulate.a = 0.0
+	_cut.create_tween().tween_property(_cut, "modulate:a", 1.0, 0.25)
 
 func _hide_npc(pos := 0, mode := 0) -> void:
 	var which: Array = _npc_slots.keys() if pos <= 0 else [clampi(pos, 1, 3)]
@@ -935,6 +1011,26 @@ func _advance() -> void:
 		return
 	_show_line(_idx + 1)
 
+## 이 화면의 팝업을 **모든 레이어 위**에 띄운다. 창이 닫히면 host 도 함께 치운다.
+##
+## 🔴 2026-08-04 — 건너뛰기 확인창이 떠도 버튼을 누를 수 없었다(사용자 신고). 원인은 z 가
+##    아니라 **레이어**다: `OrigPopup` 은 `z_index = 50` 으로 앞서지만 z 는 **같은 CanvasLayer
+##    안**에서만 통한다. 이 화면의 대사 탭 캐처(`_build_box`)는 `CanvasLayer(layer=8)` 의
+##    전체화면 `MOUSE_FILTER_STOP` 이라, 낮은 레이어(=`self`, layer 0)에 붙인 팝업은 입력이
+##    아예 닿지 않는다.
+## 🔴 2026-08-06 — **같은 버그가 완료 알림·보상 팝업에도 남아 있었다**(사용자 신고: "스토리
+##    보기 완료~! 창에서 확인·X 가 안 눌린다"). 그때는 건너뛰기 쪽만 고쳤던 것이다. 이제
+##    세 곳이 전부 이 함수를 거치므로 새 팝업을 추가해도 같은 실수를 반복하지 않는다.
+func _popup_above_all(title: String, sz: Vector2) -> OrigPopup:
+	var host := CanvasLayer.new()
+	host.layer = 20                     # _fx_layer(10) · 스킵 버튼(9) · 대사 캐처(8) 위
+	add_child(host)
+	var p := OrigPopup.open(host, title, sz)
+	p.closed.connect(func() -> void:
+		if is_instance_valid(host):
+			host.queue_free())
+	return p
+
 ## 시나리오 완료 알림 — 원작 문자열 `<ScenarioComplete>`/`<ScenarioCompleteTitle>`.
 ##   ScenarioComplete      = "스토리 보기 완료~!"          ← 창 제목
 ##   ScenarioCompleteTitle = "{제목}\n스토리를 완료하였습니다."  ← 본문(%1$s = 회차 제목)
@@ -942,7 +1038,10 @@ func _advance() -> void:
 func _show_complete_notice() -> void:
 	var ep := Data.story_episode(_no)
 	var title := String(ep.get("title", "%d화" % _no))
-	var p := OrigPopup.open(self, "스토리 보기 완료~!", Vector2(620.0, 330.0))
+	var p := _popup_above_all("스토리 보기 완료~!", Vector2(620.0, 330.0))
+	# X(창 닫기)로 닫아도 화면을 빠져나가야 한다 — 확인 버튼만 `_leave` 를 부르면
+	# X 를 누른 사람은 대사가 끝난 빈 스토리 화면에 갇힌다(2026-08-06).
+	p.closed.connect(_leave)
 	var l := Label.new()
 	l.text = "%s\n스토리를 완료하였습니다." % title
 	l.add_theme_font_size_override("font_size", 22)
@@ -952,9 +1051,8 @@ func _show_complete_notice() -> void:
 	l.position = Vector2(20.0, 60.0)
 	l.size = Vector2(p.win_size.x - 40.0, 90.0)
 	p.content.add_child(l)
-	p.add_action_button("확인", func() -> void:
-		p.close()
-		_leave())
+	# 확인은 **닫기만** 한다 — 나가기는 위 `closed` 가 맡는다(둘 다 부르면 goto 가 두 번 간다).
+	p.add_action_button("확인", func() -> void: p.close())
 
 func _finish() -> void:
 	var first: bool = not bool(UserDB.get_progress("scenario_%d_%d" % [_no, _part], false))
@@ -972,11 +1070,20 @@ func _finish() -> void:
 	_leave()
 
 
+## 🟦 2026-08-06 — 돌아갈 곳을 안 받았으면 **메인 화면(유타칸)** 이다.
+## 종전엔 `goto("worldmap")` 라 개요 양피지로 떨어졌다(사용자 신고). `Scenes.MAIN_PARAMS` 참조.
 func _leave() -> void:
 	var back := String(_params.get("back", ""))
 	if back == "":
-		back = "worldmap"
-	Scenes.goto(back, _params.get("back_params", {}))
+		Scenes.goto_main()
+		return
+	var bp: Dictionary = _params.get("back_params", {})
+	# 스토리 열람은 도감·회차목록에서도 들어오므로 `back` 은 살린다. 다만 월드맵으로 돌아가는데
+	# 지역이 안 적혀 있으면 개요가 아니라 메인 화면으로 보낸다(같은 사용자 지시).
+	if back == "worldmap" and not bp.has("region"):
+		Scenes.goto_main(bp)
+		return
+	Scenes.goto(back, bp)
 
 
 ## 특별보상 안내 — 원작 `ScenarioSpecialRewardPopup`.
@@ -986,7 +1093,7 @@ func _leave() -> void:
 ##    문자열 키(`ScenarioRewardTitle`·`ScenarioRewardTitle2`·`ScenarioRewardGem`·
 ##    `ScenarioRewardSkill`·`ScenarioRewardNoti1`) 그대로.
 func _show_special_reward(rw: Dictionary) -> void:
-	var p := OrigPopup.open(self, "시나리오 보상", Vector2(700.0, 470.0))   # ScenarioRewardTitle
+	var p := _popup_above_all("시나리오 보상", Vector2(700.0, 470.0))   # ScenarioRewardTitle
 	p.closed.connect(_leave)
 	var y := 110.0
 	var name_l := Label.new()
@@ -1071,28 +1178,57 @@ func _keep_or_show_npc(npc: String) -> void:
 					other.z_index = 4
 			return
 	# setReorderTalker 등 위치 인자가 없는 호출은 앞선 원작 스텝에서 그 NPC의 슬롯을 찾는다.
-	# 전투 복귀처럼 노드를 재구성해야 할 때만 조용히 복원한다.
+	# 전투 복귀처럼 노드를 재구성해야 할 때만 조용히 복원한다 — 등장 연출 없이.
 	_show_npc(npc, 1, 1, _flow_pos_for_npc(npc), false)
 
-func _show_npc(npc: String, body := 1, state := 1, pos := 3, animate := true) -> void:
+## 원작 `ScenarioLayer::setTalker` @016c7848 의 재현. **등장 연출은 매 대사가 아니라
+## 데이터가 정한다** — 종전에는 표정(state)이 바뀔 때마다 초상을 부수고 다시 밀어 넣어서
+## 한 편 내내 등장 연출이 반복됐다(사용자 신고 2026-08-04).
+##
+## 원작이 대사마다 하는 일 / 하지 않는 일:
+##  · **매번** `NpcManager::setTarget` 이 몸통·눈·입을 부수고 다시 만든다 ⇒ 표정은 항상 갱신.
+##  · **등장 연출(화면 밖 → 제자리 MoveBy)은 `param_11` 이 참일 때만.** 축자:
+##      `LAB_016c8560: if ((param_11 & 1) == 0) { 제자리 + 말하기 스케일 펄스 }
+##                     else { setPosition(밖) → MoveBy(0.5/1.25) }`
+##    그 값이 흐름 데이터의 `enter` 다 — 1~81화는 `setTalker` 의 **w6**,
+##    82~101화는 `setNpcTalk` 의 3번째 bool(`b3`)이 같은 자리로 흘러든다
+##    (`ScenarioSupport::setNpcTalk` @0165aab8 꼬리 `setTalker(…, uVar17, param_7, 0, …)`).
+##  · 같은 슬롯의 **이전 화자에겐 보이는 퇴장이 없다.** 원작이 옛 레이어(tag 0x74~0x76)에
+##    `MoveBy + EaseBackIn` 을 걸긴 하지만, 바로 뒤 `setTarget` 이 몸통을 그 레이어에서
+##    떼어 간다(`NpcManager.c` setTarget: `removeFromParentAndCleanup(true)` →
+##    `CCSprite::createWithSpriteFrameName` 로 새 레이어에 재생성). 실제로 미끄러지는 건
+##    **빈 레이어**다 ⇒ 눈에 보이는 퇴장은 `setOutTalker` 뿐이다.
+##
+## `enter` 가 null 인 스텝(102화 이상 서버 유실 · w6 미복원분 15%)은 원작의 기본형인
+## "그 슬롯의 화자가 바뀔 때만 등장"을 쓴다.
+## ASSUMPTION: 같은 화자를 한 편에서 다시 세우는 연출(ep2 의 nuri 재등장 같은 것)은
+## 플래그가 없으면 재현하지 못한다.
+func _show_npc(npc: String, body := 1, state := 1, pos := 3, enter: Variant = null) -> void:
 	pos = clampi(pos, 1, 3)
-	var want := "%s|%d|%d" % [npc, body, state]
+	# 몸통(자세)까지 같아야 같은 초상이다. 표정은 노드를 부수지 않고 갈아 끼운다.
+	var want := "%s|%d" % [npc, body]
 	var old: Node2D = _npc_slots.get(pos)
-	if is_instance_valid(old) and old.get_meta("npc", "") == want:
+	var same: bool = is_instance_valid(old) and String(old.get_meta("npc", "")) == want
+	var do_enter: bool = (not same) if enter == null else bool(enter)
+	if same:
 		_active_npc = old
+		old.call("set_emotion", maxi(state, 1))   # 원작 setNpcEye/setNpcMouse 와 같은 자리
+		_raise_npc(old)
+		if do_enter:
+			_enter_npc(old, pos, _npc_home(old, pos))
 		return
 	# 원본 화자 ID 100은 폴더명이 `who`, 표시명은 `???`지만 대응 초상 에셋이 없다.
 	# 빈 NpcPortrait를 만들면 매니페스트 경고와 투명 화자 노드만 남으므로 이름/대사만 표시한다.
 	var manifest := "res://assets/converted/npc_%s/_manifest.json" % npc
 	if not FileAccess.file_exists(manifest):
 		if is_instance_valid(old):
-			_exit_npc(old, pos, 2)
+			old.queue_free()
 		_npc_slots.erase(pos)
 		if _active_npc == old:
 			_active_npc = null
 		return
 	if is_instance_valid(old):
-		_exit_npc(old, pos, 2)
+		old.queue_free()          # 원작도 즉시 파괴한다(위 주석 — 퇴장 연출은 빈 레이어에서 돈다)
 	var p := NpcPortrait.create(npc, maxi(state, 1), body)
 	if p == null:
 		_npc_slots.erase(pos)
@@ -1104,13 +1240,17 @@ func _show_npc(npc: String, body := 1, state := 1, pos := 3, animate := true) ->
 	# 원작 NpcManager::getDefaultNpcPos — 발밑은 화면 하단, 대화상자가 위 레이어에서 덮는다.
 	var home := _npc_home(p, pos)
 	p.position = home
+	add_child(p)
+	_raise_npc(p)
+	if do_enter:
+		_enter_npc(p, pos, home)
+
+## 말하는 화자를 앞으로. 원작도 `setReorderTalker` 로 z 만 올린다.
+func _raise_npc(p: Node2D) -> void:
 	for other in _npc_slots.values():
 		if is_instance_valid(other) and other != p:
 			other.z_index = 4
 	p.z_index = 5
-	add_child(p)
-	if animate:
-		_enter_npc(p, pos, home)
 
 ## `NpcManager::getDefaultNpcPos(1/2/3)`의 화면 기준 배치.
 func _npc_home(p: Node2D, pos: int) -> Vector2:
@@ -1166,9 +1306,13 @@ func _flow_pos_for_npc(npc: String) -> int:
 		var o: Dictionary = _flow[i]
 		if not o.has("pos"):
 			continue
-		if String(o.get("npc_name", "")) == npc:
+		# 🔴 `o["npc_name"]` 은 **키가 있는데 값이 null** 일 수 있다(화자 대입이 없는 스텝).
+		#    `String(null)` 은 Godot 4 에서 "Nonexistent 'String' constructor" 로 **죽는다** —
+		#    그 순간 `_play_flow` 가 통째로 끊겨 이야기가 멈춘다(사용자 신고 2026-08-04
+		#    "전투 승리 이후 스토리가 진행되지 않음"). 반드시 `_str` 로 읽는다.
+		if _str(o, "npc_name") == npc:
 			return clampi(int(o.get("pos", 3)), 1, 3)
-		if String(o.get("op", "")) == "setNpcTalk" \
+		if _str(o, "op") == "setNpcTalk" \
 				and Data.scenario_npc_folder(int(o.get("npc", 0))) == npc:
 			return clampi(int(o.get("pos", 3)), 1, 3)
 	return 3 # 102화 이상 서버 유실 폴백만 중앙(기존 동작)

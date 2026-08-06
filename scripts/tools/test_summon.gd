@@ -81,13 +81,23 @@ func _logic() -> void:
 		_true("종 %d stages 비어있음" % sp, (d.get("stages", {}) as Dictionary).is_empty())
 
 
-# ── B. 통합 (세이브 왕복 — 끝에 전부 되돌린다) ──────────────────────────────
+# ── B. 통합 (세이브 왕복 — 끝에 전부 되돌린다) ──────────────
+## 🟦 2026-08-07 — 지급처가 **둥지 → 가방 알 탭** 으로 바뀌었다(사용자 확정).
+## 이 절은 `magicshop.gd::_do_summon` 이 실제로 하는 상태 반영을 같은 순서로 따라 한다.
 func _integration() -> void:
 	_say("[B] 세이브 왕복")
 	var flag_bak = UserDB.get_pmeta(Summon.FLAG_UNLOCK, false)
-	var target := Summon.SPECIES_DEF
-	if UserDB.dex_step(target) > 0:
-		_say("  ⏭ 이미 %d 종을 보유 중이라 통합 검증 생략" % target)
+	# 아직 안 만든 종을 고른다 — 검증용 세이브에 한 쪽이 이미 있어도 나머지로 돈다.
+	var target := 0
+	var bag_key := ""
+	for sp in Summon.SPECIES:
+		var k := EggItem.key(EggGacha.key_for(int(sp)), Summon.EGG_ENHANCE_STEP)
+		if UserDB.dex_step(int(sp)) <= 0 and UserDB.item_count(k) <= 0:
+			target = int(sp)
+			bag_key = k
+			break
+	if target == 0:
+		_say("  ⏭ 커스텀 종 둘 다 이미 있어 통합 검증 생략")
 		return
 
 	# 재료용 임시 드래곤(끝에 정리한다). 자격 하한을 넘겨야 재료가 된다(레벨 45 · 등급 10.0).
@@ -96,51 +106,55 @@ func _integration() -> void:
 	var mat_uid := int(mat_inst["uid"])
 	mat_inst["nickname"] = "테스트재료"
 	var before := UserDB.dragons().size()
-	var sky_before: int = (UserDB.get_pmeta("sky_nest", []) as Array).size()
+	# ⚠️ `get_pmeta` 는 저장된 **그 사전 자체**를 돌려준다 — 그대로 들고 있으면
+	#   아래 set_species_* 가 백업본까지 같이 고쳐 복원이 무의미해진다(2026-08-07 실제 사고).
+	var name_bak: Dictionary = (UserDB.get_pmeta("species_names", {}) as Dictionary).duplicate(true)
+	var art_bak: Dictionary = (UserDB.get_pmeta("species_art", {}) as Dictionary).duplicate(true)
 
 	# 잠긴 상태에서는 아무 일도 없어야 한다
 	UserDB.set_pmeta(Summon.FLAG_UNLOCK, false)
 	_true("잠김이면 계획 없음",
 		Summon.plan(target, mat_inst, Data.get_dragon(101), false, UserDB.dex_step(target), mg).is_empty())
 
-	# 해금 후 실행
+	# 해금 후 실행 — `_do_summon` 과 같은 순서
 	UserDB.set_pmeta(Summon.FLAG_UNLOCK, true)
 	var p := Summon.plan(target, mat_inst, Data.get_dragon(101), true, UserDB.dex_step(target), mg)
 	_true("계획 산출", not p.is_empty())
-	var egg_uid := 0
 	if not p.is_empty():
-		var egg := UserDB.add_egg(int(p["species"]), float(p["grade"]), int(p["seconds"]),
-			0, p.get("inherit", {}))
-		egg_uid = int(egg["uid"])
+		var inh: Dictionary = p["inherit"]
+		UserDB.set_species_art(target, int(inh["art_id"]), String(inh["element"]))
+		UserDB.set_species_name(target, String(inh["name"]))
+		UserDB.add_item(bag_key, 1)
 		UserDB.consume_dragon(mat_uid)
 		UserDB.set_pmeta(Summon.FLAG_UNLOCK, false)
 
-		var got := UserDB.get_dragon(egg_uid)
-		_true("알 생성됨", not got.is_empty() and UserDB.is_egg(got))
-		_eq("알의 종", str(int(got.get("id", 0))), str(target))
-		_eq("상속 art_id 기록", str(int(got.get("art_id", 0))), "101")
-		_eq("상속 별명 기록", String(got.get("nickname", "")), "테스트재료")
-		_true("남은 부화 시간 있음", UserDB.hatch_remain(got) > 0)
+		_eq("가방 알 키", bag_key, "egg:%d#%d" % [target, Summon.EGG_ENHANCE_STEP])
+		_eq("가방에 1개", str(UserDB.item_count(bag_key)), "1")
+		_true("둥지에는 안 생긴다", UserDB.dragons().size() == before - 1)
 		_true("재료 소멸", UserDB.get_dragon(mat_uid).is_empty())
-		_eq("개체 수 유지(재료↔알 교환)", str(UserDB.dragons().size()), str(before))
 		_true("플래그 소비됨", not bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false)))
-		_true("도감에 노출됨", UserDB.dex_step(target) > 0)
-		# 하늘둥지에 기록이 남으면 되살려 상한을 우회할 수 있다 — 남지 않아야 한다
-		_eq("하늘둥지 기록 없음",
-			str((UserDB.get_pmeta("sky_nest", []) as Array).size()), str(sky_before))
-		# 이제 같은 종은 더 못 만든다
-		_true("상한 적용", Summon.plan(target,
-			{"uid": 9, "id": 101, "level": Summon.MATERIAL_MIN_LEVEL},
-			Data.get_dragon(101), true, UserDB.dex_step(target), mg).is_empty())
+		# 상속값이 **종**에 붙어 인벤을 거쳐도 살아남는가(스택 아이템은 개체 필드가 없다)
+		_eq("종 art_id 기록", str(Icons.species_art_id(target)), "101")
+		_eq("종 속성 기록", Icons.species_element(target), String(Data.get_dragon(101).get("element", "")))
+		_eq("종 이름 기록", Icons.species_name(target), "테스트재료")
+		_true("알 그림 해석됨", Icons.dragon_egg_texture(target) != null)
+		# 가방 알 하나가 상한을 막는가(도감 단계는 아직 0 이다)
+		_eq("도감 단계는 아직 0", str(UserDB.dex_step(target)), "0")
+		# 부화 규칙 — 1강 = 등급 7.0 확정 · 그 등급의 표준 부화 시간
+		var ecfg: Dictionary = Data.laboratory.get("egg_upgrade", {})
+		var g := Hatchery.grade_for(EggItem.grade_of(bag_key), ecfg, 0.0, false)
+		_eq("부화 등급 확정", str(g), str(Hatchery.GRADE_MAX))
+		_eq("부화 시간", str(Hatchery.hatch_seconds(g)), str(int(p["seconds"])))
 
-	# 정리 — 만든 알 제거, 플래그 복구
-	if egg_uid > 0:
-		UserDB.consume_dragon(egg_uid)
+	# 정리
+	UserDB.use_item(bag_key, UserDB.item_count(bag_key))
 	if UserDB.get_dragon(mat_uid).size() > 0:
 		UserDB.consume_dragon(mat_uid)
 	UserDB.set_pmeta(Summon.FLAG_UNLOCK, flag_bak)
+	UserDB.set_pmeta("species_names", name_bak)
+	UserDB.set_pmeta("species_art", art_bak)
 	_eq("정리 후 개체 수 원복", str(UserDB.dragons().size()), str(before - 1))
-	_true("정리 후 도감 원복", UserDB.dex_step(target) == 0)
+	_eq("정리 후 가방 빈", str(UserDB.item_count(bag_key)), "0")
 
 
 func _say(s: String) -> void:

@@ -42,8 +42,19 @@ SLOT = {0x150: "eye", 0x15C: "mouth", 0x168: "arm_r", 0x174: "arm_l"}
 # 그런 것만 여기서 밀어 준다 — **원작 좌표는 건드리지 않는다**.
 #   pong: 사용자 실측 2026-07-31 "오른쪽 30, 아래 55" → 스크린샷 재실측 세로 +50 →
 #         사용자 재확인 세로 -15 → 가로 +4 → 가로 -1. 단위 = **디자인 px**.
-NUDGE = {
-    "pong": [35.0, 90.0],
+#   ⚠️ 2026-08-04 — `pong` 보정을 **뺐다.** 그 값은 pong 이 **arnold 의 좌표를 물고 있던**
+#      상태에서 화면을 보고 맞춘 것이라, 이름 귀속을 고친 지금은 근거가 없다.
+#      원작 pong = 표정 1 에 눈 (149,142) · **입 없음**(원작이 화면 밖으로 치운다).
+#      임프상인 초상이 어긋나 보이면 그때 다시 실측해서 여기 적는다.
+#
+# 형식 두 가지 (둘 다 **디자인 px**):
+#   "<npc>": [dx, dy]                          NPC 전체(모든 포즈·눈·입)
+#   "<npc>": {"body_<n>": {"<슬롯>": [dx, dy]}} 포즈·슬롯별. `"*"` 는 모든 포즈/슬롯.
+# 원작 좌표(`npc`)는 어느 쪽도 건드리지 않는다.
+NUDGE: dict[str, object] = {
+    # 유리아 **정면 포즈**(body_5 — 팔짱 낀 정면. body_1 은 3/4 측면이다)의 입만
+    # 오른쪽 5 · 아래 5. 사용자 실측 2026-08-04.
+    "yulia": {"body_5": {"mouth": [5.0, 5.0]}},
 }
 
 # --- 디컴프 토큰 ---------------------------------------------------------
@@ -90,6 +101,16 @@ RE_EMO_EQ = re.compile(r"\*\(uint \*\)pNVar\d+ == (\d+)")
 # 는 원작 규칙이 사라져, 얼굴이 그려진 body_2 위에 눈이 겹쳐 보였다(사용자 신고).
 RE_EMO_VAR = re.compile(r"^\s*(uVar\d+) = \*\(uint \*\)pNVar\d+;")
 RE_EMO_VAR_EQ = re.compile(r"\((uVar\d+) == (\d+)\)")
+# 🔴 2026-08-04 (사용자 신고 "아놀드의 눈이 화내는 표정에서만 제자리"): 표정을 **비트마스크
+#    집합**으로 가르는 NPC 가 있다. Ghidra 가 switch 를 이렇게 낮춘다:
+#        uVar3 = 1 << (ulong)(uVar6 & 0x1f);   ← uVar6 = 표정
+#        if ((uVar3 & 0x34) != 0) { … }        ← 표정 {2,4,5}
+#        if ((uVar3 & 0xc2) == 0) { … } else { … }   ← else 쪽이 표정 {1,6,7}
+#    한 벌이 아니라 **여러 표정**이라 `cur_emo` 하나로는 못 담는다 → 집합으로 쓴다.
+#    arnold 실측: {2,4,5}·{1,6,7} 은 눈 y=-53, 표정 3 만 -36. 종전엔 표정 3 값 하나가
+#    `"?"` 로 저장돼 **나머지 여섯 표정의 눈이 17pt(화면 ~23px) 위로 떠 있었다.**
+RE_EMO_SHIFT = re.compile(r"^\s*(uVar\d+) = 1 << \(ulong\)\((uVar\d+) & 0x1f\);")
+RE_EMO_MASK = re.compile(r"\((uVar\d+) & (0x[0-9a-f]+)\) (!=|==) 0\)")
 ## ⚠️ `if (uVar6 != 1) break;` 뒤에 이어지는 갈래(eden 의 표정 1)는 **아직 못 읽는다.**
 ##    그 형태를 표정 분기로 인정해 봤더니 eden 은 그대로였고 pino 의 기본 갈래가 깨졌다
 ##    (표정 가드가 아니라 이름 블록 경계가 어긋난 게 원인이라 여기서 고칠 문제가 아니다).
@@ -202,22 +223,91 @@ def main() -> int:
     mem_var: tuple[str, str] | None = None
     ne_after: list[tuple[int, str]] = []
     depth = 0
-    for ln in lines:
+    shift_var: str | None = None      # `uVar3 = 1 << (uVar6 & 0x1f)` 의 좌변
+    mask_emos: list[int] | None = None
+    mask_depth: int | None = None
+    mask_else: tuple[int, list[int], str | None] | None = None  # (깊이, 표정 집합, 소유 NPC)
+    def _else_follows(i: int) -> bool:
+        """`lines[i]` 의 `{` 블록이 닫힌 직후 `else` 가 오는가.
+
+        🔴 int/long `!=` 는 두 모양이 섞여 있다 — `else` 형(pong)과 fall-through 형(florence).
+           런타임 깊이 추적만으로 가르려다 서로를 가로채는 사고를 네 번 냈다.
+           **앞을 미리 읽어** 확정한다: else 가 있으면 그 else 가 그 NPC, 없으면 fall-through.
+        """
+        d = 0
+        for j in range(i, min(i + 4000, len(lines))):
+            d += lines[j].count("{") - lines[j].count("}")
+            if j > i and d <= 0:
+                for k in range(j, min(j + 4, len(lines))):
+                    if lines[k].strip():
+                        return bool(re.match(r"^\s*else\s*\{?\s*$", lines[k]))
+                return False
+        return False
+
+    for _li, ln in enumerate(lines):
+        ne_here: str | None = None
         for rx, width in ((RE_NAME_INT_NE, 4), (RE_NAME_LONG_NE, 8)):
             m = rx.search(ln)
             if m:
                 nm = int_to_name(m.group(1), width)
                 if nm.isalnum():
                     pending_ne[depth] = nm
+                    if not _else_follows(_li):
+                        ne_here = nm
         # `}` 로 닫힌 뒤 같은 깊이에서 else 를 만나면 그 이름으로 전환한다.
-        if re.match(r"^\s*else\s*\{?\s*$", ln) and depth in pending_ne:
-            cur_name, cur_emo, in_switch = pending_ne.pop(depth), None, False
+        # ⚠️ **이름 전환이 표정 마스크보다 우선**이다. 반대로 놓았더니 arnold 가 남긴
+        #    마스크가 pong 의 `else` 를 가로채 pong 이 통째로 사라졌다(2026-08-04).
+        _is_else = bool(re.match(r"^\s*else\s*\{?\s*$", ln))
+        # 🔴 표정 마스크의 else 와 이름 전환의 else 가 **같은 깊이에서 겹친다.**
+        #    깊이만으로 가르면 서로를 가로챈다(arnold 의 `{1,6,7}` 이 날아가거나,
+        #    반대로 arnold 가 남긴 마스크가 pong 의 else 를 먹어 pong 이 사라진다).
+        #    ⇒ 마스크에 **소유 NPC** 를 같이 달아 두고, 그 NPC 안에 있을 때만 마스크가 이긴다.
+        if _is_else and mask_else is not None and depth == mask_else[0]                 and cur_name == mask_else[2]:
+            mask_emos, mask_depth = mask_else[1], depth + 1
+            mask_else = None
+        elif _is_else and depth in pending_ne:
+            _nm = pending_ne.pop(depth)
+            cur_name, cur_emo, in_switch = _nm, None, False
             emo_var, emo_depth = None, None
+            shift_var, mask_emos, mask_depth, mask_else = None, None, None, None
+            # `else` 가 있으면 **그 else 가 그 NPC** 다 — 블록이 닫힌 뒤로 이어지는
+            # fall-through 가 아니다. 예약을 취소하지 않으면 이름이 다음 NPC 로 밀린다.
+            ne_after[:] = [e for e in ne_after if not (e[1] == _nm and e[0] == depth + 1)]
         depth += ln.count("{") - ln.count("}")
-        # 뒤집힌 memcmp 블록이 닫혔다 → 이제부터가 그 NPC 다.
+        # 🔴 int/long `!=` 도 memcmp 처럼 **fall-through** 로 나온다(2026-08-04):
+        #       if (*(long *)pbVar16 != <"florence">) { …다른 NPC들… }
+        #       ← 블록이 닫힌 **뒤** 이어지는 코드가 florence 것이다(else 가 아니다)
+        #    `else` 형태만 보던 종전 코드는 이걸 통째로 놓쳐 florence 가 npc_face.json 에서
+        #    빠졌고, 그래서 초상에 **얼굴 파츠가 하나도 안 붙었다**(사용자 신고).
+        if ne_here is not None and ln.count("{") > ln.count("}"):
+            ne_after.append((depth, ne_here))
+        # 뒤집힌 memcmp/int 블록이 닫혔다 → 이제부터가 그 NPC 다.
         while ne_after and depth < ne_after[-1][0]:
             cur_name, cur_emo, in_switch = ne_after.pop()[1], None, False
             emo_var, emo_depth = None, None
+            shift_var, mask_emos, mask_depth, mask_else = None, None, None, None
+        # 비트마스크 표정 집합 — 블록이 닫히면 원상복귀, `else` 는 여집합이 아니라
+        # **그 마스크 자체**(`(uVar3 & M) == 0` 의 else = M 에 든 표정들)다.
+        if mask_depth is not None and depth < mask_depth:
+            mask_emos, mask_depth = None, None
+        # 예약해 둔 else 를 그 깊이를 벗어날 때까지 안 만났으면 버린다 —
+        # 남겨 두면 **다른 NPC 의 else** 를 가로챈다(pong 이 통째로 사라지던 원인).
+        if mask_else is not None and depth < mask_else[0]:
+            mask_else = None
+        m = RE_EMO_SHIFT.match(ln)
+        if m and emo_var == m.group(2):
+            shift_var = m.group(1)
+        if mask_else is not None and re.match(r"^\s*else\s*\{?\s*$", ln.rstrip()) \
+                and depth == mask_else[0] + 1:
+            mask_emos, mask_depth = mask_else[1], depth
+            mask_else = None
+        m = RE_EMO_MASK.search(ln)
+        if m and shift_var == m.group(1):
+            bits = [i for i in range(32) if int(m.group(2), 16) >> i & 1]
+            if m.group(3) == "!=":
+                mask_emos, mask_depth = bits, depth
+            else:
+                mask_else = (depth - 1, bits, cur_name)   # else 쪽이 그 표정 집합
         for rx, width in ((RE_NAME_INT, 4), (RE_NAME_LONG, 8)):
             m = rx.search(ln)
             if m:
@@ -225,11 +315,15 @@ def main() -> int:
                 if nm.isalnum():
                     cur_name, cur_emo, in_switch = nm, None, False
                     emo_var, emo_depth = None, None
+                    shift_var, mask_emos, mask_depth, mask_else = None, None, None, None
         m = RE_NAME_MEM.search(ln)
         if m:
             mem_var = (m.group(1), m.group(2))
             cur_name, cur_emo, in_switch = m.group(2), None, False
             emo_var, emo_depth = None, None
+            # ⚠️ 마스크 상태도 같이 비운다 — 안 그러면 앞 NPC 가 남긴 `mask_else` 가
+            #    뒤 NPC 의 `else` 를 가로챈다(eden·pong 표정이 사라지던 원인).
+            shift_var, mask_emos, mask_depth, mask_else = None, None, None, None
         elif mem_var is not None:
             m = RE_MEM_NE.match(ln)
             if m and m.group(1) == mem_var[0]:
@@ -284,8 +378,11 @@ def main() -> int:
             if pt not in xs:
                 continue
             y = ys.get(ykey, 0.0)
-            per = out.setdefault(cur_name, {}).setdefault(str(cur_emo or "?"), {})
-            per[slot] = None if y is None else [xs[pt], round(-y, 3)]
+            val = None if y is None else [xs[pt], round(-y, 3)]
+            # 표정 집합(비트마스크 분기)이면 **그 표정 전부에** 같은 좌표를 싣는다.
+            keys = [str(e) for e in mask_emos] if mask_emos else [str(cur_emo or "?")]
+            for kk in keys:
+                out.setdefault(cur_name, {}).setdefault(kk, {})[slot] = val
 
     # 정렬 + 메타
     doc = {
@@ -301,6 +398,12 @@ def main() -> int:
                    "arm_r": "+0x168", "arm_l": "+0x174"},
         "npc": {k: dict(sorted(v.items())) for k, v in sorted(out.items())},
     }
+
+    # 오리지널 캐릭터(원작에 없는 NPC — 선대군 등)의 파츠 좌표는 각 반입 빌더가
+    # `assets/converted/npc_*/_face.json` 사이드카로 남긴다(예: build_sundaegun_npc.py).
+    # 여기서 병합해야 이 추출기를 재실행해도 그 캐릭터들이 지워지지 않는다.
+    for side_fp in sorted((REPO / "assets" / "converted").glob("npc_*/_face.json")):
+        doc["npc"].update(json.loads(side_fp.read_text(encoding="utf-8")))
 
     if "--check" in sys.argv:
         print(json.dumps(doc["npc"], ensure_ascii=False, indent=1)[:4000])

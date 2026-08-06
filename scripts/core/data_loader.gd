@@ -165,6 +165,16 @@ func gem_description(category_key: String) -> String:
 func _load_dragons(path: String) -> void:
 	var arr = _load_json(path)
 	for d in arr:
+		# 🔴 2026-08-07 — 커스텀 종 600·700(플레이어 선택권 드래곤)은 `element` 가 **null** 이다
+		#   (`name_from_player`, 속성도 재료에서 물려받는다). Godot 4.7 에서 `String(null)` 은
+		#   런타임 에러(`Nonexistent 'String' constructor`)이고 `.get(k, "")` 로도 못 막는다 —
+		#   키가 **있고 값이 null** 이면 기본값이 안 쓰이기 때문이다. 읽는 곳이 50군데라
+		#   여기서 한 번 정규화한다. 실제 사고(2026-08-06 로그): 소환한 600 을 동굴에 올리자
+		#   `cave.gd::_refresh_dragon` 이 그 줄에서 끊겨 **드래곤이 아예 안 그려졌고**,
+		#   상태창(`status_layer.gd`)·레벨업 컷인도 같은 자리에서 죽었다.
+		#   개체가 물려받은 실제 속성은 `Icons.element_of(inst)` 가 준다(이 값은 폴백일 뿐).
+		if d.has("element") and typeof(d["element"]) != TYPE_STRING:
+			d["element"] = ""
 		dragons[int(d["id"])] = d
 
 func get_dragon(id: int) -> Dictionary:

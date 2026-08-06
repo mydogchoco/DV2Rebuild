@@ -49,7 +49,9 @@ func _start_after_nickname(fresh: bool) -> void:
 	# 동굴도 하단 메뉴의 한 항목이다(`WorldMapScene::moveCave`, `menu_cave`).
 	# 근거: 레퍼런스 `docs/ref/orig_image/old_screenshots/Yutakan_main.png` = 부팅 직후 화면 = 유타칸 섬.
 	# 🔴 종전엔 `goto("worldmap")`(=overview 양피지)로 띄워 첫 화면이 원작과 달랐다(2026-07-28 수정).
-	var main_params := {"region": "yutakan"}
+	# 🟦 2026-08-06 — 그 정의를 `Scenes.MAIN_PARAMS` 한 곳으로 모았다. 스토리·콜로세움에서
+	#   돌아올 때도 **같은 상수**를 거친다(`Scenes.goto_main`).
+	var main_params := Scenes.MAIN_PARAMS.duplicate()
 	if fresh:
 		# 갓 시작한 유저는 프롤로그부터(사용자 확정 2026-07-31). 원작 `<PrologueTalk0~33>` 이식본은
 		# 이미 있었는데 아무도 부르지 않아 한 번도 보이지 않았다.
@@ -59,7 +61,7 @@ func _start_after_nickname(fresh: bool) -> void:
 		Scenes.goto("prologue", {"back": "worldmap", "back_params": main_params,
 			"then": "tutorial"})
 	else:
-		Scenes.goto("worldmap", main_params)
+		Scenes.goto_main()
 		_resume_tutorial()
 
 

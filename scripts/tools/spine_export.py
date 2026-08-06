@@ -82,7 +82,14 @@ def premultiply_png(src, dst):
 
 
 def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, outdir=None,
-           region_basename=False, premultiply=False, anim_map=None):
+           region_basename=False, premultiply=False, anim_map=None, root_scale=1.0):
+    """root_scale — 씬 **루트 노드**에 걸 균일 배율(뼈가 아니다).
+
+    타 게임에서 온 스켈레톤은 저작 단위가 달라 그대로 구우면 다른 종과 크기가 안 맞는다.
+    ⚠️ 루트 **뼈**(`bones[0]`)에 곱으면 안 된다 — 애니가 `root:scale`/`root:position` 을
+    키하고 있어서(예: 로키 288 의 `wait`) 재생 첫 프레임에 덮어써진다. 그래서 빌더가
+    **뼈 위의 씬 루트 Node2D** 에 건다(`build_spine_scene.gd`).
+    """
     # 드래곤 기본 경로 규약. sj_path/atlas_paths/outdir 명시 시 그걸 사용(몬스터 등 일반 스파인).
     if sj_path is None:
         sj_path = os.path.join(SRC, f"dragon_{dragon_id}_{stage}_spine.spine_json")
@@ -284,6 +291,7 @@ def export(dragon_id, stage, anim_filter="all", sj_path=None, atlas_paths=None, 
 
     out = {
         "id": dragon_id, "stage": stage,
+        "root_scale": float(root_scale),
         "bones": bones, "slots": slots, "animations": anims,
         "missing_regions": sorted(set(s.get("attachment") for s in skel["slots"]
                                       if s.get("attachment") and s["attachment"] not in regions)),

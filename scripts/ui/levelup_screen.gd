@@ -73,7 +73,8 @@ func _close_self() -> void:
 # ---------- 공개 API (호스트가 연출을 태울 때) ----------
 
 ## 레벨업 연출 타임라인을 태운다(원작 ExpLayer 안무).
-## fx = {kind:"up"|"reset", sp: float, stage_changed: bool, slot_new: int, triple: bool}
+## fx = {kind:"up"|"reset", sp: float, stage_changed: bool, slot_new: int, triple: bool,
+##       batch: int(기본 1 — 축복 N회 일괄 사용 시 N레벨치를 합산해 보여 준다)}
 ## 가방 → 대상 선택 → 레벨업 아이템 사용 경로가 `open()` 직후에 부른다:
 ## `open()` 은 `add_child` 로 `_ready`(=`_build`)가 **동기 실행**된 뒤 돌아오므로 컨텍스트가 이미 있다.
 func play_fx(fx: Dictionary) -> void:
@@ -416,7 +417,9 @@ func _lvup_build_dragon(parent: Node, a: Dictionary, vis: Vector2) -> AnimationP
 		ped.position = Vector2(0, 357.0 - ph * psc / 2.0)
 		holder.add_child(ped)
 	var stage_name := Growth.stage_for_level(int(a["level"]))
-	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
+	# 🔴 2026-08-07 — 그림은 개체의 상속 art_id(커스텀 종 600·700 은 자기 아트가 없다).
+	var art := Icons.art_id_of(a)
+	var path := DRAGON_SCENE % [art, stage_name]
 	if ResourceLoader.exists(path):
 		var d2 := Node2D.new()
 		d2.scale = Vector2(1.9, 1.9)      # 동굴 받침대와 동일(1080 공간 기준)
@@ -439,7 +442,7 @@ func _lvup_build_dragon(parent: Node, a: Dictionary, vis: Vector2) -> AnimationP
 			return dap
 	else:
 		# 스파인 미빌드 종은 초상 폴백(동굴 받침대와 같은 규칙 — 어떤 드래곤도 안 보이지 않게).
-		var por := _portrait_sprite(int(a["id"]), stage_name, 2.6, int(a.get("skin", 0)))
+		var por := _portrait_sprite(art, stage_name, 2.6, int(a.get("skin", 0)))
 		if por:
 			por.position = Vector2(0, -30)
 			holder.add_child(por)
@@ -480,8 +483,8 @@ func _lvup_loop_love(anim: StringName, dap: AnimationPlayer) -> void:
 ## **2026-07-31 부터 값은 사용자가 `docs/input/dragons/dragons.csv` 의 voice_해치/해츨링/성체
 ## 열에 직접 적은 검수분**이다. 반영 = `scripts/tools/build_dragon_voice_sheet.py --apply`.
 func _dragon_voice_no(dragon_id: int, level: int) -> int:
-	var tbl: Dictionary = Data.dragon_voices.get("voices", {})
-	var e: Dictionary = tbl.get(str(dragon_id), {})
+	# 🟦 2026-08-07 — 커스텀 종 600·700 은 **소환 재료 종의 소리**를 낸다(`Icons.voice_row`).
+	var e: Dictionary = Icons.voice_row(dragon_id)
 	if e.is_empty():
 		return 0
 	return int(e.get(Growth.stage_for_level(level), 0))
@@ -590,18 +593,22 @@ func _lvup_redraw(fx: Dictionary = {}) -> void:
 	# 썼는데 그건 gain_log 를 안 봐서 **리롤해도 좌우 수치가 안 바뀌었다**(캐릭터 시트와도 불일치).
 	var sb2: Dictionary = d.get("stat_bonus", {})
 	var base_bonus: Dictionary = sb2.get("base", {})
-	var last: Dictionary = gain_log[gain_log.size() - 1] if not gain_log.is_empty() else {}
+	# 비교 기준 레벨 수. 기본 1(=직전 레벨)이지만, 축복 10회 일괄 사용은 `fx["batch"]` 로
+	# **N 레벨치를 한 번에** 보여 준다(🟦 사용자 확정 2026-08-07, cave.gd `_do_blessing_batch`).
+	# 분모(맥스 기준)도 함께 N배 — N레벨 전부가 맥스일 때만 MAX 뱃지가 붙는다.
+	var bn := clampi(int(fx.get("batch", 1)), 1, maxi(1, gain_log.size()))
 	var now_st := Growth.main_stats(ddef, Data.stat_table, gain_log, base_bonus)
-	var prev_log := gain_log.slice(0, maxi(0, gain_log.size() - 1))
+	var prev_log := gain_log.slice(0, maxi(0, gain_log.size() - bn))
 	var prev_st := Growth.main_stats(ddef, Data.stat_table, prev_log, base_bonus)
-	var prev_lv := maxi(1, level - 1)
+	var prev_lv := maxi(1, level - bn)
 	var rows := [["레벨", Color(1.0, 0.83, 0.25), str(prev_lv), str(level), "", false, false]]
 	var maxed_n := 0
 	for spec in [["hp", "생명력", Color(0.55, 1.0, 0.55)], ["att", "공격력", Color(1.0, 0.5, 0.45)],
 			["def", "방어력", Color(0.5, 0.75, 1.0)]]:
 		var k: String = spec[0]
-		var mx := int(max_stats.get(k, 1))
-		var gain := int(last.get(k, int(now_st[k]) - int(prev_st[k])))
+		var mx := int(max_stats.get(k, 1)) * bn
+		# 마지막 bn 회 롤의 합 = now-prev(Growth.main_stats 가 base+보정+Σgain_log 이므로 동치).
+		var gain := int(now_st[k]) - int(prev_st[k])
 		var trans := gain > mx
 		var maxed := gain >= mx
 		if maxed: maxed_n += 1
@@ -1012,9 +1019,10 @@ func _lvup_fx_triple() -> void:
 	var ddef: Dictionary = _lvup_ctx.get("ddef", {})
 	var d := UserDB.get_dragon(int(_lvup_ctx["uid"]))
 	_lvup_dragon_voice()      # 원작은 크리티컬 보이스 — 보이스표 유실로 단계 보이스 근사
+	# 🔴 2026-08-07 — 그림·속성은 **개체 상속값**으로(커스텀 종 600·700 은 마스터가 비어 있다).
 	DragonCutin.show(self, {
-		"id": int(ddef.get("id", 0)),
-		"element": String(ddef.get("element", "")),
+		"id": Icons.art_id_of(d) if not d.is_empty() else int(ddef.get("id", 0)),
+		"element": Icons.element_of(d) if not d.is_empty() else String(ddef.get("element", "")),
 		"awakened": bool(d.get("awakened", false)),
 	}, 1.0 / 3.0, "트리플 맥스", 60)          # speed 1/3 = 원작 param_2 3.0 슬로우
 	var vis: Vector2 = _lvup_ctx["vis"]

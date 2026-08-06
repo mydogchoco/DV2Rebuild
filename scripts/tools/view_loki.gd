@@ -13,7 +13,9 @@ const PAGES := ["① 스파인", "② 초상·도감", "③ 컷인", "④ 이펙
 const STAGES := ["baby", "child", "adult", "aura", "e", "advent"]
 const ANIMS := ["wait", "love", "attack"]
 ## 원본 스켈레톤 높이(포팅 카드 §1) — 단계마다 6배 넘게 차이 나 그대로 두면 비교가 안 된다.
-const SKEL_H := {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 798.0,
+## ⚠️ `e` 는 **씬에 구워진 배율(root_scale 0.42, 포팅 카드 §3-5)을 반영한 값** 798×0.42 ≈ 335 다.
+## 원본 798 을 그대로 두면 이 창에서만 각성체가 42% 로 작아 보인다(씬 배율에 또 나눠지므로).
+const SKEL_H := {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 335.0,
 	"advent": 491.0}
 const FIT_PX := 520.0
 ## 콜로세움 이펙트 재생 속도 — `fight.gd::FX_SEQ_FPS` 와 같은 값이어야 실제와 같아 보인다.

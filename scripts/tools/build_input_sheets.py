@@ -415,7 +415,8 @@ def sheet_open_questions() -> tuple[str, list[str], list[list]]:
          "솔로 레이드로 옮길지", ""],
         ["combat", "pure(방어관통) 해석", "고정 추가 피해(크리·속성 배수 없음)", "확인 요청",
          "combat.json", ""],
-        ["combat", "cri_pow 해석", "크리 배수 × (1 + cri_pow/100)", "확인 요청", "combat.json", ""],
+        ["combat", "cri_pow 해석", "1 + 0.5×(1 + cri_pow/100) — 크리 증가분에만 적용",
+         "사용자 확정 2026-08-06", "battle.gd _crit_mult", "확정"],
     ]
     return ("open_questions.csv",
             ["분류", "질문", "현재값/현재해석", "성격", "바뀌면 고칠 곳", "답(기입)"],

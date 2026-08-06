@@ -48,6 +48,8 @@ var _box: BottomTextBox
 ## 원작 ShopScene +0x280 — "직전에 사고 팔았다" 플래그. 값 = 품목명(`ShopBuy*` 의 %1$s).
 ## 비어 있으면 입장 대사. `_seller_line` 이 읽고 지운다.
 var _react := ""
+## 대체 판매원 터치 대사에서 직전에 쓴 index(연속 중복 방지). -1 = 아직 없음.
+var _touch_last := -1
 
 # ── 진입 ─────────────────────────────────────────────────────────────────
 func enter(params: Dictionary = {}) -> void:
@@ -314,13 +316,22 @@ func _build_wallet(vis: Vector2) -> void:
 			l.position = Vector2(p.x + 15.0, h - p.y - 11.0)
 			l.size = Vector2(80, 22)
 			_wallet_root.add_child(l)
+	elif kind == "pvp":
+		# 원작 PVP 탭은 콜로세움 포인트 한 줄만 띄웠다(showWallet case 7 =
+		# `common/colosseum_point_small1.png`). 그 프레임이 없어 형제 재화 아이콘
+		# `common/honor_small1` 로 대체한다 — 교체 지점은 items.json 의 `icon` 한 줄이다.
+		for key in Data.shop.get("_wallet", {}).get("pvp", ["colosseum_coin"]):
+			_wallet_line(0, String(Data.items.get(key, {}).get("icon", "")),
+				_comma(UserDB.item_count(String(key))), h, 100.0)
 	else:
 		_wallet_line(0, "common_coin_small1", _comma(UserDB.gold()), h, 100.0)
 		_wallet_line(1, "common_diamond_small1", _comma(UserDB.diamond()), h, 62.0)
 
+## `icon_key` = `common_ui` 의 키, 또는 `<폴더>/<키>`(다른 변환 폴더의 아이콘).
 func _wallet_line(_i: int, icon_key: String, text: String, h: float, cocos_y: float) -> void:
 	var S := Design.ASSET_SCALE
-	var s := _spr("common_ui", icon_key, S)
+	var s := (_spr(icon_key.get_slice("/", 0), icon_key.get_slice("/", 1), S)
+		if icon_key.contains("/") else _spr("common_ui", icon_key, S))
 	if s != null:
 		s.position = Vector2(40.0, h - cocos_y)
 		_wallet_root.add_child(s)
@@ -403,7 +414,11 @@ func _build_tabs(vis: Vector2) -> void:
 				bg.position.y -= 10
 				bg.modulate = Color(0.86, 0.82, 0.78)
 			holder.add_child(bg)
-		var ic := _spr("shop_ui", "scene_shop_%s" % String(td.get("icon", "")), S * k)
+		# 아이콘은 보통 상점 아틀라스의 `scene_shop_<icon>` 이지만, 원작 프레임이 없어
+		# 다른 폴더로 대체한 탭(PVP)은 `<폴더>/<키>` 를 그대로 준다(shop.json `icon`).
+		var ikey := String(td.get("icon", ""))
+		var ic: Sprite2D = (_spr(ikey.get_slice("/", 0), ikey.get_slice("/", 1), S * k)
+			if ikey.contains("/") else _spr("shop_ui", "scene_shop_%s" % ikey, S * k))
 		if ic != null:
 			# 원작 아이콘 위치 = 탭 로컬 (tabW/2, 50) [Cocos y-up]
 			ic.position = Vector2(tw * k * 0.5, th * k - 50.0 * k)
@@ -433,7 +448,7 @@ func _on_tab(i: int) -> void:
 ## 배치는 getDefaultNpcPos(2) = **화면 오른쪽** (visW - bodyW/2 - offset).
 func _build_npc(vis: Vector2) -> void:
 	var td := _cur()
-	var name := String(td.get("npc", ""))
+	var name := _seller_npc()
 	if name == "":
 		return
 	var greet := _seller_line(name, String(td.get("id", "")))
@@ -451,6 +466,7 @@ func _build_npc(vis: Vector2) -> void:
 	_npc.position.x = vis.x + bw * 0.5
 	var tw := create_tween()
 	tw.tween_property(_npc, "position:x", to_x, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_build_npc_touch(vis, to_x, bw)
 
 	# 대사창은 NPC 열을 침범하지 않는다 — 원작 스크린샷에서도 진열장 오른쪽 끝과 딱 맞는다
 	# (docs/ref/orig_image/shop/상점_음식.webp: 박스 오른쪽 모서리 = visW-290).
@@ -458,7 +474,74 @@ func _build_npc(vis: Vector2) -> void:
 	_box.max_width = vis.x - NPC_COL
 	_box.z_index = 12
 	add_child(_box)
+	# 🟦 2026-08-06 사용자 지시 — 대체 판매원은 **대사창을 눌러도** 다음 대사가 나온다
+	#   (초상 클릭과 같은 무작위 풀). `clicked` 는 타이핑이 끝난 뒤에만 온다 —
+	#   타이핑 중 클릭은 `BottomTextBox` 가 전체표시로 먼저 소화한다(원작 ccTouchBegan 과 같다).
+	if not _npc_alt().is_empty():
+		_box.clicked.connect(_on_npc_touch)
 	_say(String(greet["line"]))
+
+## 이 탭의 대체 판매원 블록(`data/shop.json` `npc_alt`). 조건이 안 맞으면 {}.
+##
+## 🟦 사용자 확정 2026-08-06 — PVP 탭은 **관리자 모드가 아닐 때** 라온 대신 선대군이 지킨다
+## (`when: "not_admin"`). 관리자면 원작 `setSeller` 그대로다. 같은 플래그가 콜로세움에서
+## 선대군의 등장 여부도 가른다(`Colosseum.pending_guard`).
+func _npc_alt() -> Dictionary:
+	var alt = _cur().get("npc_alt", null)
+	if not (alt is Dictionary):
+		return {}
+	match String((alt as Dictionary).get("when", "")):
+		"not_admin":
+			return {} if UserDB.is_admin() else alt
+		"admin":
+			return alt if UserDB.is_admin() else {}
+	return {}
+
+## 이 탭에 실제로 세울 판매원의 NPC 키(대체 블록이 있으면 그쪽).
+func _seller_npc() -> String:
+	var alt := _npc_alt()
+	if not alt.is_empty():
+		return String(alt.get("npc", ""))
+	return String(_cur().get("npc", ""))
+
+## 초상을 클릭하면 무작위 대사 — **대체 판매원(`npc_alt.touch`)에만 있다.**
+## 원작 판매원에는 없는 동작이라(ShopScene 은 NPC 에 CCMenuItem 을 안 붙인다) 붙이지 않는다.
+func _build_npc_touch(vis: Vector2, cx: float, bw: float) -> void:
+	var alt := _npc_alt()
+	if alt.is_empty() or (alt.get("touch", []) as Array).is_empty():
+		return
+	var bh := _npc.body_height()
+	# ⚠️ 왼쪽 끝을 **NPC 열 안**으로 자른다. 몸통 폭이 열(290pt)보다 넓어서 그대로 깔면
+	#   진열장 오른쪽 카드 위를 덮어 구매 클릭을 가로챈다(스크롤 영역은 visX-313 까지다).
+	var left := maxf(cx - bw * 0.5, vis.x - NPC_COL)
+	var b := Button.new()
+	b.name = "NpcTouchButton"          # 검수용 앵커(shot_helper `--shot=shoppvp --extra=touch`)
+	b.flat = true
+	b.size = Vector2(vis.x - left, bh)
+	b.position = Vector2(left, vis.y - bh)
+	b.z_index = 6
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.pressed.connect(_on_npc_touch)
+	add_child(b)
+
+## 무작위 터치 대사 1줄. 연달아 같은 줄이 나오지 않게 직전 것을 기억한다.
+## 줄은 `{text, emo}`(🟦 표정 시트 반영 2026-08-07) — 옛 형식(문자열)도 받는다.
+func _on_npc_touch() -> void:
+	var pool: Array = _npc_alt().get("touch", [])
+	if pool.is_empty() or _box == null:
+		return
+	var i := randi() % pool.size()
+	if pool.size() > 1 and i == _touch_last:
+		i = (i + 1) % pool.size()
+	_touch_last = i
+	var d: Dictionary = pool[i] if pool[i] is Dictionary else {"text": String(pool[i])}
+	_say(_fill_nick(String(d.get("text", ""))), int(d.get("emo", 0)))
+
+## 대사의 `@` 를 플레이어 닉네임으로. 원작 문자열의 `%1$s` 와 같은 자리표시자지만
+## 이 블록은 사용자 표기(`@`)를 그대로 쓴다(`data/shop.json` `npc_alt._basis`).
+func _fill_nick(line: String) -> String:
+	var nick := UserDB.user_nickname()
+	return line.replace("@", nick) if nick != "" else line
 
 ## 원작 setSeller 의 대사·표정 선택(ShopScene.c:4655~4767). 두 갈래를 플래그로 나눈다.
 ##   · 입장/탭 전환(+0x281) → idx = rand()%3 + 1 → `ShopWelcome<npc>_<idx>`
@@ -474,6 +557,13 @@ func _build_npc(vis: Vector2) -> void:
 ##   쓴다(:146~202). 우리 탭 구성엔 그 분류가 없어 _1/_2 만 쓴다 — data/npc_lines.json `_note` 참조.
 func _seller_line(npc: String, tab_id: String) -> Dictionary:
 	var shop: Dictionary = Data.npc_lines_doc.get("shop", {})
+	# 대체 판매원은 원작 문자열이 없다(오리지널 캐릭터) — 입장 대사 1줄이 전부다.
+	# 표정은 사용자 표정 시트가 정한다(`welcome_emo`, 🟦 2026-08-07 — 포포 이식 입 1~6).
+	var alt := _npc_alt()
+	if not alt.is_empty() and String(alt.get("npc", "")) == npc:
+		_react = ""
+		return {"line": _fill_nick(String(alt.get("welcome", ""))),
+			"emo": int(alt.get("welcome_emo", 1))}
 	if _react != "":
 		var key := "sell" if tab_id == "sell" else "buy"
 		var pool: Array = (shop.get(key, {}) as Dictionary).get(npc, [])
@@ -493,11 +583,14 @@ func _seller_line(npc: String, tab_id: String) -> Dictionary:
 	return {"line": String(_cur().get("line", "")), "emo": idx}
 
 ## 대사창에 한 줄 띄우고, 읽는 동안 입을 움직인다(원작 setMouseAction/setStopMouse).
-func _say(line: String) -> void:
+## `emo` > 0 이면 그 표정으로 갈아탄다(원작 setTalker 도 대사마다 표정을 바꾼다).
+func _say(line: String, emo := 0) -> void:
 	if _box == null:
 		return
-	_box.show_text(_npc_display_name(String(_cur().get("npc", ""))), line)
+	_box.show_text(_npc_display_name(_seller_npc()), line)
 	if _npc != null:
+		if emo > 0:
+			_npc.set_emotion(emo)
 		_npc.set_talking(true)
 	_box.finished.connect(func(): if is_instance_valid(_npc): _npc.set_talking(false),
 		CONNECT_ONE_SHOT)
@@ -508,6 +601,11 @@ const NPC_KR := {
 	"popo": "포포", "baruseu": "바루스", "romini": "루미니",
 }
 func _npc_display_name(key: String) -> String:
+	# 대체 판매원은 이름을 데이터가 정한다 — 선대군은 상점에서 `???` 다(🟦 사용자 확정).
+	# 이름이 드러나는 곳은 콜로세움 연승방지봇으로 만날 때뿐이다(data/colosseum.json guards).
+	var alt := _npc_alt()
+	if not alt.is_empty() and String(alt.get("npc", "")) == key:
+		return String(alt.get("name", key))
 	var per = Data.npc_lines().get(key, null)
 	if per is Dictionary and String(per.get("name", "")) != "":
 		return String(per["name"])
@@ -1005,14 +1103,20 @@ func _detail_item(panel: Control, icon: Texture2D, S: float) -> void:
 ## 길이 0xf0(240)자 초과 시 scale 0.8.
 func _detail_text(panel: Control, desc: String, note: String) -> void:
 	const COL_W := 300.0
-	var f := _orig_font()
+	# 🟦 사용자 지시 2026-08-06 — 설명 본문은 **가는 본문체 `font_common`** 으로 낸다.
+	#   종전엔 제목용 `font_subtitle`(굵고 외곽선이 구워진 서체)이라 갈색 볼드로 보였다.
+	#   도감/가방 설명창이 쓰는 것과 같은 서체·같은 크기 규약이다
+	#   (`cave.gd::_dex_*` 의 `font_common`, 17px 비트맵 × ASSET_SCALE × 0.8 — 2026-07-30 에
+	#    도감에서 같은 지적을 받고 고친 선례).
+	var f := _bmfont("font_common")
+	var body := int(round(17.0 * Design.ASSET_SCALE * 0.8))          # ≈18pt
 	var y := 280.0
 	if desc != "":
 		var dl := Label.new()
 		dl.text = desc
 		if f != null:
 			dl.add_theme_font_override("font", f)
-		dl.add_theme_font_size_override("font_size", 16 if desc.length() > 240 else 20)
+		dl.add_theme_font_size_override("font_size", body - 2 if desc.length() > 240 else body)
 		# 원작 setColor(0x1d4381 리틀엔디안 = R129 G67 B29) — 갈색.
 		# ⚠️ `Color(129,67,29) / 255.0` 로 쓰면 **알파까지 나눠져**(1→0.004) 글자가 사라진다.
 		dl.add_theme_color_override("font_color", Color(129.0 / 255.0, 67.0 / 255.0, 29.0 / 255.0))
@@ -1027,8 +1131,8 @@ func _detail_text(panel: Control, desc: String, note: String) -> void:
 	var nl := Label.new()
 	nl.text = note
 	if f != null:
-		nl.add_theme_font_override("font", f)
-	nl.add_theme_font_size_override("font_size", 18)
+		nl.add_theme_font_override("font", f)      # 보조 문구도 같은 본문체
+	nl.add_theme_font_size_override("font_size", body)
 	nl.add_theme_color_override("font_color", Color(0.24, 0.16, 0.08))
 	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nl.size = Vector2(COL_W, 60.0)
@@ -1192,20 +1296,33 @@ func _arrow_button(win: Control, frame: String, center: Vector2, step: Callable,
 	b.mouse_exited.connect(func(): held[0] = false)
 
 ## 원작 BMFont(한글 포함). 비트맵이라 fixed_size_scale_mode 를 켜야 font_size 가 먹는다.
-var _orig_font_cache: Font = null
-func _orig_font() -> Font:
-	if _orig_font_cache != null:
-		return _orig_font_cache
-	var p := "res://assets/converted/font_ui/font_subtitle.fnt"
+##   · `font_subtitle` = 제목·수치용 **굵은** 서체(외곽선+그림자가 비트맵에 구워져 있다)
+##   · `font_common`   = 본문용 **가는** 서체(HCR Dotum 17, 맨글자)
+## 원작 대응 = `GameManager::getFontName_subtitle` / `getFontName_common`.
+var _bmfont_cache := {}
+func _bmfont(name: String) -> Font:
+	if _bmfont_cache.has(name):
+		return _bmfont_cache[name]
+	var p := "res://assets/converted/font_ui/%s.fnt" % name
 	if not ResourceLoader.exists(p):
+		_bmfont_cache[name] = null
 		return null
 	var f := (load(p) as FontFile)
 	if f == null:
+		_bmfont_cache[name] = null
 		return null
 	f = f.duplicate() as FontFile
 	f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
-	_orig_font_cache = f
+	# 원작 비트맵은 한글 부분집합이라 희귀 조합이 빠져 있다 → 없는 글리프만 시스템 폰트로
+	# 폴백한다(cave.gd `_lvup_bmfont` 와 같은 처리).
+	var fb := SystemFont.new()
+	fb.font_names = PackedStringArray(["Malgun Gothic", "맑은 고딕", "Gulim"])
+	f.fallbacks = [fb]
+	_bmfont_cache[name] = f
 	return f
+
+func _orig_font() -> Font:
+	return _bmfont("font_subtitle")
 
 ## 뽑기 결과 공개 — 원작 `Gacha_Box_Popup.c:533` 이 `ShowGetItemDetailLayer` 를 띄우는 자리.
 ## 여러 개면 원작대로 **원형 배치**로 한 번에 보여준다(마지막 항목이 중앙·크게 → 주 획득물을
@@ -1225,7 +1342,7 @@ func _show_result(keys: Array) -> void:
 ## NPC 대사창을 그대로 안내판으로 쓴다(원작 setText → BottomTextBox::setString).
 func _toast(msg: String) -> void:
 	if is_instance_valid(_box):
-		_box.show_text(_npc_display_name(String(_cur().get("npc", ""))), msg)
+		_box.show_text(_npc_display_name(_seller_npc()), msg)
 		if is_instance_valid(_npc):
 			_npc.set_talking(true)
 

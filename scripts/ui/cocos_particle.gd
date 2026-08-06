@@ -5,7 +5,21 @@ extends RefCounted
 ## (cave.gd ExpLayer 이식)도 같은 파티클을 쓰므로 여기로 뽑아 둘이 공유한다.
 ## CLAUDE.md §3 "같은 일을 하는 헬퍼가 이미 있는지 grep" — 새로 짜지 말고 이걸 부를 것.
 
-## 부드러운 원형 점 텍스처(파티클 공용) — 원작 user_particle.png 대체(절차 생성, 견고).
+## 원작 텍스처 캐시 — `particle_export.py` 가 plist 에서 꺼내 구운 `<name>.png`.
+## 🔴 2026-08-06 — 종전엔 **모든 파티클을 아래 절차생성 점으로** 그렸다. 원형 점이 아닌
+##   텍스처가 5종 있어서(콜로세움 피격의 **오각별** 등) 노란 별이 노란 동그라미로 나왔다.
+##   이제 원본이 있으면 원본을 쓰고, 점은 폴백으로만 남는다(CLAUDE.md §3).
+static var _tex_cache := {}
+
+static func tex(name: String) -> Texture2D:
+	if _tex_cache.has(name):
+		return _tex_cache[name]
+	var path := "res://assets/converted/particles/%s" % name
+	var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_tex_cache[name] = t
+	return t
+
+## 부드러운 원형 점 텍스처(파티클 공용) — 원본 텍스처를 못 구했을 때의 폴백(절차 생성).
 static var _dot_tex: GradientTexture2D
 
 static func dot() -> GradientTexture2D:
@@ -35,7 +49,9 @@ static func spawn(parent: Node, name: String, pos: Vector2, z := 131,
 	var p := CPUParticles2D.new()
 	p.position = pos
 	p.z_index = z
-	p.texture = dot()
+	p.texture = tex(String(c.get("texture", ""))) if c.has("texture") else null
+	if p.texture == null:
+		p.texture = dot()
 	p.one_shot = true
 	p.explosiveness = explosiveness
 	p.amount = clampi(int(c.get("amount", 80)), 8, amount_cap)
@@ -60,6 +76,17 @@ static func spawn(parent: Node, name: String, pos: Vector2, z := 131,
 		curve.add_point(Vector2(0.0, 1.0))
 		curve.add_point(Vector2(1.0, maxf(0.01, end_ratio)))
 		p.scale_amount_curve = curve
+	# 입자 회전 — plist `rotationStart(±Variance)` → `rotationEnd`.
+	# 원작 별은 −45±90 에서 0 으로 돌아간다. Godot 은 `angle_curve` 가 **초기 각에 곱해지는**
+	# 계수라 rotationEnd 0 만 정확히 표현된다(그 외는 근사가 되므로 걸지 않는다).
+	p.angle_min = float(c.get("angle_min", 0.0))
+	p.angle_max = float(c.get("angle_max", 0.0))
+	if (not is_zero_approx(p.angle_min) or not is_zero_approx(p.angle_max)) \
+			and is_zero_approx(float(c.get("angle_end", 0.0))):
+		var ac := Curve.new()
+		ac.add_point(Vector2(0.0, 1.0))
+		ac.add_point(Vector2(1.0, 0.0))
+		p.angle_curve = ac
 	var em: Array = c.get("emit_rect", [0, 0])
 	if float(em[0]) > 0.0 or float(em[1]) > 0.0:
 		p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE

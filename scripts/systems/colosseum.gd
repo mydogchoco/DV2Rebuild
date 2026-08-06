@@ -36,7 +36,14 @@ static func _default_state() -> Dictionary:
 		"straight_single_best": 0, "straight_team_best": 0,
 		"energy": int(_cfg().get("ticket", {}).get("max", 10)),
 		"energy_at": 0,                                 # 마지막 회복 계산 시각(Unix)
-		"guard_left": 0,                                # 연승방지봇 남은 횟수
+		# 🟦 사용자 확정 2026-08-06 — 방지봇은 **문턱당 딱 한 판**만 나온다. 그래서 남은 횟수를
+		#   세는 카운터(옛 `guard_left`)가 아니라 **이미 붙어 본 문턱**을 모드별로 적어 둔다
+		#   {모드: [25, 50…]}. 카운터는 한 번이라도 차감을 놓치면 방지봇이 눌러앉지만,
+		#   이 형태는 같은 문턱에서 두 번 나올 수가 없다(연승이 끊기면 그 모드 기록을 비운다).
+		"guard_served": {},
+		"guard_met": {},                                # 방지봇별 조우 횟수 {키: N} — 대사 최초/반복 판정
+		"tier_paid": [],                                # 승급 보너스를 이미 받은 티어 id 들
+
 		"history": [],                                  # 최근 전적 (원작 last_record)
 		"popup_welcome": false,
 	}
@@ -54,7 +61,29 @@ static func state() -> Dictionary:
 	# 스키마가 늘어나도 기존 세이브가 깨지지 않게 기본값 위에 덮는다.
 	for k in s:
 		d[k] = s[k]
+	# 옛 세이브 마이그레이션 — `guard_left`(카운트다운) 시절엔 `guard_served` 가 없다.
+	#   지금 연승에서 이미 지나온 문턱은 **붙어 본 것으로 친다**(안 그러면 32연승 세이브가
+	#   다음 판에 25문턱 방지봇을 다시 만난다).
+	if not s.has("guard_served"):
+		d["guard_served"] = _served_from_streaks(d)
+	d.erase("guard_left")
 	return d
+
+
+## 마이그레이션 전용 — 모드별 현재 연승으로 "이미 지나온 문턱" 목록을 만든다.
+static func _served_from_streaks(s: Dictionary) -> Dictionary:
+	var out := {}
+	for mode in (_cfg().get("modes", {}) as Dictionary):
+		var sk := String((mode_cfg(String(mode))).get("streak_key", ""))
+		var streak := int(s.get(sk, 0))
+		var done: Array = []
+		for g: Dictionary in (_cfg().get("guards", []) as Array):
+			var at := int(g.get("streak_at", 0))
+			if at <= streak:
+				done.append(at)
+		if not done.is_empty():
+			out[String(mode)] = done
+	return out
 
 
 static func save_state(s: Dictionary) -> void:
@@ -161,8 +190,11 @@ static func rating_delta(win: bool, streak: int, rating: int) -> int:
 
 
 ## 전투 결과를 상태에 반영한다. 반환 = 연출에 필요한 요약
-## {delta, rating_before, rating_after, tier_before, tier_after, tier_up, tier_down, streak, best}.
-static func apply_result(mode: String, win: bool, opponent_nick := "") -> Dictionary:
+## {delta, rating_before, rating_after, tier_before, tier_after, tier_up, tier_down, streak, best,
+##  unlocked} — `unlocked` 는 이 판으로 해금 보상이 열렸을 때만 true(화면이 안내를 띄운다).
+## `foe` = 이번 상대(`roll_match`/`make_guard` 결과). 해금 판정에 쓴다.
+static func apply_result(mode: String, win: bool, opponent_nick := "",
+		foe: Dictionary = {}) -> Dictionary:
 	var s := state()
 	var mc := mode_cfg(mode)
 	var rk := String(mc.get("rating_key", "tournament"))
@@ -181,24 +213,42 @@ static func apply_result(mode: String, win: bool, opponent_nick := "") -> Dictio
 	s[sk] = streak + 1 if win else 0
 	s[bk] = maxi(int(s.get(bk, 0)), int(s[sk]))
 
-	# 연승방지 — **스케줄 문턱에 닿는 그 판에만** 무장한다(25 · 50 · 75 · 100 · 150 · 999).
+	# 연승방지 — 등장 판정은 여기서 하지 않는다. `pending_guard()` 가 **연승 수만 보고**
+	#   "이 문턱을 아직 안 붙어 봤으면 나온다"로 정한다(문턱당 1판).
 	#
-	# 🔴 2026-08-05 정정: 종전엔 `streak >= guard_at(25)` 이라 25연승 뒤로는 **매 판** 다시
-	#   무장해 방지봇만 계속 나왔다. 그러면 시트가 정한 여섯 번의 등장이 뜻을 잃는다
-	#   (`_note` 도 "문턱을 넘은 뒤 유지되는 판 수"라고 적혀 있다 — 무한 유지가 아니다).
-	#   문턱을 **정확히 밟은 판**에만 guard_repeat 판을 무장하고, 그 판들을 쓰면 끝난다.
-	var st: Dictionary = _cfg().get("streak", {})
-	if win and _is_guard_threshold(int(s[sk])):
-		s["guard_left"] = int(st.get("guard_repeat", 1))
-	elif not win:
-		s["guard_left"] = 0
+	# 🔴 2026-08-06 정정: 종전엔 여기서 `guard_left = guard_repeat(3)` 을 무장했다. 그래서
+	#   ① 25연승 뒤 **세 판 연속** 방지봇이 나오고(사용자 규칙은 1회),
+	#   ② 차감(`consume_guard`)을 한 번이라도 못 타는 경로가 있으면 방지봇이 눌러앉았다.
+	#   지금 하는 일은 하나뿐 — **연승이 끊기면 그 모드의 문턱 기록을 비운다**(다시 쌓으면 또 만난다).
+	if not win:
+		var srv: Dictionary = (s.get("guard_served", {}) as Dictionary).duplicate()
+		srv.erase(mode)
+		s["guard_served"] = srv
 
 	var hist: Array = (s.get("history", []) as Array).duplicate()
 	hist.push_front({"mode": mode, "win": win, "delta": delta, "foe": opponent_nick})
 	while hist.size() > 20:
 		hist.pop_back()
 	s["history"] = hist
+
+	# 주화 — 판당 지급 + 최초 승급 보너스. `streak` 은 이 판 **이전까지의** 연승이라
+	# 레이팅 보너스와 같은 값을 본다(첫 승은 보너스 0).
+	var coin := match_coin(mode, win, streak)
+	var tier_bonus := 0
+	if int(t_after.get("id", 0)) > int(t_before.get("id", 0)):
+		var paid: Array = (s.get("tier_paid", []) as Array).duplicate()
+		var tid := int(t_after.get("id", 0))
+		if not paid.has(tid):
+			tier_bonus = int((_cfg().get("coin", {}).get("tier_up", {}) as Dictionary)
+				.get(str(tid), 0))
+			paid.append(tid)
+			s["tier_paid"] = paid
 	save_state(s)
+	var total_coin := coin + tier_bonus
+	if total_coin > 0:
+		UserDB.add_item(coin_key(), total_coin)
+
+	var unlocked := _grant_unlock(win, foe)
 
 	return {
 		"delta": delta, "rating_before": before, "rating_after": after,
@@ -208,7 +258,63 @@ static func apply_result(mode: String, win: bool, opponent_nick := "") -> Dictio
 		"tier_up": int(t_after.get("id", 0)) > int(t_before.get("id", 0)),
 		"tier_down": int(t_after.get("id", 0)) < int(t_before.get("id", 0)),
 		"streak": int(s[sk]), "best": int(s[bk]),
+		"coin": coin, "coin_tier_bonus": tier_bonus,
+		"unlocked": unlocked,
 	}
+
+
+# --- 주화(재화) ---------------------------------------------------------------
+#
+# 원작 재화 `Colosseum_Coin` "콜로세움 주화". 원작은 **일일/주간 보상으로만** 줬고
+# (`claim_rewards`), 판당 지급은 없었다 → 🟦 사용자 확정 2026-08-06 으로 새로 낸 수도꼭지다.
+# 표 = `data/colosseum.json` `coin.per_match` / `coin.tier_up`(전부 `_authored`).
+
+## 주화의 인벤 키(`data/items.json` `colosseum_coin`).
+static func coin_key() -> String:
+	return String((_cfg().get("coin", {}) as Dictionary).get("key", "colosseum_coin"))
+
+
+## 보유 주화.
+static func coin() -> int:
+	return UserDB.item_count(coin_key())
+
+
+## 이번 판이 주는 주화. `streak` = 이 판 **이전까지의** 연승(승리일 때만 보너스가 붙는다).
+static func match_coin(mode: String, win: bool, streak: int) -> int:
+	var pm: Dictionary = (_cfg().get("coin", {}) as Dictionary).get("per_match", {})
+	if pm.is_empty():
+		return 0
+	var base := int(pm.get("win", 0)) if win else int(pm.get("lose", 0))
+	if win:
+		base += mini(int(pm.get("streak_bonus_per", 0)) * maxi(0, streak),
+			int(pm.get("streak_bonus_max", 0)))
+	var mult := float((pm.get("mode_mult", {}) as Dictionary).get(mode, 1.0))
+	return int(round(float(base) * mult))
+
+
+# --- 오리지널 컨텐츠 보상 ----------------------------------------------------
+#
+# 🟦 사용자 확정 2026-08-05 — **999연승을 채우면 1000번째 판에 선대군이 확정 등장하고,
+#   그 판에서 패배하는 것**이 조건이다. 선대군의 대사가 그대로 그 규칙이다
+#   ("아쉽게도 연승은 여기까지입니다 … 대결이 끝나면 점술집으로 가 보시겠어요?").
+#   등장 자체는 이미 스케줄(999)이 보장한다 — 여기서는 **패배**만 본다.
+#
+#   🟦 2026-08-06 갱신 — 선대군도 **문턱당 1회**다(예외 없음, `pending_guard`). 그 한 판을
+#   이겨 버리면 해금은 이번 연승에서 끝이고, 다시 받으려면 연승을 끊고 999를 다시 쌓아야 한다.
+#   사용자 확정: 아무리 강한 덱이어도 **약한 드래곤을 대신 출전시켜 일부러 질 수 있으므로**
+#   해금이 막히지 않는다.
+const UNLOCK_GUARD_KEY := "sundaegun"
+
+## 이 판의 결과로 해금 보상이 열렸으면 true(이미 열려 있었으면 false).
+static func _grant_unlock(win: bool, foe: Dictionary) -> bool:
+	if win or not bool(foe.get("guard", false)):
+		return false
+	if String(foe.get("guard_key", "")) != UNLOCK_GUARD_KEY:
+		return false
+	if bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false)):
+		return false
+	UserDB.set_pmeta(Summon.FLAG_UNLOCK, true)
+	return true
 
 
 # --- 입장권 -----------------------------------------------------------------
@@ -242,6 +348,30 @@ static func refresh_ticket(now_unix: int = -1) -> Dictionary:
 
 static func can_enter() -> bool:
 	return int(refresh_ticket().get("energy", 0)) >= int(_cfg().get("ticket", {}).get("cost_per_match", 1))
+
+
+## 입장권 상한.
+static func ticket_max() -> int:
+	return int(_cfg().get("ticket", {}).get("max", 10))
+
+
+## 입장권을 n 회복시킨다. 반환 = **실제로 채워진 양**(이미 만땅이면 0).
+##
+## 원작은 피로도를 **다이아 1개**로 1 충전했다(`_orig_rules.stamina`). 오프라인에서는
+## 자양강장제(items.json `drink`)가 그 자리를 잇는다 — 원작 설명문이 "피로를 풀어주는"
+## 이고, 우리는 탐험 피로도를 삭제했으므로(§K-7) 남은 피로도는 콜로세움 것뿐이다.
+static func add_ticket(n := 1) -> int:
+	if n <= 0:
+		return 0
+	var s := refresh_ticket()            # 먼저 경과분을 반영해야 상한 판정이 맞다
+	var mx := ticket_max()
+	var have := int(s.get("energy", 0))
+	if have >= mx:
+		return 0
+	var got := mini(n, mx - have)
+	s["energy"] = have + got
+	save_state(s)
+	return got
 
 
 ## 입장권 1회 소모. 부족하면 false.
@@ -559,7 +689,7 @@ static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerat
 		authored := false) -> Dictionary:
 	var spec: Dictionary = (_cfg().get("bots", {}) as Dictionary).get("grades", {}).get("ranker", {})
 	var n := party_size(mode)
-	var src: Array = rec.get("dragons", [])
+	var src: Array = _pick_roster(rec.get("dragons", []), n, rng, authored)
 	var dragons: Array = []
 	for i in n:
 		if i < src.size():
@@ -581,6 +711,29 @@ static func _make_ranker(rec: Dictionary, mode: String, rng: RandomNumberGenerat
 		"nick": String(rec.get("nick", "")), "grade": "ranker", "rating": rating,
 		"tier": tier_of(rating), "dragons": dragons, "bot": true, "ranker": true,
 	}
+
+
+## 시트가 적어 준 드래곤 중 이번 판에 나올 `n`마리.
+##
+## 랭커 시트는 한 사람이 **3~4마리**를 적을 수 있고(실제로 제라드빠텐더·청의대장군이 4마리),
+## 1vs1 은 1마리만 쓴다. 항상 앞에서 자르면 4번째는 영영 안 나오고 1vs1 은 늘 같은 드래곤이
+## 나오므로, **적어 둔 명단에서 골라** 쓴다(시트 순서는 유지 — 우열이 아니라 조합만 바뀐다).
+## `authored`(연승방지봇)는 이벤트 매치라 **적힌 순서 그대로** 둔다.
+static func _pick_roster(src: Array, n: int, rng: RandomNumberGenerator,
+		authored: bool) -> Array:
+	if authored or src.size() <= n:
+		return src
+	var idx: Array = []
+	for i in src.size():
+		idx.append(i)
+	# 뒤에서부터 무작위로 빼며 n개만 남긴다(Fisher–Yates 부분 셔플).
+	while idx.size() > n:
+		idx.remove_at(rng.randi() % idx.size())
+	idx.sort()
+	var out: Array = []
+	for i: int in idx:
+		out.append(src[i])
+	return out
 
 
 ## 시트가 적어 준 구성(젬·스킬·장비·임의스탯·면역)을 봇 드래곤 레코드에 얹는다.
@@ -606,31 +759,52 @@ static func _apply_sheet_spec(bd: Dictionary, r: Dictionary, rng: RandomNumberGe
 				continue
 			field = next
 		bd["gems"] = field
-	# 스킬 — 배운 것과 장착 칸은 별개다(§ Loadout). 시트 순서대로 열린 칸에 끼운다.
+	# 스킬 — 배운 것과 장착 칸은 별개다(§ Loadout). 칸은 원작대로 **2개**다.
+	# 🟦 사용자 확정 2026-08-05: 시트에 **2개보다 많이 적으면 그 중 랜덤 2개**를 장착한다
+	#   ("전투마다" — 상대는 판마다 새로 만들어지므로 매 판 다시 뽑힌다).
+	#   2개 이하면 적힌 것이 그대로 들어간다(뽑기 자체가 없다).
 	var sk: Array = r.get("skills", [])
 	if not sk.is_empty():
 		var learned: Array = []
 		for s: Dictionary in sk:
 			learned.append({"id": int(s.get("id", 0)), "level": int(s.get("level", 1))})
 		bd["skills"] = learned
+		var pick: Array = []
+		for i in learned.size():
+			pick.append(i)
+		while pick.size() > Loadout.SKILL_SLOTS:
+			pick.remove_at(rng.randi() % pick.size())
 		var eq: Array = []
 		for i in Loadout.SKILL_SLOTS:
-			eq.append(int((learned[i] as Dictionary).get("id", 0))
-				if i < learned.size() and Loadout.slot_unlocked(i, int(bd.get("level", 50)))
+			eq.append(int((learned[pick[i]] as Dictionary).get("id", 0))
+				if i < pick.size() and Loadout.slot_unlocked(i, int(bd.get("level", 50)))
 				else 0)
 		bd["skill_equip"] = eq
 	# 장비 — 칸(all/battle/support/artifact)은 빌더가 주 능력치로 정해 둔다.
-	#   희귀도·추가 옵션은 시트에 없으므로 **굴리지 않는다**(주 능력 + 조건부 효과만).
+	#   희귀도·옵션·강화는 시트 **비고**에 적힌 만큼만 얹는다(안 적혔으면 주 능력만인 맨 장비).
+	#   랭커 시트 비고 예: "모든 장비 [에픽] 최대 강화, 최적 옵션 장착(…)"
+	#   ⚠️ 강화 수치는 빌더가 짓지 않는다 — 여기서 **원작 규칙 그대로**(`Equipment.enhance`,
+	#      옵션 하나를 골라 +enhance_step_pct%) 적힌 횟수만큼 굴린다.
 	var ep: Array = r.get("equip", [])
 	if not ep.is_empty():
 		var field2 := {"slots": []}
 		for e2: Dictionary in ep:
-			var next2 := Equipment.equip(field2, String(e2.get("slot", "all")),
-				String(e2.get("key", "")), Data.equipment, {}, did)
+			var slot_id := String(e2.get("slot", "all"))
+			var meta := {
+				"rarity": int(e2.get("rarity", 0)),
+				"options": (e2.get("options", []) as Array).duplicate(true),
+			}
+			var next2 := Equipment.equip(field2, slot_id,
+				String(e2.get("key", "")), Data.equipment, meta, did)
 			if next2.is_empty():
 				push_warning("[Colosseum] 장비 장착 실패: %s (드래곤 %d)" % [e2, did])
 				continue
 			field2 = next2
+			for _i in int(e2.get("enhance", 0)):
+				var up := Equipment.enhance(field2, slot_id, rng, Data.equipment)
+				if up.is_empty():
+					break                      # 상한(enchant_blocked) 에 닿았다
+				field2 = up
 		bd["equip"] = field2
 	# 임의 스탯 — 확정값 + 범위값(범위는 상대를 만들 때마다 굴린다).
 	var ov: Dictionary = (r.get("stats", {}) as Dictionary).duplicate()
@@ -665,14 +839,14 @@ static func roll_opponents(mode: String, rng: RandomNumberGenerator = null) -> A
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
-	var s := state()
 	var rating := rating_of(mode)
 	var tier := tier_of(rating)
 	var tkey := String(tier.get("key", "bronze"))
 	var bots: Dictionary = _cfg().get("bots", {})
 	var mix: Dictionary = (bots.get("tier_mix", {}) as Dictionary).get(tkey, {})
 	var count := int(bots.get("list_size", 5))
-	var guard_on := int(s.get("guard_left", 0)) > 0
+	var gpend := pending_guard(mode)
+	var guard_on := not gpend.is_empty()
 
 	var rankers: Array = _cfg().get("rankers", [])
 	var nicks := gen_nicks(count, rng)
@@ -681,16 +855,25 @@ static func roll_opponents(mode: String, rng: RandomNumberGenerator = null) -> A
 	# (나머지 자리는 평소대로 굴린다 — 원작 목록도 여러 상대 중에서 고르는 형태다.)
 	var guard_slot := -1
 	if guard_on:
-		var gnpc := guard_for(streak_of(mode))
-		if not gnpc.is_empty():
-			out.append(make_guard(gnpc, mode, rng))
-			guard_slot = 0
+		out.append(make_guard(gpend, mode, rng))
+		guard_slot = 0
+	# 랭커는 **한 목록에 같은 사람이 두 번 나오지 않게** 뽑는다(비복원 추출).
+	# 🔴 2026-08-06: 종전엔 매번 `rankers[randi() % size]` 라 같은 랭커가 두 칸을 차지했고,
+	#   랭커 닉은 시트 고정이라 목록에 **동명이인**이 생겼다(test_colosseum "닉 중복 없음" 이
+	#   그걸 잡았다). 랭커 시트가 비어 있던 동안은 전부 adept 로 떨어져 드러나지 않았다.
+	var used_rankers := {}
 	for i in count - out.size():
 		var g := _pick_grade(mix, rng)
 		if guard_on and guard_slot < 0:
 			g = _grade_up(g)
+		if g == "ranker" and used_rankers.size() >= rankers.size():
+			g = "adept"                              # 랭커를 다 썼다 — 중급으로 대체
 		if g == "ranker" and not rankers.is_empty():
-			out.append(_make_ranker(rankers[rng.randi() % rankers.size()], mode, rng))
+			var ri := rng.randi() % rankers.size()
+			while used_rankers.has(ri):
+				ri = (ri + 1) % rankers.size()
+			used_rankers[ri] = true
+			out.append(_make_ranker(rankers[ri], mode, rng))
 			continue
 		if g == "ranker":
 			g = "adept"                              # 랭커 CSV 가 비었으면 중급으로 대체
@@ -739,14 +922,6 @@ static func guard_for(streak: int) -> Dictionary:
 	return best
 
 
-## 이 연승 수가 스케줄 문턱과 정확히 맞는가(= 이번 판부터 방지봇이 나온다).
-static func _is_guard_threshold(streak: int) -> bool:
-	for g: Dictionary in (_cfg().get("guards", []) as Array):
-		if int(g.get("streak_at", 0)) == streak:
-			return true
-	return false
-
-
 ## 다음 연승방지봇까지 남은 연승(없으면 0) — 로비 안내용.
 static func next_guard_in(streak: int) -> int:
 	var nxt := -1
@@ -766,11 +941,44 @@ static func make_guard(g: Dictionary, mode: String, rng: RandomNumberGenerator) 
 		"dragons": g.get("dragons", []),
 	}
 	var bot := _make_ranker(rec, mode, rng, true)     # authored — 시트가 구성을 전부 정한다
+	var key := String(g.get("key", ""))
 	bot["guard"] = true
-	bot["guard_key"] = String(g.get("key", ""))
+	bot["guard_key"] = key
+	bot["guard_at"] = int(g.get("streak_at", 0))
 	bot["talk_stage"] = String(g.get("talk_stage", ""))
-	bot["lines"] = g.get("lines", [])       # 대사 단계는 스케줄이 이미 확정해 뒀다
+	# 대사 단계는 스케줄이 이미 확정해 뒀다. 최초 조우 / 반복 조우를 가르는 기준은
+	#   `first_meet()` 한 곳이 정한다 — 시트의 `(최초 조우 시)` / `(반복)` 구역.
+	#   원작 대사(라온·누리)는 등장마다 단계가 달라 `lines_first` 가 비어 있고, 그러면
+	#   화면은 그냥 `lines` 를 쓴다.
+	# 한 줄 = `{text, npc, name, body, emotion, pos, first_show, small}` — 원작
+	#   `MatchingLayer::showNuriEvent`/`showRaonEvent` 의 `TalkNpc` 인자를 그대로 굽는다
+	#   (누리 이벤트는 누리 + 즈믄 2인극이다). logic 은 내용을 모르고 그대로 넘기기만 한다.
+	bot["lines"] = g.get("lines", [])
+	bot["lines_first"] = g.get("lines_first", [])
+	bot["first_meet"] = first_meet(key)
 	return bot
+
+
+## 이 방지봇을 몇 번 만났나(대사 최초/반복 판정용).
+## `guard_met` 은 **모드 축이 없다** — 키가 봇 이름뿐이라 1vs1·3vs3 을 통틀어 센다.
+static func met_count(guard_key: String) -> int:
+	return int((state().get("guard_met", {}) as Dictionary).get(guard_key, 0))
+
+
+## 이번 등장에 `(최초 조우 시)` 대사를 쓰나.
+##
+## 🔴 2026-08-07 사용자 지적 — **선대군만 기준이 다르다.** 다른 방지봇은 "만난 적이 있는가"
+##   (`guard_met`)로 갈리지만, 선대군의 최초 대사는 해금 선물을 예고하는 안내라
+##   ("특별한 선물을 하나 준비했습니다 … 점술집으로 가 보시겠어요?") **선물을 실제로 받을
+##   때까지** 나와야 한다. 그 선물 = `Summon.FLAG_UNLOCK`(평문 이름 `MeetAdmin`)이고
+##   `_grant_unlock` 이 **패배**할 때만 세운다 ⇒ 조우 횟수로 가르면 첫 판을 이겨 버렸을 때
+##   플래그는 false 인데 최초 대사만 소진돼 안내가 영영 안 나온다.
+##   ⇒ 선대군은 **플래그**로 가른다. 플래그도 모드 축이 없어(세이브 pmeta 한 칸)
+##     1vs1·3vs3 을 통틀어 딱 한 번만 최초 대사 + 해금 이벤트가 뜬다.
+static func first_meet(guard_key: String) -> bool:
+	if guard_key == UNLOCK_GUARD_KEY:
+		return not bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false))
+	return met_count(guard_key) <= 0
 
 
 static func _grade_up(g: String) -> String:
@@ -780,17 +988,62 @@ static func _grade_up(g: String) -> String:
 		_: return "ranker"
 
 
+## 이번 판 상대가 될 연승방지봇의 스케줄 항목. 없으면 {}.
+##
+## 🟦 사용자 확정 2026-08-06 — **문턱당 1회, 예외 없다.** 트리거 연승을 밟으면 바로 다음 판에
+## 방지봇이 나오고, 그 한 판이 끝나면 다음 문턱까지는 일반 봇이다. **선대군(999)도 마찬가지** —
+## 다시 만나려면 패배해서 연승을 끊고 999를 다시 쌓아야 한다. 해금(= 선대군에게 패배)이
+## 막히지 않는 이유도 사용자가 확정했다: 약한 드래곤을 대신 출전시키면 언제든 질 수 있다.
+##
+## 🟦 2026-08-06 — `skip_if_admin` 이 붙은 항목(선대군)은 **관리자 모드에서 아예 안 나온다**.
+## 거르는 자리를 여기로 잡은 이유: `guard_for()` 는 "그 연승의 담당자"를 묻는 순수 조회라
+## 검증 씬·시뮬레이터가 그대로 쓴다(`test_colosseum.gd`·`sim_matchup.gd`). 실제 상대를
+## 정하는 곳은 이 함수 하나뿐이다.
+## ⚠️ 딸린 결과: 선대군에게 져서 열리는 해금(`_grant_unlock` → `Summon.FLAG_UNLOCK`)도
+##   관리자 모드에서는 콜로세움으로 못 연다.
+static func pending_guard(mode: String) -> Dictionary:
+	var g := guard_for(streak_of(mode))
+	if g.is_empty():
+		return {}
+	if bool(g.get("skip_if_admin", false)) and UserDB.is_admin():
+		return {}
+	return {} if _guard_served(mode, int(g.get("streak_at", 0))) else g
+
+
+## 이 모드의 이 문턱을 이미 붙어 봤나.
+static func _guard_served(mode: String, at: int) -> bool:
+	var done: Array = (state().get("guard_served", {}) as Dictionary).get(mode, [])
+	for v in done:
+		if int(v) == at:
+			return true
+	return false
+
+
 ## 연승방지봇이 이번 상대인가(연출·라벨용).
-static func guard_active() -> bool:
-	return int(state().get("guard_left", 0)) > 0
+static func guard_active(mode: String) -> bool:
+	return not pending_guard(mode).is_empty()
 
 
-## 상대를 하나 골라 실제로 붙기 직전에 호출 — 연승방지 카운터를 1 깎는다.
-static func consume_guard() -> void:
+## 상대를 하나 골라 실제로 붙기 직전에 호출 — **그 문턱을 붙어 본 것으로 적고** 조우를 기록한다.
+## `foe` = `roll_match()` 가 돌려준 상대(일반 봇이면 아무것도 하지 않는다).
+## ⚠️ 호출 순서가 중요하다 — `make_guard()` 가 `first_meet` 을 **이 기록 전에** 읽어 간다.
+static func consume_guard(mode: String, foe: Dictionary = {}) -> void:
+	if not bool(foe.get("guard", false)):
+		return
 	var s := state()
-	if int(s.get("guard_left", 0)) > 0:
-		s["guard_left"] = int(s["guard_left"]) - 1
-		save_state(s)
+	var at := int(foe.get("guard_at", 0))
+	if at > 0 and not _guard_served(mode, at):
+		var srv: Dictionary = (s.get("guard_served", {}) as Dictionary).duplicate()
+		var done: Array = (srv.get(mode, []) as Array).duplicate()
+		done.append(at)
+		srv[mode] = done
+		s["guard_served"] = srv
+	var key := String(foe.get("guard_key", ""))
+	if key != "":
+		var met: Dictionary = (s.get("guard_met", {}) as Dictionary).duplicate()
+		met[key] = int(met.get(key, 0)) + 1
+		s["guard_met"] = met
+	save_state(s)
 
 
 # --- 랜덤 매칭 --------------------------------------------------------------
@@ -812,16 +1065,14 @@ static func roll_match(mode: String, rng: RandomNumberGenerator = null) -> Dicti
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
-	var s := state()
 	var rating := rating_of(mode)
 	var tkey := String(tier_of(rating).get("key", "bronze"))
 	var bots: Dictionary = _cfg().get("bots", {})
 	var mix: Dictionary = (bots.get("tier_mix", {}) as Dictionary).get(tkey, {})
 
-	if int(s.get("guard_left", 0)) > 0:
-		var gnpc := guard_for(streak_of(mode))
-		if not gnpc.is_empty():
-			return make_guard(gnpc, mode, rng)
+	var gnpc := pending_guard(mode)
+	if not gnpc.is_empty():
+		return make_guard(gnpc, mode, rng)
 
 	var g := _pick_grade(mix, rng)
 	var rankers: Array = _cfg().get("rankers", [])
@@ -850,6 +1101,16 @@ static func ladder(mode: String, weekly := false, rng: RandomNumberGenerator = n
 	var by_mode: Dictionary = s.get(key, {})
 	if typeof(by_mode) != TYPE_DICTIONARY:
 		by_mode = {}
+	# 사다리 위쪽은 **랭커 시트가 차지한다**(_gen_ladder). 시트가 바뀌면 세이브에 굳어 있는
+	# 보드가 옛 이름을 계속 보여 주므로, 시트 서명이 달라졌으면 **네 보드를 통째로 버린다**
+	# (1vs1/3vs3 × 누적/주간 — 하나만 버리면 나머지가 서명만 새로 달고 남는다).
+	# 그 밖에는 원작대로 새로고침(onClickedRefresh)으로만 갈린다.
+	var sig := _ranker_sig()
+	if String(s.get("pvp_rank_sig", "")) != sig:
+		s["pvp_total_rank"] = {}
+		s["pvp_week_rank"] = {}
+		s["pvp_rank_sig"] = sig
+		by_mode = {}
 	var rows: Array = by_mode.get(mode, [])
 	if rows.is_empty():
 		rows = _gen_ladder(mode, weekly, rng)
@@ -869,6 +1130,7 @@ static func reroll_ladder(mode: String, rng: RandomNumberGenerator = null) -> vo
 			by_mode = {}
 		by_mode[mode] = _gen_ladder(mode, weekly, rng)
 		s[key] = by_mode
+	s["pvp_rank_sig"] = _ranker_sig()
 	save_state(s)
 
 
@@ -880,6 +1142,14 @@ static func my_rank(mode: String, weekly := false) -> int:
 		if int(r.get("rating", 0)) > mine:
 			n += 1
 	return n
+
+
+## 랭커 시트의 서명 — 닉네임 목록이 바뀌면 사다리를 다시 굴리는 기준.
+static func _ranker_sig() -> String:
+	var names: Array = []
+	for r: Dictionary in (_cfg().get("rankers", []) as Array):
+		names.append(String(r.get("nick", "")))
+	return "|".join(names)
 
 
 static func _gen_ladder(mode: String, weekly: bool, rng: RandomNumberGenerator) -> Array:

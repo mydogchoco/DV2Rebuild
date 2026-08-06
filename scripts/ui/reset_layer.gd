@@ -197,7 +197,8 @@ func _build_dragon(d: Dictionary) -> void:
 	var rel := -7.0 - (357.0 - ph * psc / 2.0)
 	if UserDB.is_egg(d):
 		return                                       # 알에는 쓸 수 없다(호출부가 막지만 방어)
-	var path := DRAGON_SCENE % [int(d.get("id", 0)), stage]
+	# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 스파인이 없다).
+	var path := DRAGON_SCENE % [Icons.art_id_of(d), stage]
 	if not ResourceLoader.exists(path):
 		return
 	var d2 := Node2D.new()

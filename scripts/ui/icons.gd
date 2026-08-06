@@ -62,7 +62,9 @@ static func gem_texture(code: String, tier: int) -> Texture2D:
 ## 도감·둥지와 같은 규약인 초상 아틀라스의 `dragon_dragon_<id>_egg` 프레임을 쓴다
 ## (cave.gd `_dex_stage_frame(id,"egg")` 과 같은 프레임 — 알 그림은 종마다 따로 있다).
 static func dragon_egg_texture(dragon_id: int) -> Texture2D:
-	var p := "res://assets/converted/portrait_%d/dragon_dragon_%d_egg.tres" % [dragon_id, dragon_id]
+	# 🔴 2026-08-07 — 커스텀 종 600·700 은 자기 알 그림이 없다(소환 재료의 것을 물려받는다).
+	var art := species_art_id(dragon_id)
+	var p := "res://assets/converted/portrait_%d/dragon_dragon_%d_egg.tres" % [art, art]
 	return load(p) if ResourceLoader.exists(p) else null
 
 ## ── 커스텀 종(600·700)의 그림·속성 해석 ─────────────────────────────────────
@@ -82,7 +84,54 @@ static func art_id_of(inst: Dictionary) -> int:
 	var own := int(inst.get("art_id", 0))
 	if own > 0:
 		return own
-	return Data.art_id(id)
+	return species_art_id(id)
+
+
+## 개체 없이 **종 id 만** 아는 호출부용(가방 알 아이콘·도감 등).
+## 소환이 세이브에 남긴 종 단위 상속값(`UserDB.species_art`)을 먼저 보고, 없으면 마스터 별칭.
+static func species_art_id(id: int) -> int:
+	var sa := UserDB.species_art(id)
+	var sid := int(sa.get("art_id", 0))
+	return sid if sid > 0 else Data.art_id(id)
+
+
+## 보이스 표(`data/dragon_voices.json` `voices.<id>`)의 한 행 — 종 id 로 찾는다.
+##
+## 🟦 2026-08-07 사용자 확정 — 커스텀 종 **600·700 은 소환 재료가 된 종의 울음소리**를 쓴다.
+##   그 둘은 배정표에 `critical` 한 줄뿐이라 해치/해츨링/성체 소리가 아예 안 났다
+##   (`data/dragon_voices.json`: `600 = {critical:39}` · `700 = {critical:31}`).
+##   그림·속성과 같은 출처(`meta.species_art`)를 따르게 하면 네 재생 지점이 한꺼번에 살아난다.
+##
+## ⚠️ `Data.art_id` 는 **안 본다.** 카드 코드 종 666·777 도 그림만 3001·3020 에서 빌리는데
+##    보이스는 자기 것이 사용자 검수로 채워져 있다(4칸 전부) — 그림 별칭을 따라가면 그걸 덮는다.
+##    따라서 **런타임 상속분**(`UserDB.species_art`)일 때만 갈아탄다.
+## 재료 종에 배정이 없으면 자기 행으로 되돌아간다(빈 소리보다 낫다).
+static func voice_row(dragon_id: int) -> Dictionary:
+	var t: Dictionary = Data.dragon_voices.get("voices", {})
+	var own = t.get(str(dragon_id), {})
+	var src := int(UserDB.species_art(dragon_id).get("art_id", 0))
+	if src > 0 and src != dragon_id:
+		var r = t.get(str(src), {})
+		if r is Dictionary and not (r as Dictionary).is_empty():
+			return r
+	return own if own is Dictionary else {}
+
+
+## 가방 알 칸의 표시명 — `EggGacha.item_def` 와 같은 문구지만 **종 이름을 세이브에서** 푼다.
+## 커스텀 종 600·700 은 마스터 `name` 이 비어 있어 그대로 두면 "의 알" 이 된다.
+static func egg_item_name(dragon_id: int) -> String:
+	var nm := species_name(dragon_id)
+	return "%s의 알" % (nm if nm != "" else "드래곤 %d" % dragon_id)
+
+
+## 같은 축의 속성 — 종 단위 상속값 → 마스터. 없으면 "".
+static func species_element(id: int) -> String:
+	var sa := UserDB.species_art(id)
+	var se := String(sa.get("element", ""))
+	if se != "":
+		return se
+	var m = Data.get_dragon(id).get("element")
+	return String(m) if typeof(m) == TYPE_STRING else ""
 
 
 ## 개체의 표시 속성. 커스텀 종은 마스터가 `element: null` 이라 개체 상속값을 본다.
@@ -91,8 +140,7 @@ static func element_of(inst: Dictionary) -> String:
 	var own = inst.get("element")
 	if typeof(own) == TYPE_STRING and String(own) != "":
 		return String(own)
-	var m = Data.get_dragon(int(inst.get("id", 0))).get("element")
-	return String(m) if typeof(m) == TYPE_STRING else ""
+	return species_element(int(inst.get("id", 0)))
 
 
 ## 종 이름. 커스텀 종(600·700)은 마스터 `name` 이 비어 있고(`name_from_player: true`)

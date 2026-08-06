@@ -8,6 +8,17 @@ extends Node
 
 signal state_changed(from_state: String, to_state: String)
 
+## **메인 화면** = 월드맵 씬의 **유타칸 지역뷰**다(양피지 전체지도가 아니다).
+## 근거: 레퍼런스 `docs/ref/orig_image/old_screenshots/Yutakan_main.png` = 부팅 직후 화면.
+## 원작에서 양피지(`WorldMapFullLayer`)는 하단 메뉴 '월드맵'(tag 0x12)으로 **따로** 들어간다.
+##
+## 🟦 2026-08-06 사용자 확정 — "항상 메인 화면은 유타칸으로 배선". 어느 화면에서 돌아오든
+##   여기로 온다. 종전에는 스토리 열람 후·콜로세움 나가기 후가 `region` 없이 goto 해서
+##   **개요 양피지**로 떨어졌다(사용자 신고).
+## ⚠️ 밤/카데스 토글(`yutakan_night`·`kades_space`)은 **건드리지 않는다**(사용자 확정) —
+##   플레이어가 켜 둔 위상이 화면을 오갈 때마다 풀리면 토글이 무의미해진다.
+const MAIN_PARAMS := {"region": "yutakan"}
+
 # 상태(게임 모드) → 씬 경로. 화면을 추가하면 여기 등록.
 const REGISTRY := {
 	# 부팅 첫 화면 — 원작 IntroScene(타이틀 스파인 + bg_intro + "화면을 터치해주세요").
@@ -87,6 +98,14 @@ func current_state() -> String:
 
 func current_scene() -> Node:
 	return _current_scene
+
+## 메인 화면(유타칸 지역뷰)으로. `extra` 는 월드맵에 덧붙일 파라미터(`from` 등).
+## 화면을 나갈 때는 `goto("worldmap")` 대신 **이것**을 쓴다 — §MAIN_PARAMS 참조.
+func goto_main(extra: Dictionary = {}) -> bool:
+	var p := MAIN_PARAMS.duplicate()
+	for k in extra:
+		p[k] = extra[k]
+	return goto("worldmap", p)
 
 ## state로 전환. params는 새 씬의 enter(params)로 전달(메서드가 있으면).
 func goto(state: String, params: Dictionary = {}) -> bool:

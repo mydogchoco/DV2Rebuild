@@ -77,6 +77,12 @@ OFF_NAME, OFF_KEY = 0x1d8, 0x1f0
 ## 🔴 여섯 함수 중 **`setTalker` 만** 몸통·표정을 인자로 받는다. 원형(디컴프 주석 전수):
 ##     setTalker(bool, string, int body, int state, float×4, int pos, bool×10)
 ##       ← w3=body · w4=state · w5=Character_Pos(1왼쪽/2오른쪽/3가운데)
+##       ← **w6 = 등장 연출 플래그**(Ghidra `param_11`). `ScenarioLayer::setTalker` @016c7848 의
+##         `if ((param_11 & 1) == 0) { 그 자리에 그대로 두고 말하기 펄스만 } else { 화면 밖에서
+##         MoveBy 로 밀어 넣는다 }` 가 이 값 하나로 갈린다. 82~101화의 `setNpcTalk` 이
+##         3번째 bool(`b3`)로 넘기는 값과 같은 자리다(`ScenarioSupport::setNpcTalk` @0165aab8
+##         꼬리의 `setTalker(…, uVar17, param_7, 0, …)`).
+##         ⇒ **"등장 연출은 그 편에서 처음 세울 때만"은 데이터가 정한다** — 우리가 추론할 값이 아니다.
 ##     setTalk(bool) · setTalkForNotClick() · setTalkForTalker()             ← 인자 없음
 ##     setReorderTalker(int, bool, bool, bool) · setMoveTalker(int, int, InfoEventData*, bool)
 ## 종전엔 여섯 개 전부에서 w3/w4 를 body/state 로 실었다. 나머지 다섯에서는 그 레지스터가
@@ -98,7 +104,56 @@ def talk_op(fn: str, key, name, regs: dict) -> dict:
         op["body"] = regs.get("w3")
         op["state"] = regs.get("w4")
         op["pos"] = regs.get("w5")
+        # 등장 연출 플래그(위 주석). 못 읽었으면 **싣지 않는다** — 0 으로 채우면
+        # "등장 연출이 하나도 없는 회차"라는 거짓말이 데이터에 박힌다.
+        if regs.get("w6") is not None:
+            op["enter"] = bool(regs["w6"] & 1)
     return op
+
+## 🔴 1~78화(`Scenario1~7`)는 **`ScenarioSupport::drawIllust` 를 부르지 않는다 — 인라인돼 있다.**
+##
+## 바이트 수준 전수 스캔(`b`/`bl` 둘 다)으로 확정: `drawIllust` 썽크(0xbae370)를 부르는 곳은
+## **12곳뿐**이고 전부 0x1652ab0 이상 = `Scenario8`(79~81화) + 82~101화 람다다.
+## 그런데 삽화 경로 문자열(`scenario/main_story/sn_8_1_illust.jpg` …)은 .rodata 에 실재하고,
+## 그걸 만드는 `adrp/add` 는 `Scenario1~7::setNext` 의 스텝 블록 안에 있다(예 @0x1566614).
+## 그 뒤 코드가 `drawIllust` 본문 그대로다 —
+##     CCSprite::create(경로) → setAnchorPoint(0.5,0.5) → setPosition(화면중앙)
+##     → setScale(layer+0x194) → setTag(0x3e6) → addChild(this+0x1a0, spr, **z=3**) → CCCallFunc
+## (원본 `drawIllust` 와 태그만 다르다: 인라인본 998 · 함수본 500.)
+##
+## ⇒ 호출 이름으로 찾는 규칙으로는 영영 안 잡힌다. **경로 문자열을 만나는 순간을 스텝으로 친다.**
+## 컷 아틀라스 프레임(`scenario/main_story/sn_24/3.png`)도 같은 방식으로 인라인돼 있어
+## 같은 규칙에서 `showCut` 으로 낸다(변환 키 = 경로에서 `/`→`_`, 확장자 제거).
+ILLUST_RE = re.compile(r"scenario/main_story/sn_(\d+)_(\d+)_illust\.(?:jpg|png)")
+CUT_RE = re.compile(r"scenario/main_story/(sn_[0-9_a-z]+/[0-9a-z_]+\.(?:png|jpg))")
+## 🔴 회차 BGM 도 인라인이다 — `SoundManager::playBackground("music/bg_15.mp3", true)` 가
+##    스텝 블록 안에서 직접 불린다(46화 실측 @0x15f8ec8~0x15f8f00). 번호를 받는
+##    `ScenarioSupport::playBackGroundFieldMusic(int)`(79~101화 경로)과 **다른 함수**라
+##    호출 이름으로 찾는 규칙에는 안 걸렸고, 그래서 1~78화가 통째로 무음이었다.
+MUSIC_RE = re.compile(r"music/([A-Za-z0-9_]+)\.mp3")
+
+
+def art_ops(sv: str, ep: int = 0) -> list[dict]:
+    """경로 문자열 하나 → 삽화/컷 스텝(없으면 빈 목록).
+
+    `ep` 를 주면 **그 회차의 그림만** 인정한다 — 경로가 회차 번호를 담고 있어
+    형제 블록에서 남의 그림을 주워 오는 것을 막을 수 있다(대사 키 검증과 같은 장치)."""
+    m = ILLUST_RE.fullmatch(sv)
+    if m:
+        no = int(m.group(1))
+        if ep and no != ep:
+            return []
+        return [{"op": "drawIllust", "illust": no, "kind": int(m.group(2))}]
+    m = CUT_RE.fullmatch(sv)
+    if m:
+        folder = m.group(1).split("/")[0]                 # `sn_24` · `sn_24_1` · `sn_46_2`
+        no = int(folder.split("_")[1])
+        if ep and no != ep:
+            return []
+        key = "scenario_main_story_" + m.group(1).rsplit(".", 1)[0].replace("/", "_")
+        return [{"op": "showCut", "frame": key}]
+    return []
+
 
 ## 한 case 블록에서 따라갈 최대 명령 수 / 범위 탐색 상한.
 MAX_STEP_INSNS, MAX_SCAN = 400, 300000
@@ -331,6 +386,29 @@ def main():
                 return None
             sv = "".join(out)
             return sv if 2 <= len(sv) <= 20 and re.fullmatch(r"[A-Za-z_0-9]+", sv) else None
+
+        def ropath(addr: int):
+            """그 주소가 리소스 **경로** 문자열이면 돌려준다.
+
+            🔴 `rostr` 은 `[A-Za-z_0-9]{2,20}` 만 통과시킨다(NPC 폴더명 전용). 그래서
+               `scenario/main_story/sn_8_1_illust.jpg` 같은 경로가 통째로 걸러졌고,
+               1~78화의 **인라인된 삽화/컷**이 하나도 안 잡혔다(사용자 신고 2026-08-04
+               "전용 컷씬 이미지가 뜨지 않는다")."""
+            try:
+                out = []
+                for k in range(96):
+                    b = mem.getByte(af.getAddress(addr + k)) & 0xFF
+                    if b == 0:
+                        break
+                    if not (0x20 <= b < 0x7F):
+                        return None
+                    out.append(chr(b))
+                else:
+                    return None
+            except Exception:                           # noqa: BLE001 — 매핑 밖이면 그냥 아님
+                return None
+            sv = "".join(out)
+            return sv if sv.startswith(("scenario/main_story/", "music/")) else None
 
         def entry_target(t: dict, idx: int) -> int:
             """테이블 엔트리 → 타깃 주소. **엔트리 폭은 표마다 다르다**(`ldrb`/`ldrh`/`ldrsw`)."""
@@ -669,7 +747,7 @@ def main():
                         n0 = len(f0)
                         f0.extend(walk_case(at, after, fm, body, a4, slots,
                                             npc_talk_addrs, user_talk_addrs, text,
-                                            talker_addrs=talker_addrs, rostr=rostr,
+                                            talker_addrs=talker_addrs, rostr=rostr, ropath=ropath,
                                             talk_addrs=talk_addrs, want_sn=None,
                                             lam=lambda_at, ep=sn))
                         if f"--dump-ep={sn}" in sys.argv:
@@ -703,7 +781,7 @@ def main():
                 if t.get("dflt"):
                     dops = walk_case(at, after, fm, body, int(t["dflt"]), slots,
                                      npc_talk_addrs, user_talk_addrs, text,
-                                     talker_addrs=talker_addrs, rostr=rostr,
+                                     talker_addrs=talker_addrs, rostr=rostr, ropath=ropath,
                                      talk_addrs=talk_addrs, want_sn=None,
                                      lam=lambda_at, ep=sn)
                     for od in dops:
@@ -797,7 +875,7 @@ def default_is_user_talk(_at, _after, body, dflt: int, user_talk_addrs: set) -> 
 
 def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
               npc_talk_addrs: set, user_talk_addrs: set, text,
-              talker_addrs: set | None = None, rostr=None,
+              talker_addrs: set | None = None, rostr=None, ropath=None,
               talk_addrs: set | None = None,
               want_sn: int | None = None,
               lam=None, ep: int = 0) -> list[dict]:
@@ -844,6 +922,7 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
             st[5], dict(st[6]), st[7])
         last_cmp: tuple[str, int] | None = None
         pend_slot: int | None = None          # 직전 `add x0,this,#0x1d8|0x1f0`
+        pend_music: str | None = None         # 직전에 만든 `music/<트랙>.mp3` 경로
         talk_name = talk_key = None
         cur = nav_at(start)
         seen: set[int] = set()
@@ -885,6 +964,11 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
             m = re.fullmatch(r"orr (w\d+),wzr,#(0x[0-9a-f]+|\d+)", t)
             if m:
                 regs[m.group(1)] = int(m.group(2), 0)
+            # `false` 인자는 `mov wN,wzr`(= `orr wN,wzr,wzr`)로 나온다. 이걸 안 받으면
+            # 등장 플래그가 **직전 호출의 찌꺼기**로 남아 조용히 True 가 된다.
+            m = re.fullmatch(r"mov (w\d+),wzr", t)
+            if m:
+                regs[m.group(1)] = 0
             # 슬롯 저장 — 4개 대사 슬롯뿐 아니라 전부 기억한다(배경 번호도 슬롯으로 넘어간다)
             m = re.fullmatch(r"(str|stur) (w\d+|wzr),\[(x29|sp),#(-?0x[0-9a-f]+|-?\d+)\]", t)
             if m:
@@ -915,6 +999,21 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
             if m and m.group(1) == m.group(2) and m.group(1) in pages:
                 cand = pages[m.group(1)] + int(m.group(3), 0)
                 sv = rostr(cand) if rostr else None
+                # 삽화·컷 경로는 `rostr` 규격(짧은 식별자)에 안 맞아 따로 읽는다.
+                # ⚠️ 여기만 `primary` 를 안 본다. 인라인된 삽화 코드는 문자열 소멸자
+                #    분기(`cbz` → SSO 해제) 뒤에 붙어 주경로 판정이 갈린다.
+                #    대신 **회차 소속 검증**으로 남의 회차 그림이 실리는 것을 막는다
+                #    (경로가 회차 번호를 담고 있다 — 대사 키와 같은 성질).
+                if ropath is not None:
+                    pv = ropath(cand)
+                    if pv:
+                        for _o in art_ops(pv, ep):
+                            if _o not in ops:
+                                ops.append(_o)
+                        # 음악 경로는 **그 문자열을 실제로 먹는 호출**을 봐야 한다 —
+                        # 경로만 보면 BGM(`playBackground`)과 효과음(`playEffect`)이 섞인다.
+                        mm = MUSIC_RE.fullmatch(pv)
+                        pend_music = mm.group(1) if mm else pend_music
                 if sv:
                     last_str = sv
                     xstr[m.group(1)] = sv
@@ -957,6 +1056,18 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                 _fl0 = cur.getFlows()
                 _cal = fm.getFunctionAt(_fl0[0]) if _fl0 else None
                 _nm0 = _cal.getName() if _cal is not None else ""
+                # 🔴 회차 BGM 은 **인라인**이다 — 스텝 블록이 `SoundManager::playBackground`
+                #    를 직접 부른다(46화 실측 @0x15f8f00). 번호를 받는
+                #    `playBackGroundFieldMusic`(79~101화)과 다른 함수라 종전 규칙엔 안 걸렸고,
+                #    그래서 1~78화가 통째로 무음이었다(사용자 신고 2026-08-04).
+                #    ⚠️ 경로만 보고 판단하면 효과음(`playEffect`)까지 BGM 으로 실린다 —
+                #       **그 문자열을 먹는 호출**로 가른다.
+                if pend_music is not None and _nm0 in ("playBackground", "playEffect"):
+                    _mo = {"op": "playBackground" if _nm0 == "playBackground" else "playEffect",
+                           "track": pend_music}
+                    if _mo not in ops:
+                        ops.append(_mo)
+                    pend_music = None
                 if a in npc_talk_addrs or "setNpcTalk" in _nm0:
                     ops.append({"op": "setNpcTalk", **store})
                     return ops
@@ -978,11 +1089,14 @@ def walk_case(_at, _after, fm, body, tgt: int, slots: dict[str, str],
                     return ops
                 if talker_addrs and a in talker_addrs:
                     # AAPCS: x0=this · w1=bool · x2=이름 문자열 · w3=body · w4=state
-                    # · s0~s3=float 4개 · w5=Character_Pos.
-                    ops.append({"op": "setTalker",
-                                "npc_name": xstr.get("x2", last_str),
-                                "body": regs.get("w3"), "state": regs.get("w4"),
-                                "pos": regs.get("w5")})
+                    # · s0~s3=float 4개 · w5=Character_Pos · **w6=등장 연출**.
+                    _t = {"op": "setTalker",
+                          "npc_name": xstr.get("x2", last_str),
+                          "body": regs.get("w3"), "state": regs.get("w4"),
+                          "pos": regs.get("w5")}
+                    if regs.get("w6") is not None:
+                        _t["enter"] = bool(regs["w6"] & 1)
+                    ops.append(_t)
                     return ops
                 fl = cur.getFlows()
                 callee = fm.getFunctionAt(fl[0]) if fl else None

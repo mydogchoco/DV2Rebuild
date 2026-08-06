@@ -49,7 +49,14 @@ def add(key, cat, name, category, subcategory, **kw):
         "effect": None,                 # TODO 역설계
         "offline": kw.get("offline", "impl"),
     }
-    for opt in ("dragon_id", "tier", "size", "grade", "piece", "stage", "note"):
+    # 아이콘이 item/<cat> 아틀라스에 없는 품목(원작 프레임 부재분)은 다른 변환 폴더의
+    # 논리 키를 직접 준다. CLAUDE.md §8.4 — logic 은 경로를 모르고 이 키만 본다.
+    if kw.get("icon"):
+        e["icon"] = kw["icon"]
+    # `desc`/`use` 는 보통 사용자 시트가 채운다(build_item_descs.py · build_item_uses.py).
+    # 시트에 없는 **오프라인 신설 품목**만 여기서 직접 준다 — 안 그러면 재생성 때 빈다.
+    for opt in ("dragon_id", "tier", "size", "grade", "piece", "stage", "note",
+                "desc", "use", "_desc_authored"):
         if opt in kw:
             e[opt] = kw[opt]
     items[key] = e
@@ -149,7 +156,10 @@ def main():
     add("att_powder", "mtr", "붉은 마법가루", "material", "powder", offline="todo")
     add("def_powder", "mtr", "푸른 마법가루", "material", "powder", offline="todo")
     add("hp_powder", "mtr", "노란 마법가루", "material", "powder", offline="todo")
-    add("balrog_core", "mtr", "발록의 핵", "material", "craft", offline="stub")
+    # 🟢 2026-08-06 `stub` → `impl`: 수급처(상점 PVP 탭)와 소비처(소울젬 8~10강 —
+    #   gems.json `upgrade.soul_mat_items` mat/core, magicshop.gd:3120)가 둘 다 배선돼
+    #   실제로 돈다. 아래 jewel 4종이 2026-08-04 에 같은 이유로 고쳐진 선례다.
+    add("balrog_core", "mtr", "발록의 핵", "material", "craft")
     ALC = [("moderation", "절제"), ("wisdom", "지혜"), ("courage", "용기"),
            ("justice", "정의"), ("glory", "영광"), ("legend", "전설")]
     for k, nm in ALC:
@@ -203,9 +213,14 @@ def main():
     add("energy_drink", "etc", "에너지 드링크", "consumable", "qol", offline="stub")
     add("hero_auto1", "etc", "기누의 약속(1일)", "consumable", "qol", offline="todo")
     add("hero_auto7", "etc", "기누의 약속(7일)", "consumable", "qol", offline="todo")
+    # 탐험 보상 배수권 — 🟢 2026-08-04 `todo` → `impl`:
+    #   규칙이 유실이 아니라 **원작 설명문 + 위키 item.pdf §9.6 에 있었다**("1시간 동안 탐험에서
+    #   얻는 경험치/골드를 N배"). 실시간 1시간 버프로 배선했다(사용자 확정: 게임을 꺼도 시간이
+    #   흐른다) — 규칙·수치 = data/item_effects.json `reward_buff`, 판정 = ItemEffect,
+    #   사용 = cave.gd `_use_consumable` "rewardbuff", 적용 = battle.gd 승리 보상.
     for key, nm in [("expx2", "경험치 2배"), ("expx4", "경험치 4배"),
                     ("goldx2", "골드 2배"), ("goldx4", "골드 4배")]:
-        add(key, "etc", nm, "consumable", "buff", offline="todo")
+        add(key, "etc", nm, "consumable", "buff", offline="impl")
     add("portal", "etc", "고대 포탈", "consumable", "ticket", offline="stub")
     add("ticket", "etc", "토너먼트 티켓", "consumable", "ticket", offline="stub")
     add("dragon_namechange", "etc", "드래곤 이름변경", "consumable", "qol")
@@ -229,6 +244,25 @@ def main():
     # 레이드 재화 (멀티 의존 → stub)
     add("kasizclaw", "etc", "카시즈의 파편", "currency", "raid_shard", offline="stub")
     add("cronakscale", "etc", "크로낙의 파편", "currency", "raid_shard", offline="stub")
+    # 콜로세움 주화 — 원작 재화 `Colosseum_Coin`(stringsData_KR.xml). 정기(ele_*)와 같은
+    # **아이템형 재화**라 category=currency 로 둔다(상점 `cur` 와 SELL 탭 제외가 그 축을 본다).
+    #
+    # ⚠️ 아이콘: 원작이 쓰던 `common/colosseum_point_small1.png` 은 추출 아틀라스에 없다
+    #    (`asset_index.py --grep colosseum_point` → 0건, CLAUDE.md §10 '상점 PVP·POINT 탭' 행).
+    #    형제 재화인 **명예 포인트** 아이콘 3종이 미사용으로 실재해(`common/honor_small1`
+    #    32×24 · `honor_small2` · `honor_big`, orig=ScrambleRewardLayer) 그것을 쓴다 —
+    #    같은 PvP 사다리 재화이고(우리 티어 경계값도 StrategyManager::GetTier 채굴분),
+    #    크기도 `common/coin_small1`(28×28) 과 나란해 지갑 줄에 그대로 들어간다.
+    #    원본 프레임을 확보하면 이 한 줄만 고치면 된다.
+    #
+    # ⚠️ `desc` 는 원작 `info_item.comment` 자리인데 이 재화는 **원작 아이템이 아니라 지갑
+    #    재화**라 comment 가 애초에 없다. 지어내지 않았다는 표시로 `_desc_authored` 를 단다
+    #    (사용자 시트 items.csv 에도 이 행이 없다 — 그래서 여기서 직접 준다).
+    add("colosseum_coin", "etc", "콜로세움 주화", "currency", "pvp",
+        icon="common_ui/common_honor_small1",
+        use="상점 PVP 탭 전용 재화",
+        desc="콜로세움에서 겨룬 자에게 주어지는 주화.",
+        _desc_authored=True)
 
     # ---------------- doc (문서) ----------------
     for key, nm in [("map_seal", "봉인된 보물지도"),

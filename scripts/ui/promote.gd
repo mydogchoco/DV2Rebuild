@@ -368,7 +368,8 @@ func _camp_label(pos: Vector2, text: String) -> Label:
 ## (cave.gd `DRAGON_SCENE` 과 같은 규약). 없으면 null.
 func _dragon_spine(uid: int, scale := 1.0) -> Node2D:
 	var d: Dictionary = UserDB.get_dragon(uid)
-	var id := int(d.get("id", 0))
+	# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 스파인이 없다).
+	var id := Icons.art_id_of(d)
 	for stage in [_growth_stage(d), "adult", "child", "baby"]:
 		var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [id, stage]
 		if ResourceLoader.exists(path):

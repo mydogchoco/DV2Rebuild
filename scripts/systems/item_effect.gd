@@ -59,6 +59,87 @@ static func mult(active: Dictionary, stat: String) -> float:
 	var b: Dictionary = active.get(stat, {})
 	return 1.0 + float(int(b.get("pct", 0))) / 100.0
 
+# -------------------------------------------------------- 탐험 보상 배수권(경험치·골드 N배)
+#
+# 원작 설명문 + 위키 item.pdf §9.6 이 규칙을 확정한다: **1시간 동안 탐험에서 얻는
+# 경험치/골드를 N배**. 🟦 사용자 확정 2026-08-04: **게임을 꺼도 시간이 흐른다** →
+# 만료를 **실시간 unix 초**로 들고 있고(UserDB pmeta `reward_buff`), 턴·전투 수와 무관하다.
+# 수치·중복 규칙은 `data/item_effects.json` `reward_buff`.
+#
+# 상태 형식(그대로 세이브에 들어간다):
+#   {"exp": {"mult": 2, "until": 1785200000}, "gold": {...}}   — 축마다 하나씩, 없으면 무버프.
+
+## 이 아이템이 보상 배수권인가 → {axis: "exp"|"gold", mult: 2, seconds: 3600}. 아니면 {}.
+static func reward_buff_of(defs: Dictionary, key: String) -> Dictionary:
+	var cfg: Dictionary = defs.get("reward_buff", {})
+	var row = (cfg.get("items", {}) as Dictionary).get(key, null)
+	if not (row is Dictionary):
+		return {}
+	return {
+		"axis": String((row as Dictionary).get("axis", "")),
+		"mult": int((row as Dictionary).get("mult", 1)),
+		"seconds": int(cfg.get("duration_sec", 3600)),
+	}
+
+## 지금 이 축에 걸린 배수(1.0 = 무버프). 만료된 항목은 없는 것으로 본다.
+static func reward_buff_mult(active: Dictionary, axis: String, now: int) -> float:
+	var b = active.get(axis, null)
+	if not (b is Dictionary):
+		return 1.0
+	if int((b as Dictionary).get("until", 0)) <= now:
+		return 1.0
+	return maxf(1.0, float(int((b as Dictionary).get("mult", 1))))
+
+## 남은 시간(초). 0 = 안 걸려 있음.
+static func reward_buff_left(active: Dictionary, axis: String, now: int) -> int:
+	var b = active.get(axis, null)
+	if not (b is Dictionary):
+		return 0
+	return maxi(0, int((b as Dictionary).get("until", 0)) - now)
+
+## 배수권 사용 → {ok, active, reason}.
+##   ok=false 면 **아이템을 소모하지 않는다**(더 낮은 배수를 덧쓰려 한 경우).
+## 규칙(ASSUMPTION, 드링크 선례 §2.3): 같은 배수 = 시간 누적 / 더 높은 배수 = 배수 갱신 +
+##   남은 시간 유지(최소 지속시간 보장) / 더 낮은 배수 = 거부.
+static func apply_reward_buff(active: Dictionary, eff: Dictionary, now: int) -> Dictionary:
+	if eff.is_empty():
+		return {"ok": false, "active": active.duplicate(true), "reason": "배수권이 아닙니다"}
+	var axis := String(eff["axis"])
+	var mult := int(eff["mult"])
+	var secs := int(eff["seconds"])
+	var out := active.duplicate(true)
+	var left := reward_buff_left(active, axis, now)
+	var cur := int(reward_buff_mult(active, axis, now))
+	if left <= 0:
+		out[axis] = {"mult": mult, "until": now + secs}
+		return {"ok": true, "active": out, "reason": ""}
+	if mult < cur:
+		return {"ok": false, "active": out,
+			"reason": "이미 %d배 버프가 걸려 있습니다 (남은 시간 %d분)" % [cur, int(ceil(float(left) / 60.0))]}
+	if mult == cur:
+		out[axis] = {"mult": cur, "until": now + left + secs}     # 시간 누적
+	else:
+		out[axis] = {"mult": mult, "until": now + maxi(left, secs)}  # 배수 갱신
+	return {"ok": true, "active": out, "reason": ""}
+
+## 만료분을 걷어낸 상태(세이브 정리용). 바뀐 게 없으면 같은 내용을 돌려준다.
+static func prune_reward_buff(active: Dictionary, now: int) -> Dictionary:
+	var out := {}
+	for a in active.keys():
+		var b = active[a]
+		if b is Dictionary and int((b as Dictionary).get("until", 0)) > now:
+			out[a] = (b as Dictionary).duplicate()
+	return out
+
+## "42분" / "1시간 3분" — 남은 시간 표시용(render 가 문자열만 받아 쓴다).
+static func reward_buff_left_text(sec: int) -> String:
+	if sec <= 0:
+		return ""
+	var m := int(ceil(float(sec) / 60.0))
+	if m < 60:
+		return "%d분" % m
+	return "%d시간 %d분" % [m / 60, m % 60]
+
 # ------------------------------------------------------------------ 회복 물약
 
 ## 회복 물약을 이 레벨의 드래곤에게 쓸 수 있는가(위키 §2.2 레벨대).

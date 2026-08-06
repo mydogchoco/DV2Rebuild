@@ -4,12 +4,24 @@ particle_export.py — Cocos2d 파티클 plist(gravity 모드) → Godot CPUPart
 
 원작 연출 자산(DV2/particle/scene/adventure/pt_*.plist)을 Godot 좌표계(y-down)로 변환해
 assets/converted/particles/<name>.json 으로 저장. 런타임 빌더=battle.gd _levelup_particle.
-텍스처는 임베드(gzip base64)지만 대상이 부드러운 원형 점이라 런타임 절차생성 텍스처로 대체(견고).
+
+## 텍스처 (2026-08-06 — 종전엔 절차생성 점으로 **전량 대체**하고 있었다)
+
+종전 주석은 "대상이 부드러운 원형 점이라 런타임 절차생성 텍스처로 대체(견고)"였는데,
+`textureFileName` 을 전수로 찍어 보니 **원형 점이 아닌 것이 5종**이었다 —
+`effect_damaged.png`(콜로세움 피격 = **오각별**) · `skill_29.png` · `skill_31.png` ·
+`batttttt.png` · `fire.png`. 노란 별이 노란 동그라미로 나오고 있었다(§3 위반).
+⇒ 이제 **원본 텍스처를 그대로 굽는다**: 형제 PNG 가 있으면 그걸, 없으면 plist 에 박힌
+`<textureImageData>`(gzip PNG)를 풀어 `<name>.png` 로 낸다. 절차생성 점은
+`cocos_particle.gd` 에서 **텍스처가 없을 때의 폴백**으로만 남는다.
+
+⚠️ 크기 기준도 텍스처를 따라간다 — 종전 `BASE = 32.0`(절차생성 점의 px)에 plist 의
+`startParticleSize` 를 나눴다. 실제 텍스처는 50×50 등이라 그 상수를 쓰면 배율이 어긋난다.
 
 좌표 변환: Cocos(y-up) → Godot(y-down): 방향/중력 y 부호 반전.
 블렌드 770/1 = GL_SRC_ALPHA/GL_ONE = 가산(additive).
 """
-import plistlib, json, math, os
+import base64, io, json, math, os, plistlib, struct, zlib
 
 DST = "assets/converted/particles"
 # (plist 상대경로, 출력 이름). 경로는 DV2/particle/ 기준.
@@ -74,6 +86,40 @@ def F(d, k, default=0.0):
         return default
 
 
+def texture_png(d, rel):
+    """이 plist 가 쓰는 텍스처의 **PNG 바이트**. 형제 파일 우선(엔진도 그걸 먼저 연다).
+
+    ⚠️ 임베드본(`<textureImageData>`)은 base64 문자열 → zlib → **TIFF**(`MM\\0*`) 다.
+       PNG 인 줄 알고 그대로 쓰면 Godot 이 못 읽는다 — TIFF 면 PNG 로 다시 굽는다.
+    """
+    src = os.path.join("DV2/particle", os.path.dirname(rel), str(d.get("textureFileName", "")))
+    if os.path.isfile(src):
+        return open(src, "rb").read()
+    raw = d.get("textureImageData")
+    if not raw:
+        return None
+    if isinstance(raw, str):
+        raw = base64.b64decode(raw)
+    try:
+        blob = zlib.decompress(bytes(raw), 47)      # 47 = gzip/zlib 헤더 자동 판별
+    except zlib.error:
+        blob = bytes(raw)
+    if blob[:8] == b"\x89PNG\r\n\x1a\n":
+        return blob
+    from PIL import Image                            # TIFF 변환에만 필요
+    buf = io.BytesIO()
+    Image.open(io.BytesIO(blob)).convert("RGBA").save(buf, "PNG")
+    return buf.getvalue()
+
+
+def png_size(blob):
+    """PNG IHDR 만 읽어 (w, h). PIL 의존 없이."""
+    if not blob or blob[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    w, h = struct.unpack(">II", blob[16:24])
+    return (w, h)
+
+
 def convert(rel):
     d = plistlib.load(open(os.path.join("DV2/particle", rel + ".plist"), "rb"))
     angle = F(d, "angle")
@@ -86,7 +132,10 @@ def convert(rel):
     life_max = life + life_var
     start_size = F(d, "startParticleSize"); start_size_var = F(d, "startParticleSizeVariance")
     finish_size = F(d, "finishParticleSize", -1)
-    BASE = 32.0  # 절차생성 점 텍스처 기준 px
+    # 배율 기준 = **실제 텍스처 폭**. 텍스처를 못 구하면 절차생성 점(32px)으로 돌아간다.
+    png = texture_png(d, rel)
+    wh = png_size(png)
+    BASE = float(wh[0]) if wh else 32.0
     scale_min = max(0.05, (start_size - start_size_var) / BASE)
     scale_max = max(scale_min, (start_size + start_size_var) / BASE)
     # finishSize < 0 = "startSize와 동일"(변화 없음) → 비율 1.0.
@@ -114,8 +163,14 @@ def convert(rel):
         "color_end": [round(F(d, "finishColorRed"), 3), round(F(d, "finishColorGreen"), 3),
                       round(F(d, "finishColorBlue"), 3), round(F(d, "finishColorAlpha"), 3)],
         "additive": int(F(d, "blendFuncDestination")) == 1,
+        # 입자 회전 — 별처럼 모양이 있는 텍스처에서만 눈에 띈다(원형 점은 티가 안 난다).
+        "angle_min": round(F(d, "rotationStart") - F(d, "rotationStartVariance"), 2),
+        "angle_max": round(F(d, "rotationStart") + F(d, "rotationStartVariance"), 2),
+        "angle_end": round(F(d, "rotationEnd"), 2),
     }
-    return out
+    if wh:
+        out["tex_size"] = [wh[0], wh[1]]            # `texture` 키는 main 이 출력 이름으로 채운다
+    return out, png
 
 
 def main():
@@ -124,11 +179,16 @@ def main():
     os.makedirs(dst, exist_ok=True)
     os.chdir(root)
     for rel, name in SOURCES:
-        o = convert(rel)
+        o, png = convert(rel)
+        if png:
+            o["texture"] = name + ".png"
+            with open(os.path.join(dst, o["texture"]), "wb") as f:
+                f.write(png)
         with open(os.path.join(dst, name + ".json"), "w", encoding="utf-8") as f:
             json.dump(o, f, ensure_ascii=False, indent=1)
-        print("[particle] %-18s amount=%d life=%.2f dir=%s add=%s" % (
-            name, o["amount"], o["lifetime"], o["direction"], o["additive"]))
+        print("[particle] %-18s amount=%3d life=%.2f dir=%s add=%-5s tex=%s" % (
+            name, o["amount"], o["lifetime"], o["direction"], o["additive"],
+            "%s %s" % (o.get("texture"), o.get("tex_size")) if png else "(절차생성 점)"))
 
 
 if __name__ == "__main__":

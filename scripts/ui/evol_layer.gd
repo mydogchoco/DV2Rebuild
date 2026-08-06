@@ -196,7 +196,7 @@ static func _dur(holder: Node2D, anim: String, fallback := 1.0) -> float:
 static func _act_evol(ctx: Dictionary, start: Vector2) -> void:
 	var cont: Node2D = ctx["cont"]
 	var d: Dictionary = UserDB.get_dragon(int(ctx["uid"]))
-	var did := int(d.get("id", 0))
+	var did := Icons.art_id_of(d)   # 🔴 2026-08-07 — 개체 상속 art_id(커스텀 종 600·700)
 	var stage := Growth.stage_for_level(int(d.get("level", 1)))
 	var S := Design.ASSET_SCALE
 	# 1) 각성 전 드래곤 — 호출 씬에서 서 있던 그 자리에서 "wait" 로 시작한다.
@@ -232,7 +232,7 @@ static func _set_evol_dragon(ctx: Dictionary) -> void:
 	var vis: Vector2 = ctx["vis"]
 	var uid := int(ctx["uid"])
 	var d: Dictionary = UserDB.get_dragon(uid)
-	var did := int(d.get("id", 0))
+	var did := Icons.art_id_of(d)   # 🔴 2026-08-07 — 개체 상속 art_id(커스텀 종 600·700)
 	var S := Design.ASSET_SCALE
 	# 원작은 각성 전용 스파인(`dragon_<id>_e_spine`)을 쓴다(Dragon::getImagePathSpineJson 의 e 분기).
 	# 원본에 135종 실재하나 아직 씬으로 빌드되지 않았다 → 있으면 그걸, 없으면 성체로 대체한다.

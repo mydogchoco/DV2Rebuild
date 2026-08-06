@@ -37,7 +37,8 @@ static func make_combatant(name: String, side: String, element: String, stats: D
 		# 장비 스탯(원작 info_item_acc 컬럼). 전부 0 기본 = 장비 없으면 종전과 완전히 동일한 전투.
 		#   pure     방어 관통 대미지(flat). "방어 무시 고정 대미지"라 방어력·막기와 무관하게 더해진다.
 		#   depure   받는 pure 감소(flat). 피오드 모래시계 주 능력.
-		#   cri_pow  크리티컬 파워 %. 크리 배수를 (1 + cri_pow/100) 배로 키운다.
+		#   cri_pow  크리티컬 파워 %. 크리 배수의 **증가분에만** 걸린다(§`_crit_mult`) —
+		#            1.5배 = "1 + 0.5" 이고 그 0.5 를 (1 + cri_pow/100) 배로 키운다.
 		#   accuracy 명중률 %. 상대 회피 확률에서 차감한다.
 		#   cure     행동불능(패배 후 지속 상태) **회피** 확률 %. 전투 중에는 쓰지 않는다 —
 		#            전투 종료 후 render 가 `Incapacitation.avoids` 로 판정한다(사용자 확정 2026-07-29).
@@ -239,7 +240,127 @@ static func _dmg_taken_floor(c: Dictionary) -> int:
 	return v
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 각성 게이지 — 🟦 2026-08-06 사용자 확정: **드래곤당이 아니라 진영당**이다.
+#
+# 구현: 진영마다 Dictionary 한 개(`{"v": 0.0}`)를 만들어 그 진영 **전원**의 `gauge_ref` 에 넣는다.
+# GDScript Dictionary 는 참조형이라, 어느 전투원을 통해 써도 진영 전체가 같은 값을 본다.
+# 이 방식을 고른 이유 = 깊은 곳의 react(38 방출의 힘 · 101 희생과 복수 · 41 봉인의 힘)가
+# **전투원 하나만 손에 쥔 채** 호출되기 때문이다 — 진영 배열을 거기까지 넘기지 않아도 된다.
+#
+# ⚠️ 그래서 "아군 전원에게 적용" 루프로 게이지를 올리면 **인원수만큼 곱해진다.**
+#    게이지 가감은 반드시 **진영당 한 번**만 부를 것(아래 호출부들이 그렇게 고쳐져 있다).
+#
+# `awaken_gauge`(전투원 필드)는 이제 **표시·저장용 사본**이다. 진짜 값은 `gauge_ref["v"]`.
+
+## 그 전투원이 속한 진영의 게이지 칸. 진영 배선(`_bind_side_gauge`)이 없으면
+## 그 전투원 전용 칸을 만들어 준다 — `resolve_awaken` 을 단독 호출하는 단위 테스트용.
+static func _gauge_ref(c: Dictionary) -> Dictionary:
+	var r = c.get("gauge_ref", null)
+	if r is Dictionary:
+		return r
+	var solo := {"v": float(c.get("awaken_gauge", 0.0))}
+	c["gauge_ref"] = solo
+	return solo
+
+
+static func gauge_of(c: Dictionary) -> float:
+	return float(_gauge_ref(c)["v"])
+
+
+static func _gauge_set(c: Dictionary, v: float) -> void:
+	_gauge_ref(c)["v"] = v
+	c["awaken_gauge"] = v          # 표시·저장 호환 사본
+
+
+## react/ops 의 즉시 가감. 상한 **99** — 즉시 가감으로는 발동시키지 못하고, 100을 넘기는 것은
+## 행동·피격 충전뿐이다(종전 `minf(99.0, …)` 규약을 그대로 옮겼다).
+static func _gauge_bump(c: Dictionary, delta: float, cap99 := true) -> void:
+	var v := gauge_of(c) + delta
+	if cap99:
+		v = minf(99.0, v)
+	_gauge_set(c, maxf(0.0, v))
+
+
+## 전투 시작 시 진영 전원을 한 칸에 묶는다. 시작값 = 진영 최대치 —
+## 97 하얀매의 친구(`gauge_add 30 to ally`)가 아군 **각자**에게 30을 얹어 두므로,
+## 최대를 취해야 진영 게이지가 30이 된다(합이면 인원수만큼 부풀어 90이 된다).
+static func _bind_side_gauge(party: Array) -> Dictionary:
+	var start := 0.0
+	for c in party:
+		start = maxf(start, float((c as Dictionary).get("awaken_gauge", 0.0)))
+	var ref := {"v": start}
+	for c in party:
+		(c as Dictionary)["gauge_ref"] = ref
+		(c as Dictionary)["awaken_gauge"] = start
+	return ref
+
+
+## 그 진영의 현재 게이지(표시용). 빈 진영이면 0.
+static func _side_gauge(party: Array) -> float:
+	return gauge_of(party[0]) if not party.is_empty() else 0.0
+
+
+## 발동 후 게이지가 내려가는 바닥 — 진영 생존자 중 가장 높은 `gauge_min`(77 영원의 불길).
+static func _gauge_min_side(party: Array) -> float:
+	var v := 0.0
+	for c in party:
+		if bool((c as Dictionary).get("alive", true)):
+			v = maxf(v, _gauge_min(c))
+	return v
+
+
+## 각성기 시전자 — 🟦 2026-08-06 사용자 확정: **생존자 중 실효 공격력이 가장 높은** 드래곤.
+## 장비·버프가 얹힌 `_eff` 로 본다(상태창과 같은 눈금). 동점이면 편성 순서가 앞선 쪽.
+static func _awaken_caster(party: Array) -> Dictionary:
+	var best: Dictionary = {}
+	var best_att := -1
+	for c in party:
+		var cd := c as Dictionary
+		if not bool(cd.get("alive", false)):
+			continue
+		var a := _eff(cd, "att")
+		if a > best_att:
+			best_att = a
+			best = cd
+	return best
+
+
+## 피격 충전 — 🟦 2026-08-06 사용자 확정: 피해를 **받은** 진영의 게이지가 찬다.
+## 충전량은 피격 1회당 고정(`awaken.charge_per_hit`, 사용자 확정 규칙 · 수치는 자작 노브).
+## ⚪ 각성기 연타(최대 46타)는 **대상당 1회**로 센다 — 연타는 총액을 표시용으로 쪼갠 것이지
+##    46번 맞은 것이 아니다(`hit == 0` 만 센다).
+## ⚪ DoT·지연폭탄은 `defender` 가 없어 자연히 빠진다(피격이 아니라 지속 피해).
+static func _charge_on_hits(evs: Array, party_a: Array, party_b: Array, cfg: Dictionary) -> void:
+	var per := float(cfg.get("awaken", {}).get("charge_per_hit", 0.0))
+	if per <= 0.0:
+		return
+	for e in evs:
+		var ev := e as Dictionary
+		if int(ev.get("damage", 0)) <= 0:
+			continue
+		if String(ev.get("type", "")) == "awaken" and int(ev.get("hit", 0)) != 0:
+			continue
+		var dn := String(ev.get("defender", ""))
+		if dn == "":
+			continue
+		var v := _find_by_name(party_a, dn)
+		if v.is_empty():
+			v = _find_by_name(party_b, dn)
+		if not v.is_empty():
+			_gauge_bump(v, per * _gauge_rate(v), false)   # 충전은 100을 넘을 수 있다
+
+
+static func _find_by_name(party: Array, nm: String) -> Dictionary:
+	for c in party:
+		if String((c as Dictionary).get("name", "")) == nm:
+			return c
+	return {}
+
+
 ## 각성 게이지 충전율 배수 — `gauge_rate` 효과(%)의 합. 기본 1.0.
+## 진영 게이지가 된 뒤로는 **그 충전을 일으킨 드래곤**의 배수를 쓴다
+## (행동 충전 = 행동한 드래곤 · 피격 충전 = 맞은 드래곤).
 static func _gauge_rate(c: Dictionary) -> float:
 	var pct := 0.0
 	for e in c.get("effects", []):
@@ -315,13 +436,35 @@ static func _apply_lifesteal(c: Dictionary) -> int:
 ##   자기편의 이로운 플래그(50 필살 방어의 `survive_once` · 각성 81 `evade_sure` ·
 ##   5 `crit_sure` · 그리고 **`status_immune` 자체**)까지 날려 버린다. 해로운 플래그
 ##   목록(`DEBUFF_FLAGS`)에 든 것만 해로운 것으로 본다.
+##
+## 🔴 2026-08-06 — 두 번째 오판. 종전 판정은 **부호와 출처를 안 봤다**.
+##   ① `dmg_taken` 을 무조건 해로운 것으로 봤다. 그런데 이 항목은 **음수가 감소**라는 규약이라
+##      (`_dmg_taken_mult` 주석) 각성스킬 10·27·38·71·75·102·104·106 이 거는 "받는 피해 N% 감소"
+##      가 전부 여기 걸렸다 — 이로운 효과를 해로운 것으로 센 것이다.
+##   ② 각성스킬·장비가 전투 **시작 전에** 심는 상시 특성(`src` 를 다는 항목)까지 봤다.
+##      각성 11 "자신의 공격력 20% 감소" 같은 상시 트레이드오프는 그 드래곤의 소양이지
+##      전투 중에 걸린 상태가 아니다.
+##   결과: 아무 디버프도 안 걸린 파티에서 `_any_debuffed` 가 항상 참이라 **빛의 정화(26)가
+##   아무 때나 발동**했고, 발동하면 자기편의 피해 감소 패시브를 통째로 지웠다(순손해).
 static func _is_debuff(e: Dictionary) -> bool:
+	if _is_innate(e):
+		return false
 	var k := String(e.get("kind", ""))
 	if k == "status":
 		return String(e.get("flag", "")) in DEBUFF_FLAGS
-	if k == "dot" or k == "dmg_taken" or k == "timed":
+	if k == "dot" or k == "timed":
 		return true
+	if k == "dmg_taken":
+		return float(e.get("pct", 0)) > 0.0   # 음수 = 받는 피해 **감소**(이로운 효과)
 	return k == "stat" and float(e.get("value", 0)) < 0
+
+## 각성스킬·장비가 전투 시작 전에 심는 **상시 특성**인가(= 정화가 건드리면 안 되는 것).
+##
+## 판별은 **출처 키**다 — 이미 코드 전역이 지키고 있는 규약이다:
+##   전투 중 스킬 효과 = `source`(스킬 id, int)  ← `_add_stat`/`_add_flag`/`_apply_skill_effect`
+##   상시 특성        = `src`(문자열)            ← `_push`/`_aw_add_stat`(각성) · equip_effect.gd
+static func _is_innate(e: Dictionary) -> bool:
+	return not e.has("source") and e.has("src")
 
 ## 지금 이 전투원에게 지울 해로운 효과가 있는가(정화 발동 판정).
 static func _has_any_debuff(c: Dictionary) -> bool:
@@ -476,11 +619,24 @@ static func pick_target(enemies: Array, _cfg: Dictionary) -> Dictionary:
 static func _roll(rng: RandomNumberGenerator, percent: float, cap: int) -> bool:
 	return rng.randf() * 100.0 < clampf(percent, 0.0, float(cap))
 
-## 실효 회피 확률 = 방어자 회피 − 공격자 명중률(장비 accuracy). 장비 없으면 종전과 동일.
+## 실효 회피 확률 = **상한을 먹인 회피** − 공격자 명중률(장비 accuracy). 장비 없으면 종전과 동일.
 ## 원작 근거: 명중률은 info_item_acc 의 accuracy 컬럼이자 피오드 마석의 주 능력(+13%).
+##
+## 🟦 2026-08-05 사용자 확정 — **상한(prob_cap)을 먼저 먹이고 그 값에서 깎는다.**
+##   종전엔 원시 회피(예: 85)에서 명중을 빼고 크리 절반을 적용한 **뒤** `_roll` 안에서 70으로
+##   잘랐다. 그러면 70을 넘게 쌓아 둔 회피가 명중·크리절반의 **완충재**로 살아남아
+##   (85 → 절반 42.5 vs 70 → 절반 35), 상한이 사실상 없는 것처럼 굴었다.
+##   이제 clamp(회피, 0, cap) 이 먼저다 — 상한 위로 더 쌓아도 아무 의미가 없고,
+##   명중 차감·크리 절반은 전부 **70 기준**으로 계산된다.
 ## ⚠️ 실수 반환 — 회피도 소수 확률을 지킨다(`_eff_f` 주석 참조). `<= 0` 비교는 그대로 성립한다.
-static func _evade_chance(attacker: Dictionary, defender: Dictionary) -> float:
-	return maxf(0.0, _eff_f(defender, "evd") - float(_eff(attacker, "accuracy")))
+static func _evade_chance(attacker: Dictionary, defender: Dictionary, cap: int) -> float:
+	return maxf(0.0, clampf(_eff_f(defender, "evd"), 0.0, float(cap))
+		- float(_eff(attacker, "accuracy")))
+
+
+## 실효 방어율(막기) = 상한을 먹인 blk. 회피와 같은 규칙이다(크리 절반이 이 값에 걸린다).
+static func _block_chance(defender: Dictionary, cap: int) -> float:
+	return clampf(_eff_f(defender, "blk"), 0.0, float(cap))
 
 ## 피해 적용: 취약(dmg_taken) 배수 + 1회 생존(survive_once 50). 반환 {dmg(실피해), dead, survived?}.
 ## ── 보스 2페이즈 (혼돈의 틈새) ──────────────────────────────────────────────────
@@ -545,11 +701,16 @@ static func _apply_dmg(defender: Dictionary, dmg: int, hit_cap_pct := 0.0) -> Di
 		out2["phase2"] = true
 	return out2
 
-## 크리티컬 배수 — 장비 크리티컬 파워(cri_pow %)를 곱한다. 장비 없으면 cfg 기본값 그대로.
-## ASSUMPTION: 위키 "크리티컬 대미지 100% 증가"(발록 보주) = 크리 배수 ×2 로 해석.
+## 크리티컬 배수 — 장비·각성스킬의 크리티컬 파워(cri_pow %)를 얹는다.
+##
+## 🟦 2026-08-06 사용자 확정 — **cri_pow 는 크리가 얹는 증가분에만 걸린다.**
+##   크리 배수 1.5 = "평타 1 + 크리 증가분 0.5" 이고, "크리티컬 대미지 100% 증가"(발록 보주)는
+##   그 **0.5 가 2배**가 된다는 뜻이다 ⇒ 1 + 0.5×2 = **2.0**.
+##   종전엔 배수 전체를 곱해 1.5×2 = 3.0 이 나왔다(증가분이 1.0 → 2.0 으로 4배 뛴 셈).
+##   차이는 cri_pow 가 클수록 벌어진다 — cri_pow 150(엔드게임 누적)에서 종전 3.75 → 2.25.
 static func _crit_mult(attacker: Dictionary, cfg: Dictionary) -> float:
 	var base := float(cfg.get("damage", {}).get("crit_mult", 1.5))
-	return base * (1.0 + float(_eff(attacker, "cri_pow")) / 100.0)
+	return 1.0 + (base - 1.0) * (1.0 + float(_eff(attacker, "cri_pow")) / 100.0)
 
 # --- 면역 (🟦 사용자 확정 2026-08-04 — 콜로세움 연승방지봇의 이벤트 규칙) -----------
 #
@@ -632,8 +793,8 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 		#    근거: 각성스킬 78 [용암의 노련함] "자신의 스킬이 상대 방어율을 100% 무시" 가
 		#    존재한다는 것 자체가 원작에서 스킬도 막혔다는 뜻이다. 그 스킬이 면제 플래그다.
 		#    ⚠️ 방어 스킬 20 [보호의 장막]이 스킬 피해에 안 걸리는 것과는 다른 축이다.
-		if not _has_flag(attacker, "skill_ignores_block") 				and not _has_flag(defender, "no_block") 				and _roll(rng, _eff_f(defender, "blk"),
-					int(cfg.get("judge", {}).get("prob_cap", 70))):
+		var bcap := int(cfg.get("judge", {}).get("prob_cap", 70))
+		if not _has_flag(attacker, "skill_ignores_block") 				and not _has_flag(defender, "no_block") 				and _roll(rng, _block_chance(defender, bcap), bcap):
 			var bred := float(cfg.get("judge", {}).get("block_reduction", 0.5))
 			raw_dmg = maxi(1, int(round(float(raw_dmg) * (1.0 - bred))))
 			_aw_on_block(defender, rng)            # 64 신비한 보호 · 65 신성 방패 · 38 방출의 힘
@@ -678,20 +839,31 @@ static func _deal_attack(attacker: Dictionary, defender: Dictionary, raw_dmg: in
 ##                            확률 상한(prob_cap 70)을 우회해야 '고정'이라 확률이 아니라 플래그다.
 ##   `crit_sure_if_no_evade`  전용 장비 글라시아의 왕관 "상대의 회피율이 0%가 되면 반드시 크리".
 ##                            회피율은 명중률·디버프가 깎은 **최종 확률**로 본다(`_evade_chance`).
+## `cap` = 회피·막기 상한(prob_cap) · `crit_cap` = **크리 전용 상한**.
+## 🟦 2026-08-05 사용자 확정 — 크리만 80 으로 올렸다(회피·막기는 70 유지).
+## 종전엔 셋이 한 값을 썼다 — 나눈 지점은 `data/combat.json` `judge.crit_cap` 한 줄뿐이고,
+## 없으면 prob_cap 으로 떨어진다(구 세이브·구 데이터 호환).
 static func _roll_crit(attacker: Dictionary, defender: Dictionary,
-		rng: RandomNumberGenerator, cap: int) -> bool:
+		rng: RandomNumberGenerator, cap: int, crit_cap: int) -> bool:
 	if _has_flag(attacker, "no_crit"):
 		return false
 	if _has_flag(attacker, "crit_sure"):
 		return true
-	if _has_flag(attacker, "crit_sure_if_no_evade") 			and _evade_chance(attacker, defender) <= 0:
+	if _has_flag(attacker, "crit_sure_if_no_evade") 			and _evade_chance(attacker, defender, cap) <= 0:
 		return true
-	return _roll(rng, _eff_f(attacker, "cri"), cap)
+	return _roll(rng, _eff_f(attacker, "cri"), crit_cap)
+
+
+## 크리 전용 상한. `judge.crit_cap` 이 없으면 회피·막기와 같은 `prob_cap` 을 쓴다.
+static func _crit_cap(cfg: Dictionary) -> int:
+	var j: Dictionary = cfg.get("judge", {})
+	return int(j.get("crit_cap", j.get("prob_cap", 70)))
 
 
 ## 평타 1회(§K-4): 회피→방어율→크리. 상태이상·피격 방어스킬·반사·흡혈 반영.
 static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary = {}) -> Dictionary:
 	var cap := int(cfg.get("judge", {}).get("prob_cap", 70))
+	var ccap := _crit_cap(cfg)
 	var ev := {"type": "normal", "attacker": attacker["name"], "defender": defender["name"],
 		"miss": false, "block": false, "crit": false, "damage": 0, "dead": false}
 	# 전용 장비 홀리의 빛나는 양뿔 — "크리티컬 공격이 상대의 회피를 무시".
@@ -702,11 +874,12 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	var pre_crit := -1
 	var halve := _has_flag(attacker, "crit_halves_guard")
 	if _has_flag(attacker, "crit_ignores_evade") or halve:
-		pre_crit = 1 if _roll_crit(attacker, defender, rng, cap) else 0
+		pre_crit = 1 if _roll_crit(attacker, defender, rng, cap, ccap) else 0
 	# `evade_sure` = 각성스킬 81 자격을 갖춘 자 "다음 공격 무조건 회피".
 	var sure_evade := _has_flag(defender, "evade_sure")
-	var evd_pct := _evade_chance(attacker, defender)
-	var blk_pct := _eff_f(defender, "blk")
+	# 상한을 이미 먹인 값이다(`_evade_chance`/`_block_chance`) — 아래 절반은 그 위에 걸린다.
+	var evd_pct := _evade_chance(attacker, defender, cap)
+	var blk_pct := _block_chance(defender, cap)
 	if pre_crit == 1 and halve:                    # 크리일 때만 절반으로 본다
 		evd_pct = evd_pct / 2.0
 		blk_pct = blk_pct / 2.0
@@ -721,7 +894,7 @@ static func resolve_attack(attacker: Dictionary, defender: Dictionary, rng: Rand
 	var block := (not _has_flag(defender, "no_block")) and _roll(rng, blk_pct, cap)
 	if block:
 		_aw_on_block(defender, rng)                # 64 신비한 보호 · 65 신성 방패
-	var crit := (pre_crit == 1) if pre_crit >= 0 else _roll_crit(attacker, defender, rng, cap)
+	var crit := (pre_crit == 1) if pre_crit >= 0 else _roll_crit(attacker, defender, rng, cap, ccap)
 	ev["block"] = block
 	ev["crit"] = crit
 	var dmg := _hit_damage(attacker, defender, crit, block, rng, cfg)
@@ -753,6 +926,7 @@ static func _skill_level(c: Dictionary, id: int) -> int:
 ## TODO: "두 턴 연속 공격 시 발동"은 턴 이력 상태 필요 → 현재는 더블평타 무효만.
 static func resolve_double(attacker: Dictionary, defender: Dictionary, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary = {}) -> Array:
 	var cap := int(cfg.get("judge", {}).get("prob_cap", 70))
+	var ccap := _crit_cap(cfg)
 	# 교차막기(28): 상대 더블평타를 무효(데미지 0)
 	if not skills_db.is_empty() and _uses_left(defender, 28) > 0:
 		var sd28: Dictionary = skills_db.get("28", {})
@@ -760,16 +934,16 @@ static func resolve_double(attacker: Dictionary, defender: Dictionary, rng: Rand
 			_use(defender, 28)
 			return [_merge(_double_ev(attacker, defender, 0, false, false, false, 0, false), {"def_skill": "교차막기"}),
 					_merge(_double_ev(attacker, defender, 1, false, false, false, 0, false), {"def_skill": "교차막기"})]
-	if not _has_flag(defender, "no_evade") and _roll(rng, _evade_chance(attacker, defender), cap):
+	if not _has_flag(defender, "no_evade") and _roll(rng, _evade_chance(attacker, defender, cap), cap):
 		return [_double_ev(attacker, defender, 0, true, false, false, 0, false),
 				_double_ev(attacker, defender, 1, true, false, false, 0, false)]
-	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _eff_f(defender, "blk"), cap)
+	var block := (not _has_flag(defender, "no_block")) and _roll(rng, _block_chance(defender, cap), cap)
 	var out: Array = []
 	var dealt := 0                   # 이번 연속공격으로 실제로 준 피해 합(회복형 반응용)
 	for i in 2:
 		if not defender["alive"]:
 			break
-		var crit := _roll_crit(attacker, defender, rng, cap)
+		var crit := _roll_crit(attacker, defender, rng, cap, ccap)
 		var dmg := _hit_damage(attacker, defender, crit, block, rng, cfg)
 		# 전용 장비 일란의 영예의관 "연속공격 피해량 50% 증가" — 평타에는 안 걸리는 별도 통로.
 		dmg = maxi(1, int(round(float(dmg) * _double_dmg_mult(attacker))))
@@ -796,12 +970,61 @@ static func _double_ev(a: Dictionary, d: Dictionary, hit: int, miss: bool, block
 	return {"type": "double", "hit": hit, "attacker": a["name"], "defender": d["name"],
 		"miss": miss, "block": block, "crit": crit, "damage": dmg, "dead": dead}
 
-## 각성기(§K-5): 적 전체, 회피·방어 무시 확정, ×2.
+## 각성기 **타격 분할** — 원작 `UltimateLayer::calculateDamage` @0100f070 이식.
+##
+## 원작은 서버가 준 **총 피해량 하나**를 클라에서 N타로 쪼개 `showDamage`/`damagedEffect` 로
+## 예약했다(속성 case = `setColosseum` switch 로 확정). 즉 "각 타를 따로 굴린다"가 아니라
+## **"총액을 먼저 정하고 나눠 넣는다"** 가 원작 방식이다 — 그래서 타수가 몇이든 총합이 같다.
+##
+## 표·분배 규칙은 `data/combat.json awaken.hits_by_element`(§`_doc_hits`). 마무리 타는 항상
+## '나머지 전부'라 반올림·흔들림이 총합을 바꾸지 못한다.
+## 표에 없는 속성은 1타(= 종전 동작)로 떨어진다.
+static func _awaken_split(total: int, element: String, rng: RandomNumberGenerator, cfg: Dictionary) -> Array:
+	var tbl: Dictionary = cfg.get("awaken", {}).get("hits_by_element", {})
+	var spec: Dictionary = tbl.get(element, {})
+	var out: Array = []
+	var left := maxi(0, total)
+	for st in (spec.get("steps", []) as Array):
+		var d := st as Dictionary
+		var min_total := int(d.get("min_total", 0))
+		for _i in int(d.get("n", 0)):
+			var part := 0
+			# 원작 가드(`param_2 + N < M`) — 총액이 작으면 중간 타는 0 이고 마무리가 전부 낸다.
+			if left > 0 and total >= min_total:
+				if d.has("flat"):
+					part = int(d["flat"])
+				else:
+					part = total / maxi(1, int(d.get("div", 1)))
+					var jd := int(d.get("jitter", 0))
+					if jd > 0:
+						# 원작: total/div − (rand() % m) + (rand() % m), m = total/jitter − 1.
+						# ⚠️ m <= 0 일 때 원작은 rand() 를 통째로 더한다(오버플로 quirk) —
+						#    피해가 터무니없이 튀므로 이식하지 않고 몫만 준다.
+						var m := total / jd - 1
+						if m > 0:
+							part += (rng.randi() % m) - (rng.randi() % m)
+			part = clampi(part, 0, left)
+			out.append(part)
+			left -= part
+	out.append(left)                     # 마무리 타 = 나머지 전부
+	return out
+
+
+## 각성기(§K-5): 적 전체, 회피·방어 무시 확정, ×2. 대상마다 총 피해량을 따로 계산한다.
+##
+## 🟦 2026-08-06 사용자 확정 — 연출상 연타이므로 **총 피해량을 먼저 계산한 뒤 타수만큼 쪼개**
+##   넣는다. 감면·상한·`survive_once`·페이즈 전환은 **총액에 한 번만** 건다(`_apply_dmg` 1회)
+##   — 타마다 걸면 `maxi(1, …)` 최소피해와 정액 감면이 타수만큼 곱해져 총합이 어긋난다.
+##   원작도 같은 순서였다(서버 총액 → 클라 `calculateDamage` 가 표시용으로 분할).
+## 이벤트는 **타수-우선**(전 대상 1타 → 전 대상 2타)으로 낸다 — 광역기가 동시에 들어가므로.
+## 첫 이벤트에만 `lead: true` 가 붙는다 — 렌더러의 일회성 연출(컷인·배너·보이스·게이지 리셋)은
+## 그 한 번에만 걸어야 대상 수·타수만큼 중복 재생되지 않는다.
 static func resolve_awaken(attacker: Dictionary, enemies: Array, rng: RandomNumberGenerator, cfg: Dictionary) -> Array:
 	var aw: Dictionary = cfg.get("awaken", {})
 	var mult := float(aw.get("damage_mult", 2.0))
 	var d: Dictionary = cfg.get("damage", {})
-	var out: Array = []
+	var el := String(attacker["element"])
+	var plan: Array = []
 	for target in enemies:
 		if not target["alive"]:
 			continue
@@ -821,9 +1044,51 @@ static func resolve_awaken(attacker: Dictionary, enemies: Array, rng: RandomNumb
 		var acap := _awaken_taken_cap(target)
 		if acap > 0:
 			dmg = mini(dmg, acap)
+		# 총 피해량을 여기서 **확정**한다(감면·상한·survive_once·페이즈 전환 포함).
 		var ap := _apply_dmg(target, dmg)
-		out.append({"type": "awaken", "attacker": attacker["name"], "defender": target["name"],
-			"miss": false, "block": false, "crit": false, "damage": int(ap["dmg"]), "dead": bool(ap["dead"])})
+		plan.append({"target": target, "ap": ap,
+			"parts": _awaken_split(int(ap["dmg"]), el, rng, cfg)})
+	# 확정된 총액을 타수만큼 나눠 이벤트로 편다. HP 는 위에서 이미 빠졌고 여기선 쪼개기만 한다 —
+	# 렌더러는 `damage` 를 합산해 게이지를 내리므로 결과는 같고 숫자만 N 번 뜬다.
+	var volley := 0
+	var max_hits := 0
+	for e in plan:
+		var n := (e["parts"] as Array).size()
+		volley += n
+		max_hits = maxi(max_hits, n)
+	var out: Array = []
+	var lead := true
+	for i in max_hits:
+		for e in plan:
+			var parts: Array = e["parts"]
+			if i >= parts.size():
+				continue
+			var ap2: Dictionary = e["ap"]
+			var last := i == parts.size() - 1
+			var ev := {"type": "awaken", "attacker": attacker["name"],
+				"defender": (e["target"] as Dictionary)["name"],
+				"miss": false, "block": false, "crit": false,
+				"damage": int(parts[i]), "dead": bool(ap2["dead"]) and last,
+				"hit": i, "hits": parts.size(), "volley": volley}
+			if lead:
+				ev["volley_lead"] = true   # 일회성 연출은 이 한 건에만.
+				# ⚠️ `lead` 는 못 쓴다 — `simulate` 가 모든 이벤트에 주도 진영("ally"/"enemy")을
+				#   같은 이름으로 덮어쓴다(§simulate 라운드 루프). 그러면 `bool("ally")` 가 항상
+				#   참이라 각성기 연출이 타마다 재생된다.
+				lead = false
+			# 생존·페이즈 전환은 총액에 걸린 것이라 마무리 타에 싣는다.
+			if last:
+				if bool(ap2.get("survived", false)):
+					ev["survived"] = true
+				if bool(ap2.get("phase2", false)):
+					ev["phase2"] = true
+			out.append(ev)
+	# 🔴 2026-08-06 — 이번 발동의 **마지막 이벤트**를 표시한다. 렌더러는 각 타를 원작 시각에
+	#   예약(`fight.gd::_ultimate_damage`)하고 재생 루프는 타마다 기다리지 않으므로,
+	#   "연출 길이만큼 기다리는" 한 번을 **볼리를 다 뿌린 뒤**에 걸어야 한다. 첫 이벤트
+	#   (`volley_lead`)에 걸면 나머지 타가 그 대기 **이후에** 예약돼 피해가 다음 턴들로 샌다.
+	if not out.is_empty():
+		(out[-1] as Dictionary)["volley_last"] = true
 	return out
 
 # ============================================================ 스킬 엔진
@@ -943,7 +1208,14 @@ static func _apply_passive(c: Dictionary, s: Dictionary, sdef: Dictionary) -> vo
 ##   원작의 체력 조건 스킬이다. 목록은 위키 확정, **문턱값은 서버 유실 → 자작**
 ##   (data/combat.json `skill_hp_gate`).
 ## 마리스를 끼면 문턱이 relax %p 만큼 올라가 더 일찍(체력이 덜 닳아도) 터진다.
-static func _hp_gate_ok(c: Dictionary, skill_id: int, cfg: Dictionary) -> bool:
+##
+## 🔴 2026-08-06 — **누구의 체력을 보는가**가 빠져 있었다. 네 스킬 중 29 치유의 빛만
+##   `target = ally_all`(아군 전체 회복)인데 시전자 자신의 체력만 봤다 ⇒ 만피 힐러는
+##   아군이 빈사여도 절대 안 쓰고, 반대로 자기만 다치면 멀쩡한 아군에게 힘을 낭비했다.
+##   아군 대상 스킬은 **대상 중 누군가**가 문턱 아래일 때 후보가 된다(문턱 완화는 시전자의
+##   아티팩트가 결정하므로 마리스는 그대로 시전자 것을 쓴다).
+static func _hp_gate_ok(c: Dictionary, skill_id: int, cfg: Dictionary,
+		sdef: Dictionary = {}, allies: Array = []) -> bool:
 	var g: Dictionary = cfg.get("skill_hp_gate", {})
 	var ids: Array = g.get("skills", [])
 	# ⚠️ JSON 숫자는 float 로 들어온다 — `ids.has(25)` 는 25.0 과 안 맞아 **조용히 실패**한다.
@@ -955,10 +1227,20 @@ static func _hp_gate_ok(c: Dictionary, skill_id: int, cfg: Dictionary) -> bool:
 			break
 	if not gated:
 		return true
-	var hp_max := maxi(1, int(c.get("hp_max", 1)))
-	var hp_pct := float(c.get("hp", 0)) / float(hp_max) * 100.0
-	var thr := float(g.get("threshold_pct", 50)) + float(_art(c, "req_hp_relax_pct", skill_id))
-	return hp_pct <= minf(100.0, thr)
+	var thr := minf(100.0, float(g.get("threshold_pct", 50))
+		+ float(_art(c, "req_hp_relax_pct", skill_id)))
+	# 대상이 아군이면 아군 전원(시전자 포함)을, 아니면 시전자 자신을 본다.
+	var scope: Array = [c]
+	if String(sdef.get("target", "")) in ["ally", "ally_all", "party", "all_allies"] 			and not allies.is_empty():
+		scope = allies
+	for m in scope:
+		var t := m as Dictionary
+		if not bool(t.get("alive", true)):
+			continue
+		var hp_max := maxi(1, int(t.get("hp_max", 1)))
+		if float(t.get("hp", 0)) / float(hp_max) * 100.0 <= thr:
+			return true
+	return false
 
 ## 같은 스킬이 만든 지속효과가 전장에 남아 있는가. 상처 파악(23)·신경독소(32)는 원작상
 ## 중첩/재시도가 허용되는 예외라 여기서 막지 않는다.
@@ -994,7 +1276,8 @@ static func _eligible_attack(c: Dictionary, skills_db: Dictionary, cfg: Dictiona
 		if _uses_left(c, int(s["id"])) <= 0:
 			continue
 		# 체력 조건 스킬은 체력이 문턱 아래로 내려가야 후보가 된다(마리스가 문턱을 올려 준다).
-		if not _hp_gate_ok(c, int(s["id"]), cfg):
+		# 아군 회복(29 치유의 빛)은 **아군 중 누군가**가 문턱 아래여야 한다.
+		if not _hp_gate_ok(c, int(s["id"]), cfg, sdef, allies):
 			continue
 		# 이미 같은 버프/디버프가 활성화 중이면 후보에서 빼서 발동 확률조차 굴리지 않는다.
 		if _same_skill_effect_active(c, int(s["id"]), sdef, allies, enemies):
@@ -1023,12 +1306,18 @@ static func _act(actor: Dictionary, party_a: Array, party_b: Array, rng: RandomN
 	# 충전량은 `data/combat.json awaken.charge_per_turn`(만충=100). 사용자 지시(2026-07-27)로
 	# 종전 18 → **3.6 = 5배 느리게**. 소수 충전이 잘리지 않게 게이지는 float 로 누적한다.
 	var aw_cfg: Dictionary = cfg.get("awaken", {})
-	# 각성스킬이 충전율(22 냉철한 암흑 · 27 대지의 기둥)과 최소값(77 영원의 불길)을 바꾼다.
-	var gauge := float(actor.get("awaken_gauge", 0.0)) 		+ float(aw_cfg.get("charge_per_turn", 3.6)) * _gauge_rate(actor)
-	if gauge >= 100.0:
-		actor["awaken_gauge"] = _gauge_min(actor)
-		return resolve_awaken(actor, enemies, rng, cfg)
-	actor["awaken_gauge"] = gauge
+	# 각성스킬이 충전율(22 냉철한 암흑 · 27 대지의 기둥)과 바닥값(77 영원의 불길)을 바꾼다.
+	# 🟦 2026-08-06 — 게이지는 **진영 공유**다(§각성 게이지). 행동한 드래곤이 자기 충전율로
+	#   진영 게이지를 올리고, 만충이면 **생존자 중 최고 공격력** 드래곤이 각성기를 낸다.
+	#   사용자 확정: 각성기는 그 행동을 **대체**한다(순번 드래곤은 따로 공격하지 않는다).
+	_gauge_bump(actor, float(aw_cfg.get("charge_per_turn", 3.6)) * _gauge_rate(actor), false)
+	if gauge_of(actor) >= 100.0:
+		var side_party: Array = party_a if actor["side"] == "ally" else party_b
+		_gauge_set(actor, _gauge_min_side(side_party))
+		var caster := _awaken_caster(side_party)
+		if caster.is_empty():
+			return []
+		return resolve_awaken(caster, enemies, rng, cfg)
 	# 51 빛의 환희 "아군에 [신성] 속성 드래곤이 있으면, 자신은 공격을 하지 않는다".
 	if _has_flag(actor, "no_attack"):
 		return []
@@ -1519,6 +1808,10 @@ static func _round_end(party_a: Array, party_b: Array, events: Array, round: int
 static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator, cfg: Dictionary, skills_db: Dictionary = {}, max_rounds := 200) -> Dictionary:
 	for c in party_a: _init_combatant_skills(c, skills_db, cfg)
 	for c in party_b: _init_combatant_skills(c, skills_db, cfg)
+	# 각성 게이지는 진영당 하나다(§각성 게이지). `_init_combatant_skills` 가 97 하얀매의 친구를
+	# 얹은 **뒤에** 묶어야 시작 게이지가 반영된다.
+	_bind_side_gauge(party_a)
+	_bind_side_gauge(party_b)
 	_aw_refresh_dynamic(party_a, party_b)   # 1라운드 시작 전 초기 상태로 한 번
 	var events: Array = []
 	var rounds := 0
@@ -1550,9 +1843,15 @@ static func simulate(party_a: Array, party_b: Array, rng: RandomNumberGenerator,
 				_tick_owner_effects(actor, events, rounds)
 				continue
 			var evs := _act(actor, party_a, party_b, rng, cfg, skills_db)
+			# 피격 충전 — 이 행동이 낸 피해를 **받은** 진영의 게이지를 올린다(§_charge_on_hits).
+			_charge_on_hits(evs, party_a, party_b, cfg)
 			for ev in evs:
 				ev["round"] = rounds
 				ev["lead"] = lead
+				# 렌더러가 게이지를 **재계산하지 않고** 그대로 그리도록 실값을 싣는다.
+				# (충전율·피격·react 가 얽혀 화면이 자체 추정하면 반드시 어긋난다.)
+				ev["gauge_ally"] = _side_gauge(party_a)
+				ev["gauge_enemy"] = _side_gauge(party_b)
 				events.append(ev)
 			_tick_owner_effects(actor, events, rounds)
 			if _alive_count(party_a) == 0 or _alive_count(party_b) == 0:
@@ -2005,11 +2304,8 @@ static func _aw_on_block(defender: Dictionary, _rng: RandomNumberGenerator) -> v
 			_spend(r)
 		elif r.has("gauge_pct"):
 			# 38 방출의 힘 "막기 발동시 아군 각성 게이지가 5% 증가한다"
-			for t in (defender.get("_party", []) as Array):
-				var c := t as Dictionary
-				if bool(c.get("alive", true)):
-					c["awaken_gauge"] = minf(99.0,
-						float(c.get("awaken_gauge", 0.0)) + float(r["gauge_pct"]))
+			# 게이지는 진영 공유이므로 **한 번만** 올린다(종전 아군 전원 루프 = 인원수만큼 곱하기).
+			_gauge_bump(defender, float(r["gauge_pct"]))
 			_spend(r)
 		elif _stack_up(r, defender, defender.get("_party", [])):
 			_spend(r)
@@ -2062,13 +2358,9 @@ static func _aw_on_death(dead: Dictionary) -> void:
 					(c4["effects"] as Array).append(e4)
 			_spend(r)
 			continue
-		for t in (dead.get("_party", []) as Array):
-			var c := t as Dictionary
-			if not bool(c.get("alive", true)):
-				continue
-			if r.has("gauge_pct"):
-				c["awaken_gauge"] = minf(99.0,
-					float(c.get("awaken_gauge", 0.0)) + float(r["gauge_pct"]))
+		# 101 희생과 복수 "사망 시 아군 각성 게이지 50% 증가" — 진영 공유라 **한 번만**.
+		if r.has("gauge_pct"):
+			_gauge_bump(dead, float(r["gauge_pct"]))
 		_spend(r)
 
 
@@ -2088,8 +2380,8 @@ static func _aw_on_skill_cast(caster: Dictionary, targets: Array,
 					if not bool(c3.get("alive", true)):
 						continue
 					if pick.has("gauge_pct"):
-						c3["awaken_gauge"] = maxf(0.0,
-							float(c3.get("awaken_gauge", 0.0)) + float(pick["gauge_pct"]))
+						# 41 봉인의 힘 — 상대 **진영** 게이지를 깎는다(음수라 상한은 무의미).
+						_gauge_bump(c3, float(pick["gauge_pct"]), false)
 					else:
 						_aw_add_stat(c3, String(pick.get("stat", "")),
 							String(pick.get("mode", "pct")), float(pick.get("value", 0.0)),

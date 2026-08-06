@@ -6,7 +6,8 @@ extends Node2D
 const STAGES := ["baby", "child", "adult", "aura", "e", "advent"]
 ## 원본 스켈레톤 높이(drake 별로 10배 차이) 기준으로 화면 높이에 맞춘 배율.
 ## child1 122 · child2 210 · adult 289 · transcended 390 · 288 798 · advent 491 (포팅 카드 §1)
-const SKEL_H := {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 798.0,
+## ⚠️ `e` 만 **씬에 구워진 배율(root_scale 0.42, 포팅 카드 §3-5)을 반영한** 798×0.42 ≈ 335 다.
+const SKEL_H := {"baby": 122.0, "child": 210.0, "adult": 289.0, "aura": 390.0, "e": 335.0,
 	"advent": 491.0}
 const FIT_PX := 620.0
 

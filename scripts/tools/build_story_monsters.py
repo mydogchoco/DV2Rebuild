@@ -97,6 +97,28 @@ MONSTERS = [
         "_pure_basis": "사용자 확정: '공격 시 고정 데미지 1000'. 우리 전투의 `pure`"
                        "(방어·막기를 무시하고 더해지는 flat 피해, battle.gd::_pure_damage)에 해당한다.",
     },
+    {
+        # 🟦 사용자 지목 2026-08-04 "46화 도중 라이트 오브와의 전투가 발생해야 한다".
+        #
+        # 회차↔전투번호는 §14 대로 코드에서 직접 못 뽑지만, 이번엔 **근거 셋이 한 점에서
+        # 만난다** — 그래서 사용자 확정과 같은 무게로 싣는다:
+        #   ① 문자열 `<AdventureEvent46>` 이 실재한다("녀석을 물리치고 난 그 비밀을…")
+        #      = 46화에 이벤트 전투가 있다.
+        #   ② `AdventureScene::scene` 호출 16곳을 바이트 스캔해 각각 주변 ±0x600 의 대사 키
+        #      회차를 읽으면, **46화 키만** 둘러싼 호출은 `scene(field=1, battle=16)` 하나다.
+        #   ③ `Data.story_battle(16)` 이 실제로 **라이트 오브**로 풀린다
+        #      (monster_by_battle 16 → monster_no 72 lv55) — 사용자가 지목한 바로 그 몬스터.
+        #
+        # ⚠️ 전투 **위치**(어느 대사 뒤인가)는 여전히 미상이라 `battle_after_line` 이 없다 →
+        #    `inject_story_battles` 가 **회차 끝**에 꽂는다. 사용자가 앵커 대사를 주면 그때
+        #    여기에 적는다(32·33화와 같은 방식).
+        "id": 67, "id_confirmed": False, "name": "라이트 오브 (Light Orb)",
+        "episodes": [46],
+        "battle_no": {"46": 16},
+        "_battle_no_basis": "①<AdventureEvent46> ②scene(1,16) 주변 대사키가 46화뿐 "
+                            "③story_battle(16)=라이트 오브. 2026-08-04 실측.",
+        # 스탯은 원작 표(`monster_by_battle` 16 = lv55)를 그대로 쓴다 — 여기서 덮지 않는다.
+    },
 ]
 
 

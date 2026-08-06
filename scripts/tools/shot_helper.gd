@@ -27,6 +27,7 @@ func _ready() -> void:
 	var stage := "1"
 	var extra := "0"          # 모드별 두 번째 인자(--extra=)
 	var guard := 0            # --guard=<연승> : 그 문턱의 연승방지봇을 상대로(fight/guardtalk)
+	var ranker := ""          # --ranker=<닉네임|순번> : 랭커 시트의 그 상대로(fight)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="): shot = a.substr(7)
 		elif a.begins_with("--out="): out = a.substr(6)
@@ -34,6 +35,7 @@ func _ready() -> void:
 		elif a.begins_with("--stage="): stage = a.substr(8)
 		elif a.begins_with("--extra="): extra = a.substr(8)
 		elif a.begins_with("--guard="): guard = int(a.substr(8))
+		elif a.begins_with("--ranker="): ranker = a.substr(9)
 
 	# ⚠️ 오토로드 _ready 는 main.gd 보다 먼저 돈다 — 닉네임을 여기서 미리 넣어야
 	#    main.gd 의 "최초 1회 강제 입력" 팝업이 뜨지 않는다. begin_batch = 디스크 미기록.
@@ -184,6 +186,17 @@ func _ready() -> void:
 				var gg := Colosseum.guard_for(guard)
 				if not gg.is_empty():
 					foe = Colosseum.make_guard(gg, fmode, frng)
+			# `--ranker=<닉네임|순번>` = 랭커 시트(colosseum_ranker.csv)의 그 상대.
+			# 랭커는 플래티넘 이상 티어에서만 굴려져 평소 캡처로는 만나기 어렵다.
+			if ranker != "":
+				var rlist: Array = Data.colosseum.get("rankers", [])
+				for ri in rlist.size():
+					var rr: Dictionary = rlist[ri]
+					if String(rr.get("nick", "")) == ranker or str(ri) == ranker:
+						foe = Colosseum._make_ranker(rr, fmode, frng)
+						break
+				if foe.is_empty():
+					push_warning("[shot] --ranker=%s 를 랭커 시트에서 못 찾았다" % ranker)
 			if foe.is_empty():
 				foe = Colosseum.roll_match(fmode, frng)
 			# ⚠️ 콜로세움은 레벨 25 이상(=성체)만 나간다. 공격 모션이 성체에만 있어서
@@ -268,7 +281,16 @@ func _ready() -> void:
 			Scenes.goto("fight", {"mode": "team", "opponent": xfoe, "party": xparty})
 			for i in 30: await get_tree().process_frame
 			var fs := Scenes.current_scene()
-			if fs != null and fs.has_method("_skill_banner"):
+			# `--extra=ult` = 각성기 배치(원작 `UltimateLayer::initPosition`) 검수.
+			#   시전자를 무대 중앙으로 점프시키고 링·컷인까지 같이 낸다.
+			if extra == "ult" and fs != null and fs.has_method("_awaken_fx"):
+				var uvs: Dictionary = fs.get("_views")
+				var ua: Dictionary = uvs.get("A0", {})
+				if not ua.is_empty():
+					fs.call("_cutin", ua)
+					fs.call("_awaken_fx", ua, ua.get("pos", Vector2.ZERO))
+				for i in 12: await get_tree().process_frame
+			elif fs != null and fs.has_method("_skill_banner"):
 				fs.call("_skill_banner", "철갑 방패", 11)
 				var vws: Dictionary = fs.get("_views")
 				var kk := 0
@@ -375,6 +397,44 @@ func _ready() -> void:
 			Scenes.goto("worldmap", {"region": "yutakan"})
 			for i in 10: await get_tree().process_frame
 			Scenes.goto("story", {"no": int(stage), "part": 0, "back": "worldmap"})
+			# `--extra=complete` = 건너뛰기 → 확인 → **완료 알림**까지 밀고, 그 창의 확인을
+			#   **실제 클릭**한다. 두 가지를 한 번에 본다:
+			#     ① 팝업 버튼이 눌리는가(레이어에 가려지지 않는가 — 2026-08-06 사용자 신고)
+			#     ② 나간 뒤 도착지가 개요 양피지가 아니라 **메인 화면(유타칸)** 인가
+			#   완료 알림은 그 회차를 **처음** 볼 때만 뜨므로 진행도 플래그를 지우고 들어간다.
+			if extra == "complete":
+				UserDB.begin_batch()          # 검수용 — 디스크엔 안 쓴다
+				UserDB.set_progress("scenario_%d_0" % int(stage), false)
+				print("SHOT story: 진행도(처음 보기여야 false)=",
+					UserDB.get_progress("scenario_%d_0" % int(stage), false))
+				for i in 25: await get_tree().process_frame
+				var stn := Scenes.current_scene()
+				if stn == null or not stn.has_method("_confirm_skip"):
+					print("SHOT: story 씬 아님")
+				else:
+					# ① **가려짐 판별** — 건너뛰기 확인창의 '취소' 를 실제로 클릭한다.
+					#    창이 입력을 받으면 창만 닫히고 스토리는 그대로다.
+					#    클릭이 뒤의 대사 캐처(layer 8)로 새면 창은 그대로 남고 대사만 넘어간다
+					#    ⇒ "창이 살아 있나" 로 두 경우가 갈린다.
+					stn.call("_confirm_skip")
+					for i in 12: await get_tree().process_frame
+					await _click_label_button(get_tree().root, "취소")
+					for i in 10: await get_tree().process_frame
+					print("SHOT story: 취소 뒤 팝업 살아있나=", _find_popup(get_tree().root) != null,
+						" state=", Scenes.current_state())
+					# ② 완료 알림까지 밀고 나가기.
+					stn.call("_confirm_skip")
+					for i in 12: await get_tree().process_frame
+					await _click_label_button(get_tree().root, "확인")
+					for i in 25: await get_tree().process_frame
+					print("SHOT story: 완료알림 떴나=", _find_popup(get_tree().root) != null,
+						" state=", Scenes.current_state(),
+						" 진행도=", UserDB.get_progress("scenario_%d_0" % int(stage), false))
+					await _click_label_button(get_tree().root, "확인")
+					for i in 25: await get_tree().process_frame
+					var dst := Scenes.current_scene()
+					print("SHOT story: 도착 state=", Scenes.current_state(),
+						" mode=", dst.get("_mode") if dst != null and "_mode" in dst else "-")
 		"tutorial":
 			# 오프닝 튜토리얼(원작 시나리오 0 의 `SN_0_*`) 검수.
 			#   --step=<SN_0_…> : 그 스텝부터 시작(기본은 처음부터)
@@ -417,6 +477,8 @@ func _ready() -> void:
 			#   --remain=<초>   남은 시간. 0 이면 "완료" 상태로 뜬다(기본 143997 = 39:59:57)
 			#   --blessed=1     축복 둥지(황금 월계관 nest_holy + 먼지 + 보너스 성급 분리 연출)
 			#   --enh=<0~3>     알 강화 단계(ani_egg_up1 오라 + 이름 "+N")
+			#   --art=<그림id>  개체가 물려받은 art_id/속성(드래곤 소환의 커스텀 종 600·700 검수).
+			#                   예: `--did=600 --art=800` = 로키를 재료로 쓴 수비형 알
 			#   --tap=1         완료 상태에서 알을 탭해 부화 연출을 태운다(--wait 로 시점 선택)
 			#   --click=1       같은 일을 **실제 마우스 클릭 주입**으로 — 히트테스트까지 태운다
 			#                   (드래곤 터치영역이 알 탭을 덮던 회귀를 잡는 용도)
@@ -426,14 +488,20 @@ func _ready() -> void:
 			var ce_blessed := false
 			var ce_enh := 0
 			var ce_tap := false
+			var ce_art := 0        # 물려받은 그림 id(0 = 종 자신의 그림)
 			for a6 in OS.get_cmdline_user_args():
 				if a6.begins_with("--did="): ce_did = int(a6.substr(6))
 				elif a6.begins_with("--remain="): ce_remain = int(a6.substr(9))
 				elif a6 == "--blessed=1": ce_blessed = true
 				elif a6.begins_with("--enh="): ce_enh = int(a6.substr(6))
 				elif a6 == "--tap=1": ce_tap = true
+				elif a6.begins_with("--art="): ce_art = int(a6.substr(6))
 			var ce_grade := 7.5 if ce_blessed else 6.6
-			var ce_egg := UserDB.add_egg(ce_did, ce_grade, ce_remain, ce_enh, {}, ce_blessed)
+			var ce_inh := {}
+			if ce_art > 0:
+				ce_inh = {"art_id": ce_art,
+					"element": Data.get_dragon(ce_art).get("element", "")}
+			var ce_egg := UserDB.add_egg(ce_did, ce_grade, ce_remain, ce_enh, ce_inh, ce_blessed)
 			UserDB.set_active(int(ce_egg["uid"]))
 			Scenes.goto("cave", {})
 			for i in 30: await get_tree().process_frame
@@ -1308,10 +1376,37 @@ func _ready() -> void:
 					print("SHOT summon: 재료='", mat_name, "'  종이름(", sp_id, ")='",
 						UserDB.species_name(sp_id), "'  Icons.species_name='",
 						Icons.species_name(sp_id), "'")
-					for d in UserDB.dragons():
-						if int(d.get("id", 0)) == sp_id:
-							print("SHOT summon: 둥지 표시명='", Icons.name_of(d),
-								"' 알=", UserDB.is_egg(d))
+					# 🟦 2026-08-07 — 결과는 둥지가 아니라 **가방 알 칸**이다(사용자 확정).
+					var sk := EggItem.key(EggGacha.key_for(sp_id), Summon.EGG_ENHANCE_STEP)
+					print("SHOT summon: 가방키='", sk, "' 개수=", UserDB.item_count(sk),
+						"  종art=", UserDB.species_art(sp_id),
+						"  알그림=", Icons.dragon_egg_texture(sp_id) != null,
+						"  가방표시명='", Icons.egg_item_name(sp_id), "'")
+					# --bag=1 : 소환 직후 **가방 알 탭**까지 열어 실제 칸을 확인한다.
+					if OS.get_cmdline_user_args().has("--bag=1"):
+						# 공개 팝업(EggResultPopup)이 떠 있으면 먼저 치운다 — 안 그러면 씬 전환이 막힌다.
+						var stack: Array = [get_tree().root]
+						while not stack.is_empty():
+							var n: Node = stack.pop_back()
+							if n is EggResultPopup:
+								n.queue_free()
+								continue
+							for c in n.get_children():
+								stack.append(c)
+						await get_tree().process_frame
+						# 씬 상태기계가 magicshop → cave 직행을 막는다 — 점술집을 나간 뒤(월드맵) 간다.
+						ms.call("_leave")
+						for i in 30: await get_tree().process_frame
+						Scenes.goto("cave", {})
+						for i in 40: await get_tree().process_frame
+						var sb := _find_method_node(get_tree().root, "_open_inventory")
+						if sb != null:
+							sb.set("_inv_tab", "egg")
+							sb.set("_inv_selected", sk)
+							sb.call("_open_inventory")
+						else:
+							print("SHOT summon: _open_inventory 노드 없음")
+						for i in 10: await get_tree().process_frame
 				# --pull=<n> : 뽑기(잭팟) 실행까지 검수. 릴은 2.0+i×0.5 초에 순차 정지하므로
 				#   결과를 보려면 --wait 를 3초 이상 준다.
 				for pa in OS.get_cmdline_user_args():
@@ -1608,7 +1703,7 @@ func _ready() -> void:
 						mb.emit_signal("pressed")
 						await get_tree().process_frame
 			else: print("SHOT: shop 씬 아님")
-		"shophot", "shopfood", "shopitem", "shopegg", "shopetc", "shopsell":
+		"shophot", "shoppvp", "shopfood", "shopitem", "shopegg", "shopetc", "shopsell":
 			# 원작 ShopScene 탭별 검수. 탭 id = data/shop.json `tabs[].id`.
 			#   (구 `shopgem/shopequip/shopgacha` 는 젬·장비·뽑기가 ITEM 탭으로,
 			#    환전이 ETC 탭으로 접히면서 `shopitem`/`shopetc` 로 대체됐다.)
@@ -1622,6 +1717,39 @@ func _ready() -> void:
 			Scenes.goto("town", {"area": "elpis"})
 			for i in 12: await get_tree().process_frame
 			Scenes.goto("shop", {"tab": shot.substr(4)})
+			# `--extra=touch` = 판매원 초상 클릭(대체 판매원 전용 동작 — PVP 탭 선대군).
+			#   `--stage=<n>` 으로 몇 번 두드릴지 정한다(기본 1). 무작위 대사라 여러 번 눌러
+			#   같은 줄만 나오지 않는지 본다.
+			# `--extra=boxtouch` = **대사창**을 클릭한다(초상 클릭과 같은 무작위 풀 —
+			#   🟦 2026-08-06 사용자 지시). 타자기가 끝난 뒤라야 `clicked` 가 오므로 넉넉히 기다린다.
+			if extra == "boxtouch":
+				for i in 90: await get_tree().process_frame
+				var bx := _find_bottom_box(get_tree().root)
+				if bx == null:
+					print("SHOT: BottomTextBox 없음")
+				else:
+					var before := _box_text(bx)
+					var bp2 := get_viewport().get_screen_transform() * bx.get_global_rect().get_center()
+					_click_at(bp2)
+					for i in 90: await get_tree().process_frame
+					print("SHOT box touch: 대사 바뀜=", _box_text(bx) != before,
+						"\n  before=", before, "\n  after =", _box_text(bx))
+			if extra == "touch":
+				for i in 25: await get_tree().process_frame
+				# ⚠️ 함수를 직접 부르지 않고 **실제 클릭**을 흘린다 — 히트테스트(초상 위 버튼이
+				#   진열장 카드를 안 가리는지)까지 같이 봐야 한다.
+				#   캔버스 좌표 → 화면 좌표 변환 필수(reroll 검수 주석과 같은 함정).
+				var tb := get_tree().root.find_child("NpcTouchButton", true, false) as Control
+				if tb == null:
+					print("SHOT: NpcTouchButton 없음 — 대체 판매원이 아니다")
+				else:
+					var tp := get_viewport().get_screen_transform() * tb.get_global_rect().get_center()
+					for _t in maxi(1, int(stage)):
+						_click_at(tp)
+						for i in 8: await get_tree().process_frame
+					var thov := get_viewport().gui_get_hovered_control()
+					print("SHOT npc touch: click=", tp, " hovered=",
+						thov.get_path() if thov else "<없음>")
 		"gachapull":
 			# 장비 10연속 뽑기 실행 → 결과 팝업 + 이벤트 장비가 실제로 인벤에 들어오는지.
 			Scenes.goto("worldmap", {"region": "yutakan"})
@@ -2290,39 +2418,90 @@ func _ready() -> void:
 							_find_label_button(get_tree().root, "장착") != null,
 							" 강화버튼=", _find_label_button(get_tree().root, "강화") != null)
 		"bless":
-			# 축복 아이템을 **가방에서** 쓰는 흐름 검증: 기타 탭 → 아모르의 축복 선택 →
-			# 버튼 라벨이 "사용" 인지 → 눌러서 대상 드래곤 목록이 뜨는지 → 적용 후 레벨이 올랐는지.
+			# 축복 아이템을 **가방에서** 쓰는 흐름 검증(1개 단위): 기타 탭 → 아모르의 축복 선택 →
+			# 버튼 라벨이 "사용" 인지 → 누르면 **현재 선택 드래곤**의 레벨이 1 오르는지.
+			# 🔴 2026-08-07 수정 두 가지 — 이 모드는 그동안 조용히 깨져 있었다:
+			#   ① `Scenes.goto("cave")` 가 없어 `_open_inventory` 노드를 못 찾고 null 에서 크래시했다
+			#      (그러면 창이 안 닫혀 프로세스가 멈춘 채 남는다).
+			#   ② "대상 드래곤 목록" 을 기다렸는데 그 모달은 원작에 없어 2026-07-27 에 삭제됐다
+			#      (`_consumable_action` 주석) — 지금은 누르는 즉시 적용된다.
+			# 10개 일괄 사용은 `--shot=bless10`.
+			Scenes.goto("cave")
 			for i in 30: await get_tree().process_frame
 			UserDB.begin_batch()      # ⚠️ 검수용 — save() 하지 않는다
 			UserDB.add_item("bless_of_amor", 3)
 			var cv3 := _find_method_node(get_tree().root, "_open_inventory")
-			cv3.set("_inv_tab", "etc")
-			cv3.call("_open_inventory")
-			for i in 20: await get_tree().process_frame
-			cv3.call("_inventory_select", "bless_of_amor")
-			for i in 20: await get_tree().process_frame
-			var ub := _find_label_button(get_tree().root, "사용")
-			print("SHOT bless use_button=", ub != null, " count=", UserDB.item_count("bless_of_amor"))
-			if ub == null:
-				print("SHOT bless FAIL: '사용' 버튼 없음")
+			if cv3 == null:
+				print("SHOT bless FAIL: _open_inventory 노드 없음")
 			else:
-				ub.emit_signal("pressed")
-				for i in 25: await get_tree().process_frame
-				var uid0 := UserDB.active_uid()
-				var lv0 := int(UserDB.get_dragon(uid0).get("level", 0))
-				# 대상 목록의 첫 버튼(활성 드래곤이 아닐 수도 있으니 uid 를 다시 읽는다)
-				var first: BaseButton = null
-				var stack: Array = [get_tree().root]
-				while not stack.is_empty() and first == null:
-					var n: Node = stack.pop_front()
-					if n is Button and (n as Button).text.begins_with("Lv."): first = n
-					for c in n.get_children(): stack.append(c)
-				print("SHOT bless target_list=", first != null, " lv_before=", lv0)
-				if first != null:
-					first.emit_signal("pressed")
+				cv3.set("_inv_tab", "etc")
+				cv3.call("_open_inventory")
+				for i in 20: await get_tree().process_frame
+				cv3.call("_inventory_select", "bless_of_amor")
+				for i in 20: await get_tree().process_frame
+				var ub := _find_label_button(get_tree().root, "사용")
+				var lv0 := int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0))
+				print("SHOT bless use_button=", ub != null, " lv_before=", lv0,
+					" count=", UserDB.item_count("bless_of_amor"))
+				if ub == null:
+					print("SHOT bless FAIL: '사용' 버튼 없음")
+				else:
+					ub.emit_signal("pressed")
 					for i in 40: await get_tree().process_frame
-					print("SHOT bless after lv=", int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)),
+					print("SHOT bless after lv=",
+						int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)),
 						" count=", UserDB.item_count("bless_of_amor"))
+		"bless10":
+			# 축복 '10회 사용' 검수(2026-08-07) — 10개 이상 보유 시 상세창 2번째 버튼이 붙고,
+			# 누르면 확인 → 레벨이 10 오르고 레벨업 화면이 **합산 증가분**(+Σ10/맥스×10)을 낸다.
+			#   --stage=<아이템키>  기본 = 아모르의 축복(전 스탯 초월맥스라 눈으로 검증하기 쉽다)
+			#   --stage2=go        확인까지 눌러 레벨업 화면 연출을 띄운다(생략하면 버튼만 확인)
+			Scenes.goto("cave")
+			for i in 30: await get_tree().process_frame
+			UserDB.begin_batch()      # ⚠️ 검수용 지급 — 디스크에 쓰지 않는다
+			var bk10: String = stage if stage != "1" else "bless_of_amor"
+			# --extra=few : 9개만 지급 → 노출 조건(10개 이상)에 걸려 버튼이 **없어야** 한다.
+			UserDB.add_item(bk10, 9 if extra == "few" else 12)
+			var bgo := false
+			for a in OS.get_cmdline_user_args():
+				if a == "--stage2=go": bgo = true
+			# --extra=cap : 상한까지 3레벨만 남겨 두고 시작 → 10회를 눌러도 **3회만** 쓰여야 한다
+			#   (레벨 상한에 닿으면 멈추고 남은 개수는 소모하지 않는다).
+			if extra == "cap":
+				var cuid := UserDB.active_uid()
+				var ccap := Growth.level_cap(bool(UserDB.get_dragon(cuid).get("awakened", false)))
+				while int(UserDB.get_dragon(cuid).get("level", 1)) < ccap - 3:
+					UserDB.level_up_with(cuid, {"hp": 0, "att": 0, "def": 0})
+			var bv := _find_method_node(get_tree().root, "_open_inventory")
+			if bv == null:
+				print("SHOT: _open_inventory 노드 없음")
+			else:
+				bv.set("_inv_tab", "etc")
+				bv.call("_open_inventory")
+				for i in 10: await get_tree().process_frame
+				bv.call("_inventory_select", bk10)
+				for i in 10: await get_tree().process_frame
+				var b10 := _find_label_button(get_tree().root, "10회 사용")
+				var buid := UserDB.active_uid()
+				print("SHOT bless10 button=", b10 != null,
+					" lv_before=", int(UserDB.get_dragon(buid).get("level", 0)),
+					" count=", UserDB.item_count(bk10))
+				if b10 == null:
+					# --extra=few 는 버튼이 없는 것이 정답이다(9개 → 노출 조건 미달).
+					print("SHOT bless10 OK: 9개라 버튼 없음" if extra == "few"
+						else "SHOT bless10 FAIL: '10회 사용' 버튼 없음")
+				elif bgo:
+					b10.emit_signal("pressed")
+					for i in 10: await get_tree().process_frame
+					var bok := _find_button_text(get_tree().root, "확인")
+					if bok == null:
+						print("SHOT bless10 FAIL: 확인 버튼 없음")
+					else:
+						bok.emit_signal("pressed")
+						for i in 40: await get_tree().process_frame
+						print("SHOT bless10 after lv=",
+							int(UserDB.get_dragon(UserDB.active_uid()).get("level", 0)),
+							" count=", UserDB.item_count(bk10))
 		"storage":
 			# 드래곤의 고삐 → 보관소 이동 → 상태창 '보관소' 버튼 → 꺼내기.
 			for i in 30: await get_tree().process_frame
@@ -3028,6 +3207,47 @@ func _press_label_button(n: Node, text: String) -> void:
 	var b := _find_label_button(n, text)
 	if b != null: b.emit_signal("pressed")
 	else: print("SHOT: 버튼 없음 — ", text)
+
+## 트리에 살아 있는 첫 `BottomTextBox` + 지금 떠 있는 대사(검수용).
+func _find_bottom_box(n: Node) -> BottomTextBox:
+	if n is BottomTextBox and not n.is_queued_for_deletion():
+		return n
+	for c in n.get_children():
+		var r := _find_bottom_box(c)
+		if r != null: return r
+	return null
+
+func _box_text(b: BottomTextBox) -> String:
+	var l = b.get("_text_lbl")
+	return String((l as Label).text) if l is Label else ""
+
+## 트리에 살아 있는 첫 `OrigPopup`(해제 예약분 제외). 팝업이 입력을 받았는지 판별할 때 쓴다.
+func _find_popup(n: Node) -> OrigPopup:
+	if n is OrigPopup and not n.is_queued_for_deletion():
+		return n
+	for c in n.get_children():
+		var r := _find_popup(c)
+		if r != null: return r
+	return null
+
+## `_press_label_button` 과 달리 **실제 마우스 클릭**을 흘린다 — 히트테스트까지 검증한다.
+## `pressed` 를 직접 emit 하면 "버튼이 안 눌린다"류 버그(레이어에 가려짐)를 못 잡는다.
+## 반환값 = 그 좌표에서 입력을 먹은 컨트롤 경로(없으면 "").
+func _click_label_button(n: Node, text: String) -> String:
+	var b := _find_label_button(n, text)
+	if b == null:
+		print("SHOT: 버튼 없음 — ", text)
+		return ""
+	var c := b as Control
+	var p := get_viewport().get_screen_transform() * c.get_global_rect().get_center()
+	var mm := InputEventMouseMotion.new()
+	mm.position = p; mm.global_position = p
+	Input.parse_input_event(mm)
+	for i in 3: await get_tree().process_frame
+	var hov := get_viewport().gui_get_hovered_control()
+	_click_at(p)
+	for i in 6: await get_tree().process_frame
+	return String(hov.get_path()) if hov else ""
 
 ## sub 를 포함하는 Label 텍스트를 모은다(해제 예약된 노드는 제외 — 갱신 판정을 흐리지 않게).
 func _collect_labels(n: Node, sub: String, out: Array) -> void:

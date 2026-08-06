@@ -432,12 +432,15 @@ static func monster_keys(table: Dictionary, monster_id: int) -> Array:
 
 # --- 화이트리스트 -------------------------------------------------------------
 #
-# 사용자 확정(2026-07-31): **탐험에서는 아래 다섯 가지만 나온다.**
+# 사용자 확정(2026-07-31, 2026-08-04 두 줄 추가): **탐험에서는 아래 일곱 가지만 나온다.**
 #   1. 드래곤 알   — 그 탐험지 팝업 등재 드래곤만 (`roll_egg`)
 #   2. 일반 젬     — `exploration.gem_pool` (`roll_exploration`)
 #   3. 먹이        — 그 지역 속성에 맞는 것만 (`roll_food`)
 #   4. 속성 정기   — 그 지역 속성의 것 (`roll_essence`)
 #   5. 특수 드랍   — 그 지역 CSV 표 (`roll_special`)
+#   6. 희귀 속성   — 신성·혼돈·그림자의 정기·큰 먹이 (`roll_rare_element`, 2026-08-04)
+#                    지역이 아니라 **난이도**에 붙는다: 일반(·밤)=보스 / 영웅·카데스=전투 승리
+#   7. 드링크      — 버프 물약 1·2단계 (`roll_drink`, 2026-08-04) · 전 지역·전 난이도 공통
 #   (+ 장비·아티팩트는 **전 지역 공통**으로 유지 — 사용자 확정 2026-07-31, 젬과 같은 취급)
 #
 # 🟠 이 규칙이 걷어낸 것: 종전 `battle.gd`/`adventure.gd` 는 드랍표가 없는 던전에서
@@ -447,8 +450,10 @@ static func monster_keys(table: Dictionary, monster_id: int) -> Array:
 ## 이 인벤 키가 그 지역의 탐험 드랍으로 **나올 수 있는가**. 테스트가 화이트리스트를 증명하는 데 쓴다.
 ## (런타임 게이트가 아니라 검증용 술어다 — 실제 드랍은 위 roll_* 들만 만든다.)
 ## monster_table_doc/monster_id 를 주면 **그 몬스터의 고유 드랍**도 허용 목록에 포함한다.
+## ⚠️ 6·7(희귀 속성·드링크)은 **보스 여부를 모른 채** 판정한다 — 이 술어는 "그 지역·그
+##   난이도에서 나올 수 있는가"이고, 보스 한정(일반 난이도)도 '나올 수 있음'에 해당한다.
 static func is_allowed(key: String, stage: Dictionary, item_defs: Dictionary,
-		_table: Dictionary, hero := false, mode := "",
+		table: Dictionary, hero := false, mode := "",
 		monster_doc: Dictionary = {}, monster_id := 0) -> bool:
 	if key == "":
 		return false
@@ -465,6 +470,14 @@ static func is_allowed(key: String, stage: Dictionary, item_defs: Dictionary,
 	if food_pool(item_defs, stage.get("element", "")).has(key):
 		return true
 	if key == essence_of(item_defs, stage.get("element", "")):
+		return true
+	# 희귀 속성(신성·혼돈·그림자) — 그 난이도에 드랍 자격이 있을 때만.
+	if String((table.get("rare_element", {}) as Dictionary).get("modes", {}).get(m, "")) != "":
+		for r in (table.get("rare_element", {}).get("pool", []) as Array):
+			if String((r as Dictionary).get("key", "")) == key:
+				return true
+	# 드링크 1·2단계 — 전 지역·전 난이도 공통.
+	if drink_pool(table, item_defs).has(key):
 		return true
 	# 특수 드랍은 **그 난이도의 표**에 있어야 한다 — 다른 난이도 표에만 있으면 불허다.
 	for d in special_table(stage, m):

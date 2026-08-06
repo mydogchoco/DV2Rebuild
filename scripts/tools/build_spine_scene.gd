@@ -19,6 +19,11 @@ static func build_one(in_path: String, out_path: String) -> int:
 
 	var root := Node2D.new()
 	root.name = "Dragon_%s_%s" % [str(data.get("id")), str(data.get("stage"))]
+	# 저작 단위가 다른 스켈레톤(타 게임 이식분)의 균일 배율. 뼈가 아니라 **씬 루트**에 건다 —
+	# 애니가 `root:scale`/`root:position` 을 키하므로 루트 뼈에 곱으면 재생 즉시 덮어써진다.
+	var rs := float(data.get("root_scale", 1.0))
+	if not is_equal_approx(rs, 1.0):
+		root.scale = Vector2(rs, rs)
 
 	# --- bones ---
 	var bone_node := {}

@@ -86,7 +86,8 @@ static func _card(parent: Node, idx: int, pd: Dictionary, x: float, y: float,
 	if pbg:
 		pbg.position = ppos; card.add_child(pbg)
 	# 초상(box 이미지) — 원작 setScale(0x3f2147ae = 0.63), InterFace.c:535.
-	var id := int(pd.get("id", 0))
+	# 🔴 2026-08-07 — 그림 id 는 개체의 상속 art_id(커스텀 종 600·700 은 자기 초상이 없다).
+	var id := Icons.art_id_of(pd)
 	var stage := Growth.portrait_stage(pd)
 	var por := _spr("portrait_%d" % id, "dragon_dragon_%d_box_%s" % [id, stage], 0.63 * S, pma)
 	if por == null and stage == "evolution":

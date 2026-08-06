@@ -183,7 +183,9 @@ func _build_bg(vis: Vector2) -> void:
 	#   Godot 은 z 가 같으면 트리 순서로 그리므로 배경(z=0, 먼저 붙음)보다 **z 가 낮은 것**은
 	#   전부 배경 뒤로 숨는다 ⇒ 단상(z=−2)도 발밑 그림자(z=−1)도 한 번도 안 보였다.
 	#   배경을 확실히 맨 뒤로 내린다.
-	tr.z_index = -10
+	# 🟦 2026-08-06 — 드래곤이 **z 대역**(`DEPTH_BASE` 아래 §겹친 드래곤의 앞뒤)으로 내려가면서
+	#   배경도 그 밑으로 따라 내린다. 종전 −10 은 이제 드래곤보다 **위**다.
+	tr.z_index = BG_Z
 	add_child(tr)
 	_bg = tr
 
@@ -464,7 +466,8 @@ func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> voi
 		#   종전 값(170×0.75=127pt)은 레퍼런스(`docs/ref/pvp/`, 드래곤 210~250pt)의 절반이었다.
 		# 단계는 **각성 여부만** 본다 — 레벨로 유생/아성체까지 가르는 `Growth.spine_stage` 를
 		# 그대로 쓰면 저레벨 봇이 공격 모션 없는 child 로 떨어진다(위 ②). 콜로세움은 성체 이상만이다.
-		var sp := _dragon_spine(int(p.get("id", 0)),
+		# 그림 id = `PartyStats` 가 실어 준 상속 art_id(커스텀 종 600·700 은 자기 스파인이 없다).
+		var sp := _dragon_spine(int(p.get("art_id", p.get("id", 0))),
 			"e" if bool(p.get("awakened", false)) else "adult")
 		var ap: AnimationPlayer = null
 		if sp != null:
@@ -505,6 +508,8 @@ func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> voi
 			#   (2026-08-05). 로그 문구용 표시 이름은 여기 따로 들고 있는다.
 			"dname": String(p.get("name", "")), "icons": hud["icons"],
 			"hp_label": hud["hp_label"], "anim": ap, "id": int(p.get("id", 0)),
+			# 그림용 id — 보이스·데이터 조회는 위 `id`(종 id), 스파인·컷인·이펙트는 이쪽.
+			"art_id": int(p.get("art_id", p.get("id", 0))),
 			"element": String(p.get("element", "")),
 			"awakened": bool(p.get("awakened", false)),
 			# 무대 속성 일치 — `PartyStats` 가 스탯 보정과 **같은 조건**으로 채워 준다.
@@ -521,6 +526,76 @@ func _build_team(team: Array, mine: bool, vis: Vector2, recs: Array = []) -> voi
 			# 등장 연출(`_appear_intro`)이 따로 만지는 부분들.
 			"spine": sp, "shadow": sh,
 		}
+	_apply_depth()
+
+
+# ---------- 겹친 드래곤의 앞뒤 — 🟦 2026-08-06 사용자 규칙 ----------
+#
+# 증상(사용자 지적): 드래곤 둘이 겹치면 A 의 어떤 부품은 B 앞에, 다른 부품은 B 뒤에 그려졌다.
+# 원인: 스파인 변환 씬은 **부품(Sprite2D)마다 `z_index` = 슬롯 그리기 순서**를 들고 있는데
+#   (`build_spine_scene.gd`:66 — 실측 최대 103), Godot 의 z_index 는 부모까지 누적되는
+#   **전역 정렬 키**다. 드래곤 홀더가 전부 z=0 이었으니 A 의 부품(0~n)과 B 의 부품(0~m)이
+#   같은 축에서 섞였다 — 앞뒤가 드래곤 단위가 아니라 부품 번호로 정해졌다.
+# 원작엔 이 문제가 없다: `MakeInterface::makeDragonLayer` @0105072c 가 드래곤을 **CCLayer 한 장**
+#   으로 싸고(스켈레톤은 그 안의 노드 **하나**, z=−1), `FightScene::initDragon` 이 레이어째
+#   z 를 준다(FightScene.c:1155 — 슬롯 0·1·2 → z **3·2·4**). 즉 Cocos 레이어가 정렬을 가둔다.
+# 대책: 드래곤마다 **z 대역을 통째로 할당**해 레이어와 같은 효과를 낸다. 대역 안에서는 지금처럼
+#   부품 번호대로 그려지고, 대역끼리는 절대 안 섞인다.
+#
+# 순서 = **발밑 y 가 아래일수록 앞**(사용자 규칙 "y축 기준 위에 있을수록 뒤쪽").
+#   ⚠️ 원작의 정적 z 도 같은 결과다 — `SLOT_OFF` 의 y 는 slot1(위) < slot0 < slot2(아래) 이고
+#      원작 z 는 slot1=2 < slot0=3 < slot2=4 로 **정확히 같은 순서**다.
+#
+# 대역을 **음수 구간**에 깐다 — 그래야 UI 를 안 밀어낸다. 원작에서도 드래곤 레이어(z 2~4)는
+#   HUD·피해 수치(대상z+0xc)·룰렛(15)·스킬 이펙트(100)·컷인(120)보다 아래다.
+const DEPTH_STRIDE := 256     # 대역 폭 — 실측 최대치의 2배 이상 여유(아래 예산 참조)
+const DEPTH_BASE := -1600     # 맨 뒤 드래곤의 대역 시작 z (6마리 → −1600 … −320)
+# 대역 예산(실측 2026-08-06, `scenes/**/*.tscn` z_index 최대값):
+#   드래곤 부품 0~**103** · 크리티컬 스파인(드래곤 노드에 z=**8**) 부품 0~48 ⇒ 56 ·
+#   무대 버프 스파인(z=**10**) 부품 0~2 ⇒ 12 · 피격/격파 파티클(z=6·7) · 그림자(z=**−1**)
+#   ⇒ 한 드래곤이 쓰는 폭은 −1 ~ 103. 256 이면 스파인 하나가 두 배로 커져도 안 샌다.
+# 대역보다 **뒤**에 있어야 하는 둘 — 원작 z 는 배경 0 · 단상 1 · 드래곤 2~4 순이다.
+const STAND_Z := -1800        # 단상(등장 연출) — 모든 드래곤 뒤, 배경 앞
+const BG_Z := -2000           # 무대 배경 — 맨 뒤
+
+
+## 발밑 y 로 대역을 배분한다. 매 프레임 돌아도 6마리라 사실상 공짜다.
+func _apply_depth() -> void:
+	var tags: Array = []
+	for tag: String in _views:
+		var v: Dictionary = _views[tag]
+		var n = v.get("node")
+		if n is Node2D and is_instance_valid(n):
+			tags.append(tag)
+	tags.sort_custom(func(a: String, b: String) -> bool:
+		var ya := _depth_y(_views[a])
+		var yb := _depth_y(_views[b])
+		return (a < b) if is_equal_approx(ya, yb) else (ya < yb))
+	for i in tags.size():
+		var v: Dictionary = _views[tags[i]]
+		var z := DEPTH_BASE + i * DEPTH_STRIDE
+		(v["node"] as Node2D).z_index = z
+		# HUD 도 **그 드래곤의 대역 안**이다 — 원작 `MakeInterface::setHUD` @01050ffc 은
+		# 바를 `FightDragon::getDragonLayer()` 에 z 7·8·10 으로 붙인다(= 드래곤 레이어 소속).
+		# 대역 꼭대기에 두면 원작과 같은 결과가 된다: **자기 몸 위 · 앞 드래곤 뒤**.
+		# (레퍼런스 `docs/ref/pvp/화면 캡처 2026-08-04 202630.png` — 앞줄 드래곤의 HP바가
+		#  뒷줄 드래곤의 날개를 덮는다.)
+		var barh = v.get("barh")
+		if barh is CanvasItem and is_instance_valid(barh):
+			(barh as CanvasItem).z_index = z + DEPTH_STRIDE - 1
+
+
+## 깊이 기준 y = 그 드래곤이 **서 있는 자리**(슬롯 = `home`).
+## 살아 있는 노드 좌표를 쓰면 공격 점프로 몸이 뜨는 동안 뒤로 밀려 앞뒤가 뒤집힌다 —
+## 원작도 z 는 슬롯으로만 정한다. 자리 교대(`_swap_position`)·각성기 이동은 `home` 을
+## 갱신하므로 그때는 여기서도 순서가 따라 바뀐다.
+func _depth_y(v: Dictionary) -> float:
+	var h = v.get("home", v.get("pos", Vector2.ZERO))
+	return (h as Vector2).y if h is Vector2 else 0.0
+
+
+func _process(_dt: float) -> void:
+	_apply_depth()
 
 
 # ---------- 등장 연출 — 원작 `MakeInterface::duelDragonAppear` @010c2464 이식 ----------
@@ -628,7 +703,7 @@ func _appear_intro(vis: Vector2) -> float:
 			var sh_h := AtlasUI.size_pt(ST, skey).y * ds
 			lift = maxf(0.0, sh_h * 0.5 - STAND_FEET * ds)
 			stand.position = Vector2(slot.x - dir * slide, slot.y - sh_h * 0.5)
-			stand.z_index = -2                     # 원작 addChild(stand, 1) — 드래곤보다 뒤
+			stand.z_index = STAND_Z                # 원작 addChild(stand, 1) — 드래곤보다 뒤
 			add_child(stand)
 			var stw := stand.create_tween()
 			stw.tween_interval(enter)
@@ -1059,12 +1134,13 @@ func _frame_key(path: String) -> String:
 ## 프로필 초상 — 원작 `getUserProfileImagePath`(유저가 지정한 사진/드래곤).
 ## 우리는 메인 HUD 와 같은 규약을 쓴다: 내 쪽 = 활성 드래곤, 상대 = 선두 드래곤.
 func _plate_portrait(mine: bool) -> Sprite2D:
+	# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 초상이 없다).
 	var did := 0
 	if mine:
 		var a := UserDB.active_dragon()
-		did = int(a.get("id", 0))
+		did = Icons.art_id_of(a) if not a.is_empty() else 0
 	elif not _fo.is_empty():
-		did = int((_fo[0] as Dictionary).get("id", 0))
+		did = Icons.art_id_of(_fo[0] as Dictionary)
 	if did <= 0:
 		return null
 	var dir := "portrait_%d" % did
@@ -1290,9 +1366,18 @@ func _apply_passives() -> void:
 ## `(최초 조우 시)` / `(반복)` 두 벌로 갈라 적을 수 있고, 어느 쪽을 쓸지는 로직이
 ## 이미 정해서 넘겨 준다(`Colosseum.make_guard` → `first_meet`).
 ##
-## 표시는 마을 NPC 대화와 **같은 위젯**(`NpcTalkLayer` = 원작 `ScenarioTextBox` + 중앙 화자)이라
-## 타자기·▶화살표·탭 넘기기가 그대로 온다. 초상은 `data/npc_face.json` 키(= 방지봇 키)로 찾고,
-## 원작에 없는 오리지널 캐릭터(선대군)는 초상 없이 대사창만 뜬다.
+## 표시는 마을 NPC 대화와 **같은 위젯**(`NpcTalkLayer` = 원작 `ScenarioTextBox` + 화자 슬롯)이라
+## 타자기·▶화살표·탭 넘기기가 그대로 온다.
+##
+## 🔴 2026-08-06 — 종전엔 **봇 이름 하나로 전부 읽고 표정도 없었다.** 원작
+## `MatchingLayer::showNuriEvent`/`showRaonEvent` 는 줄마다 `TalkNpc`(화자·몸통·표정·자리·등장)를
+## 따로 만든다 ⇒ **누리 이벤트는 누리(오른쪽) + 즈믄(왼쪽) 2인극**이고 라온만 혼자(가운데)다.
+## 그 표는 빌드 때 `data/colosseum.json` 에 실린다(`build_colosseum.TALK_STAGING`).
+## 🟦 2026-08-06 — 선대군도 이제 초상이 뜬다. 원작에 없는 캐릭터라 원작 아틀라스에는 없지만
+## **그 캐릭터 전용 원화**를 사용자가 넣어 줬다(`DV2/ORIGINAL/WildSP/normal.png` →
+## `scripts/tools/build_sundaegun_npc.py` → `assets/converted/npc_sundaegun/`). 남의 얼굴로
+## 대체한 것이 아니므로 CLAUDE.md §3 위반이 아니다. 초상이 없는 화자는 지금도 대사창만 뜬다
+## (`NpcPortrait.has_art` 가 false 면 `npc = ""`).
 func _guard_talk() -> void:
 	var gen := _gen
 	var lines: Array = _foe.get("lines", [])
@@ -1302,19 +1387,35 @@ func _guard_talk() -> void:
 	if lines.is_empty():
 		return
 	var nick := String(_foe.get("nick", ""))
-	var npc := String(_foe.get("guard_key", ""))
-	var tl := NpcTalkLayer.open(self, npc if NpcPortrait.has_art(npc) else "", nick, "")
+	var fallback_npc := String(_foe.get("guard_key", ""))
+	var tl: NpcTalkLayer = null
 	for ln in lines:
-		if _skipped or gen != _gen or not is_instance_valid(tl):
+		if _skipped or gen != _gen or (tl != null and not is_instance_valid(tl)):
 			break
+		var d: Dictionary = ln if ln is Dictionary else {"text": String(ln)}
+		var npc := String(d.get("npc", fallback_npc))
+		if not NpcPortrait.has_art(npc):
+			npc = ""
+		var who := String(d.get("name", ""))
+		if who == "":
+			who = nick
+		var pos := int(d.get("pos", NpcTalkLayer.POS_CENTER))
+		var emo := int(d.get("emotion", 1))
+		var body := int(d.get("body", 1))
+		var first_show := bool(d.get("first_show", true))
+		var small := bool(d.get("small", false))
+		if tl == null:
+			tl = NpcTalkLayer.open(self, npc, who, "", emo, body, pos)
+		else:
+			tl.set_talker(npc, who, pos, emo, body, first_show, small)
 		# ⚠️ 전투 로그(`_say`)에 같이 남기지 않는다 — 로그 상자와 대사창이 **같은 자리**라
 		#    글자가 겹쳐 보인다(2026-08-05 캡처 검수).
-		tl.set_text(String(ln))
+		tl.set_text(String(d.get("text", "")))
 		await tl.advanced
 		# ⚠️ 한 프레임 쉬고 다음 줄로 간다. 바로 이어 붙이면 **아직 emit 중인 신호**에 다음
 		#    `await` 가 연결돼 그 한 번의 탭이 남은 줄을 통째로 밀어 버린다(실측 2026-08-05).
 		await get_tree().process_frame
-	if is_instance_valid(tl):
+	if tl != null and is_instance_valid(tl):
 		tl.close()
 
 
@@ -1350,11 +1451,34 @@ func _evt_delay(ev: Dictionary) -> float:
 			#   @01001200 이 읽는 표(`UltimateFx.DURATION`, 콜로세움 `DAT_021af294`)가
 			#   **속성별 9.0~12.0초**다. 2초에 다음 이벤트로 넘어가면 각성기 연출이 도는
 			#   동안 뒤 전투가 겹쳐 재생된다(사용자 지적 "연출이 원작과 다르다"의 한 갈래).
+			# 🟦 2026-08-06 — 각성기는 **타수만큼** 이벤트로 온다(`Battle.resolve_awaken`).
+			#   각 타는 `_ultimate_damage` 가 **원작 실측 시각에 직접 예약**하므로 재생 루프는
+			#   타마다 기다릴 필요가 없다 — 발동당 한 번만 연출 길이를 지고, 나머지는 0 이다.
+			#   (여기서 타마다 기다리면 바람 46타×대상이 수십 분짜리가 된다.)
+			# 🔴 2026-08-06 수정(사용자 지적 "각성기 피해가 여러 턴에 걸쳐 들어온다") —
+			#   그 한 번을 **첫 타(`volley_lead`)에 걸면 안 된다.** 재생 루프는
+			#   `_apply(ev)` → `await _wait(...)` 순서라, 첫 타에서 11초를 기다리면 나머지
+			#   타들은 그 **뒤에** 적용돼 예약 시계가 11초 밀린다(피해가 13~21초에 도착 =
+			#   다음 턴 두세 개 위로 샜다. 대상 2·3 의 피격 안무도 같이 밀렸다).
+			#   ⇒ 볼리를 **다 뿌린 뒤**(`volley_last`) 연출 길이만큼 기다린다. 이러면 모든
+			#     타가 같은 t0 에 예약된다.
+			#   대기는 `DURATION`(연출 길이)과 **마지막 타의 도착 시각** 중 큰 쪽이다 —
+			#   속성별로 도착(ACT_AT 2.25 + 표 마무리)이 연출보다 이르지만(어둠 10.15 < 11.0,
+			#   땅 7.0 < 9.0 …), 표를 손보거나 속성 키가 비어 기본값으로 떨어져도 피해가
+			#   다음 턴으로 새지 않도록 여기서 못 박는다.
+			if not bool(ev.get("volley_last", false)):
+				return 0.0
 			var av: Dictionary = _views.get(_actor_tag(ev), {})
-			return float(UltimateFx.DURATION.get(String(av.get("element", "")), 2.0))
+			var el := String(av.get("element", ""))
+			return maxf(float(UltimateFx.DURATION.get(el, 2.0)),
+				UltimateFx.ACT_AT + float(_ult_dmg_plan(el)[2]))
 		"normal", "double":
-			# 🟦 크리티컬은 모션이 길어졌으므로(위 `CRIT_ANIM_SPEED`) 다음 이벤트도 그만큼 미룬다.
-			return 2.1 if bool(ev.get("crit", false)) else 1.15
+			# 🔴 2026-08-07 — 종전엔 고정 2.1/1.15 초였다. 크리티컬 클립이 종마다 1.2~7.17초로
+			#   제각각이라 긴 종은 모션이 통째로 다음 턴 위로 샜다(사용자 지적).
+			#   ⇒ `_motion` 이 방금 **실제로 시작한** 연출 길이(x1 환산)를 재서, 그보다 짧게는
+			#     안 넘어간다. 짧은 종은 종전과 같은 간격을 유지한다(하한).
+			var base := 2.1 if bool(ev.get("crit", false)) else 1.15
+			return maxf(base, _motion_dur + MOTION_TAIL)
 		"dot", "effect_tick":
 			return 0.35
 	return 0.7
@@ -1369,6 +1493,9 @@ func _apply(ev: Dictionary) -> void:
 	if dfn == "" and t in ["confused", "status_skip"]:
 		dfn = String(ev.get("actor", ""))
 	var dmg := int(ev.get("damage", 0))
+	# 연출 길이 측정은 **이벤트마다** 0 에서 시작한다 — `_motion` 이 안 불리는 갈래(아래 조기
+	# return)에서 직전 값이 남으면 `_evt_delay` 가 엉뚱하게 오래 기다린다.
+	_motion_dur = 0.0
 	if dfn == "" or not _views.has(dfn):
 		return
 	var v: Dictionary = _views[dfn]
@@ -1393,10 +1520,14 @@ func _apply(ev: Dictionary) -> void:
 	#   9~12초짜리 연출이 도는 내내 결과가 이미 나와 있었다.
 	if t == "awaken":
 		var atk_v: Dictionary = _views.get(_actor_tag(ev), {})
-		# 시전 줄은 지금(연출 시작) 낸다 — 피해 줄은 아래 `_apply_hit` → `_log_line` 이 낸다.
-		var LU: Dictionary = Data.colosseum.get("log", {})
-		if not LU.is_empty():
-			_say(String(LU.get("ultimate", "")) % _who(_actor_tag(ev)))
+		# 🟦 2026-08-06 — 분할 **금액**은 이제 `Battle.resolve_awaken` 이 정해서 타별 이벤트로
+		#   보낸다(원작 `calculateDamage` 의 몫·가드·나머지 규칙 = `combat.json awaken.hits_by_element`).
+		#   여기 남은 몫은 **시각**이다 — 아래 `_ult_dmg_plan` 의 실측 표대로 각 타를 예약한다.
+		if bool(ev.get("volley_lead", false)):
+			# 시전 줄·피격 안무는 발동당 한 번. 피해 줄은 타별 `_apply_hit` → `_log_line` 이 낸다.
+			var LU: Dictionary = Data.colosseum.get("log", {})
+			if not LU.is_empty():
+				_say(String(LU.get("ultimate", "")) % _who(_actor_tag(ev)))
 		_ultimate_damage(ev, t, dfn, v, String(atk_v.get("element", "")))
 		return
 	_apply_hit(ev, t, dfn, v)
@@ -1436,6 +1567,12 @@ func _apply(ev: Dictionary) -> void:
 static func _ult_dmg_plan(element: String) -> Array:
 	match element:
 		"aqua":
+			# **작은 물고기 떼 = 1데미지씩 10발, 상어 일격에 나머지 전부.**
+			#   원작 case 1 그대로다 — `iVar14 = −(param_2 < −50)` 이 각 발의 값이라 실피해가
+			#   50 초과일 때만 1이고(아래 가드), 마무리 `param_2 + 10` 이 잔여 전부를 싣는다.
+			#   영상 교차검증(물 구간 seg): 물고기 떼가 오른쪽에서 몰려드는 +4.9 에 첫 "1" 이
+			#   뜨고 +6.1 까지 누적 10 → 상어 돌진-물기에서 큰 수치 하나. run 환산 3.85~5.47
+			#   (표 4.6~5.5)로 맞는다. 시각축은 `_ultimate_damage` 의 RUN_AT 보정 참조.
 			var a: Array = []
 			for i in 10:
 				a.append(4.6 + float(i) * 0.1)
@@ -1456,10 +1593,18 @@ static func _ult_dmg_plan(element: String) -> Array:
 		"shadow":
 			return [[2.75, 3.25, 3.75, 4.25, 5.15], 1.0 / 10.0, 5.25]
 		"fire":
+			# 🟦 2026-08-06 사용자 확정 — **불기둥 폭발마다** 피해가 들어간다(20발).
+			#   원작(`calculateDamage` case 5)은 `mixingDamage` 를 **7번만** 부른다:
+			#   `this+0x378`~`0x390`(= FIRE_DELAYS[0..6]) + 1.5 에 각 D/20, 7번째가 잔여 전부.
+			#   폭발은 20군데인데 앞 7군데에만 수치가 붙는 셈이라, 뒤 13번은 터지기만 한다.
+			#   사용자 규칙대로 20군데 전부로 넓힌다 — 몫 D/20 은 원작 그대로라 합이 맞는다.
+			#   되돌리려면 `19`/`19` 를 `6`/`6` 으로 바꾸면 원작 판이다.
+			#   `+1.5` 는 원작 오프셋: 폭발이 `elem_delay(1.0) + FIRE_DELAYS[i]` 이므로
+			#   수치는 폭발 **0.5초 뒤**에 뜬다.
 			var a: Array = []
-			for i in 6:
+			for i in 19:
 				a.append(float(UltimateFx.FIRE_DELAYS[i]) + 1.5)
-			return [a, 1.0 / 20.0, float(UltimateFx.FIRE_DELAYS[6]) + 1.5]
+			return [a, 1.0 / 20.0, float(UltimateFx.FIRE_DELAYS[19]) + 1.5]
 		"holy":
 			return [[7.0, 7.25], 1.0 / 3.0, 7.5]
 		"light":
@@ -1479,131 +1624,69 @@ static func _ult_dmg_plan(element: String) -> Array:
 	return [[], 0.0, 8.0]
 
 
+## 각성기 **한 타**를 원작 시각에 예약한다.
+##
+## 🟦 2026-08-06 — 종전엔 이 함수가 총액을 받아 **금액까지** 쪼갰다. 지금은 금액을
+##   `Battle.resolve_awaken` 이 정해 타별 이벤트(`hit`/`hits`)로 보내므로, 여기서는
+##   `hit` 번째 타를 위 표의 시각에 놓기만 한다. 표(잔타 시각 + 마무리 시각)와 로직의
+##   타수는 **짝**이다 — `_ult_dmg_plan` 을 고치면 `combat.json awaken.hits_by_element` 도 같이.
 func _ultimate_damage(ev: Dictionary, t: String, dfn: String, v: Dictionary, element: String) -> void:
 	var plan := _ult_dmg_plan(element)
 	var chips: Array = plan[0]
-	var share := float(plan[1])
 	var last := float(plan[2]) / maxf(0.05, float(_speed))
-	var total := int(ev.get("damage", 0))
-	_ultimate_knockback(v, last, element)
+	var hit := int(ev.get("hit", 0))
+	var hits := int(ev.get("hits", 1))
+	# 표의 시각은 `action<El>_C` 기준(`ACT_AT`) — 아래 `dmg_at` 이 그 축 보정이다.
+	var at := last
+	if hit < chips.size() and hit < hits - 1:
+		at = float(chips[hit]) / maxf(0.05, float(_speed))
+	var dmg_at0 := UltimateFx.ACT_AT / maxf(0.05, float(_speed))
+	# 피격 안무는 **대상마다** 한 번(원작 `damage<El>_C` 도 대상 3칸에 각각 건다) ⇒ 그 대상의
+	# 첫 타에서 건다. `lead` 한 번인 것은 시전 로그·무대 쪽이다.
+	if hit == 0:
+		_ultimate_knockback(v, element)
 	var gen := _gen
-	var spent := 0
-	for ct: float in chips:
-		var amount := 1 if share < 0.0 else int(float(total) * share)
-		if share < 0.0 and total < 50:
-			amount = 0                          # 원작 `param_2 < -50` 가드
-		amount = clampi(amount, 0, maxi(0, total - spent - 1))
-		if amount <= 0:
-			continue
-		spent += amount
-		var a := amount
-		get_tree().create_timer(ct / maxf(0.05, float(_speed))).timeout.connect(func() -> void:
-			if not is_instance_valid(self) or gen != _gen or bool(v.get("dead", false)):
-				return
-			v["hp"] = maxi(0, int(v["hp"]) - a)
-			_set_bar(v)
-			_float_text(v["pos"], str(a), Color(1, 1, 1)))
-	# 마무리 타 — 나머지를 싣고 사망·로그까지 여기서 낸다(원작도 마지막 호출만 flag=1).
 	var ev2 := ev.duplicate(true)
-	ev2["damage"] = maxi(0, total - spent)
-	get_tree().create_timer(last).timeout.connect(func() -> void:
+	get_tree().create_timer(dmg_at0 + at).timeout.connect(func() -> void:
 		if is_instance_valid(self) and gen == _gen:
 			_apply_hit(ev2, t, dfn, v))
 
 
 ## 각성기 피격 반응 — 원작 `damage<El>_C` 가 대상에게 거는 것.
-## `damageEarth_C` 실측: `JumpBy(0.2, …, S×150)` 을 0.3초 간격으로 **네 번** 저글링한 뒤
-## `JumpBy(…, S×800)` 으로 **높이 띄운다**. 마지막 큰 점프가 피해 표시 시각과 맞물린다.
-const ULT_KNOCK_SEC := 0.2
-const ULT_KNOCK_GAP := 0.3
-const ULT_KNOCK_N := 4
-const ULT_KNOCK_H := 150.0
-const ULT_LAUNCH_H := 800.0
-
-## 속성별 피격 반응 — 원작 `damage<El>_C` 실측(2026-08-05 `resolve_actions.py`).
-##   [시작초, 저글링 횟수, 저글링 1회 시간, 저글링 간격, 저글링 높이(×S), 마무리 높이(×S)]
-## 공통 골격: `Delay(T)` → `JumpTo(0.25, 무대, S*150, 1)` → `JumpBy(t, …, S*h, 1)` 반복
-##   → 마지막에 크게 띄운다. 땅은 S*800, 그림자는 S*1000 으로 가장 크게 난다.
-## ⚪ 원작이 저글링마다 같이 거는 몸통 스쿼시(`ScaleTo(0.1, ×1.05, 0.95)`)와
-##   `MakeInterface::shakeLayerToVertical`(화면 흔들기)은 아직 안 넣었다 — 아래 §백로그.
-const ULT_KNOCK := {
-	"aqua":   [1.0,  1, 0.25, 0.5,  150.0, 175.0],
-	"chaos":  [1.95, 1, 6.0,  0.0,  30.0,  30.0],
-	"dark":   [2.75, 1, 0.25, 1.25, 100.0, 300.0],
-	"earth":  [1.0,  4, 0.2,  0.3,  150.0, 800.0],
-	# fire = 감쇠 연타 20타(0.5→0.1초 · 높이 200→50, damageFire_C L1505)의 근사 —
-	# 잦은 타수·짧은 간격이 영상의 "폭발마다 튀는" 저글링을 낸다.
-	"fire":   [1.0,  14, 0.18, 0.03, 150.0, 150.0],
-	"holy":   [4.5,  1, 0.95, 0.2,  100.0, 100.0],
-	"light":  [2.5,  2, 0.1,  0.05, 75.0,  150.0],
-	"shadow": [3.0,  5, 0.2,  0.2,  150.0, 1000.0],
-	"wind":   [1.0,  5, 0.25, 0.3,  120.0, 200.0],
-}
-
-func _ultimate_knockback(v: Dictionary, at_sec: float, element := "") -> void:
+##
+## 🔴 2026-08-06 — 여기 있던 **6숫자 근사표(`ULT_KNOCK`) + 공통 저글링 골격**을 없앴다.
+##   ① 그 골격은 `damageFire_C` 의 모양이라 여섯 속성 중 셋(물·빛·신성)에는 아예 안 맞았고
+##      (물·빛은 저글링이 아니라 느린 표류, 신성은 마무리가 은신), 그림자는 저글링 횟수가
+##      4회인데 5회로 적혀 있었다.
+##   ② 시각이 **각성기 시작 0초** 기준이라 원작보다 2.25초 일렀다(축 근거 = §TGT_AXIS).
+##   ③ 같은 골격이 확인 창(`dev_ultimate_fx.gd`)에도 복사돼 있어 두 곳이 어긋날 수 있었다.
+##   ⇒ 아홉 속성 전부 `UltimateFx.target_fx` **한 곳**에서 낸다(§TGT_STEPS · §TGT_AXIS).
+func _ultimate_knockback(v: Dictionary, element := "") -> void:
 	var n = v.get("node")
 	if not (n is Node2D) or not is_instance_valid(n) or bool(v.get("dead", false)):
 		return
 	var node := n as Node2D
 	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
 	var home: Vector2 = v.get("home", node.position)
-	var k: Array = ULT_KNOCK.get(element, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
-	var n_j := int(k[1])
-	var sec := float(k[2])
-	var gap := float(k[3])
-	var hop := float(k[4])
-	var big := float(k[5])
-	# 🔴 2026-08-05 재작성 — `damageFire_C` 실측(sequences.md L1505):
-	#   Delay(1.0) → **JumpTo(0.25, 무대점, S×150)** ← 피격자가 연출 지점으로 끌려간다
-	#   → 감쇠 저글링(S×200→50, 매 타 shakeLayerToVertical) → … → JumpTo(0.25, 제자리, S×150)
-	#   종전엔 ① 무대점 이동이 없어 피격자가 슬롯에서 튀었고 ② 높이에 ×0.35 를 곱해
-	#   원작(영상: 화면 절반까지 던져진다)보다 훨씬 낮았다.
 	var vis := _vis()
-	var stage := Vector2(ULT_DX if bool(v.get("mine", false)) else vis.x - ULT_DX,
-		vis.y * 0.5 + ULT_DROP)
-	# 어둠 — 피격자는 무대점이 아니라 **소용돌이 중심**(화면 중앙 중단)으로 빨려 들어가
-	# 그 안에서 저글링당하다 폭발에 튕겨 나온다(영상 51.25~53.5s 실측).
-	if element == "dark":
-		stage = Vector2(vis.x * 0.5, vis.y * 0.45)
-	var lead := maxf(float(k[0]), at_sec - (sec + gap) * float(n_j) - 0.6)
+	var mine := bool(v.get("mine", false))
+	# 연출 지점 — 원작 `damage<El>_C` 의 `JumpTo(…, 무대점)` 목적지. 피격자 진영 쪽 무대다.
+	var stage := Vector2(ULT_DX if mine else vis.x - ULT_DX, vis.y * 0.5 + ULT_DROP)
+	# 🔴 2026-08-06 — 어둠의 소용돌이 자리는 여기서 넘기지 않는다. `_run_dark` 가 구슬을
+	#   화면 정중앙에 놓는데 여기서 **시전자 무대점 x**(225)를 넘겨 피격자가 왼쪽 위로
+	#   끌려가고 있었다(사용자 지적). 이제 `UltimateFx._dark_swallow` 가 직접 구한다.
 	var old = v.get("move_tw")
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
-	# 선행 포즈 — 원작 `damage<El>_C`(물 = 침수에 `down` → 물고기 떼에 `love`).
-	for pre in UltimateFx.TGT_PRE_POSE.get(element, []):
-		var pt := node.create_tween()
-		pt.tween_interval(maxf(0.01, float(pre[0])))
-		var pname := String(pre[1])
-		pt.tween_callback(func() -> void: _play_anim(v, pname))
-	var t := create_tween()
-	v["move_tw"] = t
-	t.tween_interval(lead - 0.25)
-	_tween_jump(t, node, home, stage, 150.0 * s, 0.25, 1.0)   # 무대점으로 끌려간다
-	for i in n_j:
-		# 타격마다 — 피격음(두 음원 교대, 원작 볼륨식) + **damaged 재생**(원작은 연타마다
-		# runSpine "damaged" 를 다시 튼다 — fire 13·dark 13·shadow 15회 실측).
-		var hit_track := "effect_dragon_damaged_%d" % (1 + i % 2)
-		t.tween_callback(func() -> void:
-			Bgm.sfx(hit_track, float(randi() % 6) * 0.05 + 0.25)
-			_play_anim(v, "damaged"))
-		var d := Vector2((-40.0 if bool(v.get("mine", false)) else 40.0) * 0.5, 0.0)
-		_tween_jump(t, node, stage + d * float(i), stage + d * float(i + 1),
-			hop * s, sec, 1.0)
-		t.tween_interval(gap)
-	# 마지막 — `down` 으로 엎어진 채 크게 띄워졌다가 제자리로, `wait` 복귀(원작 3단계).
-	t.tween_callback(func() -> void: _play_anim(v, "down"))
-	_tween_jump(t, node, node.position, stage, big * s, 0.6, 1.0)
-	t.tween_interval(0.35)
-	_tween_jump(t, node, stage, home, 150.0 * s, 0.25, 1.0)
-	t.tween_callback(func() -> void:
-		if is_instance_valid(node):
-			node.position = v.get("home", home)
-		var ap = v.get("anim")
-		if ap is AnimationPlayer and is_instance_valid(ap) \
-				and (ap as AnimationPlayer).has_animation("wait"):
-			(ap as AnimationPlayer).get_animation("wait").loop_mode = Animation.LOOP_LINEAR
-			(ap as AnimationPlayer).play("wait"))
-
+	UltimateFx.target_fx({
+		"node": node, "anim": v.get("anim"), "shadow": v.get("shadow"),
+		"home": home, "stage": stage, "scale": s, "mine": mine,
+	}, element)
+	# 복귀 애니를 루프로 — 원작 `wait` 는 무한 반복이다(`target_fx` 는 재생만 한다).
+	var ap = v.get("anim")
+	if ap is AnimationPlayer and is_instance_valid(ap) \
+			and (ap as AnimationPlayer).has_animation("wait"):
+		(ap as AnimationPlayer).get_animation("wait").loop_mode = Animation.LOOP_LINEAR
 
 
 ## 피격 결과(HP·수치·사망)를 실제로 반영한다. 각성기만 시각을 늦춰 부른다.
@@ -1612,8 +1695,11 @@ func _apply_hit(ev: Dictionary, t: String, dfn: String, v: Dictionary) -> void:
 	if dmg > 0:
 		v["hp"] = maxi(0, int(v["hp"]) - dmg)
 		_set_bar(v)
-		var col := Color(1.0, 0.85, 0.3) if bool(ev.get("crit", false)) else Color(1, 1, 1)
-		_float_text(v["pos"], str(dmg), col)
+		_hit_number(v, str(dmg))
+		# 마지막 타 — 각성기라면 잔타들이 쌓아 둔 누계에 얹고 사라지게 한다.
+		# 라벨이 없을 때 그래도 한 번 띄우는 경우 = 원작의 크리티컬(0x29~0x2b + criticalHit==1)과
+		# 각성기 본타(0x3e9) 분기. 그 밖의 단타에는 누계 숫자가 없는 것이 원작이다.
+		_total_number(v, dmg, true, bool(ev.get("crit", false)) or t == "awaken")
 	# 방어 스킬 발동(철갑 방패·신의 결계·복수의 거울·보호의 장막) — 🔴 2026-08-05 신설.
 	#   시전이 아니라 **피격 처리**에서 나오므로 `_motion` 경로가 아니다. 종전엔 콜로세움이
 	#   `def_skill` 을 아예 안 읽어서, 발동해도 화면·로그에 흔적이 하나도 없었다
@@ -1624,7 +1710,9 @@ func _apply_hit(ev: Dictionary, t: String, dfn: String, v: Dictionary) -> void:
 	if heal > 0:
 		v["hp"] = mini(int(v["hp_max"]), int(v["hp"]) + heal)
 		_set_bar(v)
-		_float_text(v["pos"], "+%d" % heal, Color(0.5, 1.0, 0.5), true)
+		# 원작은 회복(`ActionType` 0x1d / −0xe)에 **누계 라벨을 만들지 않는다**
+		# (`showDamage` 가 `param_5 > 0` 이면 그 블록을 통째로 건너뛴다).
+		_hit_number(v, "+%d" % heal, true)
 	if bool(ev.get("dead", false)) and not bool(v["dead"]):
 		# 원작 사망 = `deadTypeNormalDamage` / `deadTypeBigDamage` 가 **"damaged" → "down"**
 		# 두 단계로 낸다. `damaged` 가 여기(사망 도입부)에만 쓰이는 게 원작 사양이다.
@@ -1837,7 +1925,14 @@ func _set_bar(v: Dictionary) -> void:
 #   못 찾은 이유: 디컴프가 `action` 을 `[skip>8000]` 으로 건너뛰어 ASM 으로만 읽히는데,
 #   그때 스케일 펄스 구간만 읽고 "이동 없음"으로 단정했다.
 const ATK_ANIM_SPEED := 1.125       # 원작 runSpineWithAnimationName(…, 1.125)
-const CRIT_ANIM_SPEED := 0.75       # 🟦 크리티컬은 평타보다 느리게(= 길게) — 위 주석
+# 🔴 2026-08-07 정정(사용자 지적 "크리티컬 연출이 느려 다음 턴까지 모션이 이어진다") —
+#   종전 0.75 는 **자작 감속**이었다. 실측하면 그것만으로 이미 겹친다:
+#   변환본 384종의 `critical` 애니 길이 중앙값 2.17초 → 0.75배속이면 **2.89초**인데
+#   `_evt_delay` 의 크리티컬 간격은 2.1초다(최장 7.17초 = 9.56초까지 샌다).
+#   ⇒ 우리가 근거를 가진 유일한 배속인 원작 `runSpineWithAnimationName(…, 1.125)` 로 되돌린다.
+#   "크리티컬이 평타보다 길다"(사용자 확정 2026-08-05)는 **클립 자체가 길어서**(평타 중앙값
+#   0.7~1.2초 vs 크리 2.17초) 그대로 유지된다 — 감속은 그 위에 덧씌운 것이었다.
+const CRIT_ANIM_SPEED := ATK_ANIM_SPEED
 const ATK_FPS := 30.0               # 원작 getAttackFrame() ÷ 30
 const ATK_PULSE_SEC := 0.05         # 원작 ScaleTo 지속시간(3단 공통)
 const ATK_PULSE := [Vector2(1.25, 1.05), Vector2(0.90, 0.95), Vector2(1.00, 1.00)]
@@ -1916,8 +2011,12 @@ func _play_anim(v: Dictionary, name: String) -> float:
 	var speed := ATK_ANIM_SPEED if name == "attack" else 1.0
 	if name == "critical":
 		speed = CRIT_ANIM_SPEED
-	p.play(name, -1.0, speed)
-	var dur := a.length / speed
+	# 🔴 2026-08-07 — 배속 버튼(`_speed`)이 여태 **대기(`_wait`)만** 줄이고 스파인은 등속으로
+	#   뒀다. x2·x3 에서 모션이 다음 이벤트 위로 겹치던 두 번째 원인이다. 재생도 같이 당긴다.
+	var play := speed * _spd()
+	p.play(name, -1.0, play)
+	_note_motion(a.length / speed)      # x1 환산 — `_evt_delay` 는 x1 초를 돌려준다
+	var dur := a.length / play
 	# 원작 ⑦: 잔여 = 전체/1.125 − 타격시간 − 0.1. 여기서는 애니가 끝난 뒤 복귀시키면 되므로
 	# 같은 값(= dur − 0.1)을 쓴다.
 	var gen := _gen
@@ -2196,11 +2295,29 @@ func _body_pos(v: Dictionary) -> Vector2:
 	return p - Vector2(0.0, float(v.get("dragon_h", DRAGON_H)) * 0.5)
 
 
+## 이 이벤트에서 **실제로 시작한** 연출 중 가장 긴 것(초, x1 환산). `_evt_delay` 가 읽는다 —
+## 재생 루프가 `_apply(ev)`(→`_motion`) → `await _wait(_evt_delay(ev))` 순서라 값이 준비된다.
+## x1 환산인 이유: `_wait` 이 다시 `_spd()` 로 나누기 때문(배속을 두 번 먹이면 안 된다).
+var _motion_dur := 0.0
+const MOTION_TAIL := 0.2            # 모션이 끝난 뒤 다음 이벤트까지 두는 여유
+
+func _note_motion(sec_at_x1: float) -> void:
+	_motion_dur = maxf(_motion_dur, sec_at_x1)
+
 ## 한 이벤트의 스파인 연출 — 공격자/피격자를 함께 움직인다.
 func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> void:
 	var atk: Dictionary = _views.get(atk_tag, {})
 	var dfn: Dictionary = _views.get(dfn_tag, {})
 	var code := _action_code(ev, t)
+	_motion_dur = 0.0
+
+	# 🟦 2026-08-06 — 각성기는 **타수만큼** 이벤트로 온다(`Battle.resolve_awaken`,
+	#   원작 `calculateDamage` 분할). 무대 연출(컷인·보이스·`ultimate1`·`UltimateFx`)은
+	#   첫 이벤트(`lead`)에서 한 번만 돈다 — 타마다 다시 틀면 무대가 계속 재시작된다.
+	#   나머지 타의 피격 반응은 `UltimateFx` 가 저글링에 맞춰 자체적으로 낸다
+	#   (`damaged` 재생 + `effect_dragon_damaged_%d`), 데미지 숫자는 `_apply` 가 낸다.
+	if t == "awaken" and not bool(ev.get("volley_lead", false)):
+		return
 
 	# code −15 기절 — 원작은 공격 자체가 없다(턴만 소모). 문자열 `ColosseumStuned`.
 	if code == AC_STUN:
@@ -2315,11 +2432,11 @@ func _motion(ev: Dictionary, t: String, atk_tag: String, dfn_tag: String) -> voi
 				_cutin(atk)              # 🟦 위 각성기와 같은 근거(코드 4·7)
 				_crit_voice(atk)
 				# 드빌1에서 온 종만 자기 이펙트 시퀀스를 위에 더 얹는다(800 로키 = `col_action2`).
-				_dragon_fx_seq(int(atk.get("id", 0)), "col_action2", at)
+				_dragon_fx_seq(int(atk.get("art_id", atk.get("id", 0))), "col_action2", at)
 			else:
 				# 평타 — 드빌1에서 온 종만 전용 평타 이펙트를 갖는다(`col_action1`).
 				# 없으면 아무것도 안 뜬다(원작 콜로세움 평타에도 이펙트가 없다).
-				_dragon_fx_seq(int(atk.get("id", 0)), "col_action1", at)
+				_dragon_fx_seq(int(atk.get("art_id", atk.get("id", 0))), "col_action1", at)
 
 
 ## 위치 교대 — 원작 `MakeInterface::swapPosition` @01087ea4 (액션 코드 **1**·**41**·**42**).
@@ -2451,7 +2568,9 @@ func _evade_effect(dfn: Dictionary) -> void:
 	var s := _spr("battle_ui", "battle_miss_kr", Design.ASSET_SCALE)
 	if s == null:
 		return
-	s.position = at - Vector2(0.0, DMG_LIFT)
+	# `DMG_LIFT`(= 235.0 × 0.5)가 §피해 수치 리팩토링에서 `TOTAL_LIFT`(235.0)로 바뀌며
+	# 이 호출부만 남아 컴파일이 깨져 있었다(2026-08-06). 종전 값 그대로 절반을 쓴다.
+	s.position = at - Vector2(0.0, TOTAL_LIFT * 0.5)
 	s.z_index = 100
 	s.scale *= EVADE_POP
 	add_child(s)
@@ -2701,14 +2820,33 @@ func _skill_sfx(sid: int) -> void:
 		Bgm.sfx(own)
 
 
-## 피격 파티클 — 원작 `MakeInterface::damagedEffect` @0108f4cc.
+## 피격 파티클(**노란 오각별**) — 원작 `MakeInterface::damagedEffect` @0108f4cc.
 ## `particle/scene/colosseum/effect_damaged.plist` 를 **대상 드래곤 레이어**에 z=6 으로 붙인다.
+##
+## 🔴 2026-08-06 — 원작이 plist 위에 덮어쓰는 값 4개를 빠뜨리고 있었다. 가상호출 오프셋을
+##   `CCParticleSystemQuad` vtable(`_ZTVN7cocos2d20CCParticleSystemQuadE` @0x2891010) 의
+##   재배치 심볼로 실명 확인했다:
+##     0x5c8 `setAutoRemoveOnFinish(false)` · 0x340 `setDuration(0.1)`
+##     0x370 `setLife(0.15)`   ← plist 0.3 의 **절반**
+##     0x3c0 `setSpeed(1000)`  ← plist 500 의 **두 배**
+##     0x78  `setScale(공격자레이어.getScale())` ← 3v3 이면 0.75
+##   (별이 노란 **동그라미**로 나오던 문제는 텍스처 쪽이다 — `cocos_particle.gd` 참조.)
+const DAMAGED_LIFE := 0.15          # 원작 setLife(0x3e19999a)
+const DAMAGED_SPEED := 1000.0       # 원작 setSpeed(0x447a0000)
+const DAMAGED_SPEED_VAR := 40.0     # plist speedVariance(원작이 안 덮어쓴다)
+
 func _damaged_particle(v: Dictionary) -> void:
 	var n = v.get("node")
 	if not (n is Node2D) or not is_instance_valid(n):
 		return
-	CocosParticle.spawn(n as Node2D, "colosseum_damaged",
+	var p := CocosParticle.spawn(n as Node2D, "colosseum_damaged",
 		Vector2(0.0, -float(v.get("dragon_h", DRAGON_H)) * 0.5), 6, 0.9)
+	if p == null:
+		return
+	p.lifetime = DAMAGED_LIFE
+	p.initial_velocity_min = DAMAGED_SPEED - DAMAGED_SPEED_VAR
+	p.initial_velocity_max = DAMAGED_SPEED + DAMAGED_SPEED_VAR
+	p.scale = Vector2.ONE * (DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO)
 
 
 ## 격파 연출 — 원작 `MakeInterface::deadEffect` @0109a654.
@@ -2808,7 +2946,10 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 	if shown.is_empty():
 		holder.queue_free()
 		return false
-	var step := 1.0 / FX_SEQ_FPS        # 콜로세움엔 전투 배속 개념이 없다(탐험과 다른 점)
+	# 🔴 2026-08-07 — 종전 주석 "콜로세움엔 전투 배속 개념이 없다"는 틀렸다. 배속 버튼
+	#   (`_speed`, 원작 `getFightTimeScale`)이 여기 화면에도 있다 ⇒ 프레임 시퀀스도 당긴다.
+	var step := 1.0 / (FX_SEQ_FPS * _spd())
+	_note_motion(float(shown.size()) / FX_SEQ_FPS)
 	var tw := holder.create_tween()
 	for i in shown.size():
 		var s: Sprite2D = shown[i]
@@ -2855,7 +2996,7 @@ func _dragon_fx_seq(did: int, prefix: String, at: Vector2) -> bool:
 ##    아래 `_critical_effect` 주석 참조(에셋 미다운로드 자리표시자였다).
 
 func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
-	var cid := int(atk.get("id", 0))
+	var cid := int(atk.get("art_id", atk.get("id", 0)))    # 그림 id(커스텀 종 상속)
 	# 🔴 2026-08-05 — 각성 여부를 본다. 종전엔 `_e_critical` 이 있으면 **미각성 드래곤도**
 	#   각성 크리티컬 스파인을 썼다(본체 스파인과 단계가 어긋난다).
 	var path := "res://scenes/dragons/dragon_%d_critical.tscn" % cid
@@ -2904,10 +3045,15 @@ func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 		holder.queue_free()
 		return false
 	ap.get_animation(pick).loop_mode = Animation.LOOP_NONE
-	ap.play(pick)
+	# 🔴 2026-08-07 — 이펙트 스파인도 드래곤 모션과 **같은 배속**으로 돈다(종전 등속).
+	#   크리 스파인 길이 중앙값 2.17초(최장 6.13초)라, 여기가 안 당겨지면 드래곤만 빨라진다.
+	var csp := CRIT_ANIM_SPEED * _spd()
+	ap.play(pick, -1.0, csp)
+	var clen := ap.get_animation(pick).length
+	_note_motion(clen / CRIT_ANIM_SPEED)
 	# 원작 CCDelayTime(getDuration("animation")) — 고정 초가 아니라 애니 길이만큼.
 	var t := holder.create_tween()
-	t.tween_interval(ap.get_animation(pick).length)
+	t.tween_interval(clen / csp)
 	t.tween_callback(holder.queue_free)
 	return true
 
@@ -2917,7 +3063,8 @@ func _critical_effect(atk: Dictionary, dfn: Dictionary) -> bool:
 ## 매핑은 `data/dragon_voices.json` `voices.<id>.critical`(유실분을 사용자 검수로 채운 값).
 func _crit_voice(atk: Dictionary) -> void:
 	var id := int(atk.get("id", 0))
-	var v := int((Data.dragon_voices.get("voices", {}).get(str(id), {}) as Dictionary).get("critical", 0))
+	# 🟦 2026-08-07 — 커스텀 종 600·700 은 **소환 재료 종의 소리**를 낸다.
+	var v := int(Icons.voice_row(id).get("critical", 0))
 	if v > 0:
 		Bgm.sfx("voice%d" % v)
 
@@ -3171,10 +3318,25 @@ func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 	# 🔴 2026-08-05 재확정 — 기준점·방향은 `UltimateFx.base_at()` 이 원작 `initWithDragon` 의
 	#   race 스위치대로 계산한다(earth/fire/shadow/aqua = **시전자 반대편**, 나머지 = 중앙 계열).
 	#   여기서는 시전자 진영(`mine`)만 넘긴다. 바닥 링만 시전자 발밑(`ring_at`)이다.
+	# 그림자 스파인은 **피격자마다** 하나씩 선다(원작 `runShadow` 이 `0x1f0/0x1f8/0x200` 의
+	# dragonLayer 자리를 읽는다) — 시전자 반대 진영의 살아 있는 몸통 자리를 그대로 넘긴다.
+	var foes: Array = []
+	for v in _views.values():
+		if not (v is Dictionary):
+			continue
+		var vd: Dictionary = v
+		if bool(vd.get("mine", false)) == bool(atk.get("mine", false)):
+			continue
+		if bool(vd.get("dead", false)):
+			continue
+		foes.append(_body_pos(vd))
+	if foes.is_empty():
+		foes.append(at)
 	UltimateFx.play(self, {
 		"element": String(atk.get("element", "")),
 		"mine": bool(atk.get("mine", false)),
 		"ring_at": caster,
+		"foes": foes,
 		# 원작 `initFire_C` 의 W = 시전자 dragonLayer contentSize.x — 불덩이가 퍼지는 폭.
 		"caster_w": float(atk.get("dragon_w", DRAGON_H)),
 		# 원작 `this+0x22c` = 시전자 레이어 스케일(3v3 = 0.75, 1v1 = 1.0).
@@ -3205,14 +3367,30 @@ func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 #      aqua   `runAqua`        5.0+0.15+0.12 = 5.27 부터 0.15
 #      dark   `actionDark_C`   1.0+6.9       = 7.90 부터 0.04
 #      shadow `actionShadow_C` 1.0+6.9       = 7.90 부터 0.04
-#      earth  `runEarth`       3.00 부터 0.05 · `actionEarth_C` 3.60·4.55 부터 각 0.1
+#      dark   `actionDark_C`   1.0+6.9       = 7.90 부터 0.04
+#      shadow `actionShadow_C` 1.0+6.9       = 7.90 부터 0.04
+#
+#    🔴 2026-08-06 땅 정정 — 세 발 모두 **함수 내부 오프셋만** 적혀 있어 2.25~4.0초 일렀다.
+#      `run<El>`/`action<El>_C` 는 각각 `RUN_AT`(2.75) · `ACT_AT`(2.25) 뒤에 불리고, 땅은 그
+#      안에서 다시 공통 지연 `this+0x228`(=1.25)을 먹는다:
+#        `runEarth`       Delay(1.25) → Delay(3.00)          ⇒ 2.75 + 4.25 = **7.00** (0.05초)
+#        `actionEarth_C`  Delay(1.25) → Delay(2.35)          ⇒ 2.25 + 3.60 = **5.85** (0.10초)
+#                         → Delay(0.1) → Delay(0.85)         ⇒ 2.25 + 4.55 = **6.80** (0.10초)
+#      7.00 은 `earth_light` 섬광(같은 ed+3.0)과 **같은 순간**이어야 한다 — 종전엔 갈라져 있었다.
+#      ⚠️ aqua/shadow 행도 같은 계열의 누락일 수 있다(각 속성 영상 재대조 때 확인할 것).
+#
+#    🔴 2026-08-06 어둠 정정 — 같은 누락이었다. `actionDark_C` 는 `ACT_AT`(2.25) 뒤에 불리고
+#      그 안에서 `Delay(1.0) → Hide → Delay(6.9) → 히트스톱` 이다 ⇒ 2.25 + 7.90 = **10.15**.
+#      (`action<El>_C` 에는 공통 지연 `0x228` 이 안 붙는다.) 이 시각은 폭발(run+1.4+5.9 =
+#      10.05) **바로 뒤**여야 맞다 — 영상에서도 폭발 v53.42 직후 v53.52 에 한 프레임 멎는다.
+#      종전 7.90 은 우리 폭발보다도 1.25초 늦어 아무 데서나 멎고 있었다.
 #    나머지 5속성은 원작에도 호출이 없다(전 클래스 grep 5건이 전부).
 const ULT_SLOW := 0.2 / 1.35            # 되돌림 값 대비 = 0.148배
 const ULT_HITSTOP := {
 	"aqua":   [[5.27, 0.15]],
-	"dark":   [[7.90, 0.04]],
+	"dark":   [[10.15, 0.04]],
 	"shadow": [[7.90, 0.04]],
-	"earth":  [[3.00, 0.05], [3.60, 0.10], [4.55, 0.10]],
+	"earth":  [[5.85, 0.10], [6.80, 0.10], [7.00, 0.05]],
 }
 
 func _ultimate_hitstop(element: String) -> void:
@@ -3275,7 +3453,14 @@ func _cutin(atk: Dictionary) -> void:
 	#   타이밍까지 갖춘 본체다 — 화면마다 컷인을 따로 두면 또 갈라진다(§3 "같은 일을 하는
 	#   헬퍼가 이미 있는지 grep").
 	# `caster` 규약 = {id, element, awakened} — 우리 view dict 가 그대로 들고 있다.
-	DragonCutin.show(self, atk, _speed)
+	# 반환값은 **실제(벽시계) 초**다 → x1 로 환산해 기록한다(`_note_motion` 규약).
+	# `id` 는 컷인 그림(`critical_<id>/cut_in`)을 고르는 데만 쓰이므로 **그림 id** 를 넘긴다.
+	var caster := {
+		"id": int(atk.get("art_id", atk.get("id", 0))),
+		"element": String(atk.get("element", "")),
+		"awakened": bool(atk.get("awakened", false)),
+	}
+	_note_motion(DragonCutin.show(self, caster, _speed) * _spd())
 
 func _man(dir: String) -> Dictionary:
 	if _mans.has(dir):
@@ -3286,31 +3471,100 @@ func _man(dir: String) -> Dictionary:
 	return d
 
 
-## 피해/회복 수치 — 원작 `MakeInterface::showDamage` @010910ac 이식.
-##   폰트: 피해 = `font/font_total.fnt` · 회복 = `font/font_heal.fnt`(둘 다 보유)
-##   위치: 대상 기준 (0, 235) 위
-##   연출: Delay → Show → **ScaleTo(0, 1.75) → ScaleTo(0.25, 1.0)** → Delay(0.5) → 사라짐
-##   ⇒ 종전의 "위로 떠오르며 페이드"는 자작이었다. 원작은 **크게 떴다가 제 크기로 줄어드는** 팝이다.
-const DMG_LIFT := 235.0 * 0.5       # 원작 (0,235) — 우리 드래곤 크기(170) 기준으로 절반만
-const DMG_POP_BIG := 1.75           # 원작 ScaleTo(0, 1.75)
-const DMG_POP_SEC := 0.25           # 원작 ScaleTo(0.25, 1.0)
-const DMG_HOLD := 0.5               # 원작 DelayTime(0.5)
+# ---------- 피해/회복 수치 — 원작 `MakeInterface::showDamage` @010910ac ----------
+#
+# 🔴 2026-08-06 재이식(사용자 지적 "데미지 숫자 폰트"). 종전엔 **모든 수치를 `font_total`
+#   하나로, 크기 30 으로** 냈다. 원작은 폰트가 **셋**이고 화면에 **두 종류가 동시에** 뜬다 —
+#   작은 흰 낱타 수치가 흩뿌려지고, 그 위에 큰 금색 **누계**가 쌓인다.
+#   상세·근거 = `docs/ref/porting/ColosseumDamageNumber.md`.
+#
+#   | 쓰임 | 원작 폰트 | `.fnt` info size |
+#   |---|---|---|
+#   | 낱타(작은 흰 숫자) | `font/font_normal.fnt` | 56 |
+#   | 누계(큰 금색 숫자) | `font/font_total.fnt`  | 93 |
+#   | 회복 `+N`          | `font/font_heal.fnt`   | 56 |
+#
+#   배율은 **1.0** — 레퍼런스 영상 실측(게임 화면 615px = 692pt ⇒ 0.889 px/pt)에서
+#   누계 숫자 62px→70pt(네이티브 66) · 낱타 37px→42pt(네이티브 42). 즉 원작은 BMFont 를
+#   네이티브 픽셀 = 디자인 포인트로 그린다(§9 의 4/3 은 아틀라스 프레임 규칙이라 무관).
+#   Godot 은 `fixed_size_scale_mode = ENABLED`(= `_bmfont` 가 켠다) + `font_size` = info size.
+const DMG_SIZE_HIT := 56            # font_normal / font_heal 의 `info size`
+const DMG_SIZE_TOTAL := 93          # font_total 의 `info size`
+# 원작 `setNodeRandomPositionAttachTarget(label, 대상레이어, 100, 30)` — ±100 × ±30 산포.
+const DMG_SCATTER := Vector2(100.0, 30.0)
+const DMG_POP := 2.0                # 낱타 ScaleTo(0, 2.0)
+const DMG_POP_SEC := 0.25           # ScaleTo(0.25, 1.0)
+const DMG_HOLD := 0.25              # DelayTime(0.25)
+const DMG_RISE := 75.0              # MoveBy(0.5, (0, 75)) — Cocos y-up ⇒ 화면에선 위로
+const DMG_RISE_SEC := 0.5           # 같은 구간에 FadeOut(0.5)
+# 누계 라벨 — 원작 위치 `슬롯좌표 + (0, 대상레이어.getScale() × 235)`.
+const TOTAL_LIFT := 235.0
+const TOTAL_POP := 1.75             # ScaleTo(0, 1.75) → ScaleTo(0.25, 1.0)
+const TOTAL_FADE_WAIT := 0.5        # 마지막 타 뒤 DelayTime(0.5)
+const TOTAL_FADE_SEC := 0.5         # FadeTo(0.5, 0)
 
-func _float_text(pos: Vector2, text: String, col: Color, heal := false) -> void:
+## 라벨 하나 — 글자 폭을 재지 않고 넉넉한 상자를 중앙정렬해 쓴다(pivot = 상자 중심).
+func _num_label(at: Vector2, text: String, size: int, font: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.size = Vector2(140.0, 40.0)
+	l.size = Vector2(360.0, 140.0)
 	l.pivot_offset = l.size * 0.5
-	l.position = pos + Vector2(-70.0, -DMG_LIFT)
+	l.position = at - l.pivot_offset
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_bm_style(l, 30, col, "font_heal" if heal else "font_total")
-	l.scale = Vector2.ONE * DMG_POP_BIG
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_bm_style(l, size, Color.WHITE, font)
 	add_child(l)
+	return l
+
+
+## 낱타 수치 — 원작 showDamage 뒷부분. 대상 몸통 둘레에 흩뿌려졌다가 위로 떠오르며 사라진다.
+func _hit_number(v: Dictionary, text: String, heal := false) -> void:
+	var at := _body_pos(v) + Vector2(
+		randf_range(-DMG_SCATTER.x, DMG_SCATTER.x),
+		randf_range(-DMG_SCATTER.y, DMG_SCATTER.y))
+	var l := _num_label(at, text, DMG_SIZE_HIT, "font_heal" if heal else "font_normal")
+	l.z_index = 12                      # 원작 addChild(label, z=0xc, tag=3)
+	l.scale = Vector2.ONE * DMG_POP
 	var tw := create_tween()
 	tw.tween_property(l, "scale", Vector2.ONE, DMG_POP_SEC)
 	tw.tween_interval(DMG_HOLD)
-	tw.tween_property(l, "modulate:a", 0.0, 0.2)
+	tw.set_parallel(true)
+	tw.tween_property(l, "position:y", l.position.y - DMG_RISE, DMG_RISE_SEC)
+	tw.tween_property(l, "modulate:a", 0.0, DMG_RISE_SEC)
+	tw.set_parallel(false)
 	tw.tween_callback(l.queue_free)
+
+
+## 누계 수치 — 원작 showDamage 앞부분 + `changeTotalDamage` @01097494.
+##
+## `final` = 원작의 마지막-타 플래그(`mixingDamage` 의 `bVar17`), `solo` = 라벨이 아직 없는데
+## 마지막 타일 때도 **한 번 띄웠다 지울지**. 원작이 그렇게 하는 경우는 두 가지뿐이다 —
+## `ActionType` 0x29~0x2b(크리티컬) + `Dragon::getCriticalHit()==1`, 그리고 0x3e9(각성기 본타).
+## ⇒ **일반 단타 공격에는 큰 금색 숫자가 없다**(레퍼런스 영상도 그렇다).
+func _total_number(v: Dictionary, amount: int, final: bool, solo := false) -> void:
+	if amount <= 0:
+		return
+	var l = v.get("total_lbl")
+	if not (l is Label and is_instance_valid(l)):
+		if final and not solo:
+			return                      # 원작: 첫 호출이 곧 마지막이면 보이지도 않고 끝난다
+		var ds := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
+		l = _num_label(v.get("pos", _vis() * 0.5) - Vector2(0.0, TOTAL_LIFT * ds),
+			str(amount), DMG_SIZE_TOTAL, "font_total")
+		(l as Label).z_index = 13       # 낱타(12)보다 위 — 원작 z = 대상z + 0xc
+		v["total_lbl"] = l
+		v["total_val"] = amount
+	else:
+		v["total_val"] = int(v.get("total_val", 0)) + amount
+		(l as Label).text = str(v["total_val"])
+	var tw := create_tween()            # 원작 ScaleTo(0, 1.75) → ScaleTo(0.25, 1.0)
+	(l as Label).scale = Vector2.ONE * TOTAL_POP
+	tw.tween_property(l, "scale", Vector2.ONE, DMG_POP_SEC)
+	if final:
+		v["total_lbl"] = null
+		tw.tween_interval(TOTAL_FADE_WAIT)
+		tw.tween_property(l, "modulate:a", 0.0, TOTAL_FADE_SEC)
+		tw.tween_callback((l as Label).queue_free)
 
 
 # ---------- 결과 ----------
@@ -3420,7 +3674,11 @@ func _finish() -> void:
 
 ## 원작 `FightManager::getFightTimeScale()` — 배속 버튼이 정하는 재생 속도로 대기를 줄인다.
 func _wait(sec: float) -> void:
-	await get_tree().create_timer(maxf(0.01, sec / float(maxi(1, _speed)))).timeout
+	await get_tree().create_timer(maxf(0.01, sec / _spd())).timeout
+
+## 배속 배수(1 이상). 대기뿐 아니라 **스파인·프레임 시퀀스 재생**도 이 값으로 당긴다.
+func _spd() -> float:
+	return float(maxi(1, _speed))
 
 func _vis() -> Vector2:
 	return get_viewport_rect().size

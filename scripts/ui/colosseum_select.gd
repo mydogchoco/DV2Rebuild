@@ -219,6 +219,14 @@ func _build_close() -> void:
 # ============================================================ 무대(단상 슬롯)
 ## 🟦 2026-08-05 사용자 확정 — 무대(단상+드래곤)를 통째로 오른쪽으로 옮긴다.
 const STAGE_SHIFT_X := 80.0
+## 🟦 2026-08-06 사용자 확정 — 그 위에 **모드별 미세조정**을 더한다.
+## 무대 원점 하나만 밀면 단상·후광·그림자·드래곤이 전부 따라온다(슬롯→단상→발 순으로 파생).
+## 단위는 이 파일의 다른 좌표와 같은 **디자인 포인트**(높이 692 공간)다.
+## 사용자가 화면을 보며 두 번에 나눠 확정했다(누적값):
+##   1vs1  (30,40) + (25,35) = **(55,75)**
+##   3vs3  (40,30) + (20,20) = **(60,50)**
+const STAGE_NUDGE_1 := Vector2(55.0, 75.0)
+const STAGE_NUDGE_3 := Vector2(60.0, 50.0)
 
 ## 동굴 도감 상세(`cave.gd::_build_dragon_book_info`)의 **단상 대비 드래곤** 비율.
 ##   동굴: 단상 `Design.ASSET_SCALE × 1.1` · 드래곤 스파인 `1.1`(ASSET_SCALE 없음)
@@ -232,7 +240,8 @@ func _build_stage() -> void:
 	var S := Design.ASSET_SCALE
 	var three := _need >= 3
 	var stage := Vector2(STAGE_DX + STAGE_SHIFT_X,
-		_vis.y * 0.5 - (STAGE_DY_3 if three else STAGE_DY_1))
+		_vis.y * 0.5 - (STAGE_DY_3 if three else STAGE_DY_1)) \
+		+ (STAGE_NUDGE_3 if three else STAGE_NUDGE_1)
 	var offs: Array = SLOTS_3 if three else [SLOT_1]
 	var st_scale := (STAND_SCALE_3 if three else STAND_SCALE_1) * S
 	var glow_up := GLOW_UP_3 if three else GLOW_UP_1
@@ -338,7 +347,10 @@ func _fade(n: CanvasItem, a: float) -> void:
 
 ## 원작 `ColosseumManager::getSpine(i)` — setScaleX(-0.6)/setScaleY(0.6), 애니 `wait`.
 func _dragon_spine(d: Dictionary, dscale := -1.0) -> Node2D:
-	var id := int(d.get("id", 0))
+	# 🔴 2026-08-07 — 스파인도 **개체의 상속 art_id** 로 고른다. 커스텀 종 600·700 은
+	#   `scenes/dragons/dragon_600_*.tscn` 이 없어서(소환 재료의 그림을 물려받는 종)
+	#   종 id 로 찾으면 단상이 텔 빈다(사용자 보고 2026-08-07 편성창).
+	var id := Icons.art_id_of(d)
 	var S := Design.ASSET_SCALE
 	# 🔴 2026-08-05 — 배율은 **단상 기준**으로 호출측이 준다(동굴과 같은 비율).
 	#   원작 리터럴 0.6 은 단상 배율이 0.6 일 때의 값이라 1vs1(단상 1.0)에서 어긋났다.
@@ -430,7 +442,8 @@ func _cell(d: Dictionary, center: Vector2, sz: Vector2) -> Control:
 			egg.position = mid + Vector2(0.0, -5.0)
 			root.add_child(egg)
 	else:
-		var por := _portrait(id, Growth.portrait_stage(d),
+		# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 초상이 없다).
+		var por := _portrait(Icons.art_id_of(d), Growth.portrait_stage(d),
 			PORTRAIT_SCALE * S * CELL_SCALE, int(d.get("skin", 0)))
 		if por != null:
 			por.position = mid + Vector2(0.0, -PORTRAIT_UP)

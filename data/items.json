@@ -301,7 +301,7 @@
   "icon": "item_mtr/item_mtr_balrog_core",
   "stack": true,
   "effect": null,
-  "offline": "stub",
+  "offline": "impl",
   "use": "발록 알 제작·발록 장신구 제작/구매에 쓴다",
   "desc": "카이저 발록에게서만 추출된다고 하는 신비한 물질. 구하기가 매우 어려워서 값어치가 아주 높다고 한다."
  },
@@ -522,6 +522,19 @@
   "piece": 7,
   "use": "모아서 해당 드래곤을 얻는 알조각",
   "desc": "강력한 힘이 느껴지는 카오스의 7번째 알 조각. 알 조각을 모아 완성하면 카오스의 알을 얻을 수 있을 것 같다."
+ },
+ "colosseum_coin": {
+  "name": "콜로세움 주화",
+  "category": "currency",
+  "subcategory": "pvp",
+  "element": null,
+  "icon": "common_ui/common_honor_small1",
+  "stack": true,
+  "effect": null,
+  "offline": "impl",
+  "_desc_authored": true,
+  "use": "상점 PVP 탭 전용 재화",
+  "desc": "콜로세움에서 겨룬 자에게 주어지는 주화."
  },
  "cri_drink1": {
   "name": "크리티컬 물약 1단계",
@@ -1116,9 +1129,10 @@
   "icon": "item_etc/item_etc_expx2",
   "stack": true,
   "effect": null,
-  "offline": "todo",
+  "offline": "impl",
   "use": "탐험 보상(경험치·골드)을 늘리는 버프",
-  "desc": "1시간 동안 탐험에서 얻는 경험치를 2배 증가시킨다."
+  "desc": "1시간 동안 탐험에서 얻는 경험치를 2배 증가시킨다.",
+  "_offline_basis": "규칙이 원작 설명문 + 위키 item.pdf §9.6 에 있다(\"1시간 동안 탐험에서 얻는 경험치/골드를 N배\"). 실시간 1시간 버프로 배선(2026-08-04) — data/item_effects.json `reward_buff` · ItemEffect · cave.gd `_use_consumable` · battle.gd 보상."
  },
  "expx4": {
   "name": "경험치 4배",
@@ -1128,9 +1142,10 @@
   "icon": "item_etc/item_etc_expx4",
   "stack": true,
   "effect": null,
-  "offline": "todo",
+  "offline": "impl",
   "use": "탐험 보상(경험치·골드)을 늘리는 버프",
-  "desc": "1시간 동안 탐험에서 얻는 경험치를 4배 증가시킨다."
+  "desc": "1시간 동안 탐험에서 얻는 경험치를 4배 증가시킨다.",
+  "_offline_basis": "규칙이 원작 설명문 + 위키 item.pdf §9.6 에 있다(\"1시간 동안 탐험에서 얻는 경험치/골드를 N배\"). 실시간 1시간 버프로 배선(2026-08-04) — data/item_effects.json `reward_buff` · ItemEffect · cave.gd `_use_consumable` · battle.gd 보상."
  },
  "food_chaos_tadpole": {
   "name": "맘므 치어",
@@ -1437,9 +1452,10 @@
   "icon": "item_etc/item_etc_goldx2",
   "stack": true,
   "effect": null,
-  "offline": "todo",
+  "offline": "impl",
   "use": "탐험 보상(경험치·골드)을 늘리는 버프",
-  "desc": "1시간 동안 탐험에서 얻는 골드를 2배 증가시킨다."
+  "desc": "1시간 동안 탐험에서 얻는 골드를 2배 증가시킨다.",
+  "_offline_basis": "규칙이 원작 설명문 + 위키 item.pdf §9.6 에 있다(\"1시간 동안 탐험에서 얻는 경험치/골드를 N배\"). 실시간 1시간 버프로 배선(2026-08-04) — data/item_effects.json `reward_buff` · ItemEffect · cave.gd `_use_consumable` · battle.gd 보상."
  },
  "goldx4": {
   "name": "골드 4배",
@@ -1449,9 +1465,10 @@
   "icon": "item_etc/item_etc_goldx4",
   "stack": true,
   "effect": null,
-  "offline": "todo",
+  "offline": "impl",
   "use": "탐험 보상(경험치·골드)을 늘리는 버프",
-  "desc": "1시간 동안 탐험에서 얻는 골드를 4배 증가시킨다."
+  "desc": "1시간 동안 탐험에서 얻는 골드를 4배 증가시킨다.",
+  "_offline_basis": "규칙이 원작 설명문 + 위키 item.pdf §9.6 에 있다(\"1시간 동안 탐험에서 얻는 경험치/골드를 N배\"). 실시간 1시간 버프로 배선(2026-08-04) — data/item_effects.json `reward_buff` · ItemEffect · cave.gd `_use_consumable` · battle.gd 보상."
  },
  "gudrabox_chaos": {
   "name": "구드라의 상자(혼돈)",

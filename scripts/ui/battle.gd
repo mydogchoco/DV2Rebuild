@@ -1449,6 +1449,10 @@ func _evt_delay(ev: Dictionary) -> float:
 		return 0.01
 	if t == "status_skip":
 		return 0.35
+	# 각성기는 타수만큼 이벤트가 온다 — 한 발치 간격을 타수로 나눠 총 길이를 유지한다
+	# (안 나누면 바람 46타×대상 = 수십 초). `volley` = 이번 발동의 전체 이벤트 수.
+	if t == "awaken":
+		return 1.2 / maxf(1.0, float(ev.get("volley", 1)))
 	# 크리티컬은 컷인(막+밴드+얼굴) → 연타 → 화면 전체 아트까지 약 0.7초가 더 붙는다.
 	# 기본 간격 0.6 그대로 두면 다음 이벤트가 아트 위로 겹쳐 들어온다.
 	if bool(ev.get("crit", false)):
@@ -1466,10 +1470,14 @@ func _play_event(ev: Dictionary) -> void:
 			var atk: Dictionary = _find(String(ev.get("attacker", "")))
 			var dfn: Dictionary = _find(String(ev.get("defender", "")))
 			if String(ev.get("type", "")) == "awaken":
-				_super_attack_fx(atk)   # 원작 setSuperAttackStart: 각성기 발동 연출
-				_set_gauge(atk, 0.0)    # 각성기 발동 → 게이지 리셋
-			else:
-				_charge_gauge(atk)      # 평타 → 게이지 충전(simulate와 동일 +18)
+				# 🟦 2026-08-06 — 각성기는 **타수만큼** 이벤트로 온다(`Battle.resolve_awaken`,
+				#   원작 `calculateDamage` 분할). 발동 연출·게이지 리셋은 첫 이벤트에서 한 번만.
+				#   종전엔 여기가 대상 수만큼 돌아 배너·플래시가 겹쳐 떴다.
+				if bool(ev.get("volley_lead", false)):
+					_super_attack_fx(atk)   # 원작 setSuperAttackStart: 각성기 발동 연출
+			# 🟦 2026-08-06 — 게이지는 **진영 공유**이고 행동·피격·react 가 함께 올린다.
+			#   화면이 자체 추정하면 반드시 어긋나므로 `simulate` 가 이벤트에 실어 준 실값을 쓴다.
+			_sync_gauge(ev)
 			var is_crit := bool(ev.get("crit", false)) and int(ev.get("damage", 0)) > 0
 			if not atk.is_empty(): _cue(atk, is_crit)
 			if bool(ev.get("miss", false)):
@@ -1533,7 +1541,7 @@ func _play_event(ev: Dictionary) -> void:
 ## 스킬 이벤트 연출(증분 3). 공격형=피해, 힐/디버프/정화 각 표시. per-드래곤 spine은 폴리시 TODO.
 func _play_skill(ev: Dictionary) -> void:
 	var caster: Dictionary = _find(String(ev.get("caster", "")))
-	_charge_gauge(caster)   # 스킬도 행동 → 각성 게이지 충전
+	_sync_gauge(ev)         # 진영 게이지는 simulate 실값으로 그린다(§_sync_gauge)
 	if not caster.is_empty(): _cue(caster)
 	var sname := String(ev.get("skill_name", "스킬"))
 	_skill_banner(sname)
@@ -2178,8 +2186,8 @@ func _critical_voice_no(dragon_id: int, ddef: Dictionary) -> int:
 	if direct > 0:
 		return direct
 	# 원작의 별도 열을 그대로 받을 자리. 성장단계 보이스를 임의로 대신 쓰지 않는다.
-	var voices: Dictionary = Data.dragon_voices.get("voices", {})
-	return int((voices.get(str(dragon_id), {}) as Dictionary).get("critical", 0))
+	# 🟦 2026-08-07 — 커스텀 종 600·700 은 **소환 재료 종의 소리**를 낸다.
+	return int(Icons.voice_row(dragon_id).get("critical", 0))
 
 func _crit_voice(caster: Dictionary) -> void:
 	var v := int(caster.get("voice_critical", 0))
@@ -2505,7 +2513,8 @@ func _critical_cutin(caster: Dictionary) -> void:
 ## ⚠️ 붙는 곳은 **공격자가 아니라 대상(target)의 레이어**다 — 원작이 param_2(target)의
 ##    getDragonLayer() 에 addChild 한다. 스파인 자체는 공격자(param_1) 것을 쓴다.
 func _critical_spine(caster: Dictionary, target: Dictionary) -> bool:
-	var cid := int(caster.get("id", 0))
+	# 🔴 2026-08-07 — 그림 id 는 `PartyStats` 가 실어 준 상속 art_id 를 먼저 본다.
+	var cid := int(caster.get("art_id", caster.get("id", 0)))
 	var stage := "e_critical" if bool(caster.get("awakened", false)) else "critical"
 	var path := "res://scenes/dragons/dragon_%d_%s.tscn" % [cid, stage]
 	if not ResourceLoader.exists(path):
@@ -2635,10 +2644,18 @@ func _fx_text(v: Dictionary, frame: String, fallback: String, col: Color, adv_fr
 ## 각성 게이지 미러. 충전량은 로직(Battle._act)과 **같은 출처**를 본다 —
 ## `data/combat.json awaken.charge_per_turn`. 여기 숫자를 박아 두면 로직과 어긋난다.
 ## ⚠️ 게이지 바 자체는 숨김이다(_party_card 참조). 시스템은 그대로 돌아간다.
-func _charge_gauge(v: Dictionary) -> void:
-	if v.is_empty() or v.get("kind") != "party": return
-	var per := float(Data.combat.get("awaken", {}).get("charge_per_turn", 3.6))
-	_set_gauge(v, minf(100.0, float(v.get("gauge", 0.0)) + per))
+## 진영 게이지 동기화 — 🟦 2026-08-06. 게이지는 **드래곤당이 아니라 진영당**이고
+## (`Battle._bind_side_gauge`), 행동·피격·react 가 함께 올린다. 화면이 `charge_per_turn` 으로
+## 자체 추정하던 종전 방식(`_charge_gauge`)은 이제 반드시 어긋나므로 폐기했다 —
+## `simulate` 가 모든 이벤트에 실어 주는 `gauge_ally`/`gauge_enemy` 를 그대로 그린다.
+func _sync_gauge(ev: Dictionary) -> void:
+	if not ev.has("gauge_ally"):
+		return                     # 구 세이브·구 이벤트 로그 호환(그리지 않는다)
+	var val := float(ev.get("gauge_ally", 0.0))
+	for v in _views.values():
+		if v is Dictionary and (v as Dictionary).get("kind") == "party":
+			_set_gauge(v, val)
+
 
 func _set_gauge(v: Dictionary, val: float) -> void:
 	if v.is_empty() or v.get("kind") != "party": return

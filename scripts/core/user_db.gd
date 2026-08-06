@@ -7,7 +7,20 @@ extends Node
 ##   - 저장은 SaveSystem(순수 파일IO)에 위임. 마스터 데이터(불변)는 Data가 담당.
 ##   - 드래곤은 배열 인덱스가 아니라 안정적 고유 uid로 식별한다(방생/정렬에도 안전).
 
-const SCHEMA_VERSION := 15  # v15=알 강화 등급이 곁 테이블(`meta.egg_grades`)→**인벤 키 접미사**(`egg:17#2`, EggItem). 원작 AccountManager::setInfoEggs 가 등급별로 목록 항목을 따로 두어 가방에서 다른 칸이 된다(2026-07-31) · v14=혼돈의 틈새 소환 상태(`darknix` {status,until,face}) — 원작 AccountManager 의 서버 계정 상태를 세이브로 옮김(2026-07-31) · v13=알 강화 등급이 `{알키:등급}`→**`{알키:{등급:개수}}`**(원작 Egg 개체 grade 를 스택 아이템에 옮긴 곁 테이블, 2026-07-30) · v12=피로도→**허기**(hunger) 개칭·정식 필드화(원작 후기판은 피로도 삭제·허기만 남음, 사용자 확정 2026-07-30) · v11=장비칸 해금이 개수(int)→**해금 칸 id 배열**(원작 드래곤 강화는 임의 순서 해금) · v10=레벨 자동 습득 기록(skill_grants 10·25·45) · v9=스킬 학습 풀/장착 2칸 분리(skill_equip) · v1=인덱스기반 → v2=uid기반 → v3=개체 편차(stat_bonus)/grade 파생화 → v4=레벨업 롤 누적(gain_log) → v5=드래곤 보관소(storage, '드래곤의 고삐') → v6=젬 슬롯 타입(gems.types, 원작 getGemType) → v7=슬롯 타입 불일치 젬 회수 → v8=유저 프로필(user.nickname, 원작 User::getNickName)
+## 🟦 관리자 플래그(사용자 확정 2026-08-06) — **코드를 고쳐야만 바뀐다.**
+##
+## 값은 세이브(`is_admin`)에 남지만 **이 상수가 언제나 우선**이다 — 로드할 때마다 세이브에
+## 덮어쓴다(`_ensure_schema`). 그래서 UI·치트·아이템 어디로도 켤 수 없고, 켜려면 이 줄을
+## `true` 로 바꿔 다시 실행하는 수밖에 없다. (세이브에만 두면 세이브 파일 편집으로 켜지고,
+## 상수에만 두면 "세이브 데이터에 만들어" 라는 요구를 못 지킨다 → 둘 다 둔다.)
+##
+## 켜면 달라지는 것 — 둘 다 **선대군**(원작에 없는 오리지널 캐릭터) 관련이다:
+##   · 콜로세움 999연승 연승방지봇으로 등장하지 않는다(`Colosseum.pending_guard`).
+##   · 상점 PVP 탭 판매원이 **원작대로 라온**이 된다(`shop.gd::_seller_npc`).
+##     꺼져 있으면 그 자리를 선대군이 `???` 이름으로 대신한다.
+const ADMIN := false
+
+const SCHEMA_VERSION := 16  # v16=관리자 플래그(`is_admin`, 코드 상수 ADMIN 을 로드 때 반영) · v15=알 강화 등급이 곁 테이블(`meta.egg_grades`)→**인벤 키 접미사**(`egg:17#2`, EggItem). 원작 AccountManager::setInfoEggs 가 등급별로 목록 항목을 따로 두어 가방에서 다른 칸이 된다(2026-07-31) · v14=혼돈의 틈새 소환 상태(`darknix` {status,until,face}) — 원작 AccountManager 의 서버 계정 상태를 세이브로 옮김(2026-07-31) · v13=알 강화 등급이 `{알키:등급}`→**`{알키:{등급:개수}}`**(원작 Egg 개체 grade 를 스택 아이템에 옮긴 곁 테이블, 2026-07-30) · v12=피로도→**허기**(hunger) 개칭·정식 필드화(원작 후기판은 피로도 삭제·허기만 남음, 사용자 확정 2026-07-30) · v11=장비칸 해금이 개수(int)→**해금 칸 id 배열**(원작 드래곤 강화는 임의 순서 해금) · v10=레벨 자동 습득 기록(skill_grants 10·25·45) · v9=스킬 학습 풀/장착 2칸 분리(skill_equip) · v1=인덱스기반 → v2=uid기반 → v3=개체 편차(stat_bonus)/grade 파생화 → v4=레벨업 롤 누적(gain_log) → v5=드래곤 보관소(storage, '드래곤의 고삐') → v6=젬 슬롯 타입(gems.types, 원작 getGemType) → v7=슬롯 타입 불일치 젬 회수 → v8=유저 프로필(user.nickname, 원작 User::getNickName)
 
 var _data: Dictionary = {}
 var _autosave := true       # false면 변경이 메모리에만 반영(일괄 작업 후 save())
@@ -33,6 +46,7 @@ func _default() -> Dictionary:
 		# (원작 TownMainMenuLayer::setInfoDragon 이 common/dragon_cover1 + 그 드래곤 레벨을 그린다).
 		# 나머지 필드(getCash/getGradePvp/getWarPoint …)는 전부 온라인 전용이라 컷(§2-1).
 		"user": {"nickname": ""},                     # 원작 User::getNickName / setNickName
+		"is_admin": ADMIN,                            # 관리자 플래그(위 ADMIN 상수가 단일 출처)
 		"currency": {"gold": 0, "diamond": 0},        # §I
 		"dragons": [],                                # 보유 드래곤 인스턴스 목록(동굴 슬롯)
 		"storage": [],                                # 드래곤 보관소(고삐로 넣은 드래곤 — 편성·관리 불가)
@@ -108,6 +122,11 @@ func set_user_nickname(name: String) -> void:
 	if not _data.has("user"): _data["user"] = {"nickname": ""}
 	_data["user"]["nickname"] = name.strip_edges()
 	_commit()
+
+## 관리자 모드인가(위 `ADMIN` 상수). 세이브에도 같은 값이 들어 있지만 **상수를 읽는다** —
+## 세이브 파일을 손으로 고쳐도 켜지지 않아야 한다(§ADMIN 주석).
+func is_admin() -> bool:
+	return ADMIN
 
 ## 장착 칭호(원작 User::getTitle). 저장 위치는 기존 meta.title_no 를 그대로 쓴다(중복 스키마 금지).
 func user_title_no() -> int:
@@ -669,6 +688,18 @@ func set_pmeta(key: String, value) -> void:
 	_data["meta"][key] = value
 	_commit()
 
+## ---- 탐험 보상 배수권(경험치 2·4배 / 골드 2·4배) ----
+## 형식 = {"exp": {"mult": 2, "until": <unix초>}, "gold": {…}} — 축마다 하나.
+## 🟦 사용자 확정 2026-08-04: **게임을 꺼도 시간이 흐른다** → 만료를 실시간 unix 초로 들고 있다
+##   (턴·전투 수가 아니다). 규칙·수치 = `data/item_effects.json` `reward_buff` + `ItemEffect`.
+## 세이브 마이그레이션 불필요 — 키가 없으면 빈 사전 = 무버프이고, 만료분은 읽을 때 무시된다.
+func reward_buff() -> Dictionary:
+	var v = get_pmeta("reward_buff", {})
+	return v if v is Dictionary else {}
+
+func set_reward_buff(active: Dictionary) -> void:
+	set_pmeta("reward_buff", active)
+
 ## ---- 알 강화 등급 ----
 ## v15 부터 **곁 테이블이 없다.** 등급은 인벤 키에 실린다(`egg:17#2` — `EggItem`).
 ## 근거: 원작 `AccountManager::setInfoEggs` 가 서버 행마다 `Egg` 개체를 따로 만들어 목록에
@@ -838,6 +869,25 @@ func set_species_name(id: int, name: String) -> void:
 	d[str(id)] = name
 	set_pmeta("species_names", d)
 
+## ---- 커스텀 종의 물려받은 그림·속성 (`meta.species_art`) ----
+## 🟦 2026-08-07 — 소환 결과를 **가방 알 칸**(`egg:600#1`)으로 주기로 하면서 필요해졌다.
+## 인벤 알은 스택 아이템이라 개체 필드를 못 들고 다닌다 ⇒ 상속값을 **종에 붙인다.**
+## 종당 1마리 상한(`Summon.species_available`)이라 종=개체가 1:1 이고, 이름(`species_names`)이
+## 이미 같은 자리에 붙어 있어 규칙이 갈리지 않는다. 형식 = {"600": {"art_id":800,"element":"chaos"}}.
+## 읽는 곳은 `Icons.art_id_of` / `Icons.element_of` / `Icons.species_art_id` 뿐이다.
+func species_art(id: int) -> Dictionary:
+	var all = get_pmeta("species_art", {})
+	if not (all is Dictionary):
+		return {}
+	var v = (all as Dictionary).get(str(id), {})
+	return v if v is Dictionary else {}
+
+func set_species_art(id: int, art_id: int, element: String) -> void:
+	var all = get_pmeta("species_art", {})
+	var d: Dictionary = (all as Dictionary) if all is Dictionary else {}
+	d[str(id)] = {"art_id": art_id, "element": element}
+	set_pmeta("species_art", d)
+
 ## 일괄 변경 시: begin_batch() → ...여러 변경... → save() 로 디스크 쓰기 1회.
 func begin_batch() -> void:
 	_autosave = false
@@ -917,6 +967,9 @@ func _ensure_schema(d: Dictionary) -> Dictionary:
 	for k in base["user"].keys():
 		if not d["user"].has(k):
 			d["user"][k] = base["user"][k]
+	# v16: 관리자 플래그는 **세이브가 아니라 코드 상수가 진실**이다. 위 누락키 루프는 없을 때만
+	# 채우므로, 상수를 고친 뒤 기존 세이브가 옛 값을 물고 있지 않게 여기서 매번 덮어쓴다.
+	d["is_admin"] = ADMIN
 	# JSON 로드는 숫자를 float 으로 준다 → 도감 id 목록을 int 로 정규화(중복도 제거).
 	var dm := []
 	for v in d.get("dex_master", []):
@@ -931,6 +984,20 @@ func _ensure_schema(d: Dictionary) -> Dictionary:
 			if mid > 0 and not dm.has(mid):
 				dm.append(mid)
 	d["dex_master"] = dm
+	# 🟦 2026-08-07 백필: 커스텀 종(600·700)의 물려받은 그림·속성을 **종 단위**(`meta.species_art`)
+	#   로도 남긴다. 종전(둥지 직행)에 만들어진 개체는 값을 개체에만 들고 있어서, 종 id 만 아는
+	#   표시 지점(가방 알 아이콘·도감 등)이 없는 `portrait_600` 을 찾는다. 멱등 — 이미 있으면 둔다.
+	var sart = (d.get("meta", {}) as Dictionary).get("species_art", {})
+	if not (sart is Dictionary):
+		sart = {}
+	for dr3 in (d.get("dragons", []) as Array) + (d.get("storage", []) as Array):
+		var cid := int((dr3 as Dictionary).get("id", 0))
+		var cart := int((dr3 as Dictionary).get("art_id", 0))
+		if Summon.SPECIES.has(cid) and cart > 0 and not (sart as Dictionary).has(str(cid)):
+			(sart as Dictionary)[str(cid)] = {"art_id": cart,
+				"element": String((dr3 as Dictionary).get("element", ""))}
+	if not (sart as Dictionary).is_empty():
+		(d["meta"] as Dictionary)["species_art"] = sart
 	# v15: 알 강화 등급 곁 테이블(`meta.egg_grades = {알키: {등급: 개수}}`)을 **인벤 키로 옮긴다**.
 	#   `egg:17` 8개 중 2강 1개·1강 2개  →  `egg:17` 5개 + `egg:17#1` 2개 + `egg:17#2` 1개.
 	# 원작이 알 개체를 목록에 따로 담아 **등급별로 다른 칸**이 되는 것에 맞춘다(EggItem 주석).

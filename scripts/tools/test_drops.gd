@@ -333,6 +333,63 @@ func _init() -> void:
 			if int(e2["count"]) <= 0: wrong_ess += 1
 	fails += _eq("지역과 다른 정기 드랍", wrong_ess, 0)
 
+	# ── 희귀 속성 드랍(신성·혼돈·그림자) — 🟦 사용자 확정 2026-08-04 ──────────
+	# 규칙: 일반(·밤)=보스 처치만 / 영웅·카데스=전투 승리 / 25% / 풀에서 1종.
+	fails += _true("drops.json 에 rare_element 블록", t.has("rare_element"))
+	fails += _eq("희귀 속성 확률 25%", float(t["rare_element"]["chance"]), 0.25)
+	# 풀은 '수급처 전무'였던 6종 — 전부 holy/chaos/shadow 여야 한다.
+	var rare_bad := 0
+	for r in (t["rare_element"]["pool"] as Array):
+		var rk := String((r as Dictionary)["key"])
+		var rel := D.normalize_element((items.get(rk, {}) as Dictionary).get("element", ""))
+		if not ["holy", "chaos", "shadow"].has(rel): rare_bad += 1
+	fails += _eq("희귀 풀은 신성·혼돈·그림자만", rare_bad, 0)
+	fails += _eq("희귀 풀 6종", (t["rare_element"]["pool"] as Array).size(), 6)
+	# 자격 판정 — 일반은 보스만, 영웅·카데스는 일반몹도.
+	fails += _true("일반 일반몹 = 불가", not D.rare_element_allowed(t, D.MODE_NORMAL, false))
+	fails += _true("일반 보스 = 가능", D.rare_element_allowed(t, D.MODE_NORMAL, true))
+	fails += _true("밤 일반몹 = 불가", not D.rare_element_allowed(t, D.MODE_NIGHT, false))
+	fails += _true("영웅 일반몹 = 가능", D.rare_element_allowed(t, D.MODE_HERO, false))
+	fails += _true("카데스 일반몹 = 가능", D.rare_element_allowed(t, D.MODE_KADES, false))
+	var rrng := RandomNumberGenerator.new(); rrng.seed = 77
+	var n_rare := 0
+	var rare_seen := {}
+	for _i in N:
+		if not D.roll_rare_element(t, D.MODE_NORMAL, false, rrng).is_empty():
+			fails += _true("일반 일반몹에서 희귀 속성 0건", false)
+			break
+	for _i in N:
+		var rr := D.roll_rare_element(t, D.MODE_HERO, false, rrng)
+		if rr.is_empty(): continue
+		n_rare += 1
+		rare_seen[String(rr["key"])] = true
+		if int(rr["count"]) <= 0: fails += _true("희귀 드랍 수량 > 0", false)
+	fails += _true("영웅 희귀 드랍률 ≈ 25%% (%.3f)" % (float(n_rare) / N),
+		absf(float(n_rare) / N - 0.25) < 0.03)
+	fails += _eq("풀 6종이 모두 나온다", rare_seen.size(), 6)
+
+	# ── 드링크 드랍(1·2단계) — 🟦 사용자 확정 2026-08-04 ─────────────────────
+	fails += _true("drops.json 에 drink 블록", t.has("drink"))
+	fails += _eq("드링크 확률 10%", float(t["drink"]["chance"]), 0.1)
+	var dpool := D.drink_pool(t, items)
+	fails += _eq("드링크 풀 12종(6능력 × 1·2단계)", dpool.size(), 12)
+	var dp_bad := 0
+	for dk2 in dpool:
+		var dv: Dictionary = items[dk2]
+		if String(dv.get("subcategory", "")) != "drink": dp_bad += 1
+		if int(dv.get("tier", 0)) > 2: dp_bad += 1
+	fails += _eq("드링크 풀에 3단계·자양강장제 없음", dp_bad, 0)
+	fails += _true("자양강장제 제외", not dpool.has("drink"))
+	var drng := RandomNumberGenerator.new(); drng.seed = 88
+	var n_drink := 0
+	for _i in N:
+		var dd2 := D.roll_drink(t, items, drng)
+		if dd2.is_empty(): continue
+		n_drink += 1
+		if not dpool.has(String(dd2["key"])): fails += _true("드링크 드랍은 풀 안에서", false)
+	fails += _true("드링크 드랍률 ≈ 10%% (%.3f)" % (float(n_drink) / N),
+		absf(float(n_drink) / N - 0.10) < 0.02)
+
 	# ── 특수 드랍 = 그 지역 표(stages.json drops)에 있는 것만 ────────────────
 	# 우노 24 = 아니마(일반 5~10 / 영웅 15~20, 위키 item.pdf 각주 [40]).
 	var st24: Dictionary = stages["24"]

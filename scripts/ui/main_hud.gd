@@ -71,6 +71,12 @@ const BAR_REF_TOP_FALLBACK := 805.0
 ## 8칸의 중심 x(원본 픽셀) — 추출 도구 `SLOT_CX` 와 같은 값이다.
 const BAR_SLOT_CX := [85.0, 243.0, 437.0, 995.0, 1158.0, 1332.0, 1500.0, 1662.0]
 const BAR_SLOT_W := 150.0     # 칸 히트박스 폭(판 폭 실측 ≈160~190, 이음매 젬은 피한다)
+## 칸별 **돌판 윗변**(스트립 로컬 픽셀). 히트박스를 스트립 상단(=가운데 동굴 구슬이 솟은
+## 높이)부터 잡으면 바깥쪽 칸 위의 **투명한 하늘 40~64px 이 같이 눌린다** — 실제로 오른쪽 끝
+## '월드맵' 칸이 그 위에 놓인 설정 톱니를 가로챘다(2026-08-06 사용자 신고).
+## 각 칸의 x 구간에서 알파>16 인 최상단 y 의 최소값:
+##   python -c "from PIL import Image; im=Image.open('assets/converted/mainbar_ui/bottom_bar_clean.png'); a=im.split()[3]; CX=[85,243,437,995,1158,1332,1500,1662]; print([min(min((y for y in range(im.height) if a.getpixel((x,y))>16), default=999) for x in range(cx-75, cx+75)) for cx in CX])"
+const BAR_SLOT_TOP := [69.0, 106.0, 102.0, 67.0, 91.0, 109.0, 103.0, 72.0]
 const BAR_LABEL_CY := 943.0   # 판에 새겨져 있던 글자의 세로 중심
 const BAR_LABEL_H := 34.0     # 판에 새겨져 있던 글자 높이
 const BAR_LABEL_SCALE := 0.92  # 그 대비 우리 라벨 크기(사용자 조정 2026-07-28: −8%)
@@ -152,8 +158,11 @@ func refresh() -> void:
 		_build_close_button(vis)
 		_build_town_quest(vis)
 		return
-	_build_setting_button(vis)
+	# ⚠️ 순서 주의 — 톱니를 **하단바보다 나중에** 붙인다. Godot 은 형제 Control 중 **뒤에 붙은
+	#    것이 입력을 먼저** 받으므로, 반대로 두면 겹치는 자리에서 하단바 칸이 톱니를 가로챈다
+	#    (2026-08-06 '설정 대신 월드맵이 눌린다' 의 절반. 나머지 절반은 BAR_SLOT_TOP).
 	_build_bottom_bar(vis)
+	_build_setting_button(vis)
 	if _show_variants:
 		_build_variant_toggles(vis)
 
@@ -201,7 +210,9 @@ func _build_profile(_vis_size: Vector2) -> void:
 
 	var a := UserDB.active_dragon()
 	if not a.is_empty():
-		var did := int(a.get("id", 1))
+		# 🔴 2026-08-07 — 개체의 상속 art_id. 커스텀 종 600·700(드래곤 소환 결과)은
+		#   `portrait_600` 아틀라스가 없어서 종 id 로 찾으면 프로필 칸이 빈다.
+		var did := Icons.art_id_of(a)
 		# 상태창·편성·전투와 같은 성장 단계 판정을 쓴다. 레벨만 보면 각성 드래곤도
 		# box_adult로 고정되므로 반드시 저장 레코드의 awakened 플래그까지 넘겨야 한다.
 		var por := _portrait(did, profile_portrait_stage(a), int(a.get("skin", 0)))
@@ -386,22 +397,38 @@ func _build_town_quest(_vis_size: Vector2) -> void:
 ## `scene/worldmap/menu_setting` 은 구판 세트에 실재한다 → 재화 행 아래 오른쪽 가장자리에 놓는다.
 ## (하단 돌바는 레퍼런스 각인이 8칸으로 고정이라 칸을 더 못 만든다 — 사용자 확정 2026-07-30)
 ##
-## ⚠️ 오른쪽 가장자리 세로줄은 이미 꽉 차 있다 — 재화 행 `y 24~69` · 월드맵 가이드 버튼
-##    `(vis.x−90, 70) 72×34` (`worldmap.gd:1776`) · 카데스 토글 `y≈120~200` · 밤/낮 `y≈226~266`.
-##    그래서 톱니는 **가이드 버튼 왼쪽**(x = vis.x−144)에 놓고 y 는 재화 행 아래로 내린다.
-##    프레임 56×61px → scale 0.7 에서 52×57pt 라 위 넷 어느 것과도 겹치지 않는다.
-const SET_BTN_POS := Vector2(-144.0, 100.0)   # x 는 오른쪽 가장자리 기준 오프셋
+## 🟦 2026-08-06 사용자 확정 — 톱니를 **하단 UI바 근처**로 내린다.
+##
+## 종전 자리는 우상단(가이드 버튼 왼쪽, `vis.x−144, 100`)이었다. 그 세로줄은 이미
+## 재화 행 `y 24~69` · 가이드 버튼 `(vis.x−90, 70)` · 카데스 토글 `y≈120~200` ·
+## 밤/낮 `y≈226~266` 으로 꽉 차 있어 붐볐다. 이제 **돌바 오른쪽 끝 바로 위**에 둔다 —
+## 돌바 상단은 스트립 메타에서 계산하므로(`_bar_top`) 스트립을 다시 잘라도 따라온다.
+##
+## 원작 근거는 그대로다: 설정은 하단바가 아니라 **우상단 메뉴 그룹**(tag 0x1ceb)이었고
+## 그 그룹 프레임(`newCommon/ma_*`)은 우리 덤프에 없다(§10). 자리는 우리가 정하는 값이다.
+## ⚠️ 기준은 **스트립 상단이 아니라 돌판 윗변**이다. 스트립 상단(`_bar_top`)은 가운데
+##    동굴 구슬이 솟은 높이라, 그걸 기준으로 잡으면 오른쪽 끝에서 톱니가 붕 뜬다.
+##    오른쪽 끝(레퍼런스 x 1640~1750) 알파 윗변 최소값 = **68**(crop 로컬 픽셀):
+##      python -c "from PIL import Image; im=Image.open('assets/converted/mainbar_ui/bottom_bar_clean.png'); a=im.split()[3]; print(min(next(y for y in range(im.height) if a.getpixel((x,y))>16) for x in range(1640,im.width)))"
+const SET_BTN_RIGHT := 40.0    # 화면 오른쪽 가장자리 → 톱니 중심
+const SET_BTN_EDGE := 68.0     # 스트립 상단 → 오른쪽 끝 돌판 윗변(레퍼런스 픽셀)
+const SET_BTN_GAP := 6.0       # 돌판 윗변 ↔ 톱니 아래 모서리
 const SET_BTN_SCALE := 0.7
+## 아이콘 딱 크기(52×57)면 작아서 빗나간다 — 사방 여유. 아래로 6 을 더해도 오른쪽 끝 돌판
+## 윗변(BAR_SLOT_TOP 마지막 = 72)까지 아직 여유가 남는다.
+const SET_BTN_PAD := 6.0
 func _build_setting_button(vis: Vector2) -> void:
 	var S := Design.ASSET_SCALE
-	var c := Vector2(vis.x + SET_BTN_POS.x, SET_BTN_POS.y)
+	var m: Dictionary = _man_wm.get("scene_worldmap_menu_setting", {})
+	var sz := Vector2(float(m.get("w", 56)), float(m.get("h", 61))) * S * SET_BTN_SCALE
+	var edge := _bar_top(vis) + SET_BTN_EDGE * (vis.x / BAR_REF_W)
+	var c := Vector2(vis.x - SET_BTN_RIGHT, edge - SET_BTN_GAP - sz.y * 0.5)
 	var icon := _spr("worldmap_ui", "scene_worldmap_menu_setting", _man_wm, S * SET_BTN_SCALE)
 	if icon:
 		icon.position = c
 		_root.add_child(icon)
-	var m: Dictionary = _man_wm.get("scene_worldmap_menu_setting", {})
-	var sz := Vector2(float(m.get("w", 56)), float(m.get("h", 61))) * S * SET_BTN_SCALE
-	var hit := _hit(Rect2(c - sz * 0.5, sz), "설정")
+	var pad := Vector2(SET_BTN_PAD, SET_BTN_PAD)
+	var hit := _hit(Rect2(c - sz * 0.5 - pad, sz + pad * 2.0), "설정")
 	hit.pressed.connect(func(): _act("setting"))
 	_root.add_child(hit)
 
@@ -424,7 +451,7 @@ func _build_bottom_bar(vis: Vector2) -> void:
 	var bar_h := float((meta.get("crop", {}) as Dictionary).get("h", BAR_REF_H_FALLBACK))
 	var bar_top_ref := float((meta.get("crop", {}) as Dictionary).get("y", BAR_REF_TOP_FALLBACK))
 	var k := vis.x / BAR_REF_W                      # 레퍼런스 픽셀 → 화면 좌표 배율
-	var top := vis.y - bar_h * k                    # 스트립 상단(화면)
+	var top := _bar_top(vis)                        # 스트립 상단(화면)
 	# 레퍼런스 원본 y → 화면 y
 	var ry := func(y: float) -> float: return top + (y - bar_top_ref) * k
 
@@ -453,8 +480,10 @@ func _build_bottom_bar(vis: Vector2) -> void:
 		if bar_font != null:
 			l.add_theme_font_override("font", bar_font)
 		_root.add_child(l)
-		var hit := _hit(Rect2(Vector2(mid - lw * 0.5, top), Vector2(lw, bar_h * k)),
-			String(e[0]))
+		# 히트박스는 **돌판 윗변부터** — 스트립 상단부터 잡으면 판 위 투명 영역까지 눌린다.
+		var st: float = float(BAR_SLOT_TOP[i]) if i < BAR_SLOT_TOP.size() else 0.0
+		var hit := _hit(Rect2(Vector2(mid - lw * 0.5, top + st * k),
+			Vector2(lw, (bar_h - st) * k)), String(e[0]))
 		hit.pressed.connect(func(): _act(String(e[1])))
 		_root.add_child(hit)
 
@@ -605,6 +634,13 @@ func _town_area() -> String:
 	return "elpis"
 
 var _bar_meta_cache: Dictionary = {}
+## 하단 돌바 스트립의 상단 y(화면 좌표). 톱니(`_build_setting_button`)와 돌바 자체가
+## **같은 한 곳**에서 이 값을 받는다 — 스트립을 다시 잘라 높이가 바뀌어도 둘이 같이 따라온다.
+func _bar_top(vis: Vector2) -> float:
+	var meta := _bar_meta()
+	var bar_h := float((meta.get("crop", {}) as Dictionary).get("h", BAR_REF_H_FALLBACK))
+	return vis.y - bar_h * (vis.x / BAR_REF_W)
+
 func _bar_meta() -> Dictionary:
 	if _bar_meta_cache.is_empty():
 		var f := FileAccess.open(BAR_META, FileAccess.READ)

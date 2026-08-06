@@ -47,6 +47,8 @@ SHEETS = REPO / "docs" / "input" / "sheets"
 RANKER_CSV = SHEETS / "colosseum_ranker.csv"
 NICK_CSV = SHEETS / "colosseum_nick.csv"
 GUARD_CSV = SHEETS / "colosseum_guard.csv"
+# 선대군 대사별 표정(🟦 사용자 기입 2026-08-07) — 초상 입 프레임이 표정 1~6 로 갈린다.
+TALK_EMO_CSV = SHEETS / "sundaegun_talk.csv"
 STRINGS_KR = REPO / "DV2" / "string" / "stringsData_KR.xml"
 
 # 연승방지봇 3단계 — 🟦 사용자 확정 2026-08-04.
@@ -63,10 +65,16 @@ STRINGS_KR = REPO / "DV2" / "string" / "stringsData_KR.xml"
 # 이게 원작 대사 단계 수와 정확히 맞는다 — 누리는 A/B **2단계**, 라온은 A/B/C **3단계**.
 # ⇒ `schedule` 한 줄 = (등장 연승, 누가, 어느 대사 단계) 다. 현재 연승에서 **도달한 가장 높은
 #   문턱**이 곧 이번 상대이자 그 대사 단계가 된다.
+#
+# 🟦 `skip_if_admin` (사용자 확정 2026-08-06) — **관리자 모드에서는 선대군이 등장하지 않는다.**
+#   선대군은 이 세계를 다시 세운 사람 쪽 캐릭터라 관리자 본인과 마주칠 자리가 아니다.
+#   판정은 `Colosseum.pending_guard` 가 `UserDB.is_admin()` 으로 한다(같은 플래그가 상점
+#   PVP 탭 판매원도 가른다 — 관리자면 원작대로 라온).
 GUARD_NPCS = [
     {"key": "nuri", "name": "누리", "talk_prefix": "ColosseumNuriTalk", "orig": True},
     {"key": "raon", "name": "라온", "talk_prefix": "ColosseumRaonTalk", "orig": True},
-    {"key": "sundaegun", "name": "선대군", "talk_prefix": None, "orig": False},
+    {"key": "sundaegun", "name": "선대군", "talk_prefix": None, "orig": False,
+     "skip_if_admin": True},
 ]
 
 # 🟦 사용자 확정 2026-08-04 — 연승방지봇은 **이벤트성 매치**라 일반 매칭과 규칙이 다르다.
@@ -83,6 +91,13 @@ GUARD_GRADE_COL = "등급"      # 카드에 뜨는 등급 표시(비우면 스�
 GUARD_HEADER = (["키", "이름", "등장연승", "레이팅", "드래곤id", "레벨", "각성"]
                 + list(GUARD_STAT_COLS) + [GUARD_GRADE_COL]
                 + ["젬", "스킬", "장비", "대사", "비고"])
+
+# 랭커 시트 열 — 🟦 2026-08-05 사용자 기입본에 맞춘다(`레이팅` 자리를 `등급`이 대신한다.
+# 레이팅은 티어에서 나오고, 등급은 카드에 뜨는 드래곤 등급이다). `레이팅` 열이 있으면 읽는다.
+RANKER_HEADER = ["닉네임", "티어", "등급", "드래곤id", "레벨", "각성", "젬", "스킬", "장비", "비고"]
+RANKER_NOTE = ("드래곤은 이름으로 적어도 됩니다. 젬·스킬·장비는 쉼표로 나열. "
+               "비고에 '모든 스킬 5레벨, 모든 장비 [에픽] 최대 강화, "
+               "최적 옵션 장착(<전투유형들>: <옵션들> / …)' 형식으로 적으면 그대로 반영됩니다.")
 
 GUARD_SCHEDULE = [
     {"streak_at": 25,  "key": "nuri",      "talk_stage": "A"},
@@ -168,6 +183,26 @@ COIN = {
     "weekly": {"0": {"dia": 5, "coin": 50}, "1": {"dia": 10, "coin": 100},
                "2": {"dia": 18, "coin": 180}, "3": {"dia": 30, "coin": 300},
                "4": {"dia": 45, "coin": 450}, "5": {"dia": 70, "coin": 700}},
+    # 🟩 **환율은 자작이 아니라 위 표에서 파생된다.** `weekly` 6티어가 전부 정확히
+    #    coin = dia × 10 이다(50/5 · 100/10 · 180/18 · 300/30 · 450/45 · 700/70).
+    #    ⇒ 1 다이아 = 10 주화. 환전소(drops.json `cash.gold_pack` 1다이아=1000골드) 경유로
+    #    1 주화 = 100 골드. 상점 PVP 탭 가격표(data/shop.json)가 이 축 하나에 걸려 있다.
+    "_rate_note": "1 다이아 = 10 주화 = 1,000 골드. weekly 표 6티어 전부 coin=dia×10 에서 파생.",
+    # 판당 지급 — 🟦 사용자 확정 2026-08-06. **원작엔 판당 주화가 없다**(서버가 일일/주간만
+    # 내려줬다) → 자작 노브. 우편함 보상만으로는 계속 싸울 이유가 없어서 주 수도꼭지를 여기 둔다.
+    # 패배 보상을 낮게 둔 건 일부러 지는 반복 파밍을 막기 위해서다.
+    "per_match": {
+        "_authored": True,
+        "win": 6,
+        "lose": 2,
+        # 연승 1회당 +1, 최대 +10 (레이팅의 streak_bonus 와 같은 형태).
+        "streak_bonus_per": 1,
+        "streak_bonus_max": 10,
+        # 3vs3 는 드래곤 3마리·판당 시간이 배라 배수를 준다.
+        "mode_mult": {"single": 1.0, "team": 2.0},
+    },
+    # 티어 **최초** 승급 1회 보너스. 같은 티어를 다시 밟아도 주지 않는다(state `tier_paid`).
+    "tier_up": {"1": 50, "2": 100, "3": 200, "4": 350, "5": 500},
 }
 
 # ── 대전 무대(스테이지) 속성 ───────────────────────────────────────────────
@@ -254,11 +289,14 @@ TICKET = {
 
 STREAK = {
     "_note": "🟦 사용자 확정 — 연승방지봇. 첫 등장은 **25연승**(누리A)이고 이후 스케줄대로 "
-             "50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). 무장은 문턱을 **정확히 밟은 "
-             "판**에만 한다(Colosseum._is_guard_threshold). guard_repeat 은 그 문턱을 "
-             "넘은 뒤 방지봇이 목록에 유지되는 판 수.",
+             "50/75/100/150/999 에서 다시 나온다(GUARD_SCHEDULE). **문턱당 딱 한 판**만 "
+             "나오고(2026-08-06 확정), 그 판이 끝나면 다음 문턱까지는 일반 봇이다. "
+             "판정은 Colosseum.pending_guard() — 세이브의 `guard_served`(모드별로 붙어 본 "
+             "문턱)를 보고, 연승이 끊기면 그 기록을 비운다. **예외는 없다** — 선대군(999)도 "
+             "한 번뿐이고, 다시 만나려면 패배로 연승을 끊고 999를 다시 쌓아야 한다(약한 "
+             "드래곤을 대신 출전시켜 일부러 질 수 있으므로 해금이 막히지 않는다 — 사용자 "
+             "확정 2026-08-06). 종전의 guard_repeat(3판 유지)은 그래서 폐기했다.",
     "guard_at": 25,
-    "guard_repeat": 3,
 }
 
 # 봇 분류 — 🟦 사용자 확정 2026-08-04.
@@ -341,21 +379,138 @@ def build_nick() -> dict:
     return out
 
 
+# ── 대사 연출표(화자·표정) — 🔴 2026-08-06 원작 채굴 ──────────────────────────
+#
+# 종전에는 대사 문자열만 뽑아 **누리 혼자 전부 읽었고 표정도 없었다.** 원작은 그렇지 않다:
+# 등장 이벤트를 만드는 곳이 `cocos2d::MatchingLayer::showNuriEvent` @00fb45e0(6,204B) ·
+# `showRaonEvent` @00fb6574(4,600B) 이고, 거기서 **한 줄 = `TalkNpc` 한 개**를 만들어
+# `NpcTalkLayer::create(CCArray, false)` 에 넘긴다.
+#
+#   TalkNpc::create(눈속도0.1, 눈유지3.0, 입0.03, 입0.03, <npc 폴더명>, <대사>,
+#                   NpcType 몸통, NpcType 표정, NpcPosition 자리, isFirstShow, isStartSmall, ?)
+#
+# ⇒ **누리 이벤트에는 화자가 둘**이다 — `nuri`(자리 2 = 오른쪽)와 `jimon`(자리 1 = 왼쪽).
+#    라온 이벤트만 혼자(자리 3 = 가운데)다. 자리 열거값은 `NpcManager::setTarget` 의 좌표식으로
+#    확정했다(1 왼쪽 / 2 오른쪽 / 3 가운데 — `scripts/ui/npc_talk_layer.gd` 머리주석).
+#
+# 아래 표는 그 함수의 `TalkNpc::create` 인자를 **순서대로** 옮긴 것이다.
+#   · 함수 분기 ↔ 단계는 `*(this + 0x200) = <줄 수>` 로 확정 — 누리 8=B / 10=A,
+#     라온 6=C / 4=B / 3=A(단계별 줄 수가 서로 달라 유일하게 갈린다).
+#   · 문자열 키 순서는 libgame.so 의 `.rodata` 참조를 직접 디코드해 대조했고
+#     (`ColosseumNuriTalkA_1`…`A_10` · `B_1`…`B_8`), 내용으로도 교차검증된다:
+#     A_9 "물론~ 나의 드래곤은 즈믄!" = 누리 / A_10 "왜 맨날! 나만 싸우는 건데!" = 즈믄 /
+#     B_4 "정확히는 내가 싸우는 거지만...." = 즈믄.
+#   · 표정 번호는 `npc_<name>/eye_<표정>_<프레임>` 그대로다(즈믄 1~7 · 누리 1~6 · 라온 1~6 보유).
+#
+# 한 줄 = (npc 폴더명, 몸통, 표정, 자리, isFirstShow, isStartSmall).
+TALK_STAGING = {
+    "ColosseumNuriTalk": {
+        # showNuriEvent 분기2 (this+0x200 = 10)
+        "A": [
+            ("nuri",  1, 1, 2, 1, 0),
+            ("nuri",  1, 1, 2, 0, 0),
+            ("jimon", 1, 1, 1, 1, 0),
+            ("jimon", 1, 1, 1, 0, 0),
+            ("nuri",  2, 2, 2, 0, 1),
+            ("jimon", 2, 2, 1, 0, 1),
+            ("nuri",  1, 3, 2, 0, 1),
+            ("nuri",  1, 3, 2, 0, 0),
+            ("nuri",  2, 2, 2, 0, 0),
+            ("jimon", 3, 7, 1, 0, 1),
+        ],
+        # showNuriEvent 분기1 (this+0x200 = 8)
+        "B": [
+            ("jimon", 1, 1, 1, 1, 0),
+            ("jimon", 2, 2, 1, 0, 0),
+            ("nuri",  2, 2, 2, 1, 0),
+            ("jimon", 3, 7, 1, 0, 1),
+            ("nuri",  2, 2, 2, 0, 1),
+            ("nuri",  1, 1, 2, 0, 0),
+            ("jimon", 1, 1, 1, 0, 1),
+            ("jimon", 2, 2, 1, 0, 0),
+        ],
+    },
+    "ColosseumRaonTalk": {
+        # showRaonEvent — 라온 혼자(자리 3 = 가운데), 몸통 1 고정.
+        "A": [
+            ("raon", 1, 1, 3, 1, 0),
+            ("raon", 1, 1, 3, 0, 0),
+            ("raon", 1, 3, 3, 0, 0),
+        ],
+        "B": [
+            ("raon", 1, 1, 3, 1, 0),
+            ("raon", 1, 1, 3, 0, 0),
+            ("raon", 1, 2, 3, 0, 0),
+            ("raon", 1, 3, 3, 0, 0),
+        ],
+        "C": [
+            ("raon", 1, 2, 3, 1, 0),
+            ("raon", 1, 1, 3, 0, 0),
+            ("raon", 1, 1, 3, 0, 0),
+            ("raon", 1, 1, 3, 0, 0),
+            ("raon", 1, 3, 3, 0, 0),
+            ("raon", 1, 3, 3, 0, 0),
+        ],
+    },
+}
+
+# 화자 이름표는 원작이 `NpcTalkLayer::setTalk` 에서 `getString("NPC_" + 폴더명)` 으로 만든다.
+# 우리는 화면이 문자열 번들을 읽지 않으므로 빌드 때 여기서 확정해 데이터에 싣는다.
+NPC_NAME_KEY = "NPC_%s"
+
+
+def read_npc_names(ids: set[str]) -> dict:
+    """`<NPC_nuri>누리` 같은 원작 이름표. 없으면 그 id 는 빼고 화면이 봇 이름을 쓴다."""
+    if not STRINGS_KR.exists():
+        return {}
+    t = STRINGS_KR.read_text(encoding="utf-8", errors="replace")
+    out = {}
+    for npc in sorted(ids):
+        m = re.search(r"<%s>(.*?)</%s>" % (NPC_NAME_KEY % npc, NPC_NAME_KEY % npc), t, re.S)
+        if m:
+            out[npc] = m.group(1).strip()
+    return out
+
+
 def read_orig_talks(prefix: str) -> dict:
     """원작 대사 추출 — `<{prefix}{A|B|C}_{n}>` 를 단계별로 모은다.
 
     유실이 아니다: 라온·누리의 콜로세움 대사가 `stringsData_KR.xml` 에 그대로 있다.
     단계 문자(A/B/C)가 곧 **등급 구간**이다(A=첫 조우 · B=올라온 뒤 · C=고등급).
+
+    한 줄은 **연출까지 포함한 dict** 로 나온다(위 `TALK_STAGING` — 화자·표정·자리).
     """
     if not prefix or not STRINGS_KR.exists():
         return {}
     t = STRINGS_KR.read_text(encoding="utf-8", errors="replace")
-    out: dict[str, list[tuple[int, str]]] = {}
+    raw: dict[str, list[tuple[int, str]]] = {}
     for m in re.finditer(r"<%s([A-C])_(\d+)>(.*?)</%s\1_\2>" % (prefix, prefix), t, re.S):
         stage, no, txt = m.group(1), int(m.group(2)), m.group(3)
         txt = txt.replace("&#10;", "\n").strip()
-        out.setdefault(stage, []).append((no, txt))
-    return {k: [s for _, s in sorted(v)] for k, v in out.items()}
+        raw.setdefault(stage, []).append((no, txt))
+    stage_rows = TALK_STAGING.get(prefix, {})
+    names = read_npc_names({r[0] for rows in stage_rows.values() for r in rows})
+    out = {}
+    for stage, pairs in raw.items():
+        texts = [s for _, s in sorted(pairs)]
+        rows = stage_rows.get(stage, [])
+        # 연출표와 줄 수가 어긋나면 **조용히 넘어가지 않는다** — 원작 채굴본과 문자열 번들이
+        # 어긋났다는 뜻이고, 그대로 실으면 엉뚱한 화자가 엉뚱한 대사를 읽는다.
+        if len(rows) != len(texts):
+            _err("대사 %s%s" % (prefix, stage),
+                 "원작 연출표 %d줄 ↔ 문자열 %d줄 — TALK_STAGING 을 다시 채굴할 것"
+                 % (len(rows), len(texts)))
+            rows = []
+        lines = []
+        for i, txt in enumerate(texts):
+            npc, body, emo, pos, first, small = rows[i] if rows else ("", 1, 1, 3, int(i == 0), 0)
+            lines.append({
+                "text": txt, "npc": npc, "name": names.get(npc, ""),
+                "body": body, "emotion": emo, "pos": pos,
+                "first_show": bool(first), "small": bool(small),
+            })
+        out[stage] = lines
+    return out
 
 
 # ── 시트 자유기입 해석기 ───────────────────────────────────────────────────
@@ -366,6 +521,7 @@ def read_orig_talks(prefix: str) -> dict:
 GEMS_JSON = REPO / "data" / "gems.json"
 SKILLS_JSON = REPO / "data" / "skills.json"
 EQUIP_JSON = REPO / "data" / "equipment.json"
+DRAGONS_JSON = REPO / "data" / "dragons.json"
 
 _ERRORS: list[str] = []
 
@@ -379,8 +535,47 @@ def _load(p: Path) -> dict:
 
 
 def _norm(s: str) -> str:
-    """이름 대조용 정규화 — 공백을 지운다('고속 이동' ↔ '고속이동')."""
-    return re.sub(r"\s+", "", s or "")
+    """이름 대조용 정규화 — 공백을 지우고 로마숫자를 아라비아로 맞춘다.
+
+    '고속 이동' ↔ '고속이동' · '다크닉스 II' ↔ '다크닉스2' (시트는 아라비아로 적는다).
+    """
+    t = re.sub(r"\s+", "", s or "")
+    for rom, ar in (("III", "3"), ("II", "2"), ("Ⅲ", "3"), ("Ⅱ", "2")):
+        if t.endswith(rom):
+            t = t[: -len(rom)] + ar
+    return t
+
+
+def dragon_index() -> dict:
+    """정규화 이름 → 도감 id. 같은 이름이 둘이면 **뒤엣것을 쓰지 않고** 에러로 남긴다."""
+    out: dict[str, int] = {}
+    dup: set[str] = set()
+    for d in (json.loads(DRAGONS_JSON.read_text(encoding="utf-8"))
+              if DRAGONS_JSON.exists() else []):
+        nm = _norm(str(d.get("name", "")))
+        if not nm:
+            continue
+        if nm in out:
+            dup.add(nm)
+        out[nm] = int(d.get("id", 0))
+    for nm in dup:
+        out.pop(nm, None)
+    return out
+
+
+def resolve_dragon(text: str, where: str, index: dict) -> int:
+    """`드래곤id` 칸 → 도감 id. **번호도 이름도 받는다**(랭커 시트는 이름으로 적혀 있다)."""
+    t = (text or "").strip()
+    if not t:
+        return 0
+    if t.isdigit():
+        return int(t)
+    did = index.get(_norm(t))
+    if did is None:
+        _err(where, f"드래곤 '{t}' 을 data/dragons.json 에서 못 찾았다"
+                    f"(이름 그대로 적거나 도감 번호를 적어 주세요)")
+        return 0
+    return did
 
 
 # 젬 code → 그 젬이 들어갈 슬롯 타입(원작 Dragon::getGemType 0=ATT 1=DEF 2=HP 3=ALL).
@@ -398,13 +593,70 @@ GEM_CATEGORY_WORD = {"일반젬": "normal", "일반": "normal",
                      "소울젬": "soul", "소울": "soul"}
 
 
+def _gem_part(part: str, where: str, table: dict, default_cnt: int) -> list[dict]:
+    """젬 칸의 **한 토막** → [{"name","tier"} …] (칸 배정은 부르는 쪽이 한다)."""
+
+    def tier_of(name: str) -> int:
+        mx = max(0, len(table[name].get("tiers", [])) - 1)
+        m = re.search(r"(\d+)\s*(?:티어|단계|등급)", part)
+        if m:
+            return max(0, min(mx, int(m.group(1))))
+        if "최대" in part or "최고" in part or "만렙" in part:
+            return mx
+        if "중간" in part:
+            return mx // 2
+        if "최소" in part or "최하" in part or "최저" in part:
+            return 0
+        _err(where, f"젬 티어를 못 읽었다 — '{part}' (최대/중간/최소/N티어 중 하나를 적어 주세요)")
+        return mx
+
+    # ① 젬 이름이 그대로 적혀 있나(가장 확실한 표기).
+    named = [nm for nm in table if _norm(nm) in _norm(part)]
+    named.sort(key=len, reverse=True)
+    if named:
+        name = named[0]
+        cnt = default_cnt
+        m = re.search(r"(\d+)\s*개", part)
+        if m:
+            cnt = max(1, min(3, int(m.group(1))))
+        return [{"name": name, "tier": tier_of(name)} for _ in range(cnt)]
+
+    # ② 분류 + 축 글자(공/방/체) 3개.
+    cat = ""
+    for word, c in GEM_CATEGORY_WORD.items():
+        if word in part:
+            cat = c
+            break
+    axis = re.search(r"([공방체]{2,3})", part)
+    if not cat or not axis:
+        _err(where, f"젬 표기를 못 읽었다 — '{part.strip()}' (젬 이름을 그대로 적거나 "
+                    f"'일반젬 중간 등급 공공체' 형식으로 적어 주세요)")
+        return []
+    by_code = {str(v.get("code", "")): k for k, v in table.items()
+               if str(v.get("category", "")) == cat}
+    out: list[dict] = []
+    for ch in axis.group(1):
+        code = GEM_AXIS[ch]
+        if cat == "soul":
+            code = "SOUL" + code
+        name = by_code.get(code)
+        if not name:
+            _err(where, f"'{ch}' 축의 {cat} 젬이 data/gems.json 에 없다")
+            continue
+        out.append({"name": name, "tier": tier_of(name)})
+    return out
+
+
 def parse_gems(text: str, where: str) -> dict:
     """젬 칸 → {"types": [슬롯타입 ×3], "list": [{"slot","name","tier"} …]}.
 
     받는 표기(시트 실제 기입 기준):
       · `일반젬 중간 등급 공공체`      분류 + 티어말 + **축 글자 3개**(칸 순서대로)
       · `샌즈의 소울젬 최대 티어 3개`  젬 이름 + 티어말 + 개수
+      · `체력의 소울젬 최대 티어 2개, 방어의 소울젬 최대 티어 1개`
+                                       ← **쉼표로 여러 젬**(랭커 시트 표기). 적은 순서대로 칸을 채운다.
     티어말: 최대/최고 = 만렙 · 중간 = 가운데 단계 · 최소/최하 = 0 · `N티어` = 그 index.
+    개수 생략 시 = 토막이 하나면 3칸, 여럿이면 1칸.
     """
     text = (text or "").strip()
     if not text:
@@ -414,72 +666,30 @@ def parse_gems(text: str, where: str) -> dict:
     if not table:
         _err(where, "data/gems.json 을 읽지 못했다")
         return {}
-
-    def tier_of(name: str) -> int:
-        n = len(table[name].get("tiers", []))
-        mx = max(0, n - 1)
-        m = re.search(r"(\d+)\s*(?:티어|단계|등급)", text)
-        if m:
-            return max(0, min(mx, int(m.group(1))))
-        if "최대" in text or "최고" in text or "만렙" in text:
-            return mx
-        if "중간" in text:
-            return mx // 2
-        if "최소" in text or "최하" in text or "최저" in text:
-            return 0
-        _err(where, f"젬 티어를 못 읽었다 — '{text}' (최대/중간/최소/N티어 중 하나를 적어 주세요)")
-        return mx
-
-    # ① 젬 이름이 그대로 적혀 있나(가장 확실한 표기).
-    named = [nm for nm in table if _norm(nm) in _norm(text)]
-    named.sort(key=len, reverse=True)
-    if named:
-        name = named[0]
-        cnt = 3
-        m = re.search(r"(\d+)\s*개", text)
-        if m:
-            cnt = max(1, min(3, int(m.group(1))))
-        tier = tier_of(name)
-        code = str(table[name].get("code", ""))
-        ty = GEM_SLOT_TYPE.get(code, "ALL")
-        return {"types": [ty] * 3,
-                "list": [{"slot": i, "name": name, "tier": tier} for i in range(cnt)]}
-
-    # ② 분류 + 축 글자(공/방/체) 3개.
-    cat = ""
-    for word, c in GEM_CATEGORY_WORD.items():
-        if word in text:
-            cat = c
-            break
-    axis = re.search(r"([공방체]{2,3})", text)
-    if not cat or not axis:
-        _err(where, f"젬 표기를 못 읽었다 — '{text}' (젬 이름을 그대로 적거나 "
-                    f"'일반젬 중간 등급 공공체' 형식으로 적어 주세요)")
+    parts = [p for p in (q.strip() for q in text.split(",")) if p]
+    entries: list[dict] = []
+    for p in parts:
+        entries += _gem_part(p, where, table, 3 if len(parts) == 1 else 1)
+    if len(entries) > 3:
+        _err(where, f"젬이 3칸을 넘는다({len(entries)}개) — '{text}'")
         return {}
-    by_code = {str(v.get("code", "")): k for k, v in table.items()
-               if str(v.get("category", "")) == cat}
     types: list[str] = []
     lst: list[dict] = []
-    for i, ch in enumerate(axis.group(1)):
-        code = GEM_AXIS[ch]
-        if cat == "soul":
-            code = "SOUL" + code
-        name = by_code.get(code)
-        if not name:
-            _err(where, f"'{ch}' 축의 {cat} 젬이 data/gems.json 에 없다")
-            continue
+    for i, e in enumerate(entries):
+        code = str(table[e["name"]].get("code", ""))
         types.append(GEM_SLOT_TYPE.get(code, "ALL"))
-        lst.append({"slot": i, "name": name, "tier": tier_of(name)})
+        lst.append({"slot": i, "name": e["name"], "tier": e["tier"]})
     while len(types) < 3:
         types.append("ALL")
     return {"types": types, "list": lst}
 
 
-def parse_skills(text: str, where: str) -> list[dict]:
+def parse_skills(text: str, where: str, fallback_lv: int = 1) -> list[dict]:
     """스킬 칸 → [{"id", "level"} …].
 
     표기: `철갑 방패, 복수의 거울 5레벨` — 끝의 `N레벨` 은 **앞의 스킬 전부**에 걸린다
     (스킬마다 따로 적으면 그 스킬에만 걸린다). 이름은 공백을 무시하고 대조한다.
+    `fallback_lv` = 칸에 레벨이 전혀 안 적혔을 때 쓸 값(랭커 시트는 비고의 '모든 스킬 N레벨').
     """
     text = (text or "").strip()
     if not text:
@@ -487,7 +697,7 @@ def parse_skills(text: str, where: str) -> list[dict]:
     db = _load(SKILLS_JSON)
     by_name = {_norm(v.get("name", "")): int(k) for k, v in db.items()}
     tail = re.search(r"(\d+)\s*레벨\s*$", text)
-    default_lv = int(tail.group(1)) if tail else 1
+    default_lv = int(tail.group(1)) if tail else fallback_lv
     out: list[dict] = []
     for part in text.split(","):
         part = part.strip()
@@ -555,11 +765,59 @@ def equip_catalog() -> dict:
     return out
 
 
-def parse_equip(text: str, dragon_id: int, where: str) -> list[dict]:
-    """장비 칸 → [{"key", "slot"} …]. 쉼표로 나눈 **장비 이름**을 카탈로그 키로 확정한다.
+# 장비 칸의 **지시형 표기**(랭커 시트) — 이름 대신 "무엇을 끼울지"를 말로 적는다.
+#   `전용장비(없을 경우 카이저 발록의 팔찌)` → 그 드래곤의 전용 장비, 없으면 괄호 안의 것
+#   `위대한 아티팩트(이그니스)`              → 카탈로그 이름 '위대한 이그니스'
+RE_EXCLUSIVE = re.compile(r"^전용\s*장비\s*(?:[(（]\s*(?:없을\s*경우|없으면)?\s*(.+?)\s*[)）])?$")
+RE_ARTIFACT = re.compile(r"^(.+?)\s*아티팩트\s*[(（]\s*(.+?)\s*[)）]$")
 
-    칸(all/battle/support/artifact)은 장비의 주 능력치가 정한다(위키 §2 슬롯 표) —
-    같은 칸을 두 장비가 다투면 뒤엣것이 `all` 로 밀린다(원작도 칸이 4개다).
+
+def _equip_lookup(part: str, dragon_id: int, where: str,
+                  cat: dict, norm: dict) -> dict | None:
+    """장비 칸의 한 토막 → 카탈로그 항목. 못 읽으면 None(이미 _err 남김)."""
+    part = part.strip()
+    m = RE_EXCLUSIVE.match(part)
+    if m:
+        for v in cat.values():
+            if v["dragon_id"] == dragon_id:
+                return v
+        alt = (m.group(1) or "").strip()
+        if not alt:
+            _err(where, f"드래곤 {dragon_id} 의 전용 장비가 없는데 대체 장비가 안 적혀 있다 "
+                        f"— '{part}' (‘전용장비(없을 경우 …)’ 로 적어 주세요)")
+            return None
+        return _equip_lookup(alt, dragon_id, where, cat, norm)
+    m = RE_ARTIFACT.match(part)
+    if m:
+        it = norm.get(_norm("%s %s" % (m.group(1), m.group(2))))
+        if it is None:
+            _err(where, f"아티팩트 '{part}' 을 못 찾았다 — 등급은 "
+                        f"{(_load(EQUIP_JSON).get('artifacts') or {}).get('grades', [])} 중 하나")
+        return it
+    it = norm.get(_norm(part))
+    if it is None:
+        _err(where, f"장비 '{part}' 을 data/equipment.json 에서 못 찾았다")
+    return it
+
+
+def parse_equip(text: str, dragon_id: int, where: str,
+                preset: dict | None = None) -> list[dict]:
+    """장비 칸 → [{"key", "slot", (희귀도·옵션·강화)} …].
+
+    쉼표로 나눈 **장비 이름**(또는 위 지시형 표기)을 카탈로그 키로 확정한다.
+    칸(all/battle/support/artifact)은 장비의 주 능력치가 정한다(위키 §2 슬롯 표).
+
+    칸이 겹칠 때 — 🟦 **사용자 확정 2026-08-06**: 첫 칸(`all`)은 `accepts:"*"` 라
+    **아무 장비나 들어가는 범용 칸**이다(위키 §2 "전용장비를 포함한 말 그대로 모든 장비").
+    그래서 같은 칸을 두 장비가 다투면 **먼저 적은 쪽을 `all` 로 올리고**, 뒤엣것이 제 칸을
+    가져간다. 시트에 적은 순서가 곧 칸 순서로 읽히게 하기 위해서다.
+
+    🔴 종전에는 반대로 **뒤엣것**을 `all` 로 밀었다. 그래서 선대군 800 번이
+    `팔찌[support] · 모래시계[all]` 로 나왔는데, 사용자가 적은 순서대로면
+    `팔찌[all] · 모래시계[support]` 여야 한다(전용 장비가 없어 첫 칸이 비는 줄이다).
+    장착 개수는 어느 쪽이든 4개로 같았지만 배치가 시트와 어긋났다.
+
+    `preset` = 비고에서 읽은 희귀도/옵션/강화(랭커 시트). 없으면 주 능력치만 있는 맨 장비.
     """
     text = (text or "").strip()
     if not text:
@@ -569,26 +827,37 @@ def parse_equip(text: str, dragon_id: int, where: str) -> list[dict]:
     out: list[dict] = []
     used: set[str] = set()
     for part in text.split(","):
-        nm = _norm(part)
-        if not nm:
+        if not _norm(part):
             continue
-        it = norm.get(nm)
+        it = _equip_lookup(part, dragon_id, where, cat, norm)
         if it is None:
-            _err(where, f"장비 '{part.strip()}' 을 data/equipment.json 에서 못 찾았다")
             continue
         if it["dragon_id"] and it["dragon_id"] != dragon_id:
             _err(where, f"장비 '{part.strip()}' 은 전용 장비라 드래곤 {it['dragon_id']} "
                         f"에게만 장착된다(이 줄은 {dragon_id})")
             continue
         slot = it["slot"]
-        if slot in used:                      # 같은 칸이 겹치면 남는 칸으로 옮긴다
-            slot = next((s for s in ("all", "battle", "support", "artifact")
-                         if s not in used and (s == "all" or s == it["slot"])), "")
+        if slot in used:
+            # ① 먼저 그 칸을 쓰고 있던 장비를 범용 칸(`all`)으로 올려 자리를 내준다.
+            if "all" not in used:
+                for prev in out:
+                    if prev["slot"] == slot:
+                        prev["slot"] = "all"
+                        used.discard(slot)
+                        used.add("all")
+                        break
+            # ② 그래도 못 앉으면(이미 `all` 까지 찼다) 남는 칸을 찾는다.
+            if slot in used:
+                slot = next((s for s in ("all", "battle", "support", "artifact")
+                             if s not in used and (s == "all" or s == it["slot"])), "")
             if not slot:
                 _err(where, f"장비 '{part.strip()}' 을 넣을 칸이 없다(칸 4개를 이미 썼다)")
                 continue
         used.add(slot)
-        out.append({"key": it["key"], "slot": slot})
+        e = {"key": it["key"], "slot": slot}
+        if preset:
+            e.update(preset)
+        out.append(e)
     return out
 
 
@@ -620,6 +889,164 @@ def parse_immune(note: str, where: str) -> dict:
     return out
 
 
+# ── 랭커 시트 비고 칸 해석 ────────────────────────────────────────────────
+#
+# 랭커 줄의 비고는 **장비 스펙**을 말로 적는다(사용자 기입 원문):
+#   "모든 스킬 5레벨, 모든 장비 [에픽] 최대 강화,
+#    최적 옵션 장착(공격형, 체공형, 공방형: 관통, 크리, 공격 / 체력형, 방어형, 체방형: 관통, 회피, 체력)"
+#
+# ⚠️ **크리·회피는 부가 옵션으로 존재하지 않는다.** 원작 옵션 테이블은
+#    `select hp, atk, def, blk, gold, exp, pure, depure, accuracy from info_item_acc`
+#    9컬럼뿐이고(OptionSelectLayer.c:2343), 크리티컬·회피는 **장비 주 능력치** 쪽 축이다
+#    (`Dragon::getCriticalRateAdd` / `getAvoidRateAdd` 가 `Item::getTypeParam` 을 읽는다).
+#    ⇒ 그 두 낱말은 옵션으로 옮길 수 없어 **빌드 로그에 알리고 건너뛴다**(임의 대체 금지).
+NOTE_OPTION_WORD = {
+    "관통": "pure", "공격": "att", "체력": "hp", "생명": "hp", "방어": "def",
+    "방어율": "blk", "블록": "blk", "골드": "gold", "경험치": "exp",
+    "명중": "accuracy", "관통감소": "depure", "관통저항": "depure",
+}
+# 시트가 쓰는 전투유형 이름 → dragons.json `type` 코드(battle.gd:58 주석의 어휘 그대로).
+NOTE_TYPE_CODE = {"공격형": "atk", "체력형": "hp", "방어형": "def",
+                  "체방형": "hd", "체공형": "ha", "공방형": "ad"}
+
+_NOTE_DROPPED: set[str] = set()      # 옮길 수 없는 옵션 낱말(로그용)
+
+
+def parse_ranker_note(note: str, where: str) -> dict:
+    """랭커 비고 → {"rarity", "skill_level", "options_by_type", "enhance_max"}.
+
+    빈 칸이면 {} — 그때는 랭커 분류(BOT_GRADES["ranker"])의 폴백 규칙이 그대로 산다.
+    """
+    text = (note or "").strip()
+    if not text:
+        return {}
+    eq = _load(EQUIP_JSON)
+    opt = eq.get("option", {})
+    grades = [str(g.get("name", "")) for g in opt.get("grades", [])]
+    out: dict = {}
+    # ① 장비 희귀도 — `[에픽]` 처럼 등급 이름이 적혀 있으면 그 인덱스.
+    for i, g in enumerate(grades):
+        if g and g in text:
+            out["rarity"] = i
+    # ② 강화 — '최대 강화'면 그 등급의 상한까지(원작 = 옵션 수 × enhance_per_option).
+    if "최대 강화" in text or "최대강화" in text:
+        out["enhance_max"] = True
+    # ③ 스킬 레벨 — '모든 스킬 5레벨'.
+    m = re.search(r"모든\s*스킬\s*(\d+)\s*레벨", text)
+    if m:
+        out["skill_level"] = int(m.group(1))
+    # ④ 최적 옵션 — `최적 옵션 장착(<유형들>: <옵션들> / <유형들>: <옵션들>)`.
+    m = re.search(r"최적\s*옵션[^(（]*[(（](.+)[)）]", text, re.S)
+    if m:
+        by_type: dict[str, list[str]] = {}
+        for chunk in m.group(1).split("/"):
+            if ":" not in chunk:
+                continue
+            types_s, stats_s = chunk.split(":", 1)
+            codes = []
+            for t in types_s.split(","):
+                t = t.strip()
+                if not t:
+                    continue
+                c = NOTE_TYPE_CODE.get(t)
+                if c is None:
+                    _err(where, f"비고의 전투유형 '{t}' 을 못 읽었다"
+                                f"({'/'.join(NOTE_TYPE_CODE)} 중 하나)")
+                    continue
+                codes.append(c)
+            stats = []
+            for s in stats_s.split(","):
+                s = s.strip()
+                if not s:
+                    continue
+                k = NOTE_OPTION_WORD.get(s)
+                if k is None:
+                    _NOTE_DROPPED.add(s)          # 원작 옵션 테이블에 없는 축(크리·회피)
+                    continue
+                if k in opt.get("stats", []):
+                    stats.append(k)
+                else:
+                    _NOTE_DROPPED.add(s)
+            for c in codes:
+                by_type[c] = list(stats)
+        if by_type:
+            out["options_by_type"] = by_type
+    return out
+
+
+def note_preset(note_spec: dict, dragon_type: str) -> dict:
+    """비고 해석 결과 + 그 드래곤의 전투유형 → 장비 1점에 얹을 {rarity, options, enhance}.
+
+    옵션 값은 **그 스탯의 상한**(option.value_ranges 최대)을 쓴다 — 비고의 '최적'.
+    강화는 횟수만 싣고, 실제 증가는 게임 쪽(`Colosseum._apply_sheet_spec`)이
+    `Equipment.enhance` 로 원작 규칙대로 굴린다(빌더가 수치를 짓지 않는다).
+    """
+    if not note_spec:
+        return {}
+    eq = _load(EQUIP_JSON)
+    opt = eq.get("option", {})
+    rarity = int(note_spec.get("rarity", 0))
+    n_opt = 0
+    grades = opt.get("grades", [])
+    if 0 <= rarity < len(grades):
+        n_opt = int(grades[rarity].get("options", 0))
+    prefs: list[str] = list((note_spec.get("options_by_type", {}) or {}).get(dragon_type, []))
+    ranges = opt.get("value_ranges", {})
+    options: list[dict] = []
+    for i in range(n_opt):
+        if not prefs:
+            break
+        stat = prefs[i % len(prefs)]              # 적은 것이 모자라면 순서대로 돌려 채운다
+        rng = ranges.get(stat, [1, 1])
+        options.append({"stat": stat, "value": int(rng[-1])})
+    out: dict = {"rarity": rarity}
+    if options:
+        out["options"] = options
+    if note_spec.get("enhance_max"):
+        out["enhance"] = rarity * int(opt.get("enhance_per_option", 5))
+    return out
+
+
+# 대사 칸의 구역 머리말 — `(최초 조우 시)` / `(반복)` 처럼 **괄호만 있는 줄**이다.
+# 🟦 사용자 확정 2026-08-05: 최초 조우와 반복 조우의 대사를 다르게 쓴다.
+TALK_HEAD_FIRST = ("최초", "처음", "첫")
+TALK_HEAD_REPEAT = ("반복", "이후", "다시", "재")
+
+
+def parse_talk(cell: str, where: str) -> dict:
+    """대사 칸 → {"first": [...], "repeat": [...]}.
+
+    **줄바꿈 한 번이 대화창 한 번**이다(사용자 확정 2026-08-05 — 원작 NPC 대사와 같다).
+    빈 줄은 구역을 나눌 뿐 대화창이 되지 않는다.
+
+    구역 머리말은 괄호만 있는 줄이다:
+      `(최초 조우 시)` 아래 → 처음 만났을 때만
+      `(반복)`         아래 → 두 번째부터
+    머리말이 하나도 없으면 전부 **공통**(두 경우 다 같은 대사)이다.
+    """
+    first: list[str] = []
+    repeat: list[str] = []
+    cur = "both"
+    for raw in (cell or "").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("(") and line.endswith(")"):
+            head = line[1:-1]
+            if any(w in head for w in TALK_HEAD_FIRST):
+                cur = "first"
+            elif any(w in head for w in TALK_HEAD_REPEAT):
+                cur = "repeat"
+            else:
+                _err(where, f"대사 칸의 '{line}' 이 최초/반복 중 무엇인지 못 읽었다")
+            continue
+        if cur in ("first", "both"):
+            first.append(line)
+        if cur in ("repeat", "both"):
+            repeat.append(line)
+    return {"first": first, "repeat": repeat}
+
+
 def read_stat_override(row: dict, where: str) -> tuple[dict, dict]:
     """임의 스탯 칸 → ({확정값}, {범위값}). 빈 칸은 넣지 않는다.
 
@@ -646,6 +1073,38 @@ def read_stat_override(row: dict, where: str) -> tuple[dict, dict]:
     return fixed, ranged
 
 
+def talk_emotions() -> dict[str, int]:
+    """선대군 표정 시트(`sundaegun_talk.csv`) → {대사 원문: 표정 1~6}.
+
+    🟦 사용자 기입 2026-08-07. **대사 원문으로 매칭**한다 — 시트의 대사 열은 이 빌더가
+    guard CSV 에서 뽑아 써 준 것이라 원문이 같고, 순번 매칭보다 줄 추가·삭제에 강하다.
+    시트가 없거나 칸이 비면 1(웃음)로 남는다.
+    """
+    if not TALK_EMO_CSV.exists():
+        return {}
+    out: dict[str, int] = {}
+    for r in read_csv(TALK_EMO_CSV):
+        t = (r.get("대사") or "").strip()
+        e = (r.get("표정(1~6)") or "").strip()
+        if t and e.isdigit() and 1 <= int(e) <= 6:
+            out[t] = int(e)
+    return out
+
+
+def csv_talk_lines(npc: dict, texts: list) -> list[dict]:
+    """CSV 대사(선대군) → 원작 대사와 **같은 모양**의 줄.
+
+    원작에 없는 캐릭터라 연출 근거가 없다 ⇒ 혼자(자리 3 = 가운데) · 몸통 1 로 두고,
+    첫 줄에만 등장 연출을 준다. 표정은 사용자 표정 시트(`talk_emotions`)가 줄별로 정한다.
+    """
+    emo = talk_emotions()
+    return [{
+        "text": str(t), "npc": npc["key"], "name": npc["name"],
+        "body": 1, "emotion": emo.get(str(t).strip(), 1), "pos": 3,
+        "first_show": i == 0, "small": False,
+    } for i, t in enumerate(texts)]
+
+
 def build_guards() -> list[dict]:
     """연승방지봇 3단계(라온/누리/선대군).
 
@@ -658,6 +1117,7 @@ def build_guards() -> list[dict]:
     # 아는 것은 GUARD_NPCS 의 이름이다. 키만 있고 이름이 없는 줄은 **바로 위 줄에 이어 붙는다**
     # (드래곤 3마리를 세 줄에 나눠 적는 시트 구조).
     name_to_key = {n["name"]: n["key"] for n in GUARD_NPCS}
+    dindex = dragon_index()
     by_key: dict[str, dict] = {}
     sheet_key_to_npc: dict[str, str] = {}
     cur = ""
@@ -678,15 +1138,20 @@ def build_guards() -> list[dict]:
         if not cur:
             continue
         key = cur
-        g = by_key.setdefault(key, {"dragons": [], "talk_csv": []})
-        line = (r.get("대사") or "").strip()
-        if line:
-            g["talk_csv"].append(line)
+        g = by_key.setdefault(key, {"dragons": [], "talk_csv": {"first": [], "repeat": []}})
+        cell = (r.get("대사") or "").strip()
+        if cell:
+            t = parse_talk(cell, f"시트 {key} 대사")
+            g["talk_csv"]["first"] += t["first"]
+            g["talk_csv"]["repeat"] += t["repeat"]
         did = (r.get("드래곤id") or "").strip()
-        if did.isdigit():
+        if did:
             where = "%s 드래곤 %s" % (key, did)
+            dnum = resolve_dragon(did, where, dindex)      # 번호도 이름도 받는다
+            if dnum <= 0:
+                continue
             d = {
-                "id": int(did),
+                "id": dnum,
                 "level": int(r.get("레벨") or 50),
                 "awakened": (r.get("각성") or "").strip().upper() in ("O", "Y", "TRUE", "1"),
             }
@@ -725,8 +1190,10 @@ def build_guards() -> list[dict]:
         talks = read_orig_talks(npc["talk_prefix"])
         npcs[npc["key"]] = {
             "key": npc["key"], "name": npc["name"], "orig": npc["orig"],
+            "skip_if_admin": npc.get("skip_if_admin", False),
             "talk": talks,                          # 원작 단계별 대사(A/B/C). 없으면 {}
-            "talk_csv": csvg.get("talk_csv", []),   # 사용자 대사(선대군 등)
+            # 사용자 대사(선대군 등) — 최초 조우 / 반복 조우 두 벌.
+            "talk_csv": csvg.get("talk_csv", {"first": [], "repeat": []}),
             "rating": csvg.get("rating", 0),
             "dragons": csvg.get("dragons", []),
             "_talk_source": "원작 %s*" % npc["talk_prefix"] if npc["talk_prefix"] else "사용자 CSV",
@@ -737,13 +1204,23 @@ def build_guards() -> list[dict]:
     for i, sch in enumerate(GUARD_SCHEDULE):
         npc = npcs[sch["key"]]
         stage = sch["talk_stage"]
-        lines = npc["talk"].get(stage, []) if stage else list(npc["talk_csv"])
+        # 원작 대사(라온·누리)는 단계 자체가 등장마다 다르므로 최초/반복 구분이 없다.
+        if stage:
+            lines = npc["talk"].get(stage, [])
+            first = []
+        else:
+            lines = csv_talk_lines(npc, npc["talk_csv"]["repeat"])
+            first = csv_talk_lines(npc, npc["talk_csv"]["first"])
+            if first == lines:
+                first = []                      # 공통 대사뿐이면 갈라 둘 것이 없다
         out.append({
             "order": i + 1,
             "streak_at": sch["streak_at"],
             "key": npc["key"], "name": npc["name"], "orig": npc["orig"],
+            "skip_if_admin": npc["skip_if_admin"],
             "talk_stage": stage,
-            "lines": lines,                     # 이번 등장에 쓸 대사(확정본)
+            "lines": lines,                     # 이번 등장에 쓸 대사(확정본 · 반복 조우분)
+            "lines_first": first,               # 최초 조우 전용(없으면 빈 배열 → lines 를 쓴다)
             "rating": npc["rating"],
             "dragons": npc["dragons"],
             "_talk_source": npc["_talk_source"],
@@ -752,8 +1229,21 @@ def build_guards() -> list[dict]:
 
 
 def build_rankers() -> list[dict]:
-    """랭커 풀 — 사용자 CSV. 한 랭커가 여러 줄(드래곤 3마리)일 수 있다."""
+    """랭커 풀 — 사용자 CSV. 한 랭커가 여러 줄(드래곤 3~4마리)일 수 있다.
+
+    🟦 2026-08-05 — 시트가 채워지면서 표기가 연승방지봇 시트와 같아졌다:
+      · `드래곤id` 칸에 **이름**을 적는다("다크닉스2" → 도감 4208 '다크닉스 II')
+      · 젬·스킬·장비를 **쉼표로 나열**한다(종전 `|` 구분 원시 문자열 저장은 폐기 —
+        게임 쪽(`Colosseum._apply_sheet_spec`)이 파싱된 형태만 받는다)
+      · `등급` 칸 = 카드에 뜨는 드래곤 등급(연승방지봇 시트와 같은 뜻)
+      · `비고` 칸 = 장비 희귀도·강화·최적 옵션·스킬 레벨(위 parse_ranker_note)
+    ⇒ 여기서 **실제 id·키로 확정**하고, 못 읽으면 빌드를 멈춘다(main 의 _ERRORS).
+    """
     rows = read_csv(RANKER_CSV)
+    dindex = dragon_index()
+    dtype = {int(d.get("id", 0)): str(d.get("type", ""))
+             for d in (json.loads(DRAGONS_JSON.read_text(encoding="utf-8"))
+                       if DRAGONS_JSON.exists() else [])}
     by_nick: dict[str, dict] = {}
     order: list[str] = []
     for r in rows:
@@ -762,19 +1252,39 @@ def build_rankers() -> list[dict]:
             continue
         if nick not in by_nick:
             by_nick[nick] = {"nick": nick, "tier": (r.get("티어") or "master").strip() or "master",
-                             "rating": int(r.get("레이팅") or 0), "dragons": []}
+                             "rating": int((r.get("레이팅") or "0").strip() or 0),
+                             "dragons": []}
             order.append(nick)
-        did = (r.get("드래곤id") or "").strip()
-        if not did.isdigit():
+        raw = (r.get("드래곤id") or "").strip()
+        if not raw:
             continue
-        by_nick[nick]["dragons"].append({
-            "id": int(did),
+        where = "랭커 %s / %s" % (nick, raw)
+        did = resolve_dragon(raw, where, dindex)
+        if did <= 0:
+            continue
+        note = parse_ranker_note(r.get("비고", ""), where)
+        d = {
+            "id": did,
             "level": int(r.get("레벨") or 50),
             "awakened": (r.get("각성") or "").strip().upper() in ("O", "Y", "TRUE", "1"),
-            "gems": [g.strip() for g in (r.get("젬") or "").split("|") if g.strip()],
-            "skills": [s.strip() for s in (r.get("스킬") or "").split("|") if s.strip()],
-            "equip": [e.strip() for e in (r.get("장비") or "").split("|") if e.strip()],
-        })
+        }
+        gem = parse_gems(r.get("젬", ""), where)
+        if gem:
+            d["gems"] = gem
+        sk = parse_skills(r.get("스킬", ""), where, int(note.get("skill_level", 1)))
+        if sk:
+            d["skills"] = sk
+        ep = parse_equip(r.get("장비", ""), did, where,
+                         note_preset(note, dtype.get(did, "")))
+        if ep:
+            d["equip"] = ep
+        grade = (r.get(GUARD_GRADE_COL) or "").strip()
+        if grade:
+            try:
+                d["grade"] = float(grade)
+            except ValueError:
+                _err(where, f"'등급' 칸을 숫자로 못 읽었다 — '{grade}'")
+        by_nick[nick]["dragons"].append(d)
     return [by_nick[n] for n in order]
 
 
@@ -829,9 +1339,10 @@ def init_sheets(force: bool = False) -> None:
     if force or not RANKER_CSV.exists():
         with RANKER_CSV.open("w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
-            w.writerow(["닉네임", "티어", "레이팅", "드래곤id", "레벨", "각성", "젬", "스킬", "장비", "비고"])
-            for _ in range(3):
-                w.writerow(["", "master", "", "", "50", "O", "", "", "", ""])
+            w.writerow(RANKER_HEADER)
+            for i in range(3):
+                w.writerow(["", "master", "", "", "50", "O", "", "", "",
+                            RANKER_NOTE if i == 0 else ""])
         print(f"  + {RANKER_CSV.relative_to(REPO)}")
     if force or not GUARD_CSV.exists():
         with GUARD_CSV.open("w", encoding="utf-8-sig", newline="") as f:
@@ -843,7 +1354,8 @@ def init_sheets(force: bool = False) -> None:
                 note = ("원작 대사 자동 반영 — 대사 칸은 비워 두세요. "
                         "스탯 칸에 적은 값이 최종 능력치가 됩니다(빈 칸은 도감 계산대로)"
                         if npc["talk_prefix"] else
-                        "오리지널 캐릭터 — 대사도 채워 주세요. "
+                        "오리지널 캐릭터 — 대사도 채워 주세요(줄바꿈 하나 = 대화창 하나, "
+                        "'(최초 조우 시)' / '(반복)' 줄로 나눕니다). "
                         "스탯 칸은 비워 두면 기존 드래곤 스탯·등급 그대로")
                 for i in range(3):          # 드래곤 3마리(3vs3) 자리
                     w.writerow([npc["key"], npc["name"] if i == 0 else "",
@@ -983,6 +1495,25 @@ def build() -> dict:
     }
 
 
+def _talk_peek(lines: list) -> str:
+    """대사 미리보기 한 토막 — 줄은 `{text, npc, …}` dict 다."""
+    if not lines:
+        return "“”"
+    ln = lines[0]
+    who = (ln.get("name") or ln.get("npc") or "").strip()
+    return "“%s%s…”" % (f"[{who}] " if who else "", str(ln.get("text", ""))[:28])
+
+
+def _talk_cast(lines: list) -> str:
+    """그 단계에 나오는 화자를 등장 순서대로 — 누리 이벤트가 2인극인지 눈으로 보라고."""
+    seen = []
+    for ln in lines:
+        who = (ln.get("name") or ln.get("npc") or "").strip()
+        if who and who not in seen:
+            seen.append(who)
+    return "+".join(seen) if seen else "-"
+
+
 def _print_guards(guards: list[dict]) -> None:
     """해석 결과를 사람이 읽는 형태로 찍는다 — 사용자가 시트 의도와 대조할 수 있게."""
     db = _load(SKILLS_JSON)
@@ -993,6 +1524,19 @@ def _print_guards(guards: list[dict]) -> None:
         seen.add(g["key"])
         print(f"  [{g['name']}] 등장 {[s['streak_at'] for s in GUARD_SCHEDULE if s['key'] == g['key']]}"
               f" · 드래곤 {len(g['dragons'])}마리")
+        # 대사는 등장(스케줄 줄)마다 다를 수 있으므로 NPC 단위가 아니라 여기서 전부 찍는다.
+        for h in guards:
+            if h["key"] != g["key"]:
+                continue
+            tag = f"{h['streak_at']}연승" + (f" 대사{h['talk_stage']}" if h["talk_stage"] else "")
+            if h.get("lines_first"):
+                print(f"        대사 {tag} · 최초 조우 {len(h['lines_first'])}창"
+                      f"  {_talk_peek(h['lines_first'])}")
+                print(f"        대사 {tag} · 반복     {len(h['lines'])}창"
+                      f"  {_talk_peek(h['lines'])}")
+            elif h.get("lines"):
+                print(f"        대사 {tag} · {len(h['lines'])}창"
+                      f"  {_talk_peek(h['lines'])}  화자 {_talk_cast(h['lines'])}")
         for d in g["dragons"]:
             bits = []
             if d.get("stats"):
@@ -1021,6 +1565,43 @@ def _print_guards(guards: list[dict]) -> None:
                 print("        면역 " + ", ".join(names + extra))
 
 
+def _print_rankers(rankers: list[dict]) -> None:
+    """랭커 해석 결과 — 시트 의도와 대조할 수 있게 사람이 읽는 형태로."""
+    db = _load(SKILLS_JSON)
+    ds = {int(d.get("id", 0)): str(d.get("name", ""))
+          for d in (json.loads(DRAGONS_JSON.read_text(encoding="utf-8"))
+                    if DRAGONS_JSON.exists() else [])}
+    grades = [str(g.get("name", "")) for g in _load(EQUIP_JSON).get("option", {}).get("grades", [])]
+    key_name = {v["key"]: k for k, v in equip_catalog().items()}
+    for r in rankers:
+        print(f"  [{r['nick']}] {r['tier']}"
+              + (f" · 레이팅 {r['rating']}" if r.get("rating") else "")
+              + f" · 드래곤 {len(r['dragons'])}마리")
+        for d in r["dragons"]:
+            print(f"    · {ds.get(d['id'], '?')}({d['id']}) Lv{d['level']}"
+                  f"{' 각성' if d.get('awakened') else ''}"
+                  + (f" 등급 {d['grade']:g}" if d.get("grade") else ""))
+            if d.get("gems"):
+                print("        젬  " + ", ".join(f"{e['name']}(T{e['tier']})"
+                                                 for e in d["gems"]["list"]))
+            if d.get("skills"):
+                names = [f"{db.get(str(s['id']), {}).get('name', s['id'])} Lv{s['level']}"
+                         for s in d["skills"]]
+                # 장착 칸은 2개다(원작 Dragon::getSkill(0/1)).
+                # 🟦 2개보다 많이 적으면 **전투마다 그 중 랜덤 2개**를 장착한다(사용자 확정 2026-08-05).
+                tag = f"{len(names)}개 중 전투마다 랜덤 2개" if len(names) > 2 else "장착"
+                print(f"        스킬 {tag}: " + ", ".join(names))
+            for e in d.get("equip", []):
+                bits = f"{key_name.get(e['key'], e['key'])}[{e['slot']}]"
+                if "rarity" in e and 0 <= int(e["rarity"]) < len(grades):
+                    bits += f" {grades[int(e['rarity'])]}"
+                if e.get("options"):
+                    bits += " " + "+".join(f"{o['stat']}{o['value']}" for o in e["options"])
+                if e.get("enhance"):
+                    bits += f" 강화{e['enhance']}"
+                print("        장비 " + bits)
+
+
 def main(argv: list[str]) -> int:
     # 윈도우 콘솔 기본 코드페이지(cp949)로는 이모지가 깨져 죽는다.
     try:
@@ -1038,6 +1619,14 @@ def main(argv: list[str]) -> int:
     n_nick = sum(len(v) for v in data["nick"].values())
     print(f"[colosseum] 티어 {len(TIERS)} · 봇분류 {len(BOT_GRADES)} · 랭커 {n_rank} · 닉조각 {n_nick}")
     _print_guards(data["guards"])
+    _print_rankers(data["rankers"])
+    if _NOTE_DROPPED:
+        # 임의 대체 금지 — 옮길 수 없는 낱말은 조용히 버리지 않고 매번 알린다.
+        print("\n  ⚠️ 비고의 옵션 낱말 중 **부가 옵션으로 존재하지 않는 축**은 뺐다: "
+              + ", ".join(sorted(_NOTE_DROPPED))
+              + "\n     원작 옵션 테이블(info_item_acc)은 hp/atk/def/blk/gold/exp/pure/depure/"
+                "accuracy 9컬럼뿐이고,\n     크리티컬·회피는 **장비 주 능력치** 축이다"
+                "(그 장비를 끼우는 것으로만 얻는다).")
     if _ERRORS:
         # 못 알아들은 칸이 있으면 **쓰지 않는다** — 반쯤 반영된 봇이 더 나쁘다.
         print("\n  ⛔ 시트에서 못 읽은 칸 %d 건 — data/colosseum.json 을 쓰지 않았다:" % len(_ERRORS))

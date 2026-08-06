@@ -2824,7 +2824,7 @@ func _body_trans(pop: OrigPopup) -> void:
 	# 고를 수 있는 종(세이브당 각 1마리 상한 — 이미 가진 종은 빠진다).
 	var steps := {}
 	for s in Summon.SPECIES:
-		steps[s] = UserDB.dex_step(int(s))
+		steps[s] = _summon_owned_step(int(s))
 	var avail: Array = Summon.available_species(steps)
 	if avail.is_empty():
 		var dn := _note("소환진의 부름에 응답할 존재가 더는 남아 있지 않습니다.")
@@ -3005,32 +3005,60 @@ func _open_summon_picker() -> void:
 	_popup.add_action_button("돌아가기", func(): _refresh_feature(), 0, Vector2(220.0, 52.0))
 
 
+## 이 커스텀 종을 이미 가졌는가 — `Summon.species_available` 이 쓰는 "보유 단계".
+##
+## 🔴 2026-08-07 — 종전엔 도감 단계(`UserDB.dex_step`)만 봤다. 소환 결과를 **가방 알**로
+##   주기 시작하면서(2026-08-07 사용자 확정) 그것만으로는 부족해졌다 — 알이 가방에 있는 동안은
+##   도감 단계가 0 이라, 해금 플래그를 다시 받으면 같은 종을 **두 번** 만들 수 있었다.
+##   ("세이브당 각 1마리" 🟦 사용자 확정 2026-07-30)
+func _summon_owned_step(sp: int) -> int:
+	var step := UserDB.dex_step(sp)
+	if step > 0:
+		return step
+	for k in UserDB.inventory().keys():
+		if EggGacha.dragon_of(String(k)) == sp and UserDB.item_count(String(k)) > 0:
+			return 1
+	return 0
+
+
 ## 변환 실행 — 규칙 판정은 `Summon.plan`, 여기서는 상태 반영과 연출만 한다(§8.3).
 func _do_summon() -> void:
 	var mat := UserDB.get_dragon(_summon_uid)
 	var plan := Summon.plan(_summon_species, mat,
 		Data.get_dragon(int(mat.get("id", 0))),
 		bool(UserDB.get_pmeta(Summon.FLAG_UNLOCK, false)),
-		UserDB.dex_step(_summon_species), _grade_of(mat))
+		_summon_owned_step(_summon_species), _grade_of(mat))
 	if plan.is_empty():
 		_toast("지금은 소환할 수 없습니다.")
 		return
-	# 알을 먼저 만들고 재료를 소멸시킨다 — 마지막 1마리를 바쳐도 둥지가 비지 않는다.
-	# 축복받은 둥지(영구, pmeta)는 소환 알에도 적용 — 원작 설명 "부화 될 **모든** 드래곤"
-	# (items.json holynest desc). 스냅샷을 알에 남겨야 둥지 그림(황금 월계관)과 맞는다.
-	var nest_blessed := bool(UserDB.get_pmeta("blessed_nest", false))
-	UserDB.add_egg(int(plan["species"]), Hatchery.bless(float(plan["grade"]), nest_blessed),
-		int(plan["seconds"]), 0, plan.get("inherit", {}), nest_blessed)
+	var inh0: Dictionary = plan.get("inherit", {})
+	var sp0 := int(plan["species"])
+	# 🟦 2026-08-07 사용자 확정 — 결과는 **가방 알 탭**으로 준다(종전엔 둥지 직행이라 소환
+	#   즉시 둥지 슬롯을 차지하고 타이머가 돌기 시작했다). 언제 부화할지는 플레이어가 고른다 —
+	#   뽑기 알 개봉(`_open_gacha_egg`)과 같은 규약인 가상 키 `egg:<종id>` 를 쓴다.
+	#
+	#   ⚠️ 등급은 여전히 **최고 고정 7.0**(`Summon.plan`)이어야 하는데, 가방 알은 부화 시점에
+	#   `_start_hatch` 가 등급을 굴린다. 그래서 **1강 알**(`egg:600#1`)로 넣는다 —
+	#   `EggUpgrade.hatch_grade(1) = 7.0`(위키 labwiki.pdf §2.1)이라 굴림을 대체해 같은 값이
+	#   확정되고, 부화 시간도 `hatch_seconds(7.0)` = 1시간으로 종전과 같다.
+	#   축복받은 둥지 보정도 `_start_hatch` 가 그 시점에 얹으므로 여기서 미리 더하지 않는다.
+	#
+	#   ⚠️ 인벤 알은 **스택 아이템이라 개체 필드를 못 싣는다** → 물려받은 그림·속성은
+	#   `UserDB.set_species_art` 로 **종에 붙인다**(종당 1마리 상한이라 1:1). 읽는 곳은
+	#   `Icons.species_art_id` / `Icons.element_of`.
+	UserDB.set_species_art(sp0, int(inh0.get("art_id", sp0)),
+		String(inh0.get("element", "")) if typeof(inh0.get("element")) == TYPE_STRING else "")
+	UserDB.add_item(EggItem.key(EggGacha.key_for(sp0), Summon.EGG_ENHANCE_STEP), 1)
 	UserDB.consume_dragon(_summon_uid)
 	# 해금 플래그는 **변환 시점에 소비**한다(1회 = 1변환). 다시 열려면 트리거를 또 달성해야 한다.
 	UserDB.set_pmeta(Summon.FLAG_UNLOCK, false)
 	_summon_uid = 0
 	# 원작 `music/effect_combine.mp3` — 교배(breeding)가 쓰는 합성 효과음. 같은 성격이라 재사용.
 	Bgm.sfx("effect_combine")
-	# 뽑기 알 개봉과 같은 공개 연출(`EggResultPopup`). 소환한 알은 가방이 아니라 **둥지**로 간다.
+	# 뽑기 알 개봉과 같은 공개 연출(`EggResultPopup`). 소환한 알은 **가방 알 탭**으로 간다.
 	# 커스텀 종은 마스터에 이름·속성·초상이 없다 → 재료에게 물려받은 것을 그대로 넘긴다.
-	var inh: Dictionary = plan.get("inherit", {})
-	var sp := int(plan["species"])
+	var inh: Dictionary = inh0
+	var sp := sp0
 	# **종 이름을 재료에게서 물려받는다**(사용자 확정 2026-07-30) — 예: 고대신룡 "별밤이"를
 	# 수비형 재료로 쓰면 600 의 종 이름이 "별밤이". 종당 1마리 상한이라 세이브당 한 번만 정해진다.
 	# 이후 모든 표시는 `Icons.species_name` / `Icons.name_of` 가 이 값을 읽는다.
@@ -3043,7 +3071,7 @@ func _do_summon() -> void:
 		"art_id": int(inh.get("art_id", sp)),
 		"element": inh.get("element", null),
 	}}]
-	_reveal_eggs("소환진이 빛나고, %s의 알이 되어 둥지에 놓였습니다.")
+	_reveal_eggs("소환진이 빛나고, %s의 알이 되어 가방에 담겼습니다.")
 
 
 ## 개체 표시명 — 별명이 있으면 별명, 없으면 종 이름. 커스텀 종은 마스터 이름이 비어 있어

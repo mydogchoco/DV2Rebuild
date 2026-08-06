@@ -1869,7 +1869,12 @@ func _refresh_dragon() -> void:
 	#   레벨대 표기 "Lv.45~50(오라 성체)").
 	# 오라성체 이펙트 = **그 드래곤의 속성 오라**(선택 기능은 위 주석대로 삭제됨).
 	var awakened := bool(a.get("awakened", false))
-	var _el := String(Data.get_dragon(int(a["id"])).get("element", ""))
+	# 🔴 2026-08-07 — 개체 상속값을 본다(`Icons.element_of`). 커스텀 종 600·700 은 마스터
+	#   `element` 가 비어 있고 **소환 재료에게서 물려받는다**. 종전엔 마스터만 읽어서
+	#   오라 속성이 빠졌고, 값이 null 이던 때는 이 줄에서 함수가 통째로 끊겼다.
+	var _el := Icons.element_of(a)
+	# 그림(스파인·초상)도 개체의 상속 art_id 로 고른다 — 커스텀 종엔 `portrait_600` 이 없다.
+	var art := Icons.art_id_of(a)
 	# 원작 Dragon::getImagePathSpineJson은 각성 플래그가 켜지면 전용 `e` 경로를
 	# 고르고, 오라성체용 속성 오라는 더 이상 붙이지 않는다.
 	_apply_aura(_el if not awakened and Growth.is_aura_adult(int(a["level"])) else "")
@@ -1877,12 +1882,12 @@ func _refresh_dragon() -> void:
 	# 오라성체 전용 아트를 가진 종만 `aura` 스파인으로 갈아탄다(그 외 373종은 그대로 성체).
 	# 판정·근거는 `_aura_spine_stage`. 각성했으면 `e` 가 우선이라 건드리지 않는다.
 	if not awakened and stage_name == "adult" and Growth.is_aura_adult(int(a["level"])):
-		stage_name = _aura_spine_stage(int(a["id"]))
-	var path := DRAGON_SCENE % [int(a["id"]), stage_name]
+		stage_name = _aura_spine_stage(art)
+	var path := DRAGON_SCENE % [art, stage_name]
 	# 각성 가능 종의 전용 씬이 누락된 개발 빌드만 성체로 안전 대체한다.
 	if awakened and not ResourceLoader.exists(path):
 		stage_name = Growth.stage_for_level(int(a["level"]))
-		path = DRAGON_SCENE % [int(a["id"]), stage_name]
+		path = DRAGON_SCENE % [art, stage_name]
 	if ResourceLoader.exists(path):
 		var holder := Node2D.new()
 		holder.scale = Vector2(1.9, 1.9)
@@ -1901,12 +1906,12 @@ func _refresh_dragon() -> void:
 		# 🔴재발방지(2026-07-26): 스파인 씬 미빌드 드래곤은 조용히 안 그려졌음(원인: 스파인 씬은
 		# 저작권상 gitignore라 각 머신서 build 필요한데 일부만 빌드됨). 폴백으로 초상(박스 썸네일)을
 		# 단상 위에 크게 표시 → 어떤 드래곤도 '안 보이는' 일이 없게. 경고로그로 미빌드 종을 표면화.
-		var por := _portrait_sprite(int(a["id"]), stage_name, 2.6, int(a.get("skin", 0)))
+		var por := _portrait_sprite(art, stage_name, 2.6, int(a.get("skin", 0)))
 		if por:
 			por.position = Vector2(0, -30)
 			_stage.add_child(por)
 		push_warning("[cave] dragon %d(%s) 스파인 씬 미빌드 → 초상 폴백. `spine_batch %d`+build_all 필요"
-			% [int(a["id"]), stage_name, int(a["id"])])
+			% [art, stage_name, art])
 	# 🔴제거(2026-07-26): 머리 위 이름 말풍선은 원작에 없던 기능(사용자 확인) → 미표시.
 
 ## 원작 showBalloon(name_on/off): 활성 드래곤 머리 위 이름 말풍선(별명 우선, 없으면 원종명).
@@ -2282,7 +2287,8 @@ func _dragon_slot(id: int, level: int, uid: int, is_active: bool) -> Control:
 		"common_dragon_bg1" if is_active else "common_dragon_bg2", cm, S))
 	# 단계 썸네일 ×0.9, 중심에서 7.5pt 위(원작 +(0,7.5) → Godot 은 y 반대)
 	var slot_dragon := UserDB.get_dragon(uid)
-	var por := _portrait_sprite(id,
+	# 🔴 2026-08-07 — 개체의 상속 art_id(커스텀 종 600·700 은 자기 그림이 없다).
+	var por := _portrait_sprite(Icons.art_id_of(slot_dragon) if not slot_dragon.is_empty() else id,
 		Growth.portrait_stage(slot_dragon) if not slot_dragon.is_empty() else Growth.stage_for_level(level),
 		0.9 * S)
 	por.position = Vector2(0, -7.5)
@@ -2385,7 +2391,10 @@ func _egg_sprite(did: int, org_scale: float) -> Node2D:
 
 ## 원작 `setDragonInfo` 알 분기 — 받침대 위 알 + 둥지 + 정보 판.
 func _build_egg_on_stand(a: Dictionary) -> void:
-	var did := int(a["id"])
+	# 🔴 2026-08-07 — 알 그림도 **개체의 상속 art_id** 로 고른다. 커스텀 종 600·700 은
+	#   `portrait_600` 아틀라스 자체가 없어서(재료 드래곤의 그림을 물려받는 종) 종 id 로
+	#   찾으면 받침대 위가 텅 빈다(사용자 보고 2026-08-06 "알 이미지가 출력되지 않음").
+	var did := Icons.art_id_of(a)
 	var blessed := bool(a.get("egg_blessed", false))
 	_egg_uid = int(a["uid"])
 	_egg_done = false
@@ -2823,12 +2832,16 @@ func _refresh_stats() -> void:
 	_grade_label.text = "%.1f" % _grade_of(a, d)
 	# 원작 이름표(onClickNicName): 별명이 있으면 별명 우선, 원종명은 작게 병기.
 	var nick := String(a.get("nick", ""))
-	var species := str(d.get("name", "?"))
+	# 🔴 2026-08-07 — 종 이름도 `Icons.species_name` 으로 푸다. 커스텀 종 600·700 은 마스터
+	#   `name` 이 비어 있고 소환 재료의 이름을 세이브(`species_names`)에서 물려받는다.
+	var species := Icons.species_name(int(a.get("id", 0)))
+	if species == "":
+		species = "?"
 	if nick != "":
 		_set_name("레벨 %d  %s  [color=#b8b0a0][font_size=18](%s)[/font_size][/color]" % [lv, nick, species])
 	else:
 		_set_name("레벨 %d  %s" % [lv, species])
-	_update_elem_icon(str(d.get("element", "")))
+	_update_elem_icon(Icons.element_of(a))    # 개체 상속 속성(커스텀 종은 마스터가 비어 있다)
 	# 원작 알 상태(ref/orig_image/cave/Screenshot_2016-05-22-02-24-05.png): 스탯은 ???로 가려지고
 	# 이름 앞에 "+N"(연구소 알 강화 단계) 배지가 붙는다. 단계는 `_start_hatch` 가 심어 준다.
 	if UserDB.is_egg(a):
@@ -3056,8 +3069,8 @@ const _LVUP_GUARANTEE := {
 ## 열에 직접 적은 검수분**이다(종전의 블록순차+시드난수 임시배정은 대체됨).
 ## 반영 도구 = `scripts/tools/build_dragon_voice_sheet.py --apply`. 빈 칸 = 그 단계 소리 없음.
 func _dragon_voice_no(dragon_id: int, level: int) -> int:
-	var tbl: Dictionary = Data.dragon_voices.get("voices", {})
-	var e: Dictionary = tbl.get(str(dragon_id), {})
+	# 🟦 2026-08-07 — 커스텀 종 600·700 은 **소환 재료 종의 소리**를 낸다(`Icons.voice_row`).
+	var e: Dictionary = Icons.voice_row(dragon_id)
 	if e.is_empty():
 		return 0
 	return int(e.get(Growth.stage_for_level(level), 0))
@@ -5163,7 +5176,19 @@ func _inv_desc_label(txt: String, col: Color, wrap_w: float) -> Label:
 ## 원작은 comment 한 줄만 넣지만, 우리 요약(젬 효과·장비 주능력·용도·미구현 표시)은
 ## **원작 그릇 안에 유지**한다(🟦사용자 확정 2026-07-31).
 func _inv_detail_lines(key: String, item: Dictionary) -> Array:
-	return [_inventory_item_desc(key, item), String(item.get("desc", ""))]
+	var out: Array = [_inventory_item_desc(key, item), String(item.get("desc", ""))]
+	# 탐험 보상 배수권이 **지금 걸려 있으면** 남은 시간을 한 줄 더 보여 준다 —
+	# 실시간 만료라(게임을 꺼도 흐른다) 남은 시간을 알 방법이 달리 없다.
+	var eff := ItemEffect.reward_buff_of(Data.item_effects, key)
+	if not eff.is_empty():
+		var left := ItemEffect.reward_buff_left(UserDB.reward_buff(), String(eff["axis"]),
+			int(Time.get_unix_time_from_system()))
+		if left > 0:
+			var cur := int(ItemEffect.reward_buff_mult(UserDB.reward_buff(), String(eff["axis"]),
+				int(Time.get_unix_time_from_system())))
+			out.append("적용 중: %d배 — 남은 시간 %s"
+				% [cur, ItemEffect.reward_buff_left_text(left)])
+	return out
 
 
 ## 원작 `onClickItem` **case 2·5·6·7**(젬 / 문서 / 재료 / 기타) — BagPopup.c:11556~11710.
@@ -5768,6 +5793,19 @@ func _consumable_action(key: String, item: Dictionary) -> String:
 			# 진귀한 보석 상자 = 젬 뽑기 상자(위키 item.pdf §9.3 "바루스에게 개당 15다이아 …
 			# 높은 등급의 일반 젬"). 나머지 상자류는 개봉표가 유실이라 손대지 않는다.
 			return "gembox" if key == "jem_random" else ""
+		"buff":
+			# 탐험 보상 배수권(경험치·골드 N배). 규칙 = 원작 설명문 + 위키 item.pdf §9.6
+			# "1시간 동안 탐험에서 얻는 경험치/골드를 N배". 표 = item_effects.json `reward_buff`.
+			return "rewardbuff" if not ItemEffect.reward_buff_of(Data.item_effects, key).is_empty() else ""
+		"drink":
+			# 자양강장제(`drink`) = **콜로세움 입장권(피로도) 회복**. 단계가 있는 버프 물약
+			# (att_drink1~3 등)과 달리 tier 가 없어 ItemEffect.drink 표에서 자연히 빠진다.
+			#   · 원작 설명문 "피로를 풀어주는 신비한 효능의 음료"
+			#   · 원작 콜로세움은 피로도를 **다이아 1개**로 1 충전했다
+			#     (data/colosseum.json `_orig_rules.stamina`) — 그 자리를 잇는다.
+			#   · 탐험 피로도는 §K-7 로 삭제했으므로 남은 피로도는 콜로세움 것뿐이다.
+			# 🟦 사용자 확정 2026-08-06(상점 PVP 탭 5주화 상품).
+			return "colosseum_ticket" if key == "drink" else ""
 		"slot":
 			# 슬롯 재부여 아이템 — 원작 문자열이 동작을 못박아 준다:
 			#   `CaveBagMsg19` "현재의 잼 슬롯이 랜덤으로 변경 됩니다."   → gemslot_change(샌즈의 비약)
@@ -5816,6 +5854,16 @@ func _use_consumable(key: String, kind: String) -> void:
 			_inv_tab = "gem"; _inv_selected = gk
 			_close_overlay(); _open_inventory()
 			_toast("%s 을(를) 얻었습니다!" % Drops.display_name(gk, Data.gems, Data.equipment))
+		"colosseum_ticket":
+			# 자양강장제 → 콜로세움 입장권 1 회복. 만땅이면 **소모하지 않는다**
+			# (원작 `ScrambleMsg5` "이미 피로도를 충전하였습니다." 와 같은 처리).
+			var got := Colosseum.add_ticket(1)
+			if got <= 0:
+				_toast("이미 입장권이 가득 찼습니다"); return
+			UserDB.use_item(key, 1)
+			_refresh()
+			_toast("콜로세움 입장권 +%d  (%d/%d)"
+				% [got, int(Colosseum.refresh_ticket().get("energy", 0)), Colosseum.ticket_max()])
 		"usernick":
 			# 원작 BagPopup: `NickNameLayer::create(false)` + `setConfirmListener` + `show()`.
 			# 대상 드래곤을 고르지 않는다 — 유저 계정의 닉네임이다.
@@ -5832,6 +5880,22 @@ func _use_consumable(key: String, kind: String) -> void:
 				_toast("사용할 수 없는 대상입니다") # <CaveBagMsg3>
 				return
 			_apply_consumable(key, kind, int(d["uid"]))
+		"rewardbuff":
+			# 탐험 보상 배수권 — 대상 드래곤이 없다(계정 버프). 실시간 만료라 게임을 꺼도
+			# 시간이 흐른다(🟦 사용자 확정 2026-08-04). 상태는 UserDB pmeta `reward_buff`.
+			var now := int(Time.get_unix_time_from_system())
+			var eff := ItemEffect.reward_buff_of(Data.item_effects, key)
+			var res := ItemEffect.apply_reward_buff(UserDB.reward_buff(), eff, now)
+			if not bool(res.get("ok", false)):
+				_toast(String(res.get("reason", "사용할 수 없습니다")))   # 아이템은 소모하지 않는다
+				return
+			UserDB.use_item(key, 1)
+			UserDB.set_reward_buff(res["active"])
+			var axis := String(eff["axis"])
+			var left := ItemEffect.reward_buff_left(res["active"], axis, now)
+			_close_overlay(); _open_inventory()
+			_toast("%s %d배 — 남은 시간 %s" % ["탐험 경험치" if axis == "exp" else "탐험 골드",
+				int(eff["mult"]), ItemEffect.reward_buff_left_text(left)])
 		"ascension", "bridle", "rename", "geminit":
 			_open_consumable_target(key, kind)
 
@@ -6151,7 +6215,11 @@ const BATCH_USE_N := 10
 ## 이 아이템이 '10회 사용' 대상인가. ""=아님.
 ##   "gacha_egg" = 의문의 알·빛나는 의문의 알·속성알(EggGacha 풀)
 ##   "gembox"    = 진귀한 보석 상자(Drops box 표)
+##   "blessing"  = 축복 4종(`_LVUP_GUARANTEE`) — 🟦 사용자 확정 2026-08-07. 위 조회 근거가
+##                 그대로 적용된다(원작에 배치 사용이 없다). 개봉이 아니라 **레벨업**이므로
+##                 결과창도 다건 팝업이 아니라 레벨업 화면 연출 1회다(_do_blessing_batch).
 ## 나머지 상자류(구드라·금/은상자 등)는 개봉표가 유실(offline=todo)이라 1회도 못 열므로 제외한다.
+## 레벨 아이템 중 Lv+1(`level_up`)·Lv-1(`level_down`)은 대상이 아니다(사용자 확정 — 축복 4종만).
 func _batch_use_kind(item_key: String, item: Dictionary) -> String:
 	if item_key == "" or item.is_empty():
 		return ""
@@ -6159,6 +6227,8 @@ func _batch_use_kind(item_key: String, item: Dictionary) -> String:
 		return "gacha_egg"
 	if _consumable_action(item_key, item) == "gembox":
 		return "gembox"
+	if _LVUP_GUARANTEE.has(item_key) and _consumable_action(item_key, item) == "levelup":
+		return "blessing"
 	return ""
 
 ## 10회 사용 — 확인 → n 회 개봉 → 결과를 원작 다건 팝업으로 한 번에 공개.
@@ -6175,6 +6245,23 @@ func _use_batch(item_key: String, kind: String, n: int) -> void:
 			# `CaveBagMsg28` "상자를 열어보시겠습니까?" — 열쇠가 필요 없는 상자의 원작 문구.
 			_open_popup_type(name, "상자를 열어보시겠습니까?\n\n%s %d개를 사용합니다." % [name, n],
 				func(): _do_gembox_batch(item_key, n))
+		"blessing":
+			# 축복 = 개봉이 아니라 레벨업이다 → 대상은 1회 사용과 같은 **현재 선택 드래곤**
+			# (원작 `BagPopup` 은 별도 선택창을 열지 않는다 — `_consumable_action` 주석).
+			var bd := _active()
+			if bd.is_empty() or UserDB.is_egg(bd):
+				_toast("사용할 수 없는 대상입니다")   # <CaveBagMsg3>
+				return
+			var bcap := Growth.level_cap(bool(bd.get("awakened", false)))
+			var blv := int(bd.get("level", 1))
+			if blv >= bcap:
+				_toast("이미 최대 레벨입니다 (%d)" % bcap); return
+			# 상한에 닿으면 거기서 멈춘다 — 남은 개수는 소모하지 않는다(사용자 확정).
+			var bn := mini(n, bcap - blv)
+			# 확인문 = 원작 `<CaveItemEquipMsg9>` + 회차만 덧붙인다(가챠 배치와 같은 형식).
+			_open_popup_type(name,
+				"선택한 아이템을 사용하시겠습니까?\n\n%s %d개를 사용합니다." % [name, bn],
+				func(): _do_blessing_batch(item_key, bn))
 
 func _do_gacha_egg_batch(item_key: String, n: int) -> void:
 	if UserDB.item_count(item_key) < n:
@@ -6210,6 +6297,57 @@ func _do_gembox_batch(item_key: String, n: int) -> void:
 		UserDB.add_item(String(k), 1)
 	Bgm.sfx("effect_box_peong")
 	_show_batch_result(agg, String(keys[keys.size() - 1]), "gem", String(keys[keys.size() - 1]))
+
+## 축복 n회 — **1회 사용(`_apply_consumable` "levelup")을 독립 시행 n 번** 돌리고 연출은 한 번만
+## 태운다(🟦 사용자 확정 2026-08-07). 롤·보장 규칙은 1회 경로와 완전히 같다(`_LVUP_GUARANTEE` +
+## `LevelSystem.roll_level`) — 여기서 새로 지어내는 규칙은 없다.
+## 레벨업 화면은 `batch` 를 받아 **n 레벨 전과 비교한 합산 증가분**을 보여 준다(levelup_screen.gd).
+func _do_blessing_batch(key: String, n: int) -> void:
+	var d := _active()
+	if d.is_empty() or UserDB.is_egg(d):
+		_toast("사용할 수 없는 대상입니다"); return
+	var uid := int(d["uid"])
+	var cap := Growth.level_cap(bool(d.get("awakened", false)))
+	var old_lv := int(d.get("level", 1))
+	var used := mini(mini(n, cap - old_lv), UserDB.item_count(key))
+	if used <= 0:
+		_toast("이미 최대 레벨입니다 (%d)" % cap); return
+	var ddef := Data.get_dragon(int(d["id"]))
+	var guarantee := String(_LVUP_GUARANTEE.get(key, ""))
+	var roll_cfg: Dictionary = Data.level_curve.get("roll", {})
+	var max_stats := Growth.tier_growth(ddef, Data.stat_table)
+	var rng := RandomNumberGenerator.new(); rng.randomize()
+	var sk_before := UserDB.dragon_skills(uid).size()   # 레벨 10·25·45 자동 습득 감지
+	var triple := false
+	var done := 0
+	for i in used:
+		var roll := LevelSystem.roll_level(roll_cfg, max_stats, rng, 0.0, guarantee)
+		if not UserDB.level_up_with(uid, roll):
+			break
+		done += 1
+		UserDB.bump_quest("levelups")   # 마을 미션: 레벨업 카운트(1회 경로와 같이 회당 1)
+		if bool(roll.get("triple", false)):
+			triple = true
+	if done <= 0:
+		_toast("레벨을 올릴 수 없습니다"); return
+	var sk_got := _skills_learned_since(uid, sk_before)
+	UserDB.use_item(key, done)
+	UserDB.set_active(uid)
+	_close_overlay(); _refresh_stats(); _refresh()
+	var new_lv := int(UserDB.get_dragon(uid).get("level", 1))
+	var slot_new := -1
+	for si in Loadout.SLOT_UNLOCK_LEVEL.size():
+		if old_lv < int(Loadout.SLOT_UNLOCK_LEVEL[si]) and new_lv >= int(Loadout.SLOT_UNLOCK_LEVEL[si]):
+			slot_new = si
+	# 성장 단계 교체는 위 `_refresh()` 가 이미 처리 — 화면을 연 뒤 연출만 태운다(1회 경로와 동일).
+	var scr := _open_levelup()
+	if scr:
+		scr.play_fx({"kind": "up", "sp": 1.0, "stage_changed": false,
+			"slot_new": slot_new, "triple": triple, "batch": done})
+	if done < n:
+		_toast("레벨 상한(%d)에 닿아 %d회만 사용했습니다" % [cap, done])
+	if not sk_got.is_empty():
+		_toast("새 스킬 습득 — %s" % ", ".join(sk_got))
 
 ## 다건 결과 공개 — 원작 `ShowGetItemDetailLayer` 이식본(GetItemPopup)에 그대로 넘긴다.
 ## 확인하면 결과가 들어간 가방 탭으로 돌아간다(1회 사용 흐름과 같은 마무리).
@@ -6424,6 +6562,13 @@ func _inventory_item_def(key: String) -> Dictionary:
 	# 뽑기 알 개봉으로 얻은 알 — 가상 키 `egg:<드래곤id>`(정의 합성은 EggGacha 소유).
 	var eg := EggGacha.item_def(key, Data.dragons)
 	if not eg.is_empty():
+		# 🔴 2026-08-07 — 커스텀 종 600·700(드래곤 소환 결과)은 마스터 `name`·`element` 가
+		#   비어 있고 소환 재료에게서 물려받는다(세이브 `species_names`/`species_art`).
+		#   `EggGacha`(logic)는 세이브를 모르므로 가방 표시명·속성을 여기서 채운다.
+		var egid := int(eg.get("dragon_id", 0))
+		if String(Data.get_dragon(egid).get("name", "")) == "":
+			eg["name"] = Icons.egg_item_name(egid)
+			eg["element"] = Icons.species_element(egid)
 		return eg
 	var ck := Equipment.parse_item_key(key)
 	if ck != "":

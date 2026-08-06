@@ -188,6 +188,9 @@ func _build_title_old(vis: Vector2) -> void:
 		var off: Array = AtlasUI.manifest(OLD_CLOUD).get(OLD_CLOUD_KEY, {}).get("off", [0, 0])
 		cloud.position = Vector2(float(off[0]), -float(off[1]))
 		stage.add_child(cloud)
+		# 🟦 구름은 드래곤 일러스트 **뒤**로(사용자 지시 2026-08-06). 형제 순서가 그리기
+		#    순서이므로 배경(bg, index 0) 앞으로 당겨 맨 뒤에 그린다.
+		stage.move_child(cloud, 0)
 		var drift := create_tween().set_loops()
 		drift.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		drift.tween_property(cloud, "position:y",

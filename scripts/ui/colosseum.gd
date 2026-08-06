@@ -578,7 +578,7 @@ func _start(mode: String) -> void:
 			return
 		# 서버 랜덤 매칭 대체 — 여기서 상대가 정해진다.
 		var foe := Colosseum.roll_match(mode, _rng)
-		Colosseum.consume_guard()
+		Colosseum.consume_guard(mode, foe)  # 문턱 소진 + 조우 기록(대사 최초/반복)이 여기서 남는다
 		# 🟦 매칭 대기 연출(원작 `MatchingLayer`) — 3초 뒤 대전 진입(사용자 확정 2026-08-05).
 		#   원작은 서버 응답을 기다리는 시간이었고, 우리는 상대가 이미 정해져 있으므로
 		#   **길이만 고정**한다(⚫ 컷한 것은 `repeatRequest_VS1/VS3` 네트워크 요청뿐).
@@ -667,7 +667,9 @@ func _build_right_column(vis: Vector2) -> void:
 	AtlasUI.frame_button(col, "나가기",
 		Vector2(20.0, vis.y - BTN_MENU_H * 2.0 - BTN_BOTTOM - BTN_GAP - 54.0),
 		Vector2(bw, 42.0),
-		func() -> void: Scenes.goto("worldmap", {"from": "colosseum"}))
+		# 🟦 2026-08-06 — 메인 화면(유타칸)으로. 종전엔 `region` 을 안 넘겨 개요 양피지로
+		#   떨어졌다(사용자 신고). `Scenes.MAIN_PARAMS` 참조.
+		func() -> void: Scenes.goto_main({"from": "colosseum"}))
 
 
 # ---------- BMFont(원작 getFontName_subtitle) ----------

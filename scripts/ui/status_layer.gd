@@ -381,7 +381,9 @@ func _build_title(W: float, S: float) -> void:
 ## 원작 `StatusLayer::layerDragon` — 이름판(+깃펜) · 단상 · **스파인 드래곤** · 스태미나.
 ## 🔴 종전 구현은 여기에 box 초상(정사각 크롭)을 세웠다 — 원작은 동굴과 **같은 스파인**이다.
 func _build_stage(a: Dictionary, stage_w: float, top: float, h: float, S: float) -> void:
-	var id := int(a.get("id", 1))
+	# 🔴 2026-08-07 — 이 함수의 `id` 는 **그림 id** 다(알 텍스처·스파인 씬·초상 전부).
+	#   커스텀 종 600·700 은 자기 아트가 없고 소환 재료에게서 물려받는다 → `Icons.art_id_of`.
+	var id := Icons.art_id_of(a)
 	var lvl := int(a.get("level", 1))
 	var cx := stage_w * 0.5
 
@@ -559,12 +561,14 @@ func _build_panel(a: Dictionary, W: float, top: float, S: float) -> float:
 	var box := _cspr("common_item_box2", S)
 	box.position = Vector2(55, 70)
 	pane.add_child(box)
-	var por := _portrait(id, stage_name, S * 0.62, int(a.get("skin", 0)))
+	# 초상만 **그림 id**로 뽑는다(위 `id` 는 마스터 조회용 종 id 라 그대로 둔다).
+	var por := _portrait(Icons.art_id_of(a), stage_name, S * 0.62, int(a.get("skin", 0)))
 	por.position = Vector2(55, 70)
 	pane.add_child(por)
 	# 원작: `item/item_small/ele_<속성>` scale 0.4, anchor(0.3,0.7) @ 칸 좌상단
 	# ⚠️ 키 이름이 데이터와 다르다 — aqua→water, earth→ground(동굴 `ELE_SMALL` 과 같은 표).
-	var ekey := String(ELE_SMALL.get(String(ddef.get("element", "")), ""))
+	# 속성도 개체 상속값(`Icons.element_of`) — 커스텀 종은 마스터가 비어 있다.
+	var ekey := String(ELE_SMALL.get(Icons.element_of(a), ""))
 	if ekey != "" and _man_item_small.has(ekey):
 		var eh: float = maxf(1.0, float(_man_item_small[ekey].get("h", 70)))
 		var es := _spr("item_small_ui", ekey, 30.0 / eh)
@@ -978,7 +982,7 @@ func _build_strip(W: float, y: float, strip_h: float) -> void:
 		cell.scale = Vector2(cs, cs)
 		row.add_child(cell)
 		cell.add_child(_cspr("common_dragon_bg1" if sel else "common_dragon_bg2", S))
-		var por := _portrait(int(d.get("id", 1)),
+		var por := _portrait(Icons.art_id_of(d),        # 개체의 상속 art_id(커스텀 종 600·700)
 			Growth.portrait_stage(d), 0.9 * S, int(d.get("skin", 0)))
 		por.position = Vector2(0, -7.5)                 # 원작 +(0,7.5), Godot 은 y 반대
 		cell.add_child(por)

@@ -87,7 +87,10 @@ const ELEMENT_DELAY := {
 ##   합체 백색 1.40/1.40 · 손 2.42/2.40 · 구슬 2.96/2.90 · 구슬 붕괴 6.18/6.23 · 폭발 7.31/7.30.
 ##   교차검증 3종: 장막 페이드 v47.134→47.782(= 정확히 1.0 로직초) · `_C` 링(`run+0.15`,
 ##   공통 지연 **없음**) v48.10 · `dark_shade`(`ACT+0.75`) v48.23.
-const ELEMENT_DELAY_ON := ["fire", "aqua", "light", "wind", "earth", "dark"]
+## 2026-08-06 그림자 추가 — 영상 실측이 이 항을 **두 곳에서** 확인했다(기준점 로직 0 = v74.492,
+##   timeScale 1.35). 장막 teal 틴트 원작 3.93 ↔ 우리 2.73 · 백색 섬광 원작 7.35 ↔ 우리 6.13
+##   ⇒ 둘 다 정확히 **1.2 초** 일렀다(= `0x228` 1.25).
+const ELEMENT_DELAY_ON := ["fire", "aqua", "light", "wind", "earth", "dark", "shadow"]
 
 ## `run<El>` 액션에 붙는 공통 지연(초). `run<El>_C` 계열에는 쓰지 않는다.
 static func elem_delay(el: String) -> float:
@@ -300,11 +303,16 @@ const RING := {
 }
 ## `_C` 가 링 말고 더 까는 것 — 배치노드에 z=5, tag 0x1883f 로 붙는다.
 const RING_EXTRA := {"dark": "shade", "shadow": "twist"}
-## `_C` 가 세우는 스파인(변환본 씬). 원작 `initHoly_C` / `initShadow` 참조.
+## `init<El>_C` 가 **링과 함께** 세우는 스파인(변환본 씬). 원작 `initHoly_C` 참조.
+## 🔴 2026-08-06 — 여기 있던 `shadow`(애니 `s1`)를 뺐다. 그림자 스파인은 `_C` 가 아니라
+##   `initShadow` 이 만들고 `runShadow` 이 **피격자마다** 켠다(§_run_shadow). 게다가 원작
+##   디컴프의 애니 이름 참조는 `"s2"` 4곳뿐이고 **`"s1"` 은 0건**이다 —
+##   `grep -c '"s1"' docs/ref/orig_code/decomp/UltimateLayer.c` → 0.
 const RING_SPINE := {
 	"holy": {"scene": "res://scenes/fx/ultimate_holy_wing.tscn", "anim": "animation"},
-	"shadow": {"scene": "res://scenes/fx/ultimate_shadow.tscn", "anim": "s1"},
 }
+## 그림자 본체 스파인(`initShadow` → `runShadow`). 링과 무관하다.
+const SHADOW_SPINE_SCENE := "res://scenes/fx/ultimate_shadow.tscn"
 const RING_DY := 87.5          # 원작 `CCPoint(S*0.0, S*87.5)` 를 base 에서 뺀다
 
 # 링 안무 — `run<El>_C` 실측. 8속성이 **같은 계열**이고 fire·shadow 만 따로다.
@@ -325,8 +333,11 @@ const FIRE_SHRINK := 0.85
 const FIRE_DIM_SEC := 3.85
 const FIRE_DIM := 100.0 / 255.0
 # shadow 전용(runShadow_C)
-const SHADOW_LEAD := 0.5
+const SHADOW_LEAD := 0.5           # 늪(tag 9000) `Delay(0.5)`
 const SHADOW_HOLD := 0.5
+const SHADOW_SIB_LEAD := 1.5       # 원 3장(0x2329·0x232a·0x232b) 전부 `Delay(1.5)`
+const SHADOW_SIB_POP := 1.125      # `ScaleTo(0.1, (S+0.25) × 1.125)`
+const SHADOW_SIB_BURST := 3.25     # 0x232b 의 `ScaleTo(0.25, (S+0.25) × 3.25)`
 
 ## 바닥 링이 깔리는 시각(시전 0초 기준). 기본은 `run<El>` 과 같은 `RUN_AT`.
 ## 🔴 2026-08-06 — **혼돈만 `LEAD`(1.0)** 다. 영상 실측(T0 = 66.53s · timeScale 1.35):
@@ -470,7 +481,9 @@ static func base_at(host: CanvasItem, el: String, mine: bool) -> Vector2:
 # ── 진입점 ──────────────────────────────────────────────────────────────────
 ## 각성기 재생. host 아래에 스프라이트를 붙인다(좌표는 host 로컬).
 ##   ctx = {element, mine(시전자가 왼쪽 진영?), ring_at(시전자 무대 자리), caster_w(시전자 폭),
-##          scale(S), speed, alive(Callable), mat}
+##          scale(S), speed, alive(Callable), mat, foes(피격자 몸통 자리 배열)}
+## `foes` = 원작 `run<El>` 이 `getDragonLayer(this+0x1f0/0x1f8/0x200)->getPosition()` 으로 읽는
+##   피격자 자리다(그림자 스파인이 **피격자마다** 하나씩 선다). 없으면 `at` 한 곳으로 떨어진다.
 ##
 ## 기준점 `at` 과 방향 `dir` 은 **여기서 계산**한다(위 `base_at` — 원작 `initWithDragon`).
 ## 바닥 링(`init<El>_C`)만은 `CCPoint::ZERO − (0, S*87.5)` = 시전자 발밑(`ring_at`)이다.
@@ -485,6 +498,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	var mine := bool(ctx.get("mine", true))
 	var at := base_at(host, el, mine)
 	var ring_at: Vector2 = ctx.get("ring_at", at)
+	var foes: Array = ctx.get("foes", [])
 	# 원작 `initFire_C` 의 W = 시전자 dragonLayer 의 contentSize.x — 불덩이가 퍼지는 폭의 기준.
 	var caster_w := float(ctx.get("caster_w", 0.0))
 	var s := float(ctx.get("scale", 1.0))
@@ -501,14 +515,23 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	_master_veil(host, el, at, sp)       # 화면 장막(원작 0x238) — Delay(1.0) 부터 암전
 	_schedule_sfx(host, el, sp)          # 속성별 효과음(libgame 리터럴 이름)
 	# run<El>(+run<El>_C 링, 합체 문양 회전)은 **시전 후 2.75초**에 시작한다(마스터 타임라인).
-	# 합체 문양 = 원작이 `contentSize*0.5`(= 기준점 `at`)에 놓는다(`initDark` 등).
-	# wind·dark·chaos 의 기준점 y(167.5)가 이미 바닥 높이라 별도 보정이 필요 없다.
+	#
+	# 🔴 2026-08-06 합체 문양 위치 정정 — 종전엔 속성별 기준점 `at` 에 놓았는데, 그러면
+	#   `base_at` 이 `earth·fire·shadow` 를 **시전자 반대편 ±225** 로 보내기 때문에
+	#   **그림자만 문양이 오른쪽으로 쏠렸다**(사용자 지적). 원작은 속성과 무관하게 같은 자리다:
+	#     `initShadow`  컨테이너 = `this->getPosition() + (0, 150)`  (vtable +0x98 = getPosition)
+	#     `initDark`    도 같은 `getPosition()` 기준 — 둘 다 **UltimateLayer 자기 위치**다.
+	#   문양을 가진 넷(dark·shadow·wind·chaos) 중 셋의 기준점이 이미 화면 가로 중앙이므로
+	#   그 자리(= wind·dark·chaos 의 `base_at`)로 통일한다.
+	var vis_c: Vector2 = host.get_viewport().get_visible_rect().size
+	var combine_at: Vector2 = host.get_global_transform_with_canvas().affine_inverse() \
+		* Vector2(vis_c.x * 0.5, vis_c.y - 167.5)
 	var run_body := func() -> void:
 		if alive.is_valid() and not bool(alive.call()):
 			return
 		if not is_instance_valid(host) or not host.is_inside_tree():
 			return
-		_combine_outline(host, el, at, sp)
+		_combine_outline(host, el, combine_at, sp)
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		match el:
@@ -520,7 +543,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 			"light":  _run_light(host, at, dir, sp, rng)
 			"holy":   _run_holy(host, at, dir, sp, rng)
 			"chaos":  _run_chaos(host, at, dir, sp, rng)
-			"shadow": _run_shadow(host, at, dir, sp, rng)
+			"shadow": _run_shadow(host, at, sp, foes)
 			_:        _run_fallback(host, el, at, sp, mat, alive)
 	var start := Timer.new()               # host 자식 Timer — 씬과 함께 정리된다(§_fire_burst 주석)
 	start.one_shot = true
@@ -568,7 +591,14 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		base.position = pos
 		base.z_index = 90
 		base.modulate.a = 0.0          # 원작도 FadeTo 로 들어온다(시작 투명)
-		base.scale *= (s + 0.25)       # 원작 `setScale(S + 0.25)` — 시작 배율부터 크다
+		var nat := base.scale
+		# 🔴 2026-08-06 그림자 정정 — `initShadow_C` 의 늪은 `setScale((S+0.25) * 0.0)` = **0**
+		#   으로 시작하고 `runShadow_C` 의 `ScaleTo(0.25, S+0.25)` 가 키운다. 종전엔 여기서
+		#   이미 (S+0.25) 를 곱한 뒤 안무에서 또 곱해 **1.25배 크고 자라지도 않았다**.
+		if el == "shadow":
+			base.scale = Vector2.ZERO
+		else:
+			base.scale *= (s + 0.25)   # 원작 `setScale(S + 0.25)` — 시작 배율부터 크다
 		host.add_child(base)
 		# nest = base 의 **자식**. 원작은 base 의 contentSize 중심에 놓는다 = 로컬 (0,0).
 		# ⚠️ 원작 circle2 는 `setOpacity(0)` 시작이고 cocos 는 부모 알파가 전파되지 않는다 —
@@ -580,7 +610,10 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 				nest.z_index = -1
 				nest.modulate.a = 0.0
 				base.add_child(nest)
-		_anim_ring_base(base, el, s, sp)
+		# 늪(shadow base)만 프레임 애니가 있다 — `CCAnimation(marsh1~3, 0.2)` + `RepeatForever`.
+		if el == "shadow":
+			_play_frames(base, el, pfx + "marsh%d", 1, 3, 0.2 / sp, false, true)
+		_anim_ring_base(base, el, s, sp, nat)
 
 	var sibs: Array = cfg.get("sib", [])
 	for i in sibs.size():
@@ -591,7 +624,7 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 		sib.z_index = 89
 		sib.modulate.a = 0.0
 		host.add_child(sib)
-		_anim_ring_sib(sib, el, sp, i)
+		_anim_ring_sib(sib, el, sp, i, s)
 
 	# `_C` 추가 프레임(dark shade · shadow twist) — 원작 z=5, tag 0x1883f · setScale(0)·setOpacity(0)
 	# ⚠️ 종전엔 애니도 정리도 없이 영원히 남았다(2026-08-05 캡처 실측 — 대전에선 전투 내내 잔상).
@@ -602,15 +635,9 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 			e.z_index = 95
 			e.modulate.a = 0.0
 			host.add_child(e)
-			if el == "dark":
-				_dark_shade(e, at, sp)
-			else:
-				e.position = pos
-				var et := e.create_tween()
-				et.tween_property(e, "modulate:a", 1.0, 0.5 / sp)
-				et.tween_interval(4.0 / sp)
-				et.tween_property(e, "modulate:a", 0.0, 0.75 / sp)
-				et.tween_callback(e.queue_free)
+			# 🔴 2026-08-06 — 그림자도 어둠과 **같은 안무**다(`actionShadow_C` = `actionDark_C`
+			#   꼴). 종전엔 그림자만 "5초 정지 소용돌이"로 두고 있었다(자작).
+			_ring_flash(e, at, sp, el)
 
 	# 땅 전용 — `initEarth_C` 는 링 자리에 **지진 조각 5장(S×1.25) + 먼지 + 돌**을 더 깐다.
 	# 레퍼런스 영상: 시전자 발밑이 통째로 먼지구름에 싸인다(+25s 오른쪽 구름).
@@ -689,7 +716,8 @@ static func _build_ring(host: CanvasItem, el: String, at: Vector2, s: float,
 
 
 ## 링 본체 안무. 8속성이 같은 계열이고 fire·shadow 만 다르다(`run<El>_C` 실측).
-static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
+static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float,
+		nat := Vector2.ONE) -> void:
 	var t := n.create_tween()
 	match el:
 		"fire":
@@ -703,11 +731,13 @@ static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			t.tween_property(n, "modulate:a", FIRE_DIM, FIRE_DIM_SEC / sp)
 		"shadow":
+			# `runShadow_C` tag 9000 — Delay(0.5) → [FadeTo(0.25,255) + ScaleTo(0.25, S+0.25)]
+			#   → Delay(0.5) → FadeTo(0.25, 0). 시작 배율은 0(§_build_ring).
 			t.tween_interval(SHADOW_LEAD / sp)
-			t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
-			t.parallel().tween_property(n, "scale", n.scale * (s + 0.25), RING_BURST / sp)
+			_fade_pma(t, n, 1.0, RING_FADE_IN / sp)
+			t.parallel().tween_property(n, "scale", nat * (s + 0.25), RING_BURST / sp)
 			t.tween_interval(SHADOW_HOLD / sp)
-			t.tween_property(n, "modulate:a", 0.0, RING_FADE_IN / sp)
+			_fade_pma(t, n, 0.0, RING_FADE_IN / sp)
 		_:
 			# 공통: 떠올랐다가 **10배로 퍼지며** 사라지는 충격파.
 			# (시작 배율이 이미 S+0.25 라 여기서는 ×10 만 곱한다 = 원작 ScaleTo((S+0.25)*10))
@@ -723,7 +753,8 @@ static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
 	t.tween_callback(n.queue_free)
 
 
-## 🔴 2026-08-06 어둠 전용 — `dark_shade` 는 바닥 소품이 아니라 **시전자를 삼키는 섬광**이다.
+## 🔴 2026-08-06 어둠·그림자 공용 — `dark_shade`/`shadow_twist` 는 바닥 소품이 아니라
+## **시전자를 삼키는 섬광**이다.
 ##
 ## 원작 `actionDark_C` tag 0x1883f(runAction 4건 중 첫째, `_C` 라 공통 지연 `0x228` 없음):
 ##   `Delay(0.75)` → CallFunc(Show)
@@ -736,17 +767,24 @@ static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
 ##   검게 물들며 Hide), 두 번째가 시전자를 도로 뱉는다(같은 시각에 Show).
 ## 영상 실측: v48.23 등장 · v48.37 최대 · v48.57 소멸 — 예측(ACT+0.75 = v48.19~48.69)과 일치.
 ## 자리 = 시전자 **몸통 중심**(= 무대 좌표 `at`). 링처럼 발밑(`+S×87.5`)이 아니다.
+## 🔵 2026-08-06 그림자 합류 — `actionShadow_C` 의 tag 0x1883f(`shadow_twist`) 가 위 표와
+##   **액션 하나까지 같다**. 다른 것은 두 번째 섬광에 `MoveBy(0.25, (0,−50))`(cocos y-up →
+##   화면 아래로 50)가 하나 더 붙는 것뿐이다.
+##   영상 실측(로직 0 = v74.492 · 1.35배): 어두운 소용돌이 **2.76 등장 · 3.12~3.25 최대 ·
+##   3.39 소멸** ⇒ 예측(ACT+0.75 = 3.00 등장 / 3.25 최대 / 3.50 소멸)과 1~2 프레임 차.
+##   자리는 링 앵커 **그 자리**(`at`)다 — 발밑(`+S×87.5`)이 아니다.
 const DARK_SHADE_AT := ACT_AT + 0.75
 const DARK_SHADE_GAP := 7.25
 const DARK_SHADE_S := 1.75
+const SHADOW_TWIST_DROP := 50.0     # 두 번째 섬광의 `MoveBy(0.25, (0,−50))`
 
-static func _dark_shade(e: Node2D, at: Vector2, sp: float) -> void:
+static func _ring_flash(e: Node2D, at: Vector2, sp: float, el: String) -> void:
 	e.position = at
 	var base := e.scale
 	e.scale = Vector2.ZERO
 	# ⚠️ `_build_ring` 은 `ring_at_sec(el)` 에 불린다 — 여기 시각은 **그 시점 기준 상대값**이다.
 	#    (절대 `ACT_AT+0.75` 를 그대로 쓰면 2.75 초가 더 얹혀 섬광이 5.75 에 뜬다.)
-	var first := maxf(0.01, DARK_SHADE_AT - ring_at_sec("dark"))
+	var first := maxf(0.01, DARK_SHADE_AT - ring_at_sec(el))
 	var t := e.create_tween()
 	for pass_i in 2:
 		t.tween_interval((first if pass_i == 0 else DARK_SHADE_GAP) / sp)
@@ -759,12 +797,15 @@ static func _dark_shade(e: Node2D, at: Vector2, sp: float) -> void:
 			t.parallel().tween_property(e, "modulate:a", 0.0, 0.25 / sp)
 		else:
 			t.tween_property(e, "modulate:a", 0.0, 0.25 / sp)
+			if el == "shadow":
+				t.parallel().tween_property(e, "position",
+					Vector2(0.0, SHADOW_TWIST_DROP), 0.25 / sp).as_relative()
 		t.parallel().tween_property(e, "rotation_degrees", 360.0, 0.25 / sp).as_relative()
 	t.tween_callback(e.queue_free)
 
 
 ## 링 형제(0x2329·0x232a) 안무. earth 만 지연·길이가 다르다(runEarth_C).
-static func _anim_ring_sib(n: Node2D, el: String, sp: float, idx: int) -> void:
+static func _anim_ring_sib(n: Node2D, el: String, sp: float, idx: int, s := 1.0) -> void:
 	var t := n.create_tween()
 	if el == "earth":
 		t.tween_interval(1.05 / sp)
@@ -779,10 +820,32 @@ static func _anim_ring_sib(n: Node2D, el: String, sp: float, idx: int) -> void:
 		t.tween_property(n, "scale", n.scale * 6.0, 0.15 / sp)
 		t.parallel().tween_property(n, "modulate:a", 0.0, 0.15 / sp)
 	elif el == "shadow":
-		t.tween_interval((1.5 + 0.25 * float(idx)) / sp)
-		t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
-		t.tween_property(n, "modulate:a", SIB_MID, 0.01 / sp)
-		t.tween_property(n, "modulate:a", 0.0, RING_OUT / sp)
+		# 🔴 2026-08-06 실측 재이식 — 셋 다 `Delay(1.5)` 로 **동시에** 시작한다(종전 0.25
+		#   계단은 자작). 영상: 흰 동심원 파문이 로직 4.24 등장 → 4.33 최대 = run+1.49.
+		var nat := n.scale
+		if idx == 0:
+			_set_alpha(n, 0.0)
+		else:
+			_set_alpha(n, 1.0)
+			n.scale = Vector2.ZERO
+		t.tween_interval(SHADOW_SIB_LEAD / sp)
+		if idx == 0:
+			# 0x2329 circle1 — `setOpacity(0)` 시작, 배율 손 안 댄다. 페이드만.
+			_fade_pma(t, n, 1.0, RING_FADE_IN / sp)
+			_fade_pma(t, n, SIB_MID, 0.01 / sp)
+			_fade_pma(t, n, 0.0, RING_OUT / sp)
+		else:
+			# 0x232a·0x232b circle2 — `setScale(0)` · 불투명 시작. **튀어나오며 퍼진다**.
+			#   0x232a: ScaleTo(0.1, (S+0.25)×1.125) → ScaleTo(0.05, S+0.25) → FadeTo(0.25, 0)
+			#   0x232b: ScaleTo(0.1, ×1.125) → [ScaleTo(0.25, (S+0.25)×3.25) + FadeTo(0.25, 0)]
+			t.tween_property(n, "scale", nat * (s + 0.25) * SHADOW_SIB_POP, 0.1 / sp)
+			if idx == 1:
+				t.tween_property(n, "scale", nat * (s + 0.25), 0.05 / sp)
+				_fade_pma(t, n, 0.0, RING_FADE_IN / sp)
+			else:
+				t.tween_property(n, "scale",
+					nat * (s + 0.25) * SHADOW_SIB_BURST, RING_FADE_IN / sp)
+				_fade_pma(t.parallel(), n, 0.0, RING_FADE_IN / sp)
 	else:
 		t.tween_interval((SIB_LEAD + 0.1 * float(idx)) / sp)
 		t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
@@ -2582,6 +2645,7 @@ const HOLY_BASE_DY := 62.5
 const HOLY_WELL_AT := 0.75      # ASSUMPTION: 영상 — 우물 광구는 창 세례 동안 바닥에서 빛난다
 const HOLY_WELL_OUT := 3.9      # 백색 섬광(run+3.775)과 함께 소멸(영상 +62.5s)
 const HOLY_SPEAR_GAP := 24.166666        # 원작 `initHoly`: x = i × 24.1667 (31개 = 화면 폭)
+const HOLY_SPEAR_RATE := 0.3             # `CCEaseIn(MoveBy, **0.3**)` — 리터럴
 
 static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -2645,20 +2709,40 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 				s.visible = false
 				s.modulate.a = 0.0
 				host.add_child(s)
+				# 🔴 2026-08-06 리터럴 재대조(사용자 지적 "창 모션이 맥아리없다").
+				#   `runHoly` 의 창 컨테이너(tag iVar5) 시퀀스는 이렇다:
+				#     Show → FadeTo(0.25, 200)
+				#     → **CCEaseIn(0.3) MoveBy(…)**            ← 분출 본체. rate 0.3 = `t^0.3`
+				#     → Spawn[ ScaleBy(0.1, 1.2), FadeTo(0.1, 100) ]   ← 0.1초 임팩트(1.2배)
+				#     → Spawn[ MoveBy(0.75, …), FadeTo(0.5, 0) ]       ← 밀려나며 소멸
+				#   종전 구현이 틀렸던 곳 셋:
+				#     ① 분출 이징이 `QUAD/EASE_OUT` 이라 물렁했다 — `t^0.3` 은 훨씬 날카롭다
+				#        (t=0.1 에서 0.19 vs **0.50**).
+				#     ② 임팩트(1.2배 확대)가 없었다.
+				#     ③ **"되돌아 떨어지는" 구간은 원작에 없다** — 우리가 넣은 것이고, 그게
+				#        축 늘어져 보이는 주범이었다. 원작은 같은 방향으로 밀려나며 사라진다.
+				# 🔴 2026-08-06 2차 — 창이 **공중에서 사라져 버린다**(사용자 지적).
+				#   영상 재확인(59.70~61.03s): 창은 날아가 없어지는 게 아니라 **웅덩이 둘레에
+				#   서서 누적돼 왕관을 이루고**(60.20~60.53 최대 밀도) 마지막에 **다 같이**
+				#   흐려진다. 리터럴과도 맞는다 — `CCEaseIn(0.3)` 은 `t^0.3` 이라 **거리의 대부분을
+				#   앞 20% 에 쓰고 나머지 시간은 거의 멈춰 있다**. 즉 `MoveBy` 의 긴 지속시간이
+				#   곧 "뻗은 채 서 있는" 구간이다.
+				#   종전엔 ① 그 지속을 `fly*0.7` 로 자르고 ② 뒤에 `reach*0.3` 짜리 이동을 더해
+				#   ③ 0.5초 페이드를 그와 동시에 걸어서, 창이 계속 날아가며 공중에서 사라졌다.
 				var fly := maxf(0.1, 1.775 - 0.1 * float(r) - 0.0125 * float(i))
-				var reach := rng.randf_range(210.0, 380.0)   # 원작 `자기 방향 × 200` + 산포
-				var land := Vector2(base.x + v.x * rng.randf_range(160.0, 420.0),
-					base.y + HOLY_BASE_DY + rng.randf_range(40.0, 110.0))
+				var reach := rng.randf_range(170.0, 260.0)   # 원작 `자기 방향 × 200` + 산포
+				var sc0 := s.scale
 				var t: Tween = s.create_tween()
 				t.tween_interval((float(r) * 0.2 + float(i) * 0.0125 + 0.4) / sp)
 				t.tween_callback(func() -> void: s.visible = true)
-				t.tween_property(s, "modulate:a", 200.0 / 255.0, 0.15 / sp)
-				t.parallel().tween_property(s, "position", v * reach, fly * 0.55 / sp)\
-					.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)  # 분출
-				t.tween_property(s, "position", land, fly * 0.45 / sp)\
-					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)                 # 낙하
-				t.parallel().tween_property(s, "modulate:a", 100.0 / 255.0, fly * 0.45 / sp)
-				t.tween_property(s, "modulate:a", 0.0, 0.3 / sp)
+				t.tween_property(s, "modulate:a", 200.0 / 255.0, 0.25 / sp)
+				_ease_in_by(t, s, v * reach, fly / sp, HOLY_SPEAR_RATE)   # 뻗고 → 그대로 선다
+				t.tween_property(s, "scale", sc0 * 1.2, 0.1 / sp)         # 임팩트 ScaleBy(0.1,1.2)
+				t.parallel().tween_property(s, "modulate:a", 100.0 / 255.0, 0.1 / sp)
+				# 마무리 — `Spawn[MoveBy(0.75, …), FadeTo(0.5, 0)]`. 이동량을 창 길이의 일부로
+				# 두어 **선 자리에서 옅어지게** 한다(멀리 날아가면 원작과 달라진다).
+				t.tween_property(s, "position", v * (reach * 0.08), 0.75 / sp).as_relative()
+				t.parallel().tween_property(s, "modulate:a", 0.0, 0.5 / sp)
 				t.tween_callback(s.queue_free)
 
 	# 깃털 — 영상 64.0~65.0s: 섬광이 걷히며 **흰 깃털이 화면 가득** 흩날린다.
@@ -2820,45 +2904,62 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 
 
 # ── shadow (9.25초) — 연출 본체가 스파인이다 ─────────────────────────────────
-## 원작 `initShadow` 은 프레임 대신 `shadow_spine.spine_json` 을 세운다(애니 `s1`·`s2`).
-## 링(`_build_ring`)이 이미 `s1` 을 틀었으므로 여기서는 **두 번째 애니 `s2`** 와 늪을 얹는다.
-const SHADOW_MARSH_Z := 100
+#
+# 🔴 2026-08-06 프레임 실측 재이식 — 종전 구현은 **태그를 오독**하고 있었다.
+#   `initShadow` 이 `getStagePos + (0,150)` 에 z=100 · tag `0x1883a~c` 로 다는 셋은
+#   늪 스프라이트가 아니라 **`shadow_spine.spine_json` 세 벌**이다(전부 `setVisible(0)`).
+#   우리는 그 자리에 `marsh1~3` 을 띄워 **피격 진영 머리 위에 검은 타원**을 만들고 있었다
+#   (원작 영상 어느 프레임에도 없다). 늪은 `init<El>_C` 의 **바닥 링 base** 몫이다(§RING).
+#
+# `runShadow` 콜로세움 분기(`this[0x230] != 0`)가 셋을 이렇게 쓴다 —
+#   피격자 3인(`this+0x1f0/0x1f8/0x200`)이 있는 만큼만, 그 **피격자 dragonLayer 자리**로 옮기고
+#   `Delay(0x228) → Delay(1.0) → Show → runSpine("s2") → Delay(getDuration("s2")) → remove`.
+#   ⇒ 등장은 `run + 1.25 + 1.0 = run+2.25`. 영상 실측 로직 **5.01**(= 2.75+2.25)에 피격자
+#     발밑에서 간헐천이 솟고 피해 수치 첫 발이 같은 프레임에 뜬다.
+#   ⚠️ `setScale(1.5)` 는 **탐험 분기(`0x230 == 0`)에만** 있다 — 콜로세움은 배율 1.0 그대로다.
+#   ⚠️ 애니는 `"s2"` 뿐이다. 원작 디컴프에 `"s1"` 참조는 **0건**(§RING_SPINE 주석).
+const SHADOW_SPINE_Z := 100
+const SHADOW_SPINE_AT := 1.0        # `Delay(0x228)` 뒤의 `Delay(1.0)`
+const SHADOW_SPINE_MAX := 3         # tag 0x1883a~c — 원작이 만드는 개수
+const SHADOW_S2_SEC := 5.0          # 스파인에 `s2` 가 없을 때만 쓰는 예비 수명
 
-static func _run_shadow(host: CanvasItem, at: Vector2, dir: float, sp: float,
-		rng: RandomNumberGenerator) -> void:
+static func _run_shadow(host: CanvasItem, at: Vector2, sp: float, foes: Array) -> void:
 	var el := "shadow"
-	var pfx := prefix(el)
-	# 원작이 (0,150) 에 z=100 짜리 3장을 둔다(tag 0x1883a~c).
-	for i in 3:
-		var m := _spr(el, pfx + "marsh%d" % (i + 1))
-		if m == null:
-			break
-		m.position = at + Vector2(0.0, -150.0)
-		m.z_index = SHADOW_MARSH_Z + i
-		m.modulate.a = 0.0
-		host.add_child(m)
-		var t: Tween = m.create_tween()
-		t.tween_interval(float(i) * 0.3 / sp)
-		t.tween_property(m, "modulate:a", 1.0, 0.4 / sp)
-		t.tween_interval(5.0 / sp)
-		t.tween_property(m, "modulate:a", 0.0, 0.6 / sp)
-		t.tween_callback(m.queue_free)
-
-	var spn: Dictionary = RING_SPINE.get(el, {})
-	if spn.is_empty() or not ResourceLoader.exists(String(spn["scene"])):
+	if not ResourceLoader.exists(SHADOW_SPINE_SCENE):
 		return
-	var holder := Node2D.new()
-	holder.position = at
-	holder.z_index = 103
-	host.add_child(holder)
-	var inst = (load(String(spn["scene"])) as PackedScene).instantiate()
-	holder.add_child(inst)
-	var ap := _find_anim_player(inst)
-	if ap != null and ap.has_animation("s2"):
-		ap.play("s2")
-	var t2 := holder.create_tween()
-	t2.tween_interval(float(DURATION.get(el, 9.25)) / sp)
-	t2.tween_callback(holder.queue_free)
+	var ps := load(SHADOW_SPINE_SCENE) as PackedScene
+	if ps == null:
+		return
+	# 피격자 자리를 못 받았으면(확인 창 등) 무대 기준점 한 곳으로 떨어뜨린다.
+	var spots: Array = []
+	for f in foes:
+		if f is Vector2:
+			spots.append(f)
+	if spots.is_empty():
+		spots.append(at)
+	for i in mini(spots.size(), SHADOW_SPINE_MAX):
+		var holder := Node2D.new()
+		holder.position = spots[i]
+		holder.z_index = SHADOW_SPINE_Z
+		holder.visible = false                    # 원작 `setVisible(0)` → `CCShow` 로 켠다
+		host.add_child(holder)
+		var inst = ps.instantiate()
+		holder.add_child(inst)
+		var ap := _find_anim_player(inst)
+		var life := SHADOW_S2_SEC
+		if ap != null and ap.has_animation("s2"):
+			life = ap.get_animation("s2").length
+			ap.stop()
+		var t := holder.create_tween()
+		t.tween_interval((elem_delay(el) + SHADOW_SPINE_AT) / sp)
+		t.tween_callback(func() -> void:
+			if not is_instance_valid(holder):
+				return
+			holder.visible = true
+			if ap != null and is_instance_valid(ap) and ap.has_animation("s2"):
+				ap.play("s2"))
+		t.tween_interval(life / sp)
+		t.tween_callback(holder.queue_free)
 
 
 # ── 피격자 포즈 — 원작 `damage<El>_C` 스파인 문자열 전수 채굴 (2026-08-05) ────
@@ -2897,11 +2998,34 @@ const TGT_PRE_POSE := {
 #   73.45 에 한 번에 일어선다(= ScaleTo 납작 → Delay(1.0) → 원복 + 착지 스쿼시 3단).
 #   ⇒ 종전 구현이 하던 "무대점으로 끌려가 6초 저글링"은 영상 어디에도 없다.
 #
+## ⏱ §TGT_AXIS — **`damage<El>_C` 표의 0초는 `ACT_AT`(2.25)다.** (2026-08-06 확정)
+##
+##   `runUltimate` @00fe6e98 꼬리가 만드는 레이어 시퀀스가 그대로 근거다:
+##     `Delay(param_1=1.0)` → `Delay(initPosition 반환=0.5)` → `Delay(0.75)`
+##       → **uVar10 = `action<El>_C`** → `Delay(0.5)` → uVar9 = `run<El>`
+##   그리고 `action<El>_C` 는 **첫 줄에서** 지연 없이 `damage<El>_C` 를 세 번(피격자 3마리)
+##   부르고(`actionWind_C` :4736 등 9속성 전부 동형), `damage<El>_C` 도 첫 줄에서
+##   `calculateDamage` 를 부른다(`damageWind_C` :14461).
+##   ⇒ 피격 안무도 피해 수치 표도 전부 **`ACT_AT` 기준**이고, `run<El>` 보다 **0.5초 이르다**.
+##
+## 🔴 종전 판정 정정 — 2026-08-06 오전엔 이 축을 `RUN_AT`(2.75)으로 봤다. 영상 실측
+##   (바람 수치 흐름 run+2.5~6.6 / 물 1데미지 10발 run+3.85~5.47)이 ±0.3초라 0.5초 차이를
+##   가르지 못했기 때문이다. 디컴프 구조는 갈릴 여지가 없다 — **표 시각 + 2.25** 로 통일한다.
+##   (재대조하면 바람 예측 run+2.25~6.65 · 물 run+4.1~5.0 으로 실측 중앙값에 더 붙는다.)
+##
 ## a = {node(Node2D), anim(AnimationPlayer|null), shadow(Node2D|null), home(Vector2),
-##      scale(float), mine(bool — 피격자가 왼쪽 진영인가)}
-## 반환 = 복귀 시각(초). **이식된 속성만** 0 이상을 돌려준다 — 그 외에는 −1 이라
-##   호출자가 종전 저글링 골격을 그대로 쓴다(8속성은 아직 이 축으로 재대조 전).
+##      stage(Vector2 — 연출 지점, 없으면 home), scale(float),
+##      mine(bool — 피격자가 왼쪽 진영인가), vortex(Vector2 — 어둠 전용)}
+## 반환 = 복귀 시각(초). 아래 세 속성은 `damage<El>_C` 를 통째로 이식한 전용 경로를 타고,
+##   나머지 6속성은 `_target_knock`(§TGT_STEPS)이 같은 리터럴 표로 낸다. **−1 은 이제
+##   노드가 못 쓸 때만** 나온다.
 const TGT_FX_ON := ["chaos", "wind", "dark"]
+## 🔴 2026-08-06 — 혼돈만 `ACT_AT`(2.25)을 **더하지 않는다**. §TGT_AXIS 의 구조 근거는
+##   맞지만(`actionChaos_C` 가 `CCCallFunc` 로 ACT_AT 슬롯에 들어가 첫 줄에서 `damageChaos_C`
+##   를 부른다), 그 축으로 풀면 납작이 10.20 · 복귀 11.20 이라 `DURATION.chaos`(10.65)를
+##   넘긴다. 영상 실측(72.95~73.35 납작 · 73.45 기립)과도, 사용자 지적("납작 타이밍이 늦다")
+##   과도 어긋난다. 두 증거가 같은 방향이라 **보이는 쪽**을 따른다.
+##   ⚠️ 왜 혼돈(과 빛)만 축이 어긋나는지는 미해결 — 포팅 카드 §열린 항목에 세 갈래로 남겼다.
 const CH_TGT_AT := 1.95          # Delay(1.95) — 레이어·몸통·그림자 공통
 const CH_TGT_RIDE := 6.0         # JumpBy / RotateBy 길이
 const CH_TGT_HOP := 35.0         # (i%11)*2.5 + 25 = 25~50 — 슬롯 번호 미상이라 중앙값
@@ -2952,9 +3076,7 @@ static func _wind_tumble(n: Node2D, a: Dictionary, sp: float) -> float:
 	var mine := bool(a.get("mine", true))
 	var ap = a.get("anim")
 	var play := func(anim_name: String) -> void:
-		if ap is AnimationPlayer and is_instance_valid(ap) \
-				and (ap as AnimationPlayer).has_animation(anim_name):
-			(ap as AnimationPlayer).play(anim_name)
+		play_pose(ap, anim_name)          # 루프 정리 포함(§play_pose)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	# cocos(y-up) → godot. 레이어 y(cocos) = vis.y − home 기준선이 아니라 **바람 기준점**이지만,
@@ -2981,12 +3103,9 @@ static func _wind_tumble(n: Node2D, a: Dictionary, sp: float) -> float:
 			Vector2(vis.x * 0.5 + float(rng.randi() % int(maxf(1.0, vis.x * 0.5))),
 				-vis.y * 0.5), 0],               # 마지막은 화면 **위 밖**(top×1.5)
 	]
-	# ⏱ `damage<El>_C` 의 시계는 **`run<El>` 과 같이** 시작한다(RUN_AT). 근거: 같은 함수가 부르는
-	#   `calculateDamage` 의 잔타 시각 `2.75 + i×0.1`(45발)이 영상의 수치 흐름
-	#   seg +4.0~+7.0(= run+2.5~6.6)과 맞아떨어진다. 이걸 빼면 피격자가 **회오리가 뜨기도 전에**
-	#   날아간다(2026-08-06 캡처 실측 — 종전 판이 그랬다).
-	var lead := RUN_AT + WD_LEAD + float(rng.randi() % 6) * 0.005
-	var t := n.create_tween()
+	# ⏱ `damage<El>_C` 의 시계는 **`action<El>_C` 와 같이** 시작한다(`ACT_AT` 2.25) — §TGT_AXIS.
+	var lead := ACT_AT + WD_LEAD + float(rng.randi() % 6) * 0.005
+	var t := _atw(n)
 	t.tween_interval(lead / sp)
 	t.tween_callback(func() -> void: play.call("damaged"))
 	t.tween_property(n, "position", (pts[0][0] as Vector2), WD_IN / sp)
@@ -3004,7 +3123,7 @@ static func _wind_tumble(n: Node2D, a: Dictionary, sp: float) -> float:
 		var mv := float(WD_MOVES[i])
 		t.tween_property(n, "position", dst, mv / sp)
 		# 배율: ScaleBy(d, f) → EaseOut(ScaleTo(d, S)) — 위치와 **병렬**이라 트윈을 따로 건다.
-		var st := n.create_tween()
+		var st := _atw(n)
 		st.tween_interval(when / sp)
 		st.tween_property(n, "scale", bs * f, mv * 0.5 / sp)
 		st.tween_property(n, "scale", bs, mv * 0.5 / sp)\
@@ -3041,7 +3160,7 @@ static func _wind_tumble(n: Node2D, a: Dictionary, sp: float) -> float:
 ##   빨려 들고, 주먹에 쥐인 1.4초 동안 **화면에서 사라진다**(Hide). 영상 실측도 같다 —
 ##   run+4.2~4.7 에 빨려들고, run+6.5(구슬 붕괴·주먹)에 사라졌다가 폭발 뒤 튕겨 나온다.
 ##
-## 기준 시각 = `run<El>` 과 같은 축(`damage<El>_C` 에는 공통 지연 `0x228` 이 없다).
+## 기준 시각 = `action<El>_C` 축(`ACT_AT`, §TGT_AXIS). 공통 지연 `0x228` 은 붙지 않는다.
 ## ASSUMPTION 2건: ① 목적지 P·Q·R 이 Ghidra 스택에서 소실 — P 는 소용돌이 중심(`vortex`,
 ##   호출측이 준다. 없으면 화면 중앙), Q 는 제자리에서 밀려난 점, R 은 제자리로 둔다.
 ##   ② 마지막 JumpTo 길이 `fVar52` 소실 — 앞 점프와 같은 0.25.
@@ -3058,16 +3177,19 @@ static func _dark_swallow(n: Node2D, a: Dictionary, sp := 1.0) -> float:
 	var s := float(a.get("scale", 1.0))
 	var away := -1.0 if bool(a.get("mine", true)) else 1.0
 	var vis: Vector2 = n.get_viewport().get_visible_rect().size
-	var vortex: Vector2 = a.get("vortex", Vector2(vis.x * 0.5, vis.y * 0.45))
+	# 🔴 2026-08-06 — 피격자가 빨려 드는 곳은 **소용돌이 한복판**이다. `_run_dark` 가 구슬을
+	#   `dk = (base_at("dark").x, 화면 중앙 y)` = **화면 정중앙**에 놓으므로 여기도 같은 식으로
+	#   계산한다. 종전엔 호출자가 `vortex` 를 넘겼는데 두 곳 다 **시전자 무대점 x**(225)를 줘서
+	#   피격자가 화면 왼쪽 위로 끌려갔다(사용자 지적). 넘겨 받지 않고 여기서 구하면
+	#   `_run_dark` 와 어긋날 수가 없다.
+	var vortex := Vector2(vis.x * 0.5, vis.y * 0.5)
 	var play := func(anim_name: String) -> void:
-		if ap is AnimationPlayer and is_instance_valid(ap) \
-				and (ap as AnimationPlayer).has_animation(anim_name):
-			(ap as AnimationPlayer).play(anim_name)
+		play_pose(ap, anim_name)          # 루프 정리 포함(§play_pose)
 
 	# 몸통 — 소용돌이 안에서 5연타(원작 tag 1 의 CallFuncN 5발).
 	for at_sec in DK_TGT_HITS:
-		var pt := n.create_tween()
-		pt.tween_interval((RUN_AT + float(at_sec)) / sp)
+		var pt := _atw(n)
+		pt.tween_interval((ACT_AT + float(at_sec)) / sp)
 		pt.tween_callback(func() -> void:
 			# 원작 `calculateDamage` 는 타격마다 `rand()%2` 로 `_1`/`_2` 를 고른다
 			# (2026-08-06 람다 디스어셈블: `bl rand` → `and #0xfffffffe` → `csel`).
@@ -3075,8 +3197,8 @@ static func _dark_swallow(n: Node2D, a: Dictionary, sp := 1.0) -> float:
 			Bgm.sfx("effect_dragon_damaged_%d" % (1 + (randi() & 1)), 0.35)
 			play.call("damaged"))
 
-	var t := n.create_tween()
-	t.tween_interval((RUN_AT + DK_TGT_AT) / sp)
+	var t := _atw(n)
+	t.tween_interval((ACT_AT + DK_TGT_AT) / sp)
 	t.tween_callback(func() -> void: play.call("damaged"))
 	t.tween_property(n, "position", vortex, DK_TGT_PULL / sp)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -3097,16 +3219,327 @@ static func _dark_swallow(n: Node2D, a: Dictionary, sp := 1.0) -> float:
 		if is_instance_valid(n):
 			n.position = home
 		play.call("wait"))
-	return RUN_AT + DK_TGT_AT + DK_TGT_PULL + DK_TGT_HOLD + DK_TGT_GONE + DK_TGT_JUMP * 2.0
+	return ACT_AT + DK_TGT_AT + DK_TGT_PULL + DK_TGT_HOLD + DK_TGT_GONE + DK_TGT_JUMP * 2.0
+
+
+# ── §TGT_STEPS — 나머지 6속성의 피격 안무(원작 `damage<El>_C` 레이어 시퀀스 그대로) ──
+#
+# 🔴 2026-08-06 재대조. 종전엔 6숫자짜리 근사표(`fight.gd::ULT_KNOCK`
+#   `[시작초, 저글링 n, 1회 시간, 간격, 높이, 마무리 높이]`)로 **여섯 속성을 같은 모양**으로
+#   냈다. 그 모양은 `damageFire_C` 의 것이라 나머지에 맞지 않았다 —
+#   물·빛은 애초에 저글링이 아니고(느린 표류), 신성은 마무리가 점프가 아니라 **은신**이며,
+#   그림자는 저글링이 4회인데 5회로 적혀 있었다. 이제 리터럴을 스텝 목록으로 그대로 옮긴다.
+#   출처 = `docs/ref/design/ultimate_layer_sequences.md` 의 각 `damage<El>_C` 첫 runAction.
+#
+#   ["wait", t]            CCDelayTime(t)
+#   ["pull", dur, h]       CCJumpTo(dur, 연출 지점, S×h, 1)  — 무대로 끌려간다
+#   ["hop",  dur, h]       CCJumpBy(dur, Δ, S×h, 1)          — 타격(피격음 + `damaged` 재생)
+#   ["big",  dur, h]       CCJumpBy(dur, Δ, S×h, 1)          — 마무리(먼저 `down`)
+#   ["drift", dur, dx]     CCMoveTo/MoveBy(dur, …)           — 목적지 소실 → 진영 반대로 dx
+#   ["hide", t]            CCHide → CCPlace → … → CCShow
+#   ["home", dur, h]       CCJumpTo(dur, 제자리, S×h, 1) → `wait` 복귀
+#
+# ⚠️ ASSUMPTION — Ghidra 스택에서 소실된 값:
+#   ① 모든 `JumpBy`/`MoveTo` 의 Δ·목적지(`aCStack_*`) → 진영 반대쪽으로 조금씩(dx) 민다.
+#   ② `fVar` 로 남은 지속시간(땅 `fVar70/71/74/76` · 불 `fVar100/103` · 그림자 `fVar80/82`)
+#      → 같은 시퀀스 안 형제 값과 같게 뒀다. 해당 스텝에 `# fVar` 주석을 붙였다.
+#   ③ 땅·그림자 꼬리의 `MoveTo(0.1)×2 → JumpTo ×3` 복귀 연쇄는 `["home"]` 한 번으로 줄였다.
+const TGT_STEPS := {
+	# 물 — 저글링이 **없다**. 무대로 끌려간 뒤 5.5초에 걸쳐 물살에 떠내려간다(damageAqua_C L399).
+	"aqua": [
+		["wait", 1.0], ["pull", 0.25, 150.0], ["wait", 0.5],
+		["drift", 3.0, 60.0], ["drift", 2.5, 40.0],       # EaseOut(MoveTo) 2회
+		["wait", 0.25 + 0.75 + 0.5],                      # Place → Delay(0.75) → Delay(0.5)
+		["home", 0.25, 175.0],
+	],
+	# 땅 — 4연 저글링. 마지막 간격만 0.7 이고, 저글링 앞에 0.5 의 뜸이 있다(damageEarth_C L889).
+	"earth": [
+		["wait", 1.0], ["pull", 0.25, 150.0], ["wait", 0.5],
+		["hop", 0.2, 150.0], ["wait", 0.3],
+		["hop", 0.2, 150.0], ["wait", 0.3],
+		["hop", 0.2, 150.0], ["wait", 0.3],
+		["hop", 0.2, 150.0], ["wait", 0.7],
+		["big", 0.5, 800.0],                              # fVar70
+		["wait", 0.5],                                    # fVar71
+		["home", 0.25, 100.0],
+	],
+	# 불 — **19연 감쇠 저글링**(0.5초·h200 → 0.1초·h50). 종전 근사는 14회·등간격이었다.
+	"fire": [
+		["wait", 1.0], ["pull", 0.25, 150.0], ["wait", 0.5 + 0.15],
+		["hop", 0.5, 200.0], ["wait", 0.25],
+		["hop", 0.5, 175.0], ["wait", 0.15],
+		["hop", 0.5, 150.0],
+		["hop", 0.45, 140.0], ["hop", 0.4, 140.0], ["hop", 0.3, 100.0], ["hop", 0.25, 90.0],
+		["hop", 0.15, 70.0], ["hop", 0.15, 70.0], ["hop", 0.15, 70.0],
+		["hop", 0.125, 60.0], ["hop", 0.125, 60.0], ["hop", 0.125, 60.0], ["hop", 0.125, 60.0],
+		["hop", 0.125, 60.0], ["hop", 0.125, 60.0], ["hop", 0.125, 60.0], ["hop", 0.125, 60.0],
+		["hop", 0.1, 50.0],
+		["wait", 0.5],                                    # MoveTo(0) → Delay(fVar100)
+		["big", 0.4, 150.0], ["hop", 0.2, 50.0],
+		["wait", 1.75],                                   # Delay(fVar103) → Delay(1.75)
+		["home", 0.25, 150.0],
+	],
+	# 신성 — 창 세례 뒤 **1.5초 사라졌다가** 나타난다. 마무리 점프가 없다(damageHoly_C L305).
+	"holy": [
+		["wait", 1.25 + 3.25],
+		["hop", 0.95, 100.0],
+		["wait", 1.25 + 0.2],
+		["hide", 1.25 + 0.25],
+		["home", 0.0, 0.0],
+	],
+	# 빛 — 저글링 앞에 **4.75초 표류 + 1.5초 정지**가 있다(damageLight_C L281).
+	"light": [
+		["wait", 2.5],
+		["drift", 4.75, 80.0],
+		["wait", 1.5],
+		["drift", 0.1, 20.0],
+		["hop", 0.1, 75.0], ["hop", 0.05, 20.0],
+		["wait", 0.75],
+		["home", 0.25, 150.0],
+	],
+	# 그림자 — 저글링 **4회**(종전 표는 5회). 마무리가 S×1000 으로 제일 크게 난다.
+	"shadow": [
+		["wait", 3.0], ["pull", 0.2, 150.0], ["wait", 0.2],
+		["hop", 0.2, 150.0], ["wait", 0.2],
+		["hop", 0.2, 150.0], ["wait", 0.2],
+		["hop", 0.2, 150.0], ["wait", 0.2],
+		["hop", 0.2, 150.0], ["wait", 0.2],
+		["big", 0.5, 1000.0],                             # 0.5 − fVar82
+		["wait", 1.2],
+		["home", 0.25, 100.0],
+	],
+}
+## 저글링 1회가 옆으로 밀리는 양(원작 Δ 소실 — ASSUMPTION). 진영 반대쪽으로 누적된다.
+const TGT_HOP_DX := 20.0
+
+# ── 몸통(tag 1) 채널 — `damage<El>_C` 의 **세 번째** runAction ────────────────
+#
+# 🔴 2026-08-06 신설. `_target_knock` 은 여태 레이어(this_00 = 위치)와 스파인 이름만 냈고
+#   몸통 시퀀스(회전·배율·색)는 통째로 빠져 있었다. 전용 경로를 탄 셋(chaos·wind·dark)에는
+#   회전이 들어 있어서, 같은 기준으로 보면 나머지 여섯이 절반만 이식된 상태였다.
+#   위치는 여기서 손대지 않는다 — 원작도 레이어와 몸통이 **다른 노드**다.
+#
+#   hit_rot    타격마다 `RotateBy` — earth `RotateBy(0.2, fVar72)` · shadow `(0.15, fVar83)`
+#   hit_flat   타격마다 `ScaleTo(0.05, ·, 0.75)` → `ScaleTo(0.05, ·, 1.0)` (둘 다 리터럴)
+#   spin       마무리 대투척과 함께 도는 `RotateBy(f, **1800°**)` — earth·shadow 리터럴
+#   land       착지 스쿼시 3단 `ScaleTo(0.1, ×0.95,1.05)` → `(×1.05,0.95)` → 원복
+#   blink      신성의 여는 깜빡임 `FadeTo(0.3,150) → (0.25,255) → Delay(0.15) → (0.25,150)`
+#   scorch     빛의 **타 들어감** — `[RotateBy(3.75, (i%121)−60) ∥ TintTo(3.75, 255,50,0)]`
+#              → `TintTo(0.75, 검정)` → `Delay(0.75)` → `RotateTo(0.1,0)` → `Delay(0.15)`
+#              → `TintTo(0.75, 흰색)`. 이게 빠져 있어서 빛 피격자가 색이 하나도 안 변했다.
+#
+# ⚠️ ASSUMPTION 은 **각도뿐**이다(`fVar72`·`fVar83`·`(i%121)−60` 이 Ghidra 스택에서 소실).
+#    시간·배율·색·회전 1800° 는 전부 리터럴.
+const TGT_BODY := {
+	"earth":  {"hit_rot": 25.0, "hit_flat": 0.75, "hit_sec": 0.2, "spin": [0.9, 1800.0]},
+	"shadow": {"hit_rot": 22.0, "hit_flat": 0.75, "hit_sec": 0.15, "spin": [0.8, 1800.0]},
+	"fire":   {"land": true},
+	"aqua":   {"land": true},
+	"holy":   {"blink": 1.4, "land": true},
+	"light":  {"scorch": 3.5, "land": true},   # Delay(2.5)+Delay(1.0) = ACT_AT 기준 3.5
+}
+const TGT_LAND_SEC := 0.1          # 착지 스쿼시 3단 각 0.1초(리터럴)
+const TGT_SCORCH_RED := Color8(255, 50, 0)
+const TGT_SCORCH_ROT := 45.0       # ASSUMPTION: `(i%121) − 60` 의 대푯값(대상 번호 미상)
+
+## 착지 스쿼시 3단 — 아홉 속성이 전부 이 꼴로 끝난다.
+static func _tgt_land(t: Tween, n: Node2D, bs: Vector2, sp: float) -> void:
+	t.tween_property(n, "scale", Vector2(bs.x * 0.95, bs.y * 1.05), TGT_LAND_SEC / sp)
+	t.tween_property(n, "scale", Vector2(bs.x * 1.05, bs.y * 0.95), TGT_LAND_SEC / sp)
+	t.tween_property(n, "scale", bs, TGT_LAND_SEC / sp)
+
+
+## 몸통 채널 재생. 레이어(`_target_knock`)와 **병렬**로 돈다 — 건드리는 속성이 겹치지 않는다.
+static func _tgt_body(n: Node2D, el: String, away: float, sp: float) -> void:
+	var cfg: Dictionary = TGT_BODY.get(el, {})
+	if cfg.is_empty():
+		return
+	var bs := n.scale
+	if cfg.has("blink"):
+		var b := _atw(n)
+		b.tween_interval((ACT_AT + float(cfg["blink"])) / sp)
+		b.tween_property(n, "modulate:a", 150.0 / 255.0, 0.3 / sp)
+		b.tween_property(n, "modulate:a", 1.0, 0.25 / sp)
+		b.tween_interval(0.15 / sp)
+		b.tween_property(n, "modulate:a", 150.0 / 255.0, 0.25 / sp)
+		b.tween_property(n, "modulate:a", 1.0, 0.25 / sp)
+	if cfg.has("scorch"):
+		var s := _atw(n)
+		s.tween_interval((ACT_AT + float(cfg["scorch"])) / sp)
+		s.tween_property(n, "rotation_degrees", away * TGT_SCORCH_ROT, 3.75 / sp)
+		s.parallel().tween_property(n, "modulate", TGT_SCORCH_RED, 3.75 / sp)
+		s.tween_property(n, "modulate", Color(0, 0, 0, 1), 0.75 / sp)   # 검게 그을린다
+		s.tween_interval(0.75 / sp)
+		s.tween_property(n, "rotation_degrees", 0.0, 0.1 / sp)
+		s.tween_interval(0.15 / sp)
+		s.tween_property(n, "modulate", Color(1, 1, 1, 1), 0.75 / sp)
+		_tgt_land(s, n, bs, sp)
+
+## §TGT_STEPS 를 그대로 재생한다. 대전(`fight.gd`)과 확인 창이 **같은 코드**를 쓰도록
+## 여기 한 곳에만 둔다(종전엔 두 곳에 비슷한 골격이 복사돼 있었다).
+static func _target_knock(n: Node2D, a: Dictionary, el: String, sp: float) -> float:
+	var steps: Array = TGT_STEPS.get(el, [])
+	if steps.is_empty():
+		return -1.0
+	var ap = a.get("anim")
+	var home: Vector2 = a.get("home", n.position)
+	var stage: Vector2 = a.get("stage", home)
+	var s := float(a.get("scale", 1.0))
+	var away := -1.0 if bool(a.get("mine", true)) else 1.0
+	var bs := n.scale                                      # 몸통 채널의 기준 배율
+	_tgt_body(n, el, away, sp)                             # 회전·색·깜빡임(§TGT_BODY)
+	var play := func(anim_name: String) -> void:
+		play_pose(ap, anim_name)          # 루프 정리 포함(§play_pose)
+	# 선행 포즈(§TGT_PRE_POSE) — 물의 `down`/`love`. 이 두 시각만 영상 실측이라 **절대 축**이다.
+	for pre: Array in TGT_PRE_POSE.get(el, []):
+		var pt := _atw(n)
+		pt.tween_interval(maxf(0.01, float(pre[0]) / sp))
+		var pname := String(pre[1])
+		pt.tween_callback(func() -> void: play.call(pname))
+	var t := _atw(n)
+	t.tween_interval(ACT_AT / sp)                          # §TGT_AXIS
+	var total := ACT_AT
+	var hits := 0
+	for row: Array in steps:
+		var kind := String(row[0])
+		match kind:
+			"wait":
+				t.tween_interval(float(row[1]) / sp)
+				total += float(row[1])
+			"pull":
+				_arc(t, n, stage, float(row[2]) * s, float(row[1]) / sp)
+				total += float(row[1])
+			"hop", "big":
+				var is_big := kind == "big"
+				var idx := hits
+				hits += 1
+				t.tween_callback(func() -> void:
+					# 원작은 타격마다 `damaged` 를 다시 튼다(fire 13 · shadow 15회 실측).
+					# 마무리만 `down` 으로 엎어진다.
+					if is_big:
+						play.call("down")
+					else:
+						play.call("damaged")
+					Bgm.sfx("effect_dragon_damaged_%d" % (1 + idx % 2),
+						float(randi() % 6) * 0.05 + 0.25))
+				# 몸통(tag 1) — 타격마다 도는 회전·납작 스쿼시, 마무리엔 1800° 스핀(§TGT_BODY).
+				var bcfg: Dictionary = TGT_BODY.get(el, {})
+				if is_big and bcfg.has("spin"):
+					var spn: Array = bcfg["spin"]
+					var rt := _atw(n)
+					rt.tween_interval(total / sp)
+					rt.tween_property(n, "rotation_degrees",
+						away * float(spn[1]), float(spn[0]) / sp).as_relative()
+					rt.tween_callback(func() -> void:
+						if is_instance_valid(n):
+							n.rotation_degrees = 0.0)
+				elif not is_big and bcfg.has("hit_rot"):
+					var hs := float(bcfg.get("hit_sec", 0.15))
+					var rt2 := _atw(n)
+					rt2.tween_interval(total / sp)
+					rt2.tween_property(n, "rotation_degrees",
+						away * float(bcfg["hit_rot"]), hs / sp).as_relative()
+					if bcfg.has("hit_flat"):
+						var fl := float(bcfg["hit_flat"])
+						var ft := _atw(n)
+						ft.tween_interval(total / sp)
+						ft.tween_property(n, "scale",
+							Vector2(bs.x, bs.y * fl), 0.05 / sp)     # ScaleTo(0.05, ·, 0.75)
+						ft.tween_property(n, "scale", bs, 0.05 / sp)
+				_jump_by(t, n, Vector2(away * TGT_HOP_DX * s, 0.0), float(row[2]) * s, 1,
+					float(row[1]) / sp)
+				total += float(row[1])
+			"drift":
+				# 높이 0 인 `JumpBy` = `MoveBy`. 시작점을 그 단계에서 읽는 것도 그대로 쓴다.
+				_jump_by(t, n, Vector2(away * float(row[2]) * s, 0.0), 0.0, 1,
+					float(row[1]) / sp)
+				total += float(row[1])
+			"hide":
+				t.tween_callback(func() -> void:
+					if is_instance_valid(n):
+						n.visible = false)
+				t.tween_interval(float(row[1]) / sp)
+				t.tween_callback(func() -> void:
+					if is_instance_valid(n):
+						n.position = home
+						n.visible = true)
+				total += float(row[1])
+			"home":
+				if float(row[1]) > 0.0:
+					_arc(t, n, home, float(row[2]) * s, float(row[1]) / sp)
+					total += float(row[1])
+				t.tween_callback(func() -> void:
+					if is_instance_valid(n):
+						n.position = home
+						n.rotation_degrees = 0.0       # 회전이 남지 않게(원작 RotateBy 원복)
+					play.call("wait"))
+				# 착지 스쿼시 3단 — 원작이 아홉 속성 전부 이 꼴로 끝낸다(§TGT_BODY.land).
+				if bool(TGT_BODY.get(el, {}).get("land", false)):
+					var lt := _atw(n)
+					lt.tween_interval(total / sp)
+					_tgt_land(lt, n, bs, sp)
+					total += TGT_LAND_SEC * 3.0
+	return total
+
+
+## 배우(시전자·피격자) 노드에 건 트윈을 모아 둔다 — **다음 재생 때 전부 죽이기 위해서**.
+##
+## 🔴 2026-08-06 — 확인 창에서 속성을 연달아 바꾸면 이전 속성의 피격 안무가 살아남아
+##   같은 스파인을 두 시퀀스가 동시에 몰았다. 그래서 "두 모션을 오가며 점멸"한다(사용자 지적).
+##   대전에서도 각성기가 연달아 터지면 같은 일이 난다. 트윈을 노드 meta 에 달아 두고
+##   `reset_actor` 가 회수한다. 회전·색·배율도 여기서 원복해야 앞 속성 잔상이 안 남는다
+##   (빛의 검정 틴트가 다음 속성으로 새는 것도 이 경로다).
+## 배우 스파인 포즈 재생.
+##
+## 🔴 2026-08-06 — `build_spine_scene.gd` 는 **모든 애니를 `LOOP_LINEAR`** 로 굽는다.
+##   `fight.gd::_play_anim` 은 재생 직전에 `LOOP_NONE` 으로 바꾸는데 여기 람다들은 그냥
+##   `play()` 만 해서, 각성기 중 `damaged` 가 **끝없이 루프**했다 — 혼돈 피격자가 뜨는 6초
+##   내내 "두 프레임 사이에서 까딱거린" 정체가 이것이다(사용자 지적). 원작
+##   `runSpineWithAnimationName` 은 한 번만 튼다. `wait` 만 무한 반복이다.
+static func play_pose(ap, anim_name: String) -> void:
+	if not (ap is AnimationPlayer) or not is_instance_valid(ap):
+		return
+	var p := ap as AnimationPlayer
+	if not p.has_animation(anim_name):
+		return
+	p.get_animation(anim_name).loop_mode = \
+		Animation.LOOP_LINEAR if anim_name == "wait" else Animation.LOOP_NONE
+	p.play(anim_name)
+
+
+static func _atw(n: Node2D) -> Tween:
+	var t := n.create_tween()
+	var arr: Array = n.get_meta("ufx_tw", [])
+	arr.append(t)
+	n.set_meta("ufx_tw", arr)
+	return t
+
+
+static func reset_actor(n: Node2D, home := Vector2.INF) -> void:
+	if not is_instance_valid(n):
+		return
+	for t in n.get_meta("ufx_tw", []):
+		if t is Tween and (t as Tween).is_valid():
+			(t as Tween).kill()
+	n.set_meta("ufx_tw", [])
+	if not n.has_meta("ufx_base_scale"):
+		n.set_meta("ufx_base_scale", n.scale)       # 첫 재생 때의 배율이 기준이다
+	n.scale = n.get_meta("ufx_base_scale")
+	n.rotation_degrees = 0.0
+	n.modulate = Color(1, 1, 1, 1)
+	n.visible = true
+	if home != Vector2.INF:
+		n.position = home
 
 
 static func target_fx(a: Dictionary, el: String, sp := 1.0) -> float:
-	if not TGT_FX_ON.has(el):
-		return -1.0
 	var node = a.get("node")
 	if not (node is Node2D) or not is_instance_valid(node):
 		return -1.0
 	var n := node as Node2D
+	reset_actor(n, a.get("home", Vector2.INF))      # 앞 재생 잔여 트윈·잔상 회수
+	if not TGT_FX_ON.has(el):
+		return _target_knock(n, a, el, sp)
 	if el == "wind":
 		return _wind_tumble(n, a, sp)
 	if el == "dark":
@@ -3115,15 +3548,13 @@ static func target_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	var home: Vector2 = a.get("home", n.position)
 	var bs := n.scale
 	var play := func(anim_name: String) -> void:
-		if ap is AnimationPlayer and is_instance_valid(ap) \
-				and (ap as AnimationPlayer).has_animation(anim_name):
-			(ap as AnimationPlayer).play(anim_name)
+		play_pose(ap, anim_name)          # 루프 정리 포함(§play_pose)
 	# 피격자는 **시전자 반대쪽으로** 기운다(영상: 왼쪽 진영 3마리가 전부 왼쪽으로).
 	var away := -1.0 if bool(a.get("mine", true)) else 1.0
 	var s := float(a.get("scale", 1.0))
 
 	# 레이어 — 낮은 포물선 **한 번**(6초). 무대점으로 끌려가지 않는다.
-	var t := n.create_tween()
+	var t := _atw(n)
 	t.tween_interval(CH_TGT_AT / sp)
 	_jump_by(t, n, Vector2(away * CH_TGT_DRIFT * s, 0.0), CH_TGT_HOP * s, 1,
 		CH_TGT_RIDE / sp)
@@ -3132,7 +3563,7 @@ static func target_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			n.position = home)                      # MoveTo(0.0, 제자리)
 
 	# 몸통 — 회전 → 원복 → 납작 → 1초 유지 → 원복 + 착지 스쿼시 3단
-	var b := n.create_tween()
+	var b := _atw(n)
 	b.tween_interval(CH_TGT_AT / sp)
 	b.tween_callback(func() -> void: play.call("damaged"))
 	b.tween_property(n, "rotation_degrees", away * CH_TGT_LEAN, CH_TGT_RIDE / sp)
@@ -3180,6 +3611,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	if not (node is Node2D) or not is_instance_valid(node):
 		return 0.0
 	var n := node as Node2D
+	reset_actor(n, a.get("home", Vector2.INF))      # 앞 재생 잔여 트윈·잔상 회수(§_atw)
 	var ap = a.get("anim")
 	var shadow = a.get("shadow")
 	var home: Vector2 = a.get("home", n.position)
@@ -3189,11 +3621,9 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	var ctr := _screen_center(host) if host is CanvasItem else stage
 	var dirc := 1.0 if stage.x <= ctr.x else -1.0      # 시전자 → 화면 중앙 방향
 	var play := func(anim_name: String) -> void:
-		if ap is AnimationPlayer and is_instance_valid(ap) \
-				and (ap as AnimationPlayer).has_animation(anim_name):
-			(ap as AnimationPlayer).play(anim_name)
+		play_pose(ap, anim_name)          # 루프 정리 포함(§play_pose)
 	var anim_at := func(t: float, anim_name: String) -> void:
-		var tw: Tween = n.create_tween()
+		var tw: Tween = _atw(n)
 		tw.tween_interval(maxf(0.01, t) / sp)
 		tw.tween_callback(func() -> void: play.call(anim_name))
 	var back := 0.0
@@ -3201,7 +3631,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	match el:
 		"fire":
 			# fire 실측: 홉 → 상승 → 대기 → 복귀
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 0.25) / sp)
 			_jump_by(t, n, Vector2(0.0, s * 75.0), 50.0, 1, 0.15 / sp)
 			t.tween_property(n, "position", Vector2(0.0, -50.0), 4.35 / sp).as_relative()\
@@ -3213,21 +3643,37 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			anim_at.call(ACT_AT + 4.2, "ultimate2")
 			back = ACT_AT + 0.25 + 0.15 + 4.35 + 3.0 + 0.15
 		"shadow":
-			# 영상 실측(76.75~82.75s): 시전자가 **발밑 늪 소용돌이로 가라앉아 소멸**
-			# (링의 marsh1 이 그 소용돌이다), run+5.4쯤 같은 자리에서 다시 솟는다.
-			var t := n.create_tween()
-			t.tween_interval((LEAD + 0.3) / sp)
-			t.tween_property(n, "scale", Vector2(1.1, 0.75), 0.2 / sp)   # 빨려드는 스쿼시
-			t.tween_property(n, "scale", Vector2(0.55, 0.15), 0.25 / sp)
-			t.parallel().tween_property(n, "modulate:a", 0.0, 0.25 / sp)
-			t.tween_interval((RUN_AT + 5.4 - LEAD - 1.1) / sp)
+			# 🔴 2026-08-06 프레임 실측 재이식 — `actionShadow_C` 는 `actionDark_C` 와 **같은 꼴**
+			#   이다(종전의 "늪으로 가라앉는다"는 영상 눈대중 자작이었고 1.45초 일렀다):
+			#     몸통(tag 1)  Delay(0.5) → **TintTo(0.5, 0,0,0)** → Delay(7.75) → TintTo(0.5, 흰색)
+			#     레이어       Delay(1.0) → **Hide** → Delay(6.9) → CCPlace(자리 −(0, S×95))
+			#                  → ScaleTo(0.25, S+1.0)
+			#   ⇒ 시전자는 제자리에서 **검게 물들며** ACT+1.0 에 사라진다. 영상에서 시전 진영이
+			#     그때부터 끝까지 비는 것이 이것이다(장막이 teal 로 밝아진 뒤에도 안 보인다).
+			#   ⚠️ 레이어 꼬리(Place + ScaleTo(S+1.0))는 ACT+7.9 = 로직 10.15 라 연출 길이
+			#     (9.25)를 넘긴다 — 화면에 남지 않으므로 제자리 복귀로 갈음한다.
+			var t := _atw(n)
+			t.tween_interval((ACT_AT + 0.5) / sp)
+			t.tween_property(n, "modulate", Color(0, 0, 0, 1), 0.5 / sp)
 			t.tween_callback(func() -> void:
 				if is_instance_valid(n):
-					n.position = home)
-			t.tween_property(n, "scale", Vector2.ONE, 0.3 / sp)
-			t.parallel().tween_property(n, "modulate:a", 1.0, 0.3 / sp)  # 늪에서 솟는다
-			anim_at.call(LEAD + 0.1, "ultimate1")
-			back = RUN_AT + 5.4 + 0.3
+					n.modulate = Color(0, 0, 0, 0))          # Hide (레이어 Delay(1.0))
+			t.tween_interval(7.75 / sp)
+			t.tween_callback(func() -> void:
+				if is_instance_valid(n):
+					n.position = home
+					n.modulate = Color(0, 0, 0, 1))
+			t.tween_property(n, "modulate", Color(1, 1, 1, 1), 0.5 / sp)
+			if shadow is Node2D and is_instance_valid(shadow):
+				var sh2 := shadow as Node2D
+				var sb2 := sh2.scale
+				var st3 := sh2.create_tween()
+				st3.tween_interval((ACT_AT + 1.0) / sp)
+				st3.tween_property(sh2, "scale", Vector2.ZERO, 0.25 / sp)
+				st3.tween_interval(6.9 / sp)
+				st3.tween_property(sh2, "scale", sb2, 0.25 / sp)
+			anim_at.call(ACT_AT + 0.25, "ultimate1")
+			back = ACT_AT + 9.25
 		"dark":
 			# 🔴 2026-08-06 프레임 실측 재이식 — `actionDark_C`(runAction 4건) 리터럴 그대로.
 			#   몸통(tag 1)  Delay(0.5) → **TintTo(0.5, 0,0,0)** → Delay(7.75) → TintTo(0.5, 흰색)
@@ -3237,7 +3683,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			#   ⇒ 시전자는 **제자리에서 순수 검정으로 물들며** ACT+1.0 에 사라지고 ACT+8.75 에
 			#     돌아온다. 그 순간을 `dark_shade`(§_dark_shade)가 삼키고 뱉는다.
 			#   종전 값(LEAD+0.2 에 흑자색 → 1.75 소멸)은 영상보다 **1.5초 일렀고** 색도 보라였다.
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 0.5) / sp)
 			t.tween_property(n, "modulate", Color(0, 0, 0, 1), 0.5 / sp)
 			t.tween_callback(func() -> void:
@@ -3260,7 +3706,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			anim_at.call(ACT_AT + 0.25, "ultimate1")
 			back = ACT_AT + 9.25
 		"aqua":
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 2.75) / sp)
 			t.tween_property(n, "position", Vector2(dirc * 40.0, -30.0), 0.5 / sp)\
 				.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -3287,7 +3733,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			# 조금씩 튀다 돌아온다(ASSUMPTION).
 			var hops := [[0.3, 150.0, 50.0], [0.3, 200.0, 40.0], [0.3, 250.0, 30.0],
 				[0.3, 300.0, -30.0], [0.5, 400.0, -40.0], [0.3, 350.0, -50.0]]
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 1.45) / sp)
 			for h_e in hops:
 				t.tween_interval(0.2 / sp)
@@ -3305,7 +3751,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			anim_at.call(ACT_AT + 3.5, "ultimate2")     # ASSUMPTION
 			back = ACT_AT + 1.45 + (0.2 + 0.3) * 5.0 + 0.2 + 0.5 + 0.2 + 0.1 + 1.65 + 0.25
 		"wind":
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 2.0) / sp)
 			t.tween_property(n, "position", Vector2(0.0, -140.0), 0.15 / sp).as_relative()
 			t.tween_property(n, "position", Vector2(dirc * 60.0, -60.0), 0.5 / sp).as_relative()
@@ -3330,7 +3776,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 		"light":
 			# 실측(액션 + 영상 40.0~45.0s): **화면 중앙으로 이동**(Place) → 1차 대섬광에
 			# 소멸(Hide) → 2차 섬광 걷힐 때 중앙에 재등장(Show) → 제자리로 점프.
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 1.55) / sp)
 			t.tween_property(n, "position", Vector2(ctr.x, stage.y), 0.2 / sp)
 			t.tween_interval(0.75 / sp)
@@ -3360,7 +3806,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			var CHAOS_BURN := 6.5             # 백열에 삼켜지는 시각
 			var CHAOS_HOME := 8.6             # 복귀 시각
 			var bs := n.scale
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval(CHAOS_GONE / sp)
 			t.tween_property(n, "scale", Vector2(bs.x * 1.15, bs.y * 0.7), 0.1 / sp)  # 빨려드는 스쿼시
 			t.tween_property(n, "scale", Vector2(bs.x * 0.15, bs.y * 1.35), 0.12 / sp)
@@ -3390,7 +3836,7 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			back = CHAOS_HOME + 0.3
 		"holy":
 			# 몸통 페이드 아웃 → 창 세례 뒤 복귀(실측 FadeTo(1.0,0) … FadeTo(1.0,255)).
-			var t := n.create_tween()
+			var t := _atw(n)
 			t.tween_interval((ACT_AT + 2.25) / sp)
 			t.tween_property(n, "modulate:a", 0.0, 1.0 / sp)
 			t.tween_interval(2.0 / sp)
@@ -3441,6 +3887,22 @@ static func _screen_center(host: CanvasItem) -> Vector2:
 	return host.get_global_transform_with_canvas().affine_inverse() * (vis * 0.5)
 
 
+## Cocos `CCEaseIn(action, rate)` = `t^rate` 로 **상대 이동**한다.
+## ⚠️ rate < 1 이면 초반이 급가속이다(`t^0.3` 은 t=0.1 에서 벌써 0.50) — Godot 내장
+##    `TRANS_*` 곡선으로는 근사가 안 맞아(QUAD/EASE_OUT 은 0.19) 직접 푼다.
+##    시작점은 `_arc` 와 같이 **그 단계가 시작될 때** 읽는다.
+static func _ease_in_by(t: Tween, n: Node2D, delta: Vector2, sec: float, rate: float) -> void:
+	var from := [Vector2.ZERO, false]
+	t.tween_method(func(x: float) -> void:
+		if not is_instance_valid(n):
+			return
+		if not bool(from[1]):
+			from[0] = n.position
+			from[1] = true
+		n.position = (from[0] as Vector2) + delta * pow(x, rate),
+		0.0, 1.0, maxf(0.01, sec))
+
+
 ## 포물선 이동 한 구간(원작 `CCJumpTo` 한 번에 대응).
 static func _arc(t: Tween, n: Node2D, to: Vector2, h: float, sec: float) -> void:
 	var from := [Vector2.ZERO, false]              # 시작점은 그 단계 시작 시점에 읽는다
@@ -3488,8 +3950,9 @@ static func _run_fallback(host: CanvasItem, el: String, at: Vector2,
 
 # ── 공용 헬퍼 ───────────────────────────────────────────────────────────────
 ## `<fmt>` 의 번호를 lo..hi 로 갈아 끼우며 프레임을 돌린다. 끝나면 free(옵션).
+## `loop = true` 면 원작 `CCRepeatForever(CCAnimate)` 처럼 `lo` 로 되감는다(늪 marsh1~3).
 static func _play_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
-		sec: float, free_at_end := false) -> void:
+		sec: float, free_at_end := false, loop := false) -> void:
 	# 🔴 2026-08-06 — `n` 을 지역 int 로 두면 **프레임이 안 넘어간다.** GDScript 람다는
 	#   지역 변수를 **값으로 캡처**하고 그 캡처는 호출마다 다시 바인딩되므로, 람다 안의
 	#   `n += 1` 은 호출이 끝나면 사라진다 ⇒ 매번 `lo` 프레임만 그린다(9속성 공통 증상:
@@ -3504,11 +3967,14 @@ static func _play_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 		if not is_instance_valid(spr):
 			return
 		if n[0] > hi:
-			if free_at_end:
+			if loop:
+				n[0] = lo
+			elif free_at_end:
 				spr.queue_free()
+				return
 			else:
 				t.stop()
-			return
+				return
 		_set_frame(spr, el, fmt % n[0])
 		n[0] += 1)
 

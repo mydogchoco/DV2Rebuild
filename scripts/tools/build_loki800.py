@@ -47,13 +47,19 @@ DID = 800
 # `transcended` → **`aura`** 는 우리 신규 단계키다. 원작 DV2 는 오라성체가 성체와 같은 그림이라
 # 단계키가 없다(`growth.gd` 주석). 로키는 드빌1에 전용 아트가 있어 쓴다 — 🟦 사용자 확정
 # 2026-08-04. 다른 372종은 `dragons.json` 의 `aura_art` 플래그가 꺼져 있어 영향받지 않는다.
+#
+# 4번째 열 = **씬 루트 배율**(`spine_export.export(root_scale=)`). 성장 단계(`3607/`)는 DV2
+# 드래곤과 저작 단위가 비슷해 1.0 이지만, **각성체 `288` 만 다른 축에서 저작돼 과도하게 크다** —
+# 포팅 카드 §1 실측 스켈레톤 w×h 가 `288` **859×798** 대 `adult` 247×289 · `transcended`
+# 362×390 으로 3배 넘게 벌어진다. 🟦 사용자 확정 2026-08-05: **원본의 42%** 로 줄인다
+# (35% → 38.5% → 42% 로 게임 창에서 눈으로 보며 확정. → 약 361×335 로 성체·오라성체 사이).
 SPINES = [
-    ("child1",      "3607", "baby"),
-    ("child2",      "3607", "child"),
-    ("adult",       "3607", "adult"),
-    ("transcended", "3607", "aura"),
-    ("288",         "",     "e"),
-    ("advent",      "3607", "advent"),
+    ("child1",      "3607", "baby",   1.0),
+    ("child2",      "3607", "child",  1.0),
+    ("adult",       "3607", "adult",  1.0),
+    ("transcended", "3607", "aura",   1.0),
+    ("288",         "",     "e",      0.42),
+    ("advent",      "3607", "advent", 1.0),
 ]
 # `advent`(강림) 은 사용자 최초 매핑(알·해치·해츨링·성체·오라성체·각성)에 없었지만
 # `계획 및 아이디어.txt:2` 가 "로키·크툴루는 듭1 에셋에서 **레이드용 일러**를 사용하자" 라고
@@ -133,15 +139,16 @@ def cut_plist_frame(page: Image.Image, fr: dict) -> Image.Image:
 # ═══════════════════════════════════════════════════════════════════════════════
 def build_spines() -> None:
     outdir = os.path.join(OUT, "dragon_%d" % DID)
-    for stem, folder, stage in SPINES:
+    for stem, folder, stage, rscale in SPINES:
         base = os.path.join(SRC, folder, stem) if folder else os.path.join(SRC, stem)
         sj, at = base + ".json", base + ".atlas"
         if not (os.path.exists(sj) and os.path.exists(at)):
             print("  [skip] 원본 없음:", sj)
             continue
-        print("[spine] %s -> %s" % (stem, stage))
+        print("[spine] %s -> %s (x%.2f)" % (stem, stage, rscale))
         spine_export.export(DID, stage, "all", sj_path=sj, atlas_paths=[at], outdir=outdir,
-                            region_basename=True, premultiply=True, anim_map=ANIM_MAP)
+                            region_basename=True, premultiply=True, anim_map=ANIM_MAP,
+                            root_scale=rscale)
 
 
 def build_portrait() -> None:
