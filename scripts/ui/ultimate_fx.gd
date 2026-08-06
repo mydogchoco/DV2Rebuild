@@ -626,9 +626,16 @@ static func _run_fire(host: CanvasItem, at: Vector2, ring_at: Vector2, s: float,
 	#    디컴프의 비교 방향이 흐려 두 실측을 각자 따른다.)
 	dir = -dir
 	var ed := elem_delay("fire")        # `this+0x228` — 폭발 계열에만 붙는다
-	# 원작 k = 시전자 몸통(tag 1)의 scaleX 부호 = **바라보는 방향**. 우리 쪽에서는 시전자
-	# (ring_at)에서 폭발 진영(at)으로 향하는 부호가 같은 값이다.
+	# 원작 k = 시전자 몸통(tag 1)의 scaleX 부호. 우리 쪽에서는 시전자(ring_at)에서 폭발
+	# 진영(at)으로 향하는 부호로 잡는다 — 불덩이가 시전자 **앞쪽**에 뜬다(영상 실측).
 	var k := 1.0 if at.x >= ring_at.x else -1.0
+	# 🔵 2026-08-06 — 스프라이트 좌우 반전은 **k 의 반대**다. `fire_fireball1~4` 는 머리(밝은
+	#   덩어리)가 왼쪽 아래, 꼬리가 오른쪽 위로 그려져 있어 **왼쪽 아래로 날아가는 그림**이다
+	#   (프레임 4장 전수 확인). 원작도 진영 스프라이트를 뒤집어 쓰므로(우리 `_build_side` 의
+	#   `mine → scale.x < 0` 과 같은 규약) 왼쪽 진영 시전자에게는 반전이 걸린다.
+	#   ⚠️ 뿌리는 방향(k)과 반전(flip)이 반대 부호인 건 `dir = -dir`(위)과 같은 계열의
+	#     변환본 규약 차이다 — 한쪽 부호만 바꾸면 다른 쪽이 틀어지니 둘을 따로 둔다.
+	var flip := -k
 	var cw := caster_w if caster_w > 1.0 else FB_CASTER_W
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -645,7 +652,7 @@ static func _run_fire(host: CanvasItem, at: Vector2, ring_at: Vector2, s: float,
 		var from := ring_at + Vector2(k * (-0.5 * cw + float(rng.randi() % FB_SPREAD)),
 			-(FB_UP_MIN + float(rng.randi() % FB_UP_RAND)))
 		_fire_ball(host, pfx, from, pos, z, (ed + float(FIRE_DELAYS[i]) - FB_LEAD) / sp,
-			k, s, sp, alive)
+			flip, s, sp, alive)
 
 	# 링 자리 먼지 3방 — `runFire_C` 의 `MakeInterface::setDust`(공통 지연 없음).
 	# 원작이 넘기는 좌표 = **링 노드(tag 9000)의 위치 + (0,80)**. 링은 base − (0,S*87.5)(cocos)
@@ -669,8 +676,10 @@ static func _run_fire(host: CanvasItem, at: Vector2, ring_at: Vector2, s: float,
 ##
 ## 시전자 머리 위에서 `scale 0` 으로 대기하다가, 폭발 0.5초 전에 팝업(×1.25 → ×1)하고
 ## 살짝 밀린 뒤 **0.1초 만에 폭발 지점으로 내리꽂히며** 사라진다 = 도착 = 폭발.
+## `flip` = 스프라이트 좌우 부호(±1). 프레임이 왼쪽 아래로 날아가게 그려져 있어
+## 오른쪽으로 날 때 −1 이다 — 호출부(`_run_fire`)의 주석 참조.
 static func _fire_ball(host: CanvasItem, pfx: String, from: Vector2, to: Vector2,
-		z: int, delay: float, k: float, s: float, sp: float, alive: Callable) -> void:
+		z: int, delay: float, flip: float, s: float, sp: float, alive: Callable) -> void:
 	var n := _spr("fire", pfx + "fireball1")
 	if n == null:
 		return
@@ -689,8 +698,8 @@ static func _fire_ball(host: CanvasItem, pfx: String, from: Vector2, to: Vector2
 			n.queue_free()
 			return
 		_loop_frames(n, "fire", pfx + "fireball%d", 1, 4, FB_FRAME_SEC / sp))
-	t.tween_property(n, "scale", Vector2(k * s * FB_POP_MUL, s * FB_POP_MUL), FB_POP_SEC / sp)
-	t.tween_property(n, "scale", Vector2(k * s, s), FB_POP_SEC / sp)
+	t.tween_property(n, "scale", Vector2(flip * s * FB_POP_MUL, s * FB_POP_MUL), FB_POP_SEC / sp)
+	t.tween_property(n, "scale", Vector2(flip * s, s), FB_POP_SEC / sp)
 	t.tween_property(n, "position", drift, FB_DRIFT_SEC / sp).as_relative()
 	# 낙하와 소멸은 원작이 `CCSpawn` 으로 겹친다 — 소멸만 0.05초 늦게 시작한다.
 	t.tween_callback(func() -> void:
