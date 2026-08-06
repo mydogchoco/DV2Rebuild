@@ -14,6 +14,23 @@
 /image.png.import
 /*.txt
 
+# 검수용 몽타주(QA 산출물) — 원본이 아니라 아이콘을 격자로 붙인 그림이고, 코드가 참조하지
+# 않는다. monster_sheets · skills_sheet 와 같은 정책: 그림은 빼고 만드는 도구만 추적한다.
+#   재생성: godot --path . --script res://scripts/tools/montage.gd -- <out.png> <scene...>
+/equip_icon_montage.png
+/equip_icon_montage.png.import
+/soul_gem_montage.png
+/soul_gem_montage.png.import
+# 원작 캡처 영상(저작권) — old_screenshots 와 같은 정책. 로컬 대조용으로만 둔다.
+/*.mp4
+# 세션 중 만든 일회성 분석 덤프·리다이렉션 사고 파일. 코드가 읽지 않는다.
+/.item_hits.json
+/.item_src.json
+/1
+# `_tmp_` 접두사 = 스스로 "검수 끝나면 지운다"고 적어 둔 일회용 검수 창.
+/scenes/_tmp_*
+/scripts/tools/_tmp_*
+
 # Godot import cache / exports
 .godot/
 /export/
@@ -28,6 +45,14 @@
 # 폴더 자리만 .gitkeep 으로 올려 둔다 — 클론한 뒤 여기에 원본 에셋을 넣으면 된다.
 /DV2/*
 !/DV2/.gitkeep
+# `.gdignore`(0바이트 마커) 는 **반드시 함께 올린다.** 이게 없으면 클론본에 원본 에셋을 넣는
+# 순간 Godot 이 DV2/ 트리 전체(아틀라스·plist·ccz 수만 개)를 임포트하려 든다.
+!/DV2/.gdignore
+# 예외: DV2/ORIGINAL/ 는 원작 아틀라스 덤프가 아니라 **외부 반입 원본**이다(🟦 사용자 확정 2026-08-07).
+#   WildSP/  = 선대군 원화(오리지널 캐릭터, 자작)  → build_sundaegun_npc.py 의 유일한 원본
+#   Loki/    = 도감 800 로키 스켈레톤·아이콘·이펙트 → build_loki800.py 의 유일한 원본
+# 둘 다 다른 곳에서 재생성할 수 없고, 없으면 그 두 빌더가 못 돈다 → 레포에 함께 올린다.
+!/DV2/ORIGINAL/
 
 # 원작 UI 비트맵 폰트(.fnt/.png) — 원작 자산이므로 공개 레포에 두지 않는다(사용자 확정 2026-07-30).
 # 로컬에는 그대로 있고 build_fonts.py 가 이것을 원본으로 삼는다. 클론본은 원작 에셋과 함께 준비해야 한다.
@@ -71,6 +96,10 @@ Dragon+Village+2.xapk
 # Python
 __pycache__/
 *.pyc
+
+# Windows 탐색기 폴더 메타데이터
+desktop.ini
+Thumbs.db
 
 # Claude Code local harness settings
 /.claude/
