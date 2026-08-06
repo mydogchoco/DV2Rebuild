@@ -35,14 +35,17 @@ const ROUNDED_ALPHA := 102.0 / 255.0
 ##   이미 들어갈 수 있어 잃는 게 없다.
 const BAR_MENU := [
 	["미션", "quests"],        # 원작 tag 0x11 MissionLayer      (레퍼런스 칸: 미션)
-	["도감", "dex"],           # 원작 tag 0x26 WorldDragonBookLayer (레퍼런스 칸: 길드=컷)
+	# 🟦 2026-08-06 — 이 칸을 도감 → 점술집으로 교체(사용자 지시).
+	# 도감은 **동굴 오른쪽 벽 아이콘**(`cave.gd:1699` 사진/도감/카드/가방)으로 계속 들어갈 수
+	# 있어 잃는 게 없다 — 칭호를 뺐을 때와 같은 근거다.
+	["점술집", "magicshop"],   # 원작 MagicShopScene              (레퍼런스 칸: 길드=컷)
 	["가방", "bag"],           # 원작 BagPopup                    (레퍼런스 칸: 경매장=컷)
 	["상점", "shop"],          # 원작 tag 0x16 ShopScene          (레퍼런스 칸: 상점)
 	# 원작 메인 메뉴의 '육성'은 `PromoteScene::scene(0)` 으로 간다(WorldMapScene.c:10813·12448).
 	["육성", "promote"],       # 원작 PromoteScene                (레퍼런스 칸: 육성)
 	["연구소", "laboratory"],  # 원작 LaboratoryScene             (레퍼런스 칸: 던전)
 	# 🟦 2026-08-04 — 콜로세움이 솔로로 되살아나면서 원작 '대전' 칸을 되돌려 줬다.
-	# 그 자리에 있던 점술집은 **엘피스 마을에서 계속 들어갈 수 있다**(town.gd:1018) → 잃는 것 없음.
+	# (그때 밀려났던 점술집은 2026-08-06 위 도감 자리로 돌아왔다.)
 	["콜로세움", "colosseum"], # 원작 tag 0x1c84 ColosseumScene    (레퍼런스 칸: 대전)
 	["월드맵", "overview"],    # 원작 tag 0x12 WorldMapFullLayer  (레퍼런스 칸: 기타)
 ]
