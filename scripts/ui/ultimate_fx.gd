@@ -75,7 +75,10 @@ const ELEMENT_DELAY := {
 ## 위 표를 실제로 적용한 속성. 나머지 8속성의 `run<El>` 은 이 항을 모르는 채 **영상에 맞춰**
 ## 시간을 조정해 둔 곳이 섞여 있어(예: wind 장막 "영상 실측 run+5.5") 일괄로 더하면 맞아 있던
 ## 정합이 깨진다. 속성별로 영상 재대조를 마칠 때마다 여기 이름을 추가한다.
-const ELEMENT_DELAY_ON := ["fire"]
+## 2026-08-06 빛 추가 — 영상 실측이 이 항을 세 곳에서 **오차 없이** 확인했다(앵커 = 링 폭발
+## `run+0.65` v39.537 · 백색 섬광① `run+1.4+0.5` v40.467 ⇒ 두 간격 실측 1.2555 = 예측 1.25):
+##   백색 섬광① 4.15 · 별 무리 B 5.90 · 백색 섬광② 9.25 — 셋 다 종전 우리보다 **정확히 1.40** 일렀다.
+const ELEMENT_DELAY_ON := ["fire", "aqua", "light", "wind"]
 
 ## `run<El>` 액션에 붙는 공통 지연(초). `run<El>_C` 계열에는 쓰지 않는다.
 static func elem_delay(el: String) -> float:
@@ -110,16 +113,32 @@ const VEIL := {
 	"fire":   [["wait", 6.5], ["fade", 0.25, 0.0]],
 	"holy":   [["wait", 6.75], ["fade", 0.25, 0.0]],
 	"light":  [["wait", 6.75], ["fade", 0.25, 0.0]],   # ASSUMPTION(위 주석)
-	"wind":   [["wait", 5.0], ["fade", 0.5, 0.0]],     # 영상 실측 — run+5.5쯤 걷힌다(+35.5s)
+	# 🔴 2026-08-06 재실측 — 종전 `run+5.5` 는 정렬 기준이 0.4초 어긋난 값이었다. 바람 구간
+	#   (영상 28.30~37.63초, 장면 컷 실측)에서 배경이 돌아오는 구간은 seg +6.90~+7.10 이고,
+	#   `run+0 ↔ seg +2.12`(바닥 링 실측 앵커) · 배속 1.35 로 환산하면 **run+6.45 부터 0.27초**다.
+	#   회오리 본체가 끝나는 시각(`runWind` 1.4+5.15+0.1 = 6.65)과 맞물린다.
+	#   ⚠️ 이 표는 `elem_delay` 가 앞에 붙으므로(위 `_master_veil`) 여기 값은 **1.4 를 뺀 것**이다.
+	"wind":   [["wait", 5.05], ["fade", 0.27, 0.0]],   # +1.4 = run+6.45 (영상 실측)
 	"shadow": [["tint", 0.2, Color8(0, 185, 205)], ["wait", 0.2], ["tint", 1.0, Color8(0, 70, 80)],
 		["wait", 2.0], ["tint", 0.2, Color8(255, 255, 255)], ["wait", 0.2], ["fade", 0.5, 0.0]],
 }
 
 ## z 규약(2026-08-05 실측 교정) — 원작은 장막(z0) < UltimateLayer(z7) 라 **연출 전체가 장막
 ## 위**에서 밝게 탄다. 종전엔 장막 z84 가 불기둥(z 5~102)을 덮어 캐스케이드가 어둡게 깔렸다.
-##   장막 80 < 합체 문양 85 < 링 89~96 < 속성 안무 90~ < 백색 섬광 250
-const Z_VEIL := 80
+##   장막 0 < 드래곤 10 < 합체 문양 85 < 링 89~96 < 속성 안무 90~ < 백색 섬광 250
+##
+## 🔴 2026-08-06 장막 z 정정(물 프레임 대조) — `setElement` @00fdf48c 은 장막을
+##   **`this->getParent()->addChild(veil, 0, 0x60044)`** 로 붙인다. z **0** = 드래곤보다 **뒤**다.
+##   그래서 원작 암전 프레임(영상 12.55s)은 배경만 캄캄하고 두 드래곤은 원색 그대로다.
+##   우리는 80 이라 드래곤까지 같이 어두워지고 있었다(9속성 공통 증상).
+const Z_ACTOR := 10                        # `fight.gd` 드래곤 holder z(원작 addChild(spine, 10))
+const Z_VEIL := 0
 const Z_FLASH := 250
+## wind 전용 — 🔴 2026-08-06 프레임 대조로 순서를 뒤집었다. 종전 회오리 z=99 는 **링·잎·소를
+##   전부 덮는** 자리였는데, 원작 화면에서는 룬 링·잎·소가 회오리 줄기 **위**에 그려진다.
+const Z_WIND_WHIRL := 81                   # 합체 문양(85)·링(89~)보다 뒤
+const Z_WIND_DEBRIS := 96
+const Z_WIND_ZMOON := 99
 
 static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
 	var r := _screen_veil(host, at, Color(0, 0, 0), Z_VEIL)
@@ -155,7 +174,8 @@ const SFX := {
 	# fire 의 `effect_fire_fillar` 는 여기(고정 시각)가 아니라 **기둥마다** 낸다(`_fire_burst`).
 	# `effect_fire2` 는 백색 섬광과 같은 박자다 = `0x228(1.0) + 4.25`(위 ELEMENT_DELAY).
 	"fire":   [[RUN_AT, "effect_fire1"], [RUN_AT + 5.25, "effect_fire2"]],
-	"aqua":   [[RUN_AT, "effect_aqua1"], [RUN_AT + 5.0, "effect_aqua2"]],
+	# aqua 도 `0x228`(=1.25) 을 앞에 얹는다 — 1 = 물 차오름, 2 = 상어 돌진(`0x228 + 5.0`).
+	"aqua":   [[RUN_AT + 1.25, "effect_aqua1"], [RUN_AT + 6.25, "effect_aqua2"]],
 	"earth":  [[RUN_AT, "effect_earth1"], [RUN_AT + 2.0, "effect_earth2"]],
 	"wind":   [[RUN_AT, "effect_wind"]],
 	"light":  [[RUN_AT, "effect_light"]],
@@ -229,6 +249,19 @@ const FIRE_DIM := 100.0 / 255.0
 # shadow 전용(runShadow_C)
 const SHADOW_LEAD := 0.5
 const SHADOW_HOLD := 0.5
+
+## 바닥 링이 깔리는 시각(시전 0초 기준). 기본은 `run<El>` 과 같은 `RUN_AT`.
+## 🔴 2026-08-06 — **혼돈만 `LEAD`(1.0)** 다. 영상 실측(T0 = 66.53s · timeScale 1.35):
+##   흰 원 67.27 = 명목 **1.00** → 붉은 원 67.47 = 1.27 → 1.8 에 퍼지며 소멸.
+##   불은 종전대로 `RUN_AT` 이 맞다(포팅 카드 실측 "링 영상 2.20s" = 명목 2.72).
+##   나머지 7속성은 아직 이 축으로 재대조하지 않았다 — 확인할 때마다 여기 한 줄로 적는다.
+const RING_AT := {"chaos": LEAD}
+## 링 버스트 배율 상한 — 기본은 원작 리터럴 `RING_BURST_MUL`(×10).
+## 혼돈만 영상(67.73s)에서 발밑 타원이 두 배 남짓만 퍼진다 ⇒ ×10 이면 화면이 통째로 붉어진다.
+const RING_BURST_CAP := {"chaos": 2.5}
+
+static func ring_at_sec(el: String) -> float:
+	return float(RING_AT.get(el, RUN_AT))
 
 # ── §5-fire 20단 폭발 캐스케이드 — `initFire` + `runFire` 실측 ──────────────
 ## 폭발 지점 20곳. 원작은 `this+0x2d8`~`0x370` 에 박아 둔다.
@@ -393,13 +426,12 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		if not is_instance_valid(host) or not host.is_inside_tree():
 			return
 		_combine_outline(host, el, at, sp)
-		_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		match el:
 			"fire":   _run_fire(host, at, ring_at, s, dir, sp, mat, alive, caster_w)
 			"earth":  _run_earth(host, at, dir, sp, rng)
-			"aqua":   _run_aqua(host, at, dir, sp, rng)
+			"aqua":   _run_aqua(host, at, ring_at, dir, sp, rng)
 			"wind":   _run_wind(host, at, dir, sp, rng)
 			"dark":   _run_dark(host, at, dir, sp, rng)
 			"light":  _run_light(host, at, dir, sp, rng)
@@ -413,6 +445,20 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	start.autostart = true
 	start.timeout.connect(run_body)
 	host.add_child(start)
+
+	# 바닥 링(`run<El>_C`)만 따로 건다 — 속성마다 시각이 다르다(§RING_AT).
+	var ring_body := func() -> void:
+		if alive.is_valid() and not bool(alive.call()):
+			return
+		if not is_instance_valid(host) or not host.is_inside_tree():
+			return
+		_build_ring(host, el, ring_at, s, sp, mat)   # 바닥 링만 시전자 발밑
+	var rt := Timer.new()
+	rt.one_shot = true
+	rt.wait_time = maxf(0.01, ring_at_sec(el) / sp)
+	rt.autostart = true
+	rt.timeout.connect(ring_body)
+	host.add_child(rt)
 	return float(DURATION.get(el, 9.0)) / sp
 
 
@@ -579,10 +625,13 @@ static func _anim_ring_base(n: Node2D, el: String, s: float, sp: float) -> void:
 		_:
 			# 공통: 떠올랐다가 **10배로 퍼지며** 사라지는 충격파.
 			# (시작 배율이 이미 S+0.25 라 여기서는 ×10 만 곱한다 = 원작 ScaleTo((S+0.25)*10))
+			# ⚠️ 혼돈만 ×10 이 화면을 통째로 붉게 덮는다 — 영상(67.73s)에서는 발밑 타원이
+			#   두 배 남짓 퍼지고 흐려질 뿐이다. 속성별 상한을 둔다(§RING_BURST_CAP).
 			t.tween_interval(RING_LEAD / sp)
 			t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
 			t.tween_interval(RING_HOLD / sp)
-			t.tween_property(n, "scale", n.scale * RING_BURST_MUL, RING_BURST / sp)
+			t.tween_property(n, "scale",
+				n.scale * float(RING_BURST_CAP.get(el, RING_BURST_MUL)), RING_BURST / sp)
 			t.parallel().tween_property(n, "modulate:a", 25.0 / 255.0, RING_DIM / sp)
 			t.tween_property(n, "modulate:a", 0.0, RING_OUT / sp)
 	t.tween_callback(n.queue_free)
@@ -595,6 +644,14 @@ static func _anim_ring_sib(n: Node2D, el: String, sp: float, idx: int) -> void:
 		t.tween_interval(1.05 / sp)
 		t.tween_property(n, "modulate:a", 1.0, 4.25 / sp)
 		t.tween_property(n, "modulate:a", 0.0, 0.25 / sp)
+	elif el == "chaos":
+		# 🔴 2026-08-06 — 혼돈은 **흰 원(circle3)이 먼저** 터지고 그 다음에 붉은 원(base)이
+		#   앉는다(영상 67.27 흰 → 67.33 확장 → 67.40 소멸 → 67.47 붉은). 종전의 공통
+		#   `SIB_LEAD 0.4` 는 순서를 거꾸로 만들고 있었다. 링 자체도 `LEAD` 로 당겼다(§RING_AT).
+		t.tween_interval(0.05 * float(idx) / sp)
+		t.tween_property(n, "modulate:a", 1.0, 0.1 / sp)
+		t.tween_property(n, "scale", n.scale * 6.0, 0.15 / sp)
+		t.parallel().tween_property(n, "modulate:a", 0.0, 0.15 / sp)
 	elif el == "shadow":
 		t.tween_interval((1.5 + 0.25 * float(idx)) / sp)
 		t.tween_property(n, "modulate:a", 1.0, RING_FADE_IN / sp)
@@ -723,7 +780,7 @@ static func _ring_dust(host: CanvasItem, at: Vector2, delay: float, s: float,
 	var b1: Vector2 = d1.scale                 # 홀더 기본 배율 — 원작 setScale 은 **절대값**이다
 	# cocos `pos + (0, −80*S)` = 아래로. Godot 은 y 가 아래로 자라므로 부호를 뒤집는다.
 	d1.position = at + Vector2(0.0, DUST_UP * s)
-	d1.z_index = Z_VEIL + 12                   # 장막 위, 링(89~96)보다 앞
+	d1.z_index = 92                            # 링(89~96) 사이 — 장막 z 와 무관한 절대값
 	d1.scale = b1 * 0.2
 	d1.visible = false
 	host.add_child(d1)
@@ -948,11 +1005,25 @@ const COMBINE_SCALE := 2.25        # setScaleX(0x40100000)
 const COMBINE_SCALE_Y := 0.375     # setScaleY(0x3ec00000)
 const COMBINE_SPIN_SEC := 4.5
 const COMBINE_SPIN_DEG := 720.0
+## 속성 외곽선(0x18831)의 `Delay(0.25) → FadeTo(0.75,200) → Delay(<hold>) → FadeTo(<out>, 0)`.
+## 🔴 2026-08-06 — 종전 3.5/0.5 는 `initDark` 를 읽고 4속성에 공통으로 쓴 값이었다.
+##   `runWind` 실측은 **4.15 / 0.1** 이라 링이 원작보다 1.15초 일찍 걷혔다. 속성별로 가른다.
+##   (dark·chaos·shadow 는 재대조 전까지 종전 값 유지 — 근거를 확인하면 여기 추가한다.)
+const COMBINE_HOLD := {"wind": 4.15}
+const COMBINE_OUT := {"wind": 0.1}
+const COMBINE_HOLD_DEF := 3.5
+const COMBINE_OUT_DEF := 0.5
+## `RotateBy(<초>, 720°)` — dark 는 4.5(`initDark`), wind 는 **5.25**(`runWind` 실측).
+const COMBINE_SPIN := {"wind": 5.25}
 
 static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: float) -> void:
 	var c: Dictionary = COMBINE.get(el, {})
 	if c.is_empty():
 		return
+	# `run<El>` 액션이라 속성 공통 지연(`this+0x228`)이 앞에 붙는다 — 바닥 링(`run<El>_C`)과 달리.
+	var ed := elem_delay(el)
+	var hold := float(COMBINE_HOLD.get(el, COMBINE_HOLD_DEF))
+	var out := float(COMBINE_OUT.get(el, COMBINE_OUT_DEF))
 	# 컨테이너 = 원작 `CCLayerColor`(tag 0x1d650). 눌린 배율만 갖고 **회전하지 않는다**.
 	var holder := Node2D.new()
 	holder.position = at
@@ -966,6 +1037,7 @@ static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: floa
 		w.scale = Vector2.ZERO
 		holder.add_child(w)
 		var wt := w.create_tween()
+		wt.tween_interval(maxf(0.01, ed) / sp)
 		wt.tween_property(w, "scale", Vector2.ONE, 0.25 / sp).set_ease(Tween.EASE_IN)
 		wt.tween_property(w, "modulate:a", 0.0, 0.75 / sp)
 		wt.tween_callback(w.queue_free)
@@ -976,10 +1048,10 @@ static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: floa
 		o.modulate.a = 0.0
 		holder.add_child(o)
 		var ot := o.create_tween()
-		ot.tween_interval(0.25 / sp)
+		ot.tween_interval((ed + 0.25) / sp)
 		ot.tween_property(o, "modulate:a", 200.0 / 255.0, 0.75 / sp)
-		ot.tween_interval(3.5 / sp)
-		ot.tween_property(o, "modulate:a", 0.0, 0.5 / sp)
+		ot.tween_interval(hold / sp)
+		ot.tween_property(o, "modulate:a", 0.0, out / sp)
 	if holder.get_child_count() == 0:
 		holder.queue_free()
 		return
@@ -987,15 +1059,18 @@ static func _combine_outline(host: CanvasItem, el: String, at: Vector2, sp: floa
 	# ⚠️ 원작 인자는 `CCEaseInOut(RotateBy(4.5, 720°), −0.25)` 인데 **rate 가 음수**다.
 	#    Cocos 식(`0.5·t^rate`)에 넣으면 t→0 에서 발산해 첫 프레임이 720°를 몇 바퀴 넘겨 버린다
 	#    ⇒ 그대로 쓸 수 없다. 회전량·시간은 실측 그대로 두고 곡선만 통상 sine in/out 으로 둔다.
+	var spin := float(COMBINE_SPIN.get(el, COMBINE_SPIN_SEC))
 	for ch in holder.get_children():
 		var n2 := ch as Node2D
 		var st: Tween = n2.create_tween()
-		st.tween_property(n2, "rotation_degrees", COMBINE_SPIN_DEG, COMBINE_SPIN_SEC / sp)\
+		st.tween_interval(maxf(0.01, ed) / sp)
+		st.tween_property(n2, "rotation_degrees", COMBINE_SPIN_DEG, spin / sp)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	# 정리는 **holder 에 매인 트윈**으로 — SceneTreeTimer 는 holder 보다 오래 살아
 	# 씬이 먼저 사라지면 "Lambda capture was freed" 경고를 낸다.
+	# 수명 = 회전이 끝나는 시각과 알파 시퀀스가 끝나는 시각 중 **늦은 쪽**(원작은 둘이 한 Spawn).
 	var ht: Tween = holder.create_tween()
-	ht.tween_interval((COMBINE_SPIN_SEC + 1.0) / sp)
+	ht.tween_interval((ed + maxf(spin, 0.25 + 0.75 + hold + out) + 0.1) / sp)
 	ht.tween_callback(holder.queue_free)
 
 
@@ -1189,253 +1264,406 @@ static func _run_earth(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		t5.tween_callback(du.queue_free)
 
 
-# ── aqua (11.0초) — 화면이 물빛으로 물들고 상어가 지나간다 ────────────────────
-## 원작 `runAqua`: 물빛 색조는 **마스터 장막**(`_master_veil` 의 `VEIL.aqua`)이 낸다.
-## 상어(tag 0x18830) = RepeatForever(애니) + JumpTo(0.25, …, 75) → MoveBy(0.5) →
-##     JumpTo(0.25, …, 50) → Delay(5.25) → FadeTo(0.5, 0)
-## 거품 **49개** · 물고기 5종 · 수면(0x18835)은 Delay(6.25) → FadeTo(0.5, 0).
-const AQUA_TINT2 := Color(25.0 / 255.0, 60.0 / 255.0, 125.0 / 255.0)
+# ── aqua (11.0초) — 물이 차오르고 물고기 떼가 훑은 뒤 상어가 물고 간다 ────────
+#
+# 🔵 2026-08-06 영상 프레임 재대조로 전면 재작성. 원작 구성(`initAqua` @00fdf62c ·
+#   `runAqua` @00fe80ec, 시퀀스 = `docs/ref/design/ultimate_layer_sequences.md` L1586~):
+#
+#   · 수면 `aqua_surface1`(tag 0x18830) — `parent->addChild(surf, this->getZOrder()+1)` =
+#     **드래곤보다 앞**. `setOpacity(100)`. 그 **자식**으로 물몸 `CCLayerColor`(tag 0x18835,
+#     색 리터럴 `3.7778792e+22` → **RGBA(194,255,255,100)**, 앵커 (0.5,1))가 매달려
+#     수면 아래를 채운다. 둘 다 39% 반투명이라 바닥돌·드래곤이 비친다.
+#     상승 = `Delay(0x228) → JumpTo(.25,+75) → MoveBy(.5) → JumpTo(.25,+50)` = run+1.25~+2.25
+#     **두 번 튀어오르는 궤적**. 소거 = `Delay(0x228) → Delay(6.25) → FadeTo(.5, 0)` = run+7.5.
+#   · 거품 `aqua_bubble` **49개**(루프 상한 0x31) — pos = (rand % 화면폭, 0), scale (rand%5)×0.25.
+#   · 물고기 — `switch(rand() % 5)` 로 `aqua_fish1~5` 중 하나를 골라 **40마리**(루프가
+#     `iVar4 == 0x28` 에서 종료, tag 0x1883a + i). setScale (rand%6)×0.1+0.5 = 0.5~1.0.
+#     이동 = `Delay(0x228) → Delay(f+2.5) → MoveTo((i%4)*.1+.1) → MoveBy(.75) → MoveBy(.75)
+#     → MoveBy(.15) → MoveTo(.05)` = run+3.75 부터 ~1.85초에 걸쳐 화면을 훑고 지나간다.
+#   · 상어 `aqua_shark1`(tag 0x18893) — 배치노드 **z 0**(= 드래곤 뒤. 영상 16.83s 에서
+#     피격 드래곤이 이빨 사이에 또렷하다). scale 1.75 · scaleX = dir×1.75 · rotation dir×15° ·
+#     pos = 화면중앙 + (dir×(중앙x + 상어폭×1.5), **−80**).
+#     `Delay(0x228) → Delay(5.0)` = run+6.25 에 출발해 1.5초 만에 물고 지나간다.
+#
+# ⚠️ MoveTo 목적지는 스택 소실이라 **영상에서 잰다**(아래 AQUA_BITE_* 참조).
 const AQUA_BUBBLES := 49        # 원작 루프 상한 0x31
-const AQUA_SHARK_S := 1.75      # 원작 setScaleX/Y(1.75)
+const AQUA_FISH := 40           # 원작 루프 상한 0x28
+const AQUA_SHARK_S := 1.75      # 원작 setScale/setScaleX(1.75)
+const AQUA_WATER := Color8(194, 255, 255, 100)   # 원작 CCLayerColor 리터럴(색·알파 모두)
+const AQUA_SURF_A := 100.0 / 255.0               # 원작 수면 setOpacity(100)
+## 아래 시각은 전부 **`0x228` 뒤**의 값이다(`ed` 를 따로 더한다) — 표와 코드가 어긋나지 않게
+## 원작 시퀀스의 `CCDelayTime` 리터럴을 그대로 적는다.
+const AQUA_FADE_AT := 6.25      # 수면·물몸 `Delay(6.25) → FadeTo(0.5, 0)`
+const AQUA_FISH_AT := 2.5       # `Delay(f + 2.5)` — f 는 개체별(스택 소실) → 아래에서 균등 분산
+const AQUA_SHARK_AT := 5.0      # `Delay(5.0)`
+## 상어 돌진 종점 — 영상 16.83s 프레임에서 실측했다(붉은 눈 표식을 자산 좌표와 정합).
+## 스프라이트 중심이 **피격 지점에서 상어 반폭만큼 뒤 · 화면 중앙보다 66pt 위**에 온다
+## (= 머리 끝이 피격 지점에 닿는다). 배율 정합은 `ASSET_SCALE × 1.75` 로 프레임과 일치 확인.
+const AQUA_BITE_UP := 66.0
 
-static func _run_aqua(host: CanvasItem, at: Vector2, dir: float, sp: float,
+static func _run_aqua(host: CanvasItem, at: Vector2, ring_at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "aqua"
 	var pfx := prefix(el)
+	var ed := elem_delay(el)
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
+	var ctr := _screen_center(host)
+	# 피격자 무대 자리 = 시전자 자리(`ring_at`)의 화면 대칭점. `at`(= `base_at` 의 ±335)은
+	# 안무 기준점이라 무대 선(±ULT_DX)보다 안쪽이다 — 상어 아가리를 여기에 물리면 짧게 멈춘다.
+	var prey_x := 2.0 * ctr.x - ring_at.x
 
-	# 수면 — 원작 `initAqua`: **화면 폭에 맞춰 늘리고 화면 바닥**에 둔다.
-	#   `setOpacity(100)` · `setScaleX(화면폭 / 수면폭)` · pos = VisibleRect::bottom() − (0, 수면높이)
-	#   그 **자식**으로 물빛 `CCLayerColor`(anchor 0.5/1, 수면 폭·화면 높이)를 매달아
-	#   수면 아래를 채운다 ⇒ 물이 차오르는 그림이다(종전엔 화면 전체 틴트였다).
-	var vis0: Vector2 = host.get_viewport().get_visible_rect().size
-	var ctr0 := _screen_center(host)
-	# 수면 — 물결 띠(480×102) + **밑단과 같은 색의 채움**을 자식으로 매단다.
-	# 🔵 2026-08-05 원작 처리 확인: 띠의 아래 3행은 불투명 단색 RGBA(204,255,255) 로 끝나고,
-	#   원작 initAqua 는 그 아래에 CCLayerColor(anchor 0.5/1, 화면 높이)를 자식으로 달아
-	#   경계선 없이 물몸으로 이어지게 했다. 종전의 어색함 두 번은 ① 채움 색이 띠 밑단과 달라
-	#   경계가 보였고 ② 채움을 아예 빼자 띠의 직선 밑단이 드러난 것.
-	var surf := _spr_a(el, pfx + "surface1", Vector2(0.5, 0.5))
-	if surf != null:
-		var sw := 1.0
+	# ── 수면 + 물몸 ─────────────────────────────────────────────────────────
+	# 파도 띠(PMA 스프라이트)와 물몸(ColorRect)은 페이드 방식이 달라(§_fade_pma) **형제**로
+	# 두고 컨테이너를 함께 움직인다. 종전엔 물몸을 띠의 자식으로 매달아 놓고 띠를
+	# `modulate:a` 로 페이드해서 밑단이 흰색으로 타 버렸다.
+	var water := Node2D.new()
+	water.z_index = 85                       # 드래곤(Z_ACTOR) 위 — 원작 getZOrder()+1
+	host.add_child(water)
+	var band := _spr_a(el, pfx + "surface1", Vector2(0.5, 0.5))
+	if band != null:
 		var man0 := manifest(el)
 		var info: Dictionary = man0.get(pfx + "surface1", {})
 		var fw := float(info.get("w", 1.0)) * Design.ASSET_SCALE
 		var fh := float(info.get("src", [480, 102])[1]) * Design.ASSET_SCALE
-		if fw > 1.0:
-			sw = vis0.x / fw
-		surf.scale = Vector2(sw, 1.0)
-		surf.position = Vector2(ctr0.x, ctr0.y + vis0.y * 0.42)   # 바닥 근처에서 시작
-		surf.z_index = 86
-		surf.modulate.a = 0.0
-		host.add_child(surf)
-		var fill := ColorRect.new()               # 띠 밑단 색 그대로 — 이음새가 없다
-		fill.color = Color8(204, 255, 255)
-		fill.size = Vector2(fw, vis0.y * 1.2)
-		fill.position = Vector2(-fw * 0.5, fh * 0.5 - 2.0)
-		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		fill.show_behind_parent = true
-		surf.add_child(fill)
-		_loop_frames(surf, el, pfx + "surface%d", 1, 4, 0.1 / sp, 7.0 / sp)
-		var st := surf.create_tween()
-		st.tween_property(surf, "modulate:a", 100.0 / 255.0, 0.5 / sp)   # 원작 setOpacity(100)
-		st.parallel().tween_property(surf, "position",
-			Vector2(ctr0.x, ctr0.y - vis0.y * 0.28), 1.5 / sp)           # 위로 차오른다
-		st.tween_interval(4.75 / sp)
-		st.tween_property(surf, "modulate:a", 0.0, 0.5 / sp)
-		st.tween_callback(surf.queue_free)
+		band.scale = Vector2((vis.x / fw) if fw > 1.0 else 1.0, 1.0)
+		band.z_index = 1
+		_set_alpha(band, AQUA_SURF_A)
+		water.add_child(band)
+		_loop_frames(band, el, pfx + "surface%d", 1, 4, 0.1 / sp, (ed + AQUA_FADE_AT + 0.5) / sp)
 
-	# 상어(tag 0x18893) — 원작 `initAqua`: scaleY 1.75 · scaleX = dir×1.75 · rotation = dir×15° ·
-	#   pos = 화면중앙 + (dir×(중앙x + 상어폭×1.5), −80) = **화면 밖 옆구리**에서 들어온다.
-	#
-	# 🔴 2026-08-05 재이식 — 종전의 "JumpTo(75)→MoveBy→JumpTo(50)" 는 **다른 노드**(tag 0x18830)의
-	#   시퀀스였다. 진짜 상어(0x18893)는 `runAqua` 실측(sequences.md L1745):
-	#   Delay(5.0) → [Rotate+MoveTo(0.15)] → [Rotate+MoveTo(0.12)] → 히트스톱(0.2)
-	#   → [ScaleTo(0.15, ×1.8/1.825)+Rotate+MoveTo] → 히트스톱 해제 → [물기 펄스+MoveTo(0.05)]
-	#   → [MoveBy(0.5)+RotateBy(−)+ScaleTo(0.05)×2] → [MoveBy(0.5)+FadeTo(0.5, 0)]
-	#   = **5초 뒤에 나타나 1.5초 만에 물고 지나가는 돌진**이다(영상 +17.3s 실측 일치).
-	#   MoveTo 목적지들은 스택 소실 → 피격 지점(base)으로 수렴하는 경유점으로 근사(ASSUMPTION).
+		var body := ColorRect.new()          # 띠 밑단과 같은 색 — 이음새가 없다
+		body.color = AQUA_WATER
+		body.size = Vector2(vis.x * 1.2, vis.y * 1.5)
+		body.position = Vector2(-vis.x * 0.6, fh * 0.5 - 2.0)
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		water.add_child(body)
+
+		var y0 := ctr.y + vis.y * 0.42       # 바닥 근처
+		var y1 := ctr.y - vis.y * 0.28       # 다 찼을 때
+		water.position = Vector2(ctr.x, y0)
+		# 원작 JumpTo ×2 + MoveBy — 경유점은 스택 소실이라 3등분으로 근사(ASSUMPTION).
+		var t := water.create_tween()
+		t.tween_interval(ed / sp)                      # 원작 `Delay(0x228) → JumpTo…`
+		_arc(t, water, Vector2(ctr.x, lerpf(y0, y1, 0.4)), 75.0, 0.25 / sp)
+		t.tween_property(water, "position", Vector2(ctr.x, lerpf(y0, y1, 0.75)), 0.5 / sp)
+		_arc(t, water, Vector2(ctr.x, y1), 50.0, 0.25 / sp)
+		# 소거 — 둘의 페이드 규약이 다르므로 각자 트윈으로.
+		var tb := band.create_tween()
+		tb.tween_interval((ed + AQUA_FADE_AT) / sp)
+		_fade_pma(tb, band, 0.0, 0.5 / sp)
+		var tw := body.create_tween()
+		tw.tween_interval((ed + AQUA_FADE_AT) / sp)
+		tw.tween_property(body, "color:a", 0.0, 0.5 / sp)
+		tw.tween_callback(water.queue_free)
+
+	# ── 상어 ────────────────────────────────────────────────────────────────
 	var shark := _spr(el, pfx + "shark1")
 	if shark != null:
-		var vis: Vector2 = host.get_viewport().get_visible_rect().size
-		var sk_w := float(manifest(el).get(pfx + "shark1", {}).get("w", 200.0)) * Design.ASSET_SCALE
-		# 원작 리터럴 그대로: pos = 중앙 + (dir×(중앙x + 상어폭×1.5), −80) — dir 은 레이어→중앙
-		# 방향이므로 **시전자 진영 밖**에서 들어와 피격 지점(−dir 쪽)으로 돌진한다.
-		# ⚠️ 2026-08-05 부호 실수 정정 — `-dir` 로 뒤집어 물기 지점 옆에서 시작하고 있었다.
-		# ⚠️ 세로 위치는 **몸통 아래 캔버스 절단선이 화면 밖**에 있도록 깊게 둔다 — 원작 영상에서
-		#   상어의 잘린 밑면은 한 번도 보이지 않는다(사용자 실측 2026-08-05). 물기 순간에도
-		#   위로 움직이지 않고 전진·회전만 한다.
-		var sk_h := float(manifest(el).get(pfx + "shark1", {}).get("h", 200.0)) * Design.ASSET_SCALE
-		var deep := maxf(180.0, sk_h * AQUA_SHARK_S * 0.5 - (vis.y * 0.5 - 80.0) + 40.0)
-		var start := ctr0 + Vector2(dir * (vis.x * 0.5 + sk_w * 1.5), deep)
-		shark.position = start
-		shark.z_index = 96                       # 원작 z 0 — 거품(z rand%5)보다 뒤
-		shark.scale = Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S)   # 원작 setScaleX(dir×1.75)
+		var man1 := manifest(el)
+		var sk_w := float(man1.get(pfx + "shark1", {}).get("w", 200.0)) \
+			* Design.ASSET_SCALE * AQUA_SHARK_S
+		# 원작 리터럴: pos = 중앙 + (dir×(중앙x + 상어폭×1.5), −80). cocos y-up 이라 −80 = 아래.
+		# dir 은 레이어→중앙 방향이므로 **시전자 진영 밖**에서 들어와 −dir 쪽으로 돌진한다.
+		shark.position = ctr + Vector2(dir * (vis.x * 0.5 + sk_w * 1.5), 80.0)
+		shark.z_index = Z_ACTOR - 1          # 원작 배치노드 z0 — 드래곤 **뒤**
+		shark.scale = Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S)
 		shark.rotation_degrees = dir * 15.0
 		host.add_child(shark)
 		_play_frames(shark, el, pfx + "shark%d", 2, 8, 0.03 / sp)
-		var bite := Vector2(at.x, ctr0.y + deep)  # 피격 진영 x · 깊은 y 유지
-		# 움직임 — 순간이동처럼 끊기지 않게 **한 호흡의 활공**으로(사용자 실측): 옆에서
-		# 미끄러져 들어와 물고, 그대로 관성으로 지나간다.
+		# 머리 끝이 피격자에 닿는 자리(영상 실측, 위 AQUA_BITE_UP 주석).
+		var bite := Vector2(prey_x + dir * sk_w * 0.5, ctr.y - AQUA_BITE_UP)
 		var kt := shark.create_tween()
-		kt.tween_interval(5.0 / sp)
-		kt.tween_property(shark, "position", bite, 0.55 / sp)\
+		kt.tween_interval((ed + AQUA_SHARK_AT) / sp)
+		kt.tween_property(shark, "position", bite, 0.42 / sp)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		kt.parallel().tween_property(shark, "rotation_degrees", dir * 4.0, 0.55 / sp)
+		kt.parallel().tween_property(shark, "rotation_degrees", dir * 4.0, 0.42 / sp)
+		# 원작 `ScaleTo(0.15, dir×1.8, 1.825)` → 물기 펄스 → 복귀
 		kt.parallel().tween_property(shark, "scale",
-			Vector2(dir * AQUA_SHARK_S * 1.03, 1.825), 0.4 / sp)
-		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, 1.7), 0.05 / sp)   # 앙다묾
+			Vector2(dir * 1.8, 1.825), 0.15 / sp).set_delay(0.27 / sp)
+		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, 1.7), 0.05 / sp)
 		kt.tween_property(shark, "scale", Vector2(dir * AQUA_SHARK_S, AQUA_SHARK_S), 0.05 / sp)
-		# 물고 지나간다 — 진행 방향(−dir)으로 수평 이탈(위로 뜨면 밑면이 드러난다).
-		kt.tween_property(shark, "position", Vector2(-dir * 320.0, 10.0), 0.9 / sp)\
+		# 물고 지나간다 — `MoveBy(0.5) + RotateBy(dir×−2.5)` → `MoveBy(0.5) + FadeTo(0.5, 0)`
+		kt.tween_property(shark, "position", Vector2(-dir * 320.0, 10.0), 0.5 / sp)\
 			.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		kt.parallel().tween_property(shark, "rotation_degrees", -dir * 8.0, 0.9 / sp)
-		kt.parallel().tween_property(shark, "modulate:a", 0.0, 0.9 / sp)
+		kt.parallel().tween_property(shark, "rotation_degrees", -dir * 8.0, 0.5 / sp)
+		kt.tween_property(shark, "position", Vector2(-dir * 260.0, 0.0), 0.5 / sp).as_relative()
+		_fade_pma(kt.parallel(), shark, 0.0, 0.5 / sp)
 		kt.tween_callback(shark.queue_free)
 
-	# 거품 — 원작은 **화면 바닥 전폭**에 뿌리고(pos = (rand % 화면폭, 0)) 물속이니 화면
-	#   위까지 길게 떠오른다. scale (rand%5)×0.25, opacity 0, z = rand%5.
+	# ── 거품 ────────────────────────────────────────────────────────────────
+	# 원작은 **화면 바닥 전폭**에 뿌리고(pos = (rand % 화면폭, 0)) 물속이니 위까지 떠오른다.
 	_swarm(host, el, pfx + "bubble", AQUA_BUBBLES,
-		Vector2(ctr0.x, ctr0.y + vis0.y * 0.5), Vector2(vis0.x * 0.5, 0.0), 98, rng,
+		Vector2(ctr.x, ctr.y + vis.y * 0.5), Vector2(vis.x * 0.5, 0.0), 98, rng,
 		func(n: Node2D, i: int, r: RandomNumberGenerator) -> void:
 			n.scale *= float(i % 5) * 0.25 + 0.25          # 원작 (rand%5)×0.25
-			n.modulate.a = 0.0
-			var rise := r.randf_range(vis0.y * 0.45, vis0.y * 0.95)   # 화면 위까지
+			_set_alpha(n, 0.0)
+			var rise := r.randf_range(vis.y * 0.45, vis.y * 0.95)
 			var t: Tween = n.create_tween()
-			t.tween_interval(float(i % 12) * 0.3 / sp)
-			t.tween_property(n, "modulate:a", 1.0, 0.2 / sp)
+			t.tween_interval((ed + float(i % 12) * 0.3) / sp)
+			_fade_pma(t, n, 1.0, 0.2 / sp)
 			t.tween_property(n, "position",
 				n.position + Vector2(r.randf_range(-40.0, 40.0), -rise),
 				r.randf_range(2.0, 4.0) / sp)
 			t.parallel().tween_property(n, "scale", n.scale * 1.3, 2.0 / sp)
-			t.tween_property(n, "modulate:a", 0.0, 0.3 / sp)
+			_fade_pma(t, n, 0.0, 0.3 / sp)
 			t.tween_callback(n.queue_free))
 
-	# 물고기 5종 — 원작(sequences.md L1253): Delay(f + 2.5) → MoveTo((i%4)*0.1+0.1)
-	#   → MoveBy(0.75)×2 → MoveBy(0.15) → MoveTo(0.05) = **2.5초부터 빠르게 가로지른다**.
-	# ⚠️ 2026-08-05 방향 정정 — 시전자 진영 밖에서 나타나 물살 방향(−dir = 피격 진영 쪽)으로
-	#   헤엄친다. 종전엔 부호가 뒤집혀 **뒤로**(피격 진영 → 시전자) 갔다.
-	# 물고기 — 🔴 2026-08-05 영상 프레임 실측 재구성: 배경 단역이 아니라 **공격 무리**다.
-	#   물고기 떼가 시전자 쪽에서 몰려와(run+1.15) **피격자를 에워싸고 두들기다**(~run+2.7,
-	#   피해 틱 2·6·9·10 이 이 구간) 지나간다. 크기도 소형이 아니라 중형(0.7~1.1).
-	var vis1: Vector2 = host.get_viewport().get_visible_rect().size
-	var prey := at + Vector2(0.0, -30.0)              # 피격자 자리(물기 지점과 같은 진영)
-	for i in 5:
-		var f := _spr(el, pfx + "fish%d" % (i + 1))
+	# ── 물고기 40마리 ────────────────────────────────────────────────────────
+	# 🔴 2026-08-06 — 종전엔 5종을 한 마리씩만 냈다(원작 루프 상한 0x28 = 40 을 5로 오독).
+	#   영상 14.79s 프레임의 "화면을 가득 메운 떼"가 이것이다.
+	var enter := ctr.x + dir * (vis.x * 0.5 + 120.0)     # 시전자 진영 밖
+	var exit_x := ctr.x - dir * (vis.x * 0.5 + 220.0)    # 반대편 밖
+	for i in AQUA_FISH:
+		var f := _spr(el, pfx + "fish%d" % (rng.randi() % 5 + 1))
 		if f == null:
 			break
-		var off_f := Vector2(rng.randf_range(-70.0, 70.0), rng.randf_range(-50.0, 50.0))
-		f.position = Vector2(ctr0.x + dir * (vis1.x * 0.55 + 60.0 * float(i)),
-			prey.y + off_f.y)
+		var y := ctr.y + rng.randf_range(-vis.y * 0.34, vis.y * 0.3)
+		var sc := float(rng.randi() % 6) * 0.1 + 0.5     # 원작 setScale (rand%6)×0.1+0.5
+		f.position = Vector2(enter + dir * float(i % 8) * 90.0, y)
 		f.z_index = 97
-		f.scale *= (float(i % 5) * 0.1 + 0.7)
-		if dir < 0.0:
-			f.scale.x = -f.scale.x            # 진행 방향(−dir)을 보게 — 원본은 왼쪽 보기
+		f.scale *= sc
+		if dir > 0.0:
+			f.scale.x = -f.scale.x                       # 진행 방향(−dir)을 보게
 		host.add_child(f)
+		# 제자리 몸짓 — 원작 initAqua 의 RepeatForever(ScaleBy 왕복).
+		var wob := f.create_tween().set_loops()
+		wob.tween_property(f, "scale", f.scale * 1.1, 0.1 / sp)
+		wob.tween_property(f, "scale", f.scale, 0.1 / sp)
+		# 이동 — 원작 구간 길이 그대로(MoveTo (i%4)*.1+.1 / MoveBy .75 / .75 / .15 / MoveTo .05).
+		# 첫 구간에서 이미 화면 안으로 들어온다 — 영상 14.98s(run+3.75)에 떼가 화면 한복판이다.
 		var t6 := f.create_tween()
-		t6.tween_interval((1.15 + float(i) * 0.12) / sp)
-		# 돌진 → 피격자 주위에서 3번 들이받고 → 관성으로 빠져나간다.
-		t6.tween_property(f, "position", prey + off_f, 0.5 / sp)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		for k in 3:
-			t6.tween_property(f, "position", Vector2(-dir * 26.0, -12.0), 0.18 / sp)\
-				.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			t6.tween_property(f, "position", Vector2(dir * 18.0, 12.0), 0.18 / sp)\
-				.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t6.tween_property(f, "position", Vector2(-dir * (vis1.x * 0.35), -30.0), 0.6 / sp)\
-			.as_relative().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t6.tween_property(f, "modulate:a", 0.0, 0.2 / sp)
+		t6.tween_interval((ed + AQUA_FISH_AT + float(i % 10) * 0.07) / sp)
+		var legs := [[0.3, float(i % 4) * 0.1 + 0.1], [0.65, 0.75], [0.9, 0.75],
+			[0.98, 0.15], [1.0, 0.05]]
+		for leg in legs:
+			t6.tween_property(f, "position", Vector2(lerpf(enter, exit_x, float(leg[0])),
+				y + rng.randf_range(-40.0, 40.0)), float(leg[1]) / sp)
 		t6.tween_callback(f.queue_free)
 
 
-# ── wind (11.0초) — 회오리 두 겹이 720° 돌고 잔해가 빨려 든다 ────────────────
-## 원작 `runWind`: 회오리 본체(0x18894) `EaseOut(ScaleBy(5.15, 1.15, 1.05), 0.25)`,
-##   겹 두 장(0x18895·0x18896)이 각각 **RotateBy(5.25초, 720°)**.
-##   0x18896 = ScaleTo(0.25,1.0) EaseIn(0.5) → FadeTo(0.75, 0)
-##   0x18895 = Delay(0.25) → FadeTo(0.75, 200) → Delay(4.15) → FadeTo(0.1, 0)
-##   잔해(나무·잎)는 MoveBy(1.0) + ScaleBy(0.9, 1.25) → MoveBy(0.25) → ScaleBy(0.25, 3.0, 0.5)
-##   → FadeTo(0.25, 0) — **가늘고 길게 늘어나며 사라진다**(빨려 드는 표현).
-const WIND_SPIN_SEC := 5.25
-const WIND_SPIN_DEG := 720.0
-const WIND_LEAVES := 12         # 원작 `rand()%8 + 12` 의 하한
-const WIND_WOODS := 3
+# ── wind (11.0초) — 화면을 통째로 쓸어가는 강풍 ─────────────────────────────
+#
+# 🔴 2026-08-06 3차 재대조. `initWind` @00fe5860 을 다시 읽어 **태그 귀속이 틀렸던 것**을
+#    바로잡았다. 종전 카드는 `wind_zmoon` 을 "4장(tag 0x299a0 / 0x18832)" 이라고 적었는데,
+#    `initWind` 꼬리의 addChild 4줄을 보면 정반대다:
+#      batch0(this+0x240): whirl1 z=0 tag **0x299a0** · zmoon#1 z=2 tag **0x18832**
+#      batch1(this+0x248): whirl4 z=2 tag **0x299a0** · zmoon#2 z=0 tag **0x18832**
+#    ⇒ 0x299a0 = **회오리**, 0x18832 = **소(zmoon)**. 각 2장씩이다.
+#
+# 원작 구성(전부 `initWind` 리터럴):
+#   ① 회오리 2겹 — 화면을 꽉 채운다.
+#      whirl1: 앵커 (0.5, 0.0) · setScaleX(VisibleRect::right().x / w) · setScaleY(top().y / h)
+#              ⇒ **밑변이 화면 바닥에 붙고 화면 높이만큼 올라간다** = 화면 전면
+#      whirl4: 앵커 (0.4, 1.0) · setScaleX(right().x / (w*0.8)) · setScaleY(whirl1.scaleY * −0.75)
+#              ⇒ 가로로 더 넓고 **세로로 뒤집힌** 겹, 기준점 +(0,10) 에 매달린다
+#      둘 다 setOpacity(0) 으로 시작한다.
+#   ② 바닥 먼지 45장(`0x2d` 루프, `scene/colosseum/dust{,_cover}`) — ⚫ 배율 0 이라 안 뜬다(아래 ②)
+#   ③ 나무 `rand()%3` 개 · 잎 `rand()%8 + 12` 개
+#   ④ 소 2장
+#
+# 안무(`runWind` 액션 트리, 전부 `Delay(this+0x228)` = **1.4초** 뒤에 시작):
+#   본체   EaseOut(ScaleBy(5.15, 1.15, 1.05), 0.25) → ScaleBy(0.1, 1.75, 1.5) → 제거
+#          ⇒ 회오리·잎·링이 **일제히 run+6.65 에 끝난다**(영상 실측 seg +7.05 와 일치)
+#   나타남 Delay(0.15) → Delay(0.75) → Show → FadeTo(0.5, 255/175)
+#          ∥ EaseOut(ScaleBy(3.8375, 1.25, 1.0), 0.25)
+#   잔해   Delay(0.15) → [MoveBy(1.0) ∥ ScaleBy(0.9, 1.25)]
+#          → [MoveBy(0.25) ∥ ScaleBy(0.25, 3.0, 0.5) ∥ FadeTo(0.25, 0)]  ← 가늘고 길게 늘어나며
+#          → Place(원위치) → 알파 200 → [MoveBy(1.5) ∥ ScaleBy(1.4, 1.25)] → FadeTo(1.5, 0)
+#          ⇒ 조각 하나가 **두 번** 지나간다. 초기 회전 RotateBy(0, rand%181 − 90)
+#
+# 프레임 애니(`initWind` 의 CCAnimation delay 리터럴):
+#   whirl1→4 = 0.035초(0x3d0f5c29) · whirl4→1 = 0.025초(0x3ccccccd) · zmoon 2프레임 0.05초
+#   (zmoon 은 **같은 프레임 두 장**이라 사실상 정지 그림이다)
+const WIND_FADE_IN_AT := 0.9        # Delay(0.15) + Delay(0.75)
+const WIND_BODY_LIFE := 5.25        # ScaleBy(5.15) + ScaleBy(0.1)
+const WIND_GROW_SEC := 3.8375       # 0x40766666
+const WIND_WHIRL_SEC := [0.035, 0.025]
+const WIND_DEBRIS_LEAD := 0.15
 
 static func _run_wind(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
 	var el := "wind"
 	var pfx := prefix(el)
+	var ed := elem_delay(el)                     # `this+0x228` = 1.4 — 아래 전부에 붙는다
+	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	# 화면 암전은 마스터 장막(`_master_veil`)이 낸다 — 종전의 개별 gloom 은 중복이라 제거.
 
-	# 회오리 본체(바람살) — 원작은 화면 크기로 늘린 whirl 프레임을 **돌려 끼우며**(1↔4 왕복)
-	#   바람이 계속 흐르게 한다. 🔴 2026-08-05: 종전엔 4프레임 한 번 + 제자리 회전이라
-	#   "각자 회전운동"으로 보였다(사용자 실측) — 프레임 왕복 루프 + 가로 흐름으로 교체.
-	var vis: Vector2 = host.get_viewport().get_visible_rect().size
-	for k in 2:                                     # 두 겹을 시차로 — 끊김 없는 바람 흐름
-		var body := _spr(el, pfx + "whirl1")
+	_wind_whirl(host, el, pfx, at, ed, sp, vis)
+	_wind_debris(host, el, pfx, at, dir, ed, sp, vis, rng)
+	_wind_zmoon(host, el, pfx, sp, vis, rng)
+
+
+## ① 회오리 2겹 — `initWind` 의 scaleX/scaleY 식을 그대로 푼다.
+##   🔴 종전엔 `scale = (vis.x/w * 1.4, vis.y/h)` 에 **중앙 앵커**로 기준점(cocos y=167.5)에
+##      놓아서 화면 위 26% 가 통째로 비어 있었다(행별 표준편차 실측: 상단 20 vs 원작 50).
+##      1.4 배 가로 확대도 자작이었다 — 원작은 whirl4 만 `/0.8` 로 넓다.
+static func _wind_whirl(host: CanvasItem, el: String, pfx: String, at: Vector2,
+		ed: float, sp: float, vis: Vector2) -> void:
+	var mn: Dictionary = manifest(el).get(pfx + "whirl1", {})
+	var bw := float(mn.get("w", 1.0)) * Design.ASSET_SCALE
+	var bh := float(mn.get("h", 1.0)) * Design.ASSET_SCALE
+	if bw <= 1.0 or bh <= 1.0:
+		return
+	var sy := vis.y / bh                         # setScaleY(VisibleRect::top().y / h)
+	for k in 2:
+		# whirl1 = 앵커 아래 가운데(밑변을 화면 바닥에), whirl4 = 앵커 (0.4, 1.0) 을 기준점에.
+		var anchor := BOTTOM if k == 0 else Vector2(0.4, 1.0)
+		var body := _spr_a(el, pfx + ("whirl1" if k == 0 else "whirl4"), anchor)
 		if body == null:
 			break
-		var mn: Dictionary = manifest(el).get(pfx + "whirl1", {})
-		var bw := float(mn.get("w", 1.0)) * Design.ASSET_SCALE
-		var bh := float(mn.get("h", 1.0)) * Design.ASSET_SCALE
-		if bw > 1.0 and bh > 1.0:
-			body.scale = Vector2(vis.x / bw * 1.4, vis.y / bh)
-		body.position = at + Vector2(dir * vis.x * 0.25 * float(k), -vis.y * 0.1 * float(k))
-		body.z_index = 99 - k
+		if k == 0:
+			body.scale = Vector2(vis.x / bw, sy)
+			body.position = Vector2(vis.x * 0.5, vis.y)      # 밑변 = 화면 바닥
+		else:
+			# setScaleX(right / (w*0.8)) · setScaleY(whirl1.scaleY × −0.75) = 세로 반전 겹
+			body.scale = Vector2(vis.x / (bw * 0.8), -sy * 0.75)
+			body.position = at + Vector2(0.0, -10.0)         # 원작 pos + (0,10) (cocos y-up)
+		body.z_index = Z_WIND_WHIRL + k          # 잎·소·링보다 **뒤** (원작 화면 실측)
 		body.modulate.a = 0.0
 		host.add_child(body)
-		var bt := body.create_tween()
-		bt.tween_interval(0.3 * float(k) / sp)
-		bt.tween_property(body, "modulate:a", 0.8 - 0.25 * float(k), 0.5 / sp)
-		_loop_frames(body, el, pfx + "whirl%d", 1, 4, 0.045 / sp, 7.0 / sp)
-		var t := body.create_tween()                 # 바람은 **흐른다** — 진행 방향으로 왕복
-		t.tween_interval(0.3 * float(k) / sp)
-		for rep in 4:
-			t.tween_property(body, "position", Vector2(-dir * vis.x * 0.28, 0.0), 1.3 / sp)\
-				.as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			t.tween_property(body, "position", Vector2(dir * vis.x * 0.28, 0.0), 0.01 / sp)\
-				.as_relative()
-		t.tween_property(body, "modulate:a", 0.0, 0.75 / sp)
+		# 프레임 왕복 — whirl1 은 1→4(0.035초), whirl4 는 4→1(0.025초).
+		if k == 0:
+			_loop_frames(body, el, pfx + "whirl%d", 1, 4, WIND_WHIRL_SEC[0] / sp,
+				(ed + WIND_BODY_LIFE) / sp)
+		else:
+			_loop_frames_rev(body, el, pfx + "whirl%d", 4, 1, WIND_WHIRL_SEC[1] / sp,
+				(ed + WIND_BODY_LIFE) / sp)
+		var s0 := body.scale
+		# 배율 — 원작은 `ScaleBy(3.8375, 1.25, 1.0)`(나타남)과 `ScaleBy(5.15, 1.15, 1.05)`(본체)를
+		#   **동시에** 건다(cocos 는 곱해진다). Godot 은 같은 속성에 트윈 둘을 겹치면 뒤엣것이
+		#   매 프레임 덮어써 버리므로 **한 트윈으로 이어** 곱을 낸다.
+		var grow := body.create_tween()
+		grow.tween_interval(ed / sp)
+		grow.tween_property(body, "scale", Vector2(s0.x * 1.25, s0.y), WIND_GROW_SEC / sp)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		grow.tween_property(body, "scale", Vector2(s0.x * 1.25 * 1.15, s0.y * 1.05),
+			(WIND_BODY_LIFE - WIND_GROW_SEC) / sp)
+		# 알파 — Delay(0.15+0.75) → FadeTo(0.5, 255/175) … 본체가 끝나는 run+6.65 에 걷힌다.
+		var t := body.create_tween()
+		t.tween_interval((ed + WIND_FADE_IN_AT) / sp)
+		t.tween_property(body, "modulate:a", 1.0 if k == 0 else 175.0 / 255.0, 0.5 / sp)
+		t.tween_interval((WIND_BODY_LIFE - WIND_FADE_IN_AT - 0.5 - 0.25) / sp)
+		t.tween_property(body, "modulate:a", 0.0, 0.25 / sp)
 		t.tween_callback(body.queue_free)
 
-	# 🔴 2026-08-05 영상 프레임 실측 — **세로 깔때기는 원작에 없다**(룬 링 스택도, whirl 스택도
-	#   전부 자작 오판이었다). 원작 화면(31.5~35.2s) = ① 화면 전체를 **가로로 쓸어가는 강풍
-	#   줄기**(위 whirl 본체) ② 바닥의 초록 룬 링(합체 문양) ③ 잎·가지가 바람 방향으로
-	#   **가로로 날아가는** 흐름 ④ 그 속에서 피격자들이 굴러다니는 것 — 이 넷뿐이다.
-	#   45조각 루프는 아래의 **끊임없이 흘러가는 잔해 스트림** 몫으로 본다.
-	var n_stream := 45
-	for i in n_stream:
-		var seg := _spr(el, pfx + ("leaf" if i % 5 != 4 else "wood"))
+
+## ② 바닥 먼지 45장 — ⚫ **넣지 않는다.** (2026-08-06 시도 후 철회)
+##   `initWind` 의 `0x2d` 루프는 잎·나무가 아니라 `scene/colosseum/dust{,_cover}` 45장이다
+##   (종전 카드의 "45조각 = 회오리 기둥" 도, 우리 코드의 "45조각 = 잔해 스트림" 도 오독이었다).
+##   좌표식까지 다 읽었지만 **원작 화면에는 뜨지 않는다**:
+##     init 이 `setScale(0)` 으로 두고(`plVar5 + 0x78`(setScale) 인자 0),
+##     `runWind` 가 거는 건 `ScaleBy(d*0.5, 1.75)` = **곱셈**이다 ⇒ 0 × 1.75 = 0.
+##     `Place` 앞뒤 어디에도 `ScaleTo` 가 없다(액션 트리 전수) ⇒ 45장 전부 배율 0 으로 남는다.
+##   실제로 넣어 봤더니 원작에 없는 **흰 구름 벽**이 화면 하단을 덮었다(캡처 대조).
+##   ⚠️ 남은 숙제: 영상 seg +3.3~3.6 의 바닥 흰 연기는 이것도, 회오리(그때 알파 0)도 아니다.
+##      `runWind_C` / `MakeInterface::setDust`(시전자 착지 먼지) 쪽을 다음에 확인한다.
+
+## ③ 잔해 — 원작 개수는 **나무 `rand%3`(0~2) · 잎 `rand%8+12`(12~19)** 뿐이다.
+##   조각마다 두 번 지나간다(1차 MoveBy 1.0+0.25, Place 로 되돌린 뒤 2차 MoveBy 1.5).
+##   소멸은 `ScaleBy(0.25, 3.0, 0.5)` = **가로로 3배 늘어나며 납작해진다**(빨려 드는 표현) —
+##   종전엔 그냥 화면 밖으로 내보내기만 했다.
+##   ASSUMPTION: 조각별 y·출발 x·통과 시차는 원작 rand 인자가 추출에서 소실돼 영상(항상
+##   여러 장이 동시에 흐른다)에 맞춰 흩는다. 개수·안무·소멸 방식은 원작 리터럴 그대로.
+static func _wind_debris(host: CanvasItem, el: String, pfx: String, at: Vector2, dir: float,
+		ed: float, sp: float, vis: Vector2, rng: RandomNumberGenerator) -> void:
+	var n_wood := int(rng.randi() % 3)                  # 원작 rand()%3
+	var n_leaf := int(rng.randi() % 8 + 12)             # 원작 rand()%8 + 12
+	for i in n_wood + n_leaf:
+		var is_wood := i < n_wood
+		var seg := _spr(el, pfx + ("wood" if is_wood else "leaf"))
 		if seg == null:
-			break
-		var band_y := at.y - vis.y * (0.12 + 0.55 * rng.randf())   # 중상단 바람띠
-		var spd := rng.randf_range(0.7, 1.3)          # 화면을 가로지르는 시간
-		var t0 := 0.3 + rng.randf() * 3.6             # 4초에 걸쳐 계속 흘러든다
-		seg.position = Vector2(at.x + dir * (vis.x * 0.55 + rng.randf_range(0.0, 220.0)),
-			band_y)                                   # 시전자 진영 밖에서 흘러든다
-		seg.scale *= rng.randf_range(0.6, 1.1)
-		seg.z_index = 96 + (i % 3)
-		seg.modulate.a = 0.0
-		seg.rotation_degrees = rng.randf_range(0.0, 360.0)
+			return
+		# 원작 나무 배율 = 0.75 + (rand%6)*0.1*(±1)
+		var s0 := 0.75 + float(rng.randi() % 6) * 0.1 * (1.0 if rng.randi() % 2 == 1 else -1.0)
+		var home := Vector2(at.x + dir * (vis.x * 0.55 + rng.randf_range(0.0, 220.0)),
+			at.y - vis.y * (0.10 + 0.60 * rng.randf()))
+		seg.position = home
+		seg.scale *= s0 if is_wood else rng.randf_range(0.7, 1.1)
+		seg.z_index = Z_WIND_DEBRIS + (i % 3)
+		seg.rotation_degrees = float(rng.randi() % 181) - 90.0   # RotateBy(0, rand%0xb5 − 90)
+		var base_scale := seg.scale
+		var cross := Vector2(-dir * (vis.x + 320.0), rng.randf_range(-70.0, 70.0))
 		host.add_child(seg)
-		var tw := seg.create_tween()
-		tw.tween_interval(t0 / sp)
-		tw.tween_property(seg, "modulate:a", 1.0, 0.1 / sp)
-		# 바람 방향(−dir = 시전자→피격자)으로 가로지른다 — 살짝 물결치며.
-		tw.tween_property(seg, "position",
-			Vector2(-dir * (vis.x + 260.0), rng.randf_range(-60.0, 60.0)), spd / sp)\
-			.as_relative()
-		tw.tween_callback(seg.queue_free)
-		var rot := seg.create_tween()
-		rot.tween_interval(t0 / sp)
-		rot.tween_property(seg, "rotation_degrees",
-			(360.0 + rng.randf() * 360.0) * (1.0 if i % 2 == 0 else -1.0),
-			spd / sp).as_relative()
+		# 두 통과를 한 트윈에 잇는다 — 시차만 조각별로 흩는다.
+		# 원작은 두 통과 사이에 `Delay(3.8375)` 를 두는데, 그대로 넣으면 1차가 끝난 뒤 화면이
+		# 텅 빈다. 영상은 run+1.6~6.6 내내 잎이 흐르므로 **출발 시차를 넓게 흩어** 메운다.
+		var lead := ed + WIND_DEBRIS_LEAD + rng.randf() * 1.6
+		t.tween_interval(lead / sp)
+		for pass_i in 2:
+			var move_sec := 1.0 if pass_i == 0 else 1.5
+			if pass_i == 1:                              # Place — 원위치로 되돌리고 다시 켠다
+				t.tween_callback(func() -> void:
+					if is_instance_valid(seg):
+						seg.position = home
+						seg.scale = base_scale
+						seg.modulate.a = 200.0 / 255.0)
+				t.tween_interval(rng.randf_range(0.3, 1.1) / sp)
+			t.tween_property(seg, "position", cross, move_sec / sp).as_relative()
+			t.parallel().tween_property(seg, "scale", base_scale * 1.25,
+				(0.9 if pass_i == 0 else 1.4) / sp)
+			t.parallel().tween_property(seg, "rotation_degrees",
+				(float(rng.randi() % 181) - 90.0) * 3.0, move_sec / sp).as_relative()
+			# 소멸 — 가로 3배·세로 0.5배로 늘어나며 사라진다(원작 ScaleBy = 직전 배율에 곱한다).
+			t.tween_property(seg, "scale",
+				Vector2(base_scale.x * 1.25 * 3.0, base_scale.y * 1.25 * 0.5), 0.25 / sp)
+			t.parallel().tween_property(seg, "modulate:a", 0.0, 0.25 / sp)
+		t.tween_callback(seg.queue_free)
 
-	# (잔해는 위의 가로 스트림 45조각이 전부다 — 종전의 궤도 깔때기 잔해는 자작이라 제거.)
 
-	# zmoon — ⚫ 표시하지 않는다(2026-08-05). `initWind` 가 두 장을 만들지만(tag 0x18832)
-	#   위치 인자가 추출에서 소실됐고, **레퍼런스 영상 바람 구간 전체에서 한 번도 보이지 않는다**
-	#   (회오리 안쪽 화면 밖 좌표로 추정). 종전엔 화면 중앙에 4초간 떠서 원작에 없는 그림을 냈다.
-	#   근거가 생기면(좌표 복원) 여기 되살린다.
+## ④ 소(zmoon) 2장 — 🔴 2026-08-06 복원. 종전엔 "영상 전 구간 미출현"이라 적고 껐는데
+##   **틀린 관찰이었다.** 바람 구간(영상 28.30~37.63초)에서 큼직한 소가 오른쪽→왼쪽으로
+##   화면을 가로지르는 것이 3회 잡힌다(분홍-남색 덩어리 추적, 구간 시작 기준):
+##     +4.13 → +4.37  x 0.56W → 0.08W, y 0.47H → 0.33H
+##     +4.97 → +5.30  x 0.72W → 0.06W, y 0.46H → 0.19H   (화면 높이의 ≈0.3 크기)
+##     +6.20 → +6.43  x 0.84W → 0.10W, y 0.35H → 0.32H
+##   원작 초기 위치도 이와 맞는다 — #1 = `VisibleRect::rightBottom() + (100, 0)`(오른쪽 바깥),
+##   #2 = `(−100, layer.y)` + `setScale(0.75)`. 2장이 각각 두 번 지나가면 관측 3회를 덮는다.
+##   ASSUMPTION: 통과 시각·궤적은 위 영상 실측값. `run + [시각]` 으로 환산하면 2.7 / 3.85 / 5.5
+##   (`run+0 ↔ seg +2.12` 앵커 · 배속 1.35). 소 #0 이 두 번(2.7·5.5), #1 이 한 번(3.85) 지나간다.
+const WIND_ZMOON_PASS := [[0, 2.7], [1, 3.85], [0, 5.5]]   # [소 번호, run 기준 초]
+const WIND_ZMOON_SEC := 0.75                               # 화면 횡단 시간(영상 실측 환산)
+
+## ⚠️ 위 통과 시각은 **run 기준 절대값**(영상에서 잰 것)이라 `elem_delay` 를 또 더하지 않는다.
+static func _wind_zmoon(host: CanvasItem, el: String, pfx: String,
+		sp: float, vis: Vector2, rng: RandomNumberGenerator) -> void:
+	for k in 2:
+		var cow := _spr(el, pfx + "zmoon")
+		if cow == null:
+			return
+		if k == 1:
+			cow.scale *= 0.75                     # 원작 #2 setScale(0.75)
+		cow.z_index = Z_WIND_ZMOON
+		cow.modulate.a = 0.0
+		host.add_child(cow)
+		var t := cow.create_tween()
+		var prev := 0.0
+		var used := false
+		for row in WIND_ZMOON_PASS:
+			if int(row[0]) != k:
+				continue
+			used = true
+			var when := float(row[1])
+			t.tween_interval(maxf(0.01, when - prev) / sp)
+			prev = when + WIND_ZMOON_SEC
+			var y := vis.y * rng.randf_range(0.18, 0.48)
+			t.tween_callback(func() -> void:
+				if is_instance_valid(cow):
+					cow.position = Vector2(vis.x + 140.0, y)
+					cow.rotation_degrees = float(rng.randi() % 61) - 30.0
+					cow.modulate.a = 1.0)
+			# 오른쪽 바깥 → 왼쪽 바깥. 살짝 떠오르며 구른다(영상: y 가 조금씩 올라간다).
+			t.tween_property(cow, "position",
+				Vector2(-240.0, y - vis.y * 0.12), WIND_ZMOON_SEC / sp)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t.parallel().tween_property(cow, "rotation_degrees", -180.0,
+				WIND_ZMOON_SEC / sp).as_relative()
+			t.tween_callback(func() -> void:
+				if is_instance_valid(cow):
+					cow.modulate.a = 0.0)
+		if not used:
+			cow.queue_free()
+			continue
+		t.tween_callback(cow.queue_free)
 
 
 # ── dark (11.0초) — 소용돌이가 화면을 삼키고 손아귀가 잡는다 ─────────────────
@@ -1576,12 +1804,57 @@ static func _run_dark(host: CanvasItem, at: Vector2, dir: float, sp: float,
 ##       Delay(base) → Delay(1.75) → Show → EaseIn(MoveBy((rand%45)*0.025+0.75, Δ), 0.1)
 ##       Δ = (화면 임의점 − 중앙) × ((rand%9)*0.25 + 1.0)
 ##     = 중앙에서 **바깥으로 뻗어 나간다**(별이 흐르는 그 연출).
-const LIGHT_SUN_DX := 60.0        # 원작 태양 뭉치 = 레이어 중심 + (60, 60)
-const LIGHT_SUN_DY := 60.0
+##
+## 🔴 2026-08-06 프레임 실측 재이식 — 종전 안무는 **영상에 눈대중으로 맞춘 것**이라 큐마다
+##   −2.15 ~ +2.30초씩 흩어져 있었다. 이제 `runLight`(13액션) 시퀀스 표를 그대로 옮긴다.
+##   시각은 전부 `run + this[0x228](=1.4) + d`. 대조 = 원작 영상 빛 구간(v37.63~46.67, 배속 1.35,
+##   기준점 v37.020) ↔ `--write-movie --fixed-fps 30` 결정론 녹화.
+##   ⚠️ `dev_ultimate_fx --series` 벽시계 캡처는 별 750개 구간에서 게임시간과 어긋나 시각
+##      측정에 못 쓴다(같은 코드가 `--series=0.25` 면 11.25s, `1.0` 이면 9.0s 로 나온다).
+##
+## | 큐 | 원작(run 기준 절대 로직 초) | 종전 우리 |
+## |---|---|---|
+## | flash+flashwing | 4.15 | 3.30 |
+## | 백색 레이어 ① | 4.65 | 3.25 |
+## | 별 A(30) | 4.90 | 3.50 |
+## | 행성1(지구) 비행 | 5.60 | 5.05(정지) |
+## | bomb · sun · sunlight | 5.75 | 8.05 / 3.60 / 3.60 |
+## | 별 B(720) | 5.90 | 4.50 |
+## | sunwing (쌍둥이 8.15) | 5.90 | 7.35 |
+## | 행성2(토성) 비행 | 6.60 | 6.15(정지) |
+## | 백색 레이어 ② | 9.25 → 10.85 | 7.85 → 9.45 |
 const LIGHT_FLASHWING_SX := 10.0  # 원작 setScaleX(10) — 가로로 길게 찢어지는 섬광
 const LIGHT_STARS_IN := 30
 const LIGHT_STARS_OUT := 720
 const LIGHT_STARS := LIGHT_STARS_IN + LIGHT_STARS_OUT   # 30 + 720 = 750 (원작 0x2ee)
+## 별 하나하나의 초기값 — `initLight` 루프 실측. 종전 `randf(0.4, 1.0)` 은 **3배 컸다**
+## (실측 블롭 넓이 우리 25~75px² vs 원작 12~16px²).
+const LIGHT_STAR_SCALE_MIN := 0.125     # rand()%0x15 * 0.0125 + 0.125 ⇒ 0.125~0.375
+const LIGHT_STAR_SCALE_STEP := 0.0125
+const LIGHT_STAR_SCALE_N := 21
+const LIGHT_STAR_A_MIN := 155.0 / 255.0 # rand()%0xb * 10 + 155 ⇒ 155~255
+## `initLight`: `light_saturn` 의 자리 = `light_earth` 자리 + (60, 60)(cocos y-up).
+## ⚠️ 종전에 이 (60,60)을 **태양 뭉치의 오프셋**으로 읽어 태양이 우상단으로 밀려 있었다.
+##   실측: 원작 태양 중심 = 캔버스 정규화 (0.499, 0.499) = **화면 정중앙**(5프레임 평균),
+##   우리는 (0.557, 0.410) 이었다.
+const LIGHT_SATURN_OFF := Vector2(60.0, -60.0)
+## 행성 비행 곡선(2차 베지어, 화면 폭·높이 비율 · 중심 기준). 원작 `CCBezierTo` 제어점은
+## 디컴프에서 소실 — **영상 실측 6점 최소자승**으로 복원했다. 표본 = 지구 1차 통과
+## (L6.0/6.2/6.4/6.6, BezierTo 2.0초) + **2차 통과**(L8.8/9.0, BezierTo 1.0초).
+## 두 통과가 **같은 곡선**에 잔차 ≤0.03(≈40pt)로 얹힌다 — 곡선이 하나라는 증거다.
+## 끝점은 태양(중앙) — 행성이 태양 쪽으로 날아들며 부풀어 사라진다.
+## P0 이 화면 밖(우상단 +0.72W)이라 원작도 뜬 직후 0.5초쯤은 안 보인다(토성 L7.2 첫 등장).
+const LIGHT_PLANET_P0 := Vector2(0.724, -0.432)
+const LIGHT_PLANET_P1 := Vector2(0.088, 0.117)
+## z 규약 — 원작 배치 순서(행성 < 별 < bomb < sunwing < sun < sunlight < flash).
+## 행성은 별과 **같은 배치노드**(`this+0x240`)의 자식이라 z 가 상대값이다(원작 행성 z=0 < 별 z=1).
+const Z_LIGHT_PLANET := -1
+const Z_LIGHT_STARS := 98
+const Z_LIGHT_BOMB := 99
+const Z_LIGHT_SUNWING := 100
+const Z_LIGHT_SUN := 101
+const Z_LIGHT_HALO := 102
+const Z_LIGHT_FLASH := 103
 
 static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -1589,23 +1862,34 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var pfx := prefix(el)
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 
-	# 백색 섬광 두 번 — `runLight` 의 별도 CCLayerColor 실측(2026-08-05):
-	#   Delay(0.5) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.1, 0)
-	#   → Delay(3.65) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.75, 0)
-	var flash := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
-	var fl := flash.create_tween()
-	fl.tween_interval(0.5 / sp)
-	fl.tween_property(flash, "color:a", 1.0, 0.1 / sp)
-	fl.tween_interval(0.75 / sp)
-	fl.tween_property(flash, "color:a", 0.0, 0.1 / sp)
-	fl.tween_interval(3.65 / sp)
-	fl.tween_property(flash, "color:a", 1.0, 0.1 / sp)
-	fl.tween_interval(0.75 / sp)
-	fl.tween_property(flash, "color:a", 0.0, 0.75 / sp)
-	fl.tween_callback(flash.queue_free)
+	var d := elem_delay(el)          # this[0x228] = 1.4 — `runLight` 액션 전부에 붙는다
 
+	# 백색 섬광 두 번 — `runLight` 의 별도 CCLayerColor(L521) 실측:
+	#   Delay(0x228) → Delay(0.5) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.1, 0)
+	#   → Delay(3.65) → FadeTo(0.1, 255) → Delay(0.75) → FadeTo(0.75, 0)
+	var flash_v := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
+	var fl := flash_v.create_tween()
+	fl.tween_interval((d + 0.5) / sp)
+	fl.tween_property(flash_v, "color:a", 1.0, 0.1 / sp)
+	fl.tween_interval(0.75 / sp)
+	fl.tween_property(flash_v, "color:a", 0.0, 0.1 / sp)
+	fl.tween_interval(3.65 / sp)
+	fl.tween_property(flash_v, "color:a", 1.0, 0.1 / sp)
+	fl.tween_interval(0.75 / sp)
+	fl.tween_property(flash_v, "color:a", 0.0, 0.75 / sp)
+	fl.tween_callback(flash_v.queue_free)
+
+	# ── 별 750개 ────────────────────────────────────────────────────────────
+	# 🔴 원작은 750개를 **레이어 자리 한 점**(`setPosition(this->getPosition())`)에 겹쳐 두고
+	#   거기서 바깥으로 뿜는다. 종전엔 화면 전체에 흩뿌려 두고 시작해 "이미 깔린 별밭"이었다.
+	#   실측 뒷받침: 원작 우하단 ROI 별 개수가 66 → 42 → 38 → 34 로 **줄다가** 안정된다
+	#   (1~3배 오버슛으로 상당수가 화면 밖으로 빠져나간다).
+	# 이징 주의 — 원작 `CCEaseIn(rate)` 은 `t^rate` 다. rate 0.1 이면 **초반이 폭발적**이라
+	#   Godot 기준으로는 EASE_OUT 이다(종전 EASE_IN 은 정확히 반대였다).
 	var field := Node2D.new()
-	field.z_index = 86
+	field.z_index = Z_LIGHT_STARS
+	field.position = at                      # 컨테이너 확대(ScaleTo 1.1)의 피벗 = 레이어 자리
+	_set_alpha(field, 0.0)                   # PMA — §_fade_pma
 	host.add_child(field)
 	var ctr := _screen_center(host)
 	var half := vis * 0.5
@@ -1613,105 +1897,221 @@ static func _run_light(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		var st := _spr(el, pfx + "star")
 		if st == null:
 			break
-		st.position = ctr + Vector2(rng.randf_range(-half.x, half.x),
-			rng.randf_range(-half.y, half.y))
-		st.scale *= rng.randf_range(0.4, 1.0)
+		st.position = Vector2.ZERO           # = field.position = 레이어 자리
+		st.scale = Vector2.ONE * (float(rng.randi() % LIGHT_STAR_SCALE_N)
+			* LIGHT_STAR_SCALE_STEP + LIGHT_STAR_SCALE_MIN)
+		_set_alpha(st, float(rng.randi() % 11) * (10.0 / 255.0) + LIGHT_STAR_A_MIN)
 		st.visible = false
 		field.add_child(st)
 		var spot := ctr + Vector2(rng.randf_range(-half.x, half.x),
 			rng.randf_range(-half.y, half.y))       # 원작 `rand() % VisibleRect` 임의점
 		var t: Tween = st.create_tween()
 		if i < LIGHT_STARS_IN:
-			t.tween_interval(0.75 / sp)
+			# 무리 A(30) — Delay(0x228+0.75) → Show → EaseIn(MoveTo(1.75~2.0초, 임의점), 0.1)
+			t.tween_interval((d + 0.75) / sp)
 			t.tween_callback(func() -> void: st.visible = true)
-			t.tween_property(st, "position", spot,
-				(float(rng.randi() % 11) * 0.025 + 1.75) / sp).set_ease(Tween.EASE_IN)
+			t.tween_property(st, "position", spot - at,
+				(float(rng.randi() % 11) * 0.025 + 1.75) / sp)\
+				.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 		else:
-			t.tween_interval(1.75 / sp)
+			# 무리 B(720) — Delay(0x228+1.75) → Show → EaseIn(MoveBy(0.75~1.85초, Δ), 0.1)
+			t.tween_interval((d + 1.75) / sp)
 			t.tween_callback(func() -> void: st.visible = true)
 			t.tween_property(st, "position",
 				(spot - ctr) * (float(rng.randi() % 9) * 0.25 + 1.0),
 				(float(rng.randi() % 45) * 0.025 + 0.75) / sp)\
-				.as_relative().set_ease(Tween.EASE_IN)
+				.as_relative().set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	# 별밭 컨테이너(L369) — Delay(0x228+0.6) → FadeTo(0,255) → ScaleTo(4.75, 1.1)
+	#   → Delay(0.5) → Hide. 사라지는 시각 10.0초 = **2차 섬광(9.25~10.85) 한가운데**라
+	#   원작은 뒷정리가 흰 화면에 가려진다. 종전(7.5초 뒤 1초 페이드)은 그 밖이었다.
+	# ⚠️ 이 Hide 는 배치노드(`this+0x240`) 것이라 **별과 행성이 함께** 사라진다 — 행성을
+	#   여기 자식으로 붙이는 이유다(안 그러면 섬광이 걷힌 뒤 거대 지구가 화면에 남는다).
 	var ft := field.create_tween()
-	ft.tween_interval(7.5 / sp)
-	ft.tween_property(field, "modulate:a", 0.0, 1.0 / sp)
+	ft.tween_interval((d + 0.6) / sp)
+	ft.tween_callback(func() -> void: _set_alpha(field, 1.0))     # FadeTo(0.0, 255) = 즉시
+	ft.tween_property(field, "scale", Vector2(1.1, 1.1), 4.75 / sp)
+	ft.tween_interval(0.5 / sp)
 	ft.tween_callback(field.queue_free)
 
-	# 태양·행성·섬광 — 원작이 쓰는 단품들을 차례로 띄운다.
-	# 원작 `initLight` — 태양 뭉치는 전부 **레이어 중심 + (60, 60)**(cocos) 한 자리에 겹친다.
-	#   `light_sun`/`sunlight`/`sunwing` : setScale(1) · setOpacity(0) · z 0 (tag 0x18835/33/34)
-	#   `light_flash`  : setScale(0) · **anchor(0.54, 0.5)** · pos 중심+(60,60) · z 1
-	#   `light_flashwing`: flash 의 **자식**, setScaleX(10) · pos = flash 중앙
-	#   `light_bomb`   : setScale(0) · pos 중심+(60,60) · z 0
-	#   `light_sunwing` 은 **자기 복제본을 자식**으로 갖는다(scale 0 · opacity 0 · rotation 90).
-	#   `light_earth`  : anchor 중앙 · pos (중심x + w*0.5, h*0.8) · scale 0.4 · 숨김
-	var sun_at := at + Vector2(LIGHT_SUN_DX, -LIGHT_SUN_DY)
-	# 행성 — 원작 `initLight`: `light_earth` 는 (중심x + W*0.5, H*0.8) · scale 0.4 = **우상단
-	#   가장자리**(영상 +41.5s 파란 행성 실측 일치). saturn 위치는 추출 소실 —
-	#   ASSUMPTION: 영상 실측(+43.5s 좌하단 가장자리 조각)으로 둔다.
-	# 🔵 2026-08-05 영상 프레임 재구성(0.25초 단위 실측, 시각은 run 기준):
-	#   +0.6  1차 대섬광 속에서 태양핵 탄생(41.25s 청백 핵 + 수평 플레어)
-	#   +0.85 sun(황금 핵) 등장 — 2차 섬광까지 상주
-	#   +0.85 sunlight(거대 회색 후광 링) — **잠깐**(~1.4초) 떴다 사라진다(41.5s)
-	#   +2.3  earth(작은 지구) 우상단 가장자리(41.5~42.25s)
-	#   +3.4  saturn(큰 토성, 고리 보임) 우측 중단에서 태양 쪽으로 표류(42.5~42.75s)
-	#   +4.6  sunwing(광선 스파이크) — 2차 섬광 직전(43.5s), 십자 회전
-	#   +5.3  bomb — 2차 섬광 착화
-	# [이름, 등장시각, z, 위치, 배율, 유지초]
-	var ctrl := _screen_center(host)
-	var seq := [
-		["sun", 0.85, 101, sun_at, 1.2, 4.6],
-		["sunlight", 0.85, 100, sun_at, 2.6, 0.9],
-		["earth", 2.3, 98, ctrl + Vector2(vis.x * 0.44, -vis.y * 0.3), 0.4, 1.6],
-		["saturn", 3.4, 98, ctrl + Vector2(vis.x * 0.32, -vis.y * 0.05), 1.4, 1.8],
-		["sunwing", 4.6, 99, sun_at, 1.7, 1.6],
-		["flash", 0.55, 103, sun_at, 1.0, 0.3], ["flashwing", 0.55, 102, sun_at, 1.0, 0.3],
-		["bomb", 5.3, 104, sun_at, 1.15, 0.8]]
-	for e in seq:
-		var n := _spr(el, pfx + String(e[0]))
-		if n == null:
-			continue
-		n.position = e[3]
-		var name := String(e[0])
-		n.scale *= float(e[4])
-		if name == "flashwing":
-			n.scale = Vector2(LIGHT_FLASHWING_SX, 1.0)   # 원작 setScaleX(10)
-		n.z_index = int(e[2])
-		n.modulate.a = 0.0
-		host.add_child(n)
-		var hold := float(e[5])
-		var t: Tween = n.create_tween()
-		t.tween_interval(float(e[1]) / sp)
-		if name == "flash" or name == "flashwing":
-			# 수평 플레어 — 태양핵 탄생 순간 잠깐 스친다(41.25s 파란 수평 줄기).
-			t.tween_property(n, "modulate:a", 0.85, 0.2 / sp)
-			t.parallel().tween_property(n, "scale", n.scale * 1.2, 0.7 / sp)
-			t.tween_interval(hold / sp)
-			t.tween_property(n, "modulate:a", 0.0, 0.5 / sp)
-		elif name == "saturn":
-			t.tween_property(n, "modulate:a", 1.0, 0.4 / sp)
-			t.parallel().tween_property(n, "position",
-				n.position + Vector2(-vis.x * 0.1, -10.0), (0.4 + hold + 0.6) / sp)
-			t.tween_interval(hold / sp)
-			t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
-		else:
-			t.tween_property(n, "modulate:a", 1.0, 0.3 / sp)
-			t.parallel().tween_property(n, "scale", n.scale * 1.15, 1.2 / sp)
-			t.tween_interval(hold / sp)
-			t.tween_property(n, "modulate:a", 0.0, 0.6 / sp)
-		t.tween_callback(n.queue_free)
-		# 태양 날개(sunwing) — 원작은 자기 복제본을 rotation 90 자식으로 갖고 함께 돈다
-		#   ⇒ 광선이 십자로 겹쳐 회전하는 그림.
-		if name == "sunwing":
-			var rt: Tween = n.create_tween()
-			rt.tween_property(n, "rotation_degrees", 200.0, 3.5 / sp).as_relative()
-			var twin := _spr(el, pfx + "sunwing")
-			if twin != null:
-				twin.rotation_degrees = 90.0
-				twin.z_index = -1
-				twin.modulate.a = 0.6
-				n.add_child(twin)
+	# ── 행성 2개(L287 tag 0x19a66 = earth · L309 tag 0x19a67 = saturn) ──────
+	# 🔴 원작 행성은 장식이 아니라 **카메라 앞을 스쳐 지나간다** — 베지어를 타고 날아오며
+	#   `CCEaseExponentialIn(ScaleTo(…, 8.0))` 으로 부풀고 3초에 걸쳐 사라진다.
+	#   지구는 이 비행을 **두 번**(Place 로 되감아 재사용) 한다. 종전엔 둘 다 정지 스프라이트였다.
+	# 좌표는 `field` 로컬(= 절대 좌표 − field.position). 행성은 별과 같은 배치노드에 산다.
+	var p0 := ctr - at + Vector2(vis.x * LIGHT_PLANET_P0.x, vis.y * LIGHT_PLANET_P0.y)
+	var p1 := ctr - at + Vector2(vis.x * LIGHT_PLANET_P1.x, vis.y * LIGHT_PLANET_P1.y)
+	var p2 := ctr - at
+	_light_planet(field, el, pfx + "earth", [p0, p1, p2], 0.4, d + 1.45, sp,
+		[[2.0, 3.0], [1.0, 2.0]])                       # 2패스: Bezier 2.0/1.0 · ScaleTo 3.0/2.0
+	_light_planet(field, el, pfx + "saturn",
+		[p0 + LIGHT_SATURN_OFF, p1 + LIGHT_SATURN_OFF, p2], 1.0, d + 2.45, sp,
+		[[2.5, 5.0]])                                   # 1패스: Bezier 2.5 · ScaleTo 5.0
+
+	# ── 태양 무리 — `initLight` 은 전부 **한 자리**(레이어 중심)에 겹쳐 놓는다 ─────
+	#   `light_sun`(0x18835) / `sunlight`(0x18833) / `sunwing`(0x18834) : setScale(1)·setOpacity(0)
+	#   `light_flash`(0x27290) : setScale(0) · **anchor(0.54, 0.5)** · z 1
+	#   `light_flashwing`(0x18831) : flash 의 자식, setScaleX(10) · pos = flash 중앙
+	#   `light_bomb`(0x18832) : setScale(0)
+	#   `sunwing` 은 **자기 복제본**을 자식으로 갖는다(scale 0 · opacity 0 · rotation 90).
+	var sun_at := at
+	# cocos `CCEaseOut(rate)` = t^(1/rate) → Godot EASE_IN, `CCEaseIn(rate)` = t^rate → EASE_OUT.
+
+	# flash — 씨앗(0.15)에서 5.0 배로 터졌다가 7.5 → 2.0 → 1.75 로 잦아들며 사라진다.
+	#   섬광이 걷힌 뒤 화면에 남는 **청백 구체 + 회색 후광 링**의 정체가 이 단계다(종전 누락).
+	var flash := _spr_a(el, pfx + "flash", Vector2(0.54, 0.5))
+	if flash != null:
+		flash.position = sun_at
+		flash.scale = Vector2.ZERO
+		flash.z_index = Z_LIGHT_FLASH
+		host.add_child(flash)
+		var wing := _spr(el, pfx + "flashwing")
+		if wing != null:
+			# 원작은 flash 의 contentSize*0.5(= 도형 중심)에 붙인다. 앵커가 0.54 라 그만큼 밀린다.
+			wing.position = Vector2((0.5 - 0.54)
+				* AtlasUI.size_pt(DIR_PREFIX + el, pfx + "flash").x, 0.0)
+			wing.scale = Vector2(LIGHT_FLASHWING_SX, 1.0)   # setScaleX(10)
+			wing.z_index = -1
+			flash.add_child(wing)
+			var wt := wing.create_tween()
+			wt.tween_interval(d / sp)
+			wt.tween_property(wing, "scale", Vector2.ONE, 0.5 / sp)\
+				.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)   # CCEaseOut(0.25)
+			wt.tween_interval(1.0 / sp)
+			_fade_pma(wt, wing, 0.0, 0.25 / sp)
+			wt.tween_callback(wing.queue_free)
+		var t := flash.create_tween()
+		t.tween_interval(d / sp)
+		t.tween_property(flash, "scale", Vector2(0.15, 0.15), 0.5 / sp)
+		t.tween_property(flash, "scale", Vector2(5.0, 5.0), 0.1 / sp)
+		t.tween_interval(0.75 / sp)
+		t.tween_callback(func() -> void: flash.scale = Vector2(7.5, 7.5))  # ScaleTo(0.0, 7.5)
+		t.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.25 / sp)
+		t.tween_property(flash, "scale", Vector2(1.75, 1.75), 0.5 / sp)
+		_fade_pma(t.parallel(), flash, 0.0, 0.5 / sp)
+		t.tween_callback(flash.queue_free)
+
+	# bomb — 태양이 태어나는 순간의 착화(+1.6). 종전엔 2차 섬광 착화(+5.3)로 잘못 배정돼 있었다.
+	var bomb := _spr(el, pfx + "bomb")
+	if bomb != null:
+		bomb.position = sun_at
+		bomb.scale = Vector2.ZERO
+		bomb.z_index = Z_LIGHT_BOMB
+		host.add_child(bomb)
+		var bt := bomb.create_tween()
+		bt.tween_interval((d + 1.6) / sp)
+		bt.tween_property(bomb, "scale", Vector2(7.5, 7.5), 0.5 / sp)
+		bt.tween_callback(bomb.queue_free)
+
+	# sun — 회전하며 0.75 → 2.0 으로 자라다 2차 섬광 안에서 접혀 사라진다.
+	var sun := _spr(el, pfx + "sun")
+	if sun != null:
+		sun.position = sun_at
+		_set_alpha(sun, 0.0)
+		sun.z_index = Z_LIGHT_SUN
+		host.add_child(sun)
+		var t := sun.create_tween()
+		t.tween_interval((d + 1.6) / sp)
+		t.tween_property(sun, "rotation_degrees", -1260.0, 3.5 / sp).as_relative()\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)   # CCEaseInOut(0.25)
+		_fade_pma(t.parallel(), sun, 1.0, 0.25 / sp)
+		t.parallel().tween_property(sun, "scale", Vector2(0.75, 0.75), 1.0 / sp)
+		t.parallel().tween_property(sun, "scale", Vector2(2.0, 2.0), 2.5 / sp)\
+			.set_delay(1.0 / sp)
+		t.tween_interval(0.75 / sp)
+		t.tween_property(sun, "scale", Vector2.ZERO, 0.75 / sp)\
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(sun, "rotation_degrees", -360.0, 0.75 / sp).as_relative()
+		t.tween_callback(sun.queue_free)
+
+	# sunlight — **태양과 같이 태어나 같이 자라는 후광**(0.75 → 2.0, 3.5초).
+	#   🔴 종전엔 scale 2.6 으로 0.9초만 떴다 져서, ① 그동안 화면 전체가 주황빛으로 날아가고
+	#      ② 그 뒤로는 맨 태양만 남아 **차갑게(무채색)** 보였다. 실측 반경 120pt 색:
+	#      원작 (177,136,103) vs 종전 우리 (123,119,113) — 원작의 따뜻한 코로나가 곧 이 후광이다.
+	var halo := _spr(el, pfx + "sunlight")
+	if halo != null:
+		halo.position = sun_at
+		_set_alpha(halo, 0.0)
+		halo.z_index = Z_LIGHT_HALO
+		host.add_child(halo)
+		var t := halo.create_tween()
+		t.tween_interval((d + 1.6) / sp)
+		t.tween_property(halo, "scale", Vector2(0.75, 0.75), 1.0 / sp)\
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)     # CCEaseIn(0.25)
+		_fade_pma(t.parallel(), halo, 1.0, 0.25 / sp)
+		t.tween_property(halo, "scale", Vector2(2.0, 2.0), 2.5 / sp)\
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)       # CCEaseOut(0.1)
+		t.tween_interval(0.75 / sp)                                    # Delay .25 + 콜백 + Delay .5
+		t.tween_property(halo, "scale", Vector2.ZERO, 0.75 / sp)\
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+		t.tween_callback(halo.queue_free)
+
+	# sunwing — 788×44 **가로 막대**다. 태양을 관통하는 수평 플레어로 상주하다가 +4.0 에
+	#   90° 쌍둥이가 떠 **+자**가 되고, +1.75 에서야 0.75초 동안 720° 한 바퀴 돈다.
+	#   🔴 종전엔 3.5초에 걸쳐 200° 를 계속 돌려 **화면을 가로지르는 거대한 X자**였다.
+	var swing := _spr(el, pfx + "sunwing")
+	if swing != null:
+		swing.position = sun_at
+		_set_alpha(swing, 0.0)
+		swing.z_index = Z_LIGHT_SUNWING
+		host.add_child(swing)
+		var twin := _spr(el, pfx + "sunwing")
+		if twin != null:
+			twin.rotation_degrees = 90.0
+			twin.scale = Vector2.ZERO
+			_set_alpha(twin, 0.0)
+			twin.z_index = -1
+			swing.add_child(twin)
+			var tt := twin.create_tween()
+			tt.tween_interval((d + 4.0) / sp)
+			tt.tween_property(twin, "scale", Vector2.ONE, 1.0 / sp)
+			_fade_pma(tt.parallel(), twin, 1.0, 1.0 / sp)
+		var t := swing.create_tween()
+		t.tween_interval((d + 1.75) / sp)
+		t.tween_property(swing, "scale", Vector2(0.75, 0.75), 1.0 / sp)
+		_fade_pma(t.parallel(), swing, 1.0, 0.1 / sp)
+		t.tween_property(swing, "scale", Vector2(2.0, 2.0), 2.5 / sp)\
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(swing, "rotation_degrees", 720.0, 0.75 / sp)\
+			.as_relative().set_delay(1.75 / sp)\
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+		t.tween_callback(swing.queue_free)
+
+
+## 행성 한 개 — `runLight` L287/L309. `pts` = 2차 베지어 [시작, 제어, 끝],
+## `passes` = 통과마다 [베지어 초, ScaleTo 초]. 매 통과: 8.0 배까지 지수적으로 부풀며 3초 페이드.
+static func _light_planet(host: CanvasItem, el: String, key: String, pts: Array,
+		scale0: float, at_sec: float, sp: float, passes: Array) -> void:
+	var n := _spr(el, key)
+	if n == null:
+		return
+	n.position = pts[0]
+	n.scale = Vector2.ONE * scale0
+	n.visible = false
+	n.z_index = Z_LIGHT_PLANET
+	host.add_child(n)
+	var p0: Vector2 = pts[0]
+	var p1: Vector2 = pts[1]
+	var p2: Vector2 = pts[2]
+	var t := n.create_tween()
+	t.tween_interval(at_sec / sp)
+	t.tween_callback(func() -> void: n.visible = true)
+	for i in passes.size():
+		if i > 0:                                    # 원작 Place → ScaleTo(0, s0) → FadeTo(0, 255)
+			t.tween_callback(func() -> void:
+				n.position = p0
+				n.scale = Vector2.ONE * scale0
+				_set_alpha(n, 1.0))
+		var bez := float(passes[i][0])
+		var sec := float(passes[i][1])
+		t.tween_method(func(x: float) -> void:
+			if is_instance_valid(n):
+				var q := 1.0 - x
+				n.position = p0 * (q * q) + p1 * (2.0 * q * x) + p2 * (x * x),
+			0.0, 1.0, bez / sp)
+		t.parallel().tween_property(n, "scale", Vector2(8.0, 8.0), sec / sp)\
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)   # CCEaseExponentialIn
+		_fade_pma(t.parallel(), n, 0.0, 3.0 / sp)
+	t.tween_callback(n.queue_free)
 
 
 # ── holy (11.25초) — 창 세례 ─────────────────────────────────────────────────
@@ -1827,10 +2227,31 @@ static func _run_holy(host: CanvasItem, at: Vector2, dir: float, sp: float,
 ## 원작 `initChaos`: `chaos_meteo1/2` + `chaos_dust1~3`(애니 0.05초/프레임) +
 ##   `scene/colosseum/dust`·`dust_cover` 를 **18개**(0x12) · 12개(0xc) 루프로 깐다.
 ##   운석 앵커가 `(0.5, 0.0493)` = 꼬리 끝 기준이다.
-const CHAOS_FLASH_AT := 5.0     # 착탄 백색 섬광(영상 혼돈 +7.1s = 구간 내 5.0초쯤)
+##
+## 🔴 2026-08-06 영상 프레임 재대조로 **먼지 두 종류의 시각이 통째로 뒤바뀐 것**을 잡았다.
+##   정합: 혼돈 구간 컷 65.80~74.53s · timeScale **1.35** · 시전 0초 T0 = **66.53s**
+##   (근거 3중 — 붉은 강하 빔 68.20 = `ACT_AT` 2.25 / 먼지 등장 68.57 = `RUN_AT` 2.75 /
+##    클립 끝 74.53 = 명목 10.80 ≈ `DURATION.chaos` 10.65).
+##   실측 타임라인(명목 초):
+##     2.6~5.5  `chaos_dust1~3`(검붉은 톱니 바위)가 **지면 좌·우**에서 밀려든다
+##     2.75→5.75 장막 `TintTo(3.0, 200/50/25)` — 상단 밝은 띠 폭 762→1114px 로 측정
+##     6.3→7.2  **운석이 화면을 덮으며 백열**(71.4~71.6s 프레임의 회색 연기 날개·백열
+##              테두리가 `chaos_meteo1` 에셋과 일치)
+##     8.7~9.5  백색이 걷히며 지면에 **흰 흙먼지 뭉치**(`colosseum/dust`·`dust_cover`)
+##   종전 코드는 이 둘을 서로 바꿔 깔고 있었다(톱니 7.75~9.5 · 흰 구름 2.75~5.5).
+const CHAOS_DUST_AT := 0.0      # `chaos_dust1~3` = run+0 (영상 68.57 = 명목 2.75)
+const CHAOS_DUST_LIVE := 2.75   # 붉은 물들임이 다 차오르는 5.5 까지 남아 삼켜진다
+const CHAOS_COVER_AT := 5.75    # 흰 흙먼지 = 착탄 뒤(명목 8.5) — run 기준
 const CHAOS_DUST_SEC := 0.05
 const CHAOS_COVERS := 18
 const CHAOS_METEO_ANCHOR_Y := 0.049295776   # 원작 앵커 — 운석 **꼬리 끝**이 축이다
+## 운석 — 영상 실측 스케줄(run 기준). 앵커(백열 테두리)가 화면 위에서 내려와 상단 22% 에
+##   걸리고, 몸통은 화면 밖 위쪽에 있다 ⇒ **하늘을 채운 백열 테두리**로 보인다.
+##   근거: 상단 밝은 띠 폭이 명목 2.25→5.3 에 762→1114px 로 자란다(원 현의 길이가 자라는 꼴).
+##   4.45(명목 7.2)에 백색 섬광이 받아 간다.
+const CHAOS_METEO_IN := 0.75
+const CHAOS_METEO_FALL := 2.95
+const CHAOS_METEO_REST := 0.22    # 최종 테두리 높이 = 화면 위에서 22%
 
 static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		rng: RandomNumberGenerator) -> void:
@@ -1840,66 +2261,80 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 	var s_ring := RING_DY
 
 	# 운석 — 원작 `initChaos` 의 운석 노드는 **둘뿐**이다(meteo1 = `setScale(W/운석폭)` 화면 폭,
-	#   meteo2 짝). 앵커 `(0.5, 0.0493)` = **꼬리 끝**이 축.
-	# 🔴 2026-08-05 재작성(사용자 실측): 원작은 **거대 운석 하나가 하늘 중앙에서 천천히
-	#   내려온다** — 대각선 다연발이 아니다. 붉은 물들임(run+0~3) 동안 서서히 강하해
-	#   백색 전환(run+4~5)에 삼켜진다. 시전자도 그 밑 중앙으로 이동한다(caster_fx.chaos).
+	#   meteo2 짝). 앵커 `(0.5, 0.0493)` = **꼬리 끝**(= 백열하는 아랫테두리)이 축.
+	# 🔴 2026-08-06 재작성 — 종전 코드는 운석을 `Z_VEIL - 2`(장막 뒤)에 두어 **한 프레임도
+	#   보이지 않았다**(우리 캡처를 콘트라스트로 늘려야만 t≈6.5에 아랫테두리 한 조각이 나온다).
+	#   영상에서 붉은 화면 자체는 장막의 `TintTo(3.0, 200/50/25)` 로 설명된다(화면 평균 R
+	#   39→145 ≈ 200×200/255) — 운석은 그 뒤에 숨는 것이 아니라 **백색 섬광 직전 1초 남짓
+	#   화면을 덮으며 등장**한다(71.4~71.6s 프레임의 회색 연기 날개·백열 테두리가 에셋과 일치).
+	#   같은 날 확정된 `Z_VEIL = 0`(장막이 드래곤보다 뒤) 덕에 **장막 위·드래곤 아래**(z 1~9)에
+	#   놓으면 원작 그대로 "드래곤 뒤를 채우는 거대 운석"이 된다.
 	var mw := float(manifest(el).get(pfx + "meteo1", {}).get("w", 1.0)) * Design.ASSET_SCALE
 	var mh := float(manifest(el).get(pfx + "meteo1", {}).get("h", 1.0)) * Design.ASSET_SCALE
-	var msc := (vis.x * 0.5 / mw) if mw > 1.0 else 1.0   # W = contentSize.x = 화면 폭 절반
-	# 🔴 2026-08-05 사용자 실측 재교정: **거대 운석 하나뿐이다**(meteo2 동반 낙하는 원작에
-	#   없다 — meteo2 는 meteo1 의 교체 프레임으로 본다). 화면 폭에 가깝게 키워
-	#   하늘 중앙에서 천천히 밀고 내려온다.
 	var ctrx := _screen_center(host).x
 	var m := _spr_a(el, pfx + "meteo1", Vector2(0.5, CHAOS_METEO_ANCHOR_Y))
 	if m != null:
-		var sc := (vis.x * 0.85 / mw) if mw > 1.0 else 1.0
+		# 화면 폭에 맞춘다 ⇒ 백열 테두리 호가 화면 폭을 가로지른다(실측 띠 폭 1114/1142px).
+		var sc := (vis.x / mw) if mw > 1.0 else 1.0
 		m.scale = Vector2.ONE * sc
-		# 앵커(꼬리 끝) 기준 — 머리가 화면 위에서 밀고 내려온다. 시작 = 몸 전체가 화면 밖.
-		m.position = Vector2(ctrx,
-			at.y - vis.y * 0.5 - mh * sc * (1.0 - CHAOS_METEO_ANCHOR_Y) - 40.0)
-		# 영상 프레임 실측(69.25~71.0s) — 운석은 적색 장막 **뒤의 실루엣**으로 내려온다
-		# (장막 위에 선명하게 그리면 원작과 달리 튄다) ⇒ z 를 장막(Z_VEIL) 아래로.
-		m.z_index = Z_VEIL - 2
+		var top := _screen_center(host).y - vis.y * 0.5
+		m.position = Vector2(ctrx, top - 30.0)     # 테두리가 화면 위쪽 밖 — 몸통은 더 위
+		m.z_index = Z_VEIL + 1                     # 장막 위 · 드래곤(Z_ACTOR 10) 뒤
+		m.modulate.a = 0.0
 		host.add_child(m)
 		var t: Tween = m.create_tween()
-		t.tween_interval(0.4 / sp)
-		t.tween_property(m, "position:y", at.y - mh * sc * 0.3, 3.6 / sp)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)   # 천천히 — 백색 전환에 삼켜진다
-		t.parallel().tween_property(m, "position:x", m.position.x + dir * 15.0, 3.6 / sp)
-		t.tween_property(m, "modulate:a", 0.0, 0.4 / sp)
+		t.tween_interval(CHAOS_METEO_IN / sp)
+		t.tween_property(m, "position:y", top + vis.y * CHAOS_METEO_REST,
+			CHAOS_METEO_FALL / sp).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.parallel().tween_property(m, "modulate:a", 1.0, 0.75 / sp)
+		t.tween_property(m, "modulate:a", 0.0, 0.75 / sp)   # 백색 섬광에 삼켜진다
 		t.tween_callback(m.queue_free)
+		# meteo2 는 meteo1 의 교체 프레임 — 낙하 중 0.1초로 갈아 끼워 불길이 일렁이게 한다.
+		_loop_frames(m, el, pfx + "meteo%d", 1, 2, 0.1 / sp,
+			(CHAOS_METEO_IN + CHAOS_METEO_FALL + 0.75) / sp)
 
 	# 착탄 섬광 — `runChaos` 의 별도 CCLayerColor 실측(2026-08-05):
 	#   Delay(3.0) → FadeTo(1.0, 175) → [TintTo(1.0, white) ∥ FadeTo(1.0, 255)] → Delay(0.5) → …
-	#   붉은 하늘이 1초에 걸쳐 차오르고, 다시 1초에 걸쳐 하얗게 타 버린다(영상 +70s→+72s).
+	#   🔴 2026-08-06 지연 교정: 영상은 명목 6.3 에 하얘지기 시작해 **7.2 에 완전 백색**이다
+	#   (run 기준 3.55~4.45). 종전 3.0 시작은 우리 화면을 0.5초 늦게 태웠다.
 	var bang := _screen_veil(host, at, Color8(200, 50, 25), Z_FLASH)
 	var bt := bang.create_tween()
-	bt.tween_interval(3.0 / sp)
+	bt.tween_interval(2.5 / sp)
 	bt.tween_property(bang, "color:a", 175.0 / 255.0, 1.0 / sp)
 	bt.tween_property(bang, "color", Color(1, 1, 1, 1), 1.0 / sp)
 	bt.tween_interval(0.5 / sp)
 	bt.tween_property(bang, "color:a", 0.0, 1.0 / sp)   # ASSUMPTION: 걷는 시간(콜백 뒤 미상)
 	bt.tween_callback(bang.queue_free)
 
-	# 먼지 기둥 — 원작 앵커 `(0.5, 0)` · `setScaleY(0)` ⇒ **바닥에서 솟는다**.
+	# 톱니 바위 먼지 — 원작 앵커 `(0.5, 0)` · `setScaleY(0)` ⇒ **바닥에서 솟는다**.
+	# 🔴 2026-08-06 시각 교정: run+0(영상 68.57)에 지면 좌·우로 밀려들어와 붉은 물들임이
+	#   다 차오르는 명목 5.5 까지 남는다. 종전 `CHAOS_FLASH_AT(5.0)` 은 **백색 섬광 도중**에
+	#   띄우고 있어서, 하얀 화면 위에 검붉은 판이 사각형째 얹혔다.
 	var du := _spr_a(el, pfx + "dust1", BOTTOM)
 	if du != null:
-		du.position = at + Vector2(0.0, s_ring)
-		du.z_index = 92
-		du.scale = Vector2(1.0, 0.0)
+		# 🔴 폭 교정 — 프레임 563pt(×4/3 = 751)는 화면(1024)보다 좁아 **네모난 경계**가 보였다.
+		#   영상에서 이 바위 무리는 화면 폭을 꽉 채운다(경계가 화면 밖) ⇒ 폭을 화면에 맞춘다.
+		var dw := float(manifest(el).get(pfx + "dust1", {}).get("w", 1.0)) * Design.ASSET_SCALE
+		var kx := maxf(1.0, vis.x / dw) if dw > 1.0 else 1.0
+		du.position = Vector2(ctrx, at.y + s_ring)   # 화면 중앙 지면 — 좌·우 한 쌍이 한 프레임이다
+		du.z_index = Z_VEIL + 2                      # 운석 앞 · 드래곤 뒤
+		du.scale = Vector2(kx, 0.0)
 		host.add_child(du)
 		var dg := du.create_tween()
-		dg.tween_interval(CHAOS_FLASH_AT / sp)
-		dg.tween_property(du, "scale", Vector2.ONE, 0.35 / sp)
-		_play_frames(du, el, pfx + "dust%d", 1, 3, CHAOS_DUST_SEC / sp)
+		dg.tween_interval(CHAOS_DUST_AT / sp)
+		dg.tween_property(du, "scale", Vector2(kx, 1.0), 0.4 / sp)\
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_loop_frames(du, el, pfx + "dust%d", 1, 3, CHAOS_DUST_SEC / sp,
+			(CHAOS_DUST_AT + CHAOS_DUST_LIVE + 1.0) / sp)
 		var t2 := du.create_tween()
-		t2.tween_interval(6.0 / sp)
-		t2.tween_property(du, "modulate:a", 0.0, 0.75 / sp)
+		t2.tween_interval((CHAOS_DUST_AT + CHAOS_DUST_LIVE) / sp)
+		t2.tween_property(du, "modulate:a", 0.0, 1.0 / sp)   # 붉은 장막에 녹아 없어진다
 		t2.tween_callback(du.queue_free)
 
 	# 흙먼지 장막 — 원작이 `scene/colosseum` 아틀라스에서 가져온다(우리도 보유).
-	# 🔴 위치 교정(사용자 실측): 공중이 아니라 **지면을 따라** 깔려 흐르는 연기다.
+	# 🔴 2026-08-06 시각 교정: 이건 **착탄 잔해**다(영상 72.9~73.6 = 명목 8.7~9.5, 백색이
+	#   걷히며 지면에 남는 흰 연기). 종전엔 run+0 에 깔아 붉은 국면 내내 화면 아래가
+	#   흰 구름밭이었다.
 	var ground_y := _screen_center(host).y + vis.y * 0.5
 	for i in CHAOS_COVERS:
 		var c := AtlasUI.spr_cocos("colosseum_ui",
@@ -1912,7 +2347,7 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		c.modulate.a = 0.0
 		host.add_child(c)
 		var t3 := c.create_tween()
-		t3.tween_interval(float(i) * 0.08 / sp)
+		t3.tween_interval((CHAOS_COVER_AT + float(i) * 0.05) / sp)
 		t3.tween_property(c, "modulate:a", 1.0, 0.25 / sp)
 		t3.tween_property(c, "position", c.position + Vector2(dir * 110.0, -20.0), 2.0 / sp)
 		t3.parallel().tween_property(c, "modulate:a", 0.0, 2.0 / sp)
@@ -2146,30 +2581,49 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			anim_at.call(ACT_AT + 0.25, "ultimate1")
 			back = ACT_AT + 1.55 + 0.2 + 0.75 + 0.15 + 5.0 + 0.25 + 1.0 + 0.25
 		"chaos":
-			# 화면 중앙으로 이동 → 적색 변신 → 3.05초 축소 → 소멸 → 복귀(실측 Delay 6.75).
+			# 🔴 2026-08-06 영상 프레임 실측 재작성(T0 = 66.53s · timeScale 1.35).
+			#   종전엔 시전자가 제자리에서 그냥 걸어 중앙으로 갔는데, 원작은 **순간이동**이다:
+			#     1.6  (67.73) 제자리에서 사라진다 — 0.6초 동안 화면에 아무것도 없다
+			#     2.25 (68.20) 화면 중앙에 **가는 붉은 세로 빔**이 내려꽂힌다
+			#     2.43 (68.33) 빔이 펴지며 **핏빛 실루엣**으로 재림, 합체 문양이 함께 터진다
+			#     ~6.5         백열에 삼켜진다 (그때까지 계속 핏빛 — 종전엔 0.9초만 붉었다)
+			#     ~8.6 (73.2)  제자리로 복귀
+			# ASSUMPTION: 강하 빔 전용 프레임을 못 찾았다(`--grep chaos_` 는 circle/dust/meteo
+			#   7종뿐). 시전자 자신을 가로로 눌러(scale.x 0.04) 그 그림을 낸다 — 프레임을
+			#   확보하면 이 callback 한 곳만 갈아 끼우면 된다.
+			var CHAOS_GONE := 1.6             # 소멸 시각(시전 기준)
+			var CHAOS_BEAM := 0.18            # 빔이 꽂혀 있는 시간
+			var CHAOS_BURN := 6.5             # 백열에 삼켜지는 시각
+			var CHAOS_HOME := 8.6             # 복귀 시각
+			var bs := n.scale
 			var t := n.create_tween()
-			t.tween_interval((ACT_AT + 1.15) / sp)
-			t.tween_property(n, "position", Vector2(dirc * 30.0, 0.0), 0.1 / sp).as_relative()
-			t.tween_interval(0.55 / sp)
-			t.tween_property(n, "position", Vector2(ctr.x, stage.y), 0.1 / sp)
-			t.tween_interval(6.75 / sp)
+			t.tween_interval(CHAOS_GONE / sp)
+			t.tween_property(n, "scale", Vector2(bs.x * 1.15, bs.y * 0.7), 0.1 / sp)  # 빨려드는 스쿼시
+			t.tween_property(n, "scale", Vector2(bs.x * 0.15, bs.y * 1.35), 0.12 / sp)
+			t.parallel().tween_property(n, "modulate:a", 0.0, 0.12 / sp)
+			# 강하 빔 — 중앙에 눌린 채로 붉게 나타난다.
+			t.tween_interval((ACT_AT - CHAOS_GONE - 0.22) / sp)
 			t.tween_callback(func() -> void:
 				if is_instance_valid(n):
-					n.modulate = Color(1, 1, 1, 1)   # 적색 변신·소멸을 전부 되돌린다
-					n.scale = Vector2.ONE)
-			_jump_by(t, n, Vector2(home.x - ctr.x, home.y - stage.y), s * 150.0, 1, 0.25 / sp)
+					n.position = Vector2(ctr.x, stage.y)
+					n.scale = Vector2(bs.x * 0.04, bs.y * 1.3)
+					n.modulate = Color(0.85, 0.05, 0.05, 1.0))
+			t.tween_interval(CHAOS_BEAM / sp)
+			t.tween_property(n, "scale", bs, 0.12 / sp)                    # 펴지며 재림
+			# 영상 68.33~70.9 의 시전자는 **거의 검붉은 실루엣**이다(밝은 적색이 아니다).
+			t.parallel().tween_property(n, "modulate", Color(0.32, 0.05, 0.06, 1.0), 0.12 / sp)
+			# 핏빛 유지 → 백열에 삼켜짐 → 복귀
+			t.tween_interval((CHAOS_BURN - ACT_AT - CHAOS_BEAM - 0.12) / sp)
+			t.tween_property(n, "modulate:a", 0.0, 0.3 / sp)
+			t.tween_interval((CHAOS_HOME - CHAOS_BURN - 0.3) / sp)
 			t.tween_callback(func() -> void:
 				if is_instance_valid(n):
+					n.modulate = Color(1, 1, 1, 0)   # 적색 변신을 되돌리고 제자리에서 다시 켠다
+					n.scale = bs
 					n.position = home)
-			var body: Tween = n.create_tween()
-			body.tween_interval((ACT_AT + 2.1) / sp)
-			body.tween_property(n, "modulate", Color(1.0, 0.15, 0.15), 0.2 / sp)   # 적색 변신
-			body.tween_interval(0.6 / sp)
-			body.tween_property(n, "modulate", Color(1, 1, 1), 0.3 / sp)
-			body.tween_property(n, "scale", Vector2.ONE * 0.9, 3.05 / sp)
-			body.tween_property(n, "modulate:a", 0.0, 0.2 / sp)                    # 운석 속으로
-			anim_at.call(ACT_AT + 0.9, "ultimate1")
-			back = ACT_AT + 1.15 + 0.1 + 0.55 + 0.1 + 6.75 + 0.25
+			t.tween_property(n, "modulate:a", 1.0, 0.3 / sp)
+			anim_at.call(ACT_AT + 0.4, "ultimate1")
+			back = CHAOS_HOME + 0.3
 		"holy":
 			# 몸통 페이드 아웃 → 창 세례 뒤 복귀(실측 FadeTo(1.0,0) … FadeTo(1.0,255)).
 			var t := n.create_tween()
@@ -2310,6 +2764,27 @@ static func _loop_frames(spr: Node2D, el: String, fmt: String, lo: int, hi: int,
 		n = lo if n >= hi else n + 1)
 
 
+## `_loop_frames` 의 역방향판(hi → lo). 원작 `initWind` 의 두 번째 CCAnimation 이
+## `whirl4 → whirl3 → whirl2 → whirl1`(0.025초)로 **거꾸로** 도는 겹을 만든다.
+static func _loop_frames_rev(spr: Node2D, el: String, fmt: String, hi: int, lo: int,
+		sec: float, total := 0.0) -> void:
+	var n := hi
+	var t := Timer.new()
+	t.wait_time = maxf(0.01, sec)
+	t.autostart = true
+	spr.add_child(t)
+	var elapsed := [0.0]
+	t.timeout.connect(func() -> void:
+		if not is_instance_valid(spr):
+			return
+		elapsed[0] += t.wait_time
+		if total > 0.0 and elapsed[0] >= total:
+			t.stop()
+			return
+		_set_frame(spr, el, fmt % n)
+		n = hi if n <= lo else n - 1)
+
+
 static func _find_anim_player(n: Node) -> AnimationPlayer:
 	if n is AnimationPlayer:
 		return n
@@ -2410,6 +2885,22 @@ static func _spr_a(element: String, key: String, anchor: Vector2) -> Node2D:
 static func _spr(element: String, key: String) -> Node2D:
 	used_keys[element + "/" + key] = true
 	return AtlasUI.spr_cocos(DIR_PREFIX + element, key)
+
+
+## PMA 프레임의 불투명도 — **`modulate:a` 만 건드리면 안 된다**.
+##
+## 🔴 2026-08-06 실측(물 수면). `AtlasUI.spr_cocos` 는 모든 스프라이트에
+##   `BLEND_MODE_PREMULT_ALPHA` 를 걸고 아틀라스도 PMA 로 구워져 있다. 그 블렌드는
+##   `out = src.rgb + dst*(1 − src.a)` 라서 alpha 만 낮추면 **rgb 가 그대로 더해져 가산 합성**이
+##   된다 — 반투명이 아니라 흰색으로 탄다(수면 밑단 (204,255,255) → 실측 (255,255,255)).
+##   PMA 에서 배율 a 의 정답은 rgb·alpha 를 **같이** 곱하는 것이다.
+static func _set_alpha(n: CanvasItem, a: float) -> void:
+	n.modulate = Color(a, a, a, a)
+
+
+## 위와 같은 이유로 페이드도 `modulate` 전체를 민다. 반환값으로 `.parallel()` 을 이어 쓸 수 있다.
+static func _fade_pma(t: Tween, n: CanvasItem, a: float, sec: float) -> PropertyTweener:
+	return t.tween_property(n, "modulate", Color(a, a, a, a), sec)
 
 
 ## `_spr` 홀더의 프레임을 갈아 끼운다 — **트림 오프셋·앵커를 함께 다시 잡는다**.

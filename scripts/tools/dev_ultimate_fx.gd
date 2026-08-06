@@ -227,6 +227,17 @@ func _ready() -> void:
 ## ⚠️ 인자 이름이 `--cap=` 인 이유: `--shot=` 은 ShotHelper 오토로드가 가로채
 ##   자기 스케줄로 스크린샷을 찍고 **트리를 닫아 버린다**(2026-08-05 실측 — 8장에서 끊겼다).
 ## (헤드리스 아님 — 렌더가 필요하다.)
+##
+## 🔴 **`--series` 로 시각을 재지 말 것**(2026-08-06 실측). 아래 루프는 `Time.get_ticks_msec()`
+##   = 벽시계로 간격을 잡는데, 스프라이트가 많은 구간(빛 = 별 750개)에서는 스크린샷 I/O 부하로
+##   게임시간이 벽시계를 못 따라가 **파일 이름의 t 와 화면 내용이 어긋난다**. 실측: 같은 코드가
+##   `--series=0.25` 면 2차 섬광 t=11.25, `--series=1.0` 이면 t=9.00 (코드상 정답 7.85).
+##   ⇒ 캡처 밀도가 타임라인을 바꾼다. **원작 영상과 프레임 대조할 때는 고정 프레임 무비 라이터**를
+##   쓴다 — 프레임당 델타가 정확히 1/30초라 결정론적이고, 원작 mp4 와 같은 방식으로 읽힌다:
+##     godot --path . res://scenes/dev_ultimate_fx.tscn --write-movie out.avi --fixed-fps 30 \
+##           --quit-after 400 -- --el=light --cap=<버릴 경로> --series=2.0 --dur=13
+##   (`--cap=` 은 이 창이 `--el=` 을 반영해 재생하게 만드는 스위치라 반드시 함께 준다.)
+##   `--series` 는 눈으로 훑는 용도로만 쓴다. 상세 = docs/ref/porting/UltimateLayer.md §-5 A
 func _maybe_shot() -> void:
 	var out := ""
 	var delay := 6
@@ -246,6 +257,11 @@ func _maybe_shot() -> void:
 		elif a.begins_with("--dur="):
 			dur_cap = float(a.substr(6))
 	if out == "":
+		# `--el=` 만 준 경우 = **그 속성으로 창을 띄운다**. 위에서 `_sel` 은 이미 바뀌었지만
+		# `_ready` 의 첫 재생은 그 전에 끝났으므로(불) 여기서 한 번 더 재생해 준다.
+		if _sel != 0:
+			_refresh()
+			_play()
 		return
 	_refresh()
 	_play()
@@ -317,6 +333,8 @@ func _unhandled_input(e: InputEvent) -> void:
 func _make_actor(id: int, x: float, mine: bool) -> Node2D:
 	var holder := Node2D.new()
 	holder.position = Vector2(x, _gy)
+	# 대전과 같은 z 여야 장막(z0)·상어(z9)의 앞뒤가 확인 창에서도 같다(`fight.gd` 도 10).
+	holder.z_index = UltimateFx.Z_ACTOR
 	var sh := AtlasUI.spr_cocos(CM, "common_shadow")
 	if sh != null:
 		sh.z_index = -1
