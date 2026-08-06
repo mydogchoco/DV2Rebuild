@@ -1652,7 +1652,9 @@ static func _run_chaos(host: CanvasItem, at: Vector2, dir: float, sp: float,
 		# 앵커(꼬리 끝) 기준 — 머리가 화면 위에서 밀고 내려온다. 시작 = 몸 전체가 화면 밖.
 		m.position = Vector2(ctrx,
 			at.y - vis.y * 0.5 - mh * sc * (1.0 - CHAOS_METEO_ANCHOR_Y) - 40.0)
-		m.z_index = 100
+		# 영상 프레임 실측(69.25~71.0s) — 운석은 적색 장막 **뒤의 실루엣**으로 내려온다
+		# (장막 위에 선명하게 그리면 원작과 달리 튄다) ⇒ z 를 장막(Z_VEIL) 아래로.
+		m.z_index = Z_VEIL - 2
 		host.add_child(m)
 		var t: Tween = m.create_tween()
 		t.tween_interval(0.4 / sp)
@@ -1808,8 +1810,8 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 	var back := 0.0
 
 	match el:
-		"fire", "shadow":
-			# fire 실측(shadow 는 ASSUMPTION 근사): 홉 → 상승 → 대기 → 복귀
+		"fire":
+			# fire 실측: 홉 → 상승 → 대기 → 복귀
 			var t := n.create_tween()
 			t.tween_interval((ACT_AT + 0.25) / sp)
 			_jump_by(t, n, Vector2(0.0, s * 75.0), 50.0, 1, 0.15 / sp)
@@ -1821,6 +1823,22 @@ static func caster_fx(a: Dictionary, el: String, sp := 1.0) -> float:
 			# 격양(입 벌림)은 화이트아웃 직전 — 영상 정합(사용자 확정 2026-08-05).
 			anim_at.call(ACT_AT + 4.2, "ultimate2")
 			back = ACT_AT + 0.25 + 0.15 + 4.35 + 3.0 + 0.15
+		"shadow":
+			# 영상 실측(76.75~82.75s): 시전자가 **발밑 늪 소용돌이로 가라앉아 소멸**
+			# (링의 marsh1 이 그 소용돌이다), run+5.4쯤 같은 자리에서 다시 솟는다.
+			var t := n.create_tween()
+			t.tween_interval((LEAD + 0.3) / sp)
+			t.tween_property(n, "scale", Vector2(1.1, 0.75), 0.2 / sp)   # 빨려드는 스쿼시
+			t.tween_property(n, "scale", Vector2(0.55, 0.15), 0.25 / sp)
+			t.parallel().tween_property(n, "modulate:a", 0.0, 0.25 / sp)
+			t.tween_interval((RUN_AT + 5.4 - LEAD - 1.1) / sp)
+			t.tween_callback(func() -> void:
+				if is_instance_valid(n):
+					n.position = home)
+			t.tween_property(n, "scale", Vector2.ONE, 0.3 / sp)
+			t.parallel().tween_property(n, "modulate:a", 1.0, 0.3 / sp)  # 늪에서 솟는다
+			anim_at.call(LEAD + 0.1, "ultimate1")
+			back = RUN_AT + 5.4 + 0.3
 		"dark":
 			# 영상 실측(+48.25~48.75s): 시전 직후 **흑자색으로 물들며 소멸** — 소용돌이가
 			# 대신 싸우고, 폭발 뒤(run+7.6쯤) 제자리에 재등장한다.

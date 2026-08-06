@@ -339,9 +339,12 @@ func _play() -> void:
 		c.queue_free()
 	# 이전 재생의 배우 트윈을 전부 끊고 제자리로 — 안 끊으면 상대 이동이 누적돼
 	# 재생할수록 드래곤이 떠오른다(2026-08-05 사용자 실측).
-	for tw in _actor_tweens:
-		if tw != null and tw.is_valid():
-			tw.kill()
+	# ⚠️ `_actor_tweens` 만으로는 부족하다 — `caster_fx` **내부**에서 만든 트윈은 여기 없어서,
+	#   시작 직후 기본 재생(fire)의 4.35초 상승 트윈이 `--el=` 재생의 시전자 이동을
+	#   매 프레임 덮어썼다(2026-08-06 혼돈 실측: 중앙 이동 직후 (225, fire 곡선)으로 스냅).
+	#   재생 = 전체 리셋이므로 트리에 살아 있는 트윈을 전부 죽인다.
+	for tw in get_tree().get_processed_tweens():
+		tw.kill()
 	_actor_tweens.clear()
 	if _caster != null:
 		_caster.position = _caster_home
