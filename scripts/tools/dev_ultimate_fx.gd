@@ -116,8 +116,10 @@ const CM := "common_ui"
 var _caster: Node2D
 var _target: Node2D
 var _caster_h := 240.0
+var _caster_w := 240.0
 var _target_h := 240.0
-var _gy := 0.0                     # 무대 바닥 y = vis.y*0.5 + ULT_DROP (인게임과 동일)
+var _gy := 0.0                     # 무대 기준선 y = vis.y*0.5 + ULT_DROP (인게임과 동일)
+                                   # ⚠️ 바닥이 아니라 원작이 **몸통 중심**을 놓는 선이다.
 var _ui: Node2D                    # 정보 패널 오버레이(TAB 토글)
 var _caster_home := Vector2.ZERO   # 배우 초기 자리 — 재생마다 여기로 리셋(드리프트 방지)
 var _target_home := Vector2.ZERO
@@ -329,8 +331,12 @@ func _make_actor(id: int, x: float, mine: bool) -> Node2D:
 	var h := r.size.y if r.size.y > 1.0 else 240.0
 	if mine:
 		_caster_h = h
+		_caster_w = r.size.x if r.size.x > 1.0 else h
 	else:
 		_target_h = h
+	# 🔴 2026-08-06 — 무대 y 규약이 대전과 같아야 한다: 원작은 무대 좌표에 몸통 **중심**을
+	#   놓으므로 발밑 원점인 holder 는 h/2 만큼 아래다(`fight.gd::_ult_stage_y`).
+	holder.position.y = _gy + h * 0.5
 	return holder
 
 
@@ -441,7 +447,9 @@ func _play() -> void:
 	_last_dur = UltimateFx.play(_stage, {
 		"element": el,
 		"mine": true,
-		"ring_at": Vector2(FightScene.ULT_DX, _gy - _caster_h * 0.5),
+		# 링·불덩이 기준점 = 무대 좌표 그대로(대전 `_awaken_fx` 와 같은 값).
+		"ring_at": Vector2(FightScene.ULT_DX, _gy),
+		"caster_w": _caster_w,
 		"scale": 1.0, "speed": 1.0, "mat": _pma,
 	})
 

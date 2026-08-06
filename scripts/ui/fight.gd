@@ -2986,6 +2986,12 @@ const ULT_SHADOW_SEC := 0.125
 const ULT_HOLD_ORIG := {"aqua": 9.75, "chaos": 9.65, "dark": 9.75, "earth": 7.85,
 	"fire": 9.25, "holy": 10.0, "light": 10.25, "shadow": 9.4, "wind": 9.4}
 
+## 각성기 무대의 **발밑** y. 원작 좌표 `H/2 − 50`(cocos) 에는 몸통 **중심**이 오므로
+## 우리 holder(원점 = 발밑)는 그만큼 아래에 놓는다. 링·불덩이도 이 기준을 함께 쓴다.
+func _ult_stage_y(dragon_h: float) -> float:
+	return _vis().y * 0.5 + ULT_DROP + dragon_h * 0.5
+
+
 ## 시전자를 무대로 올린다. 반환 = 총 소요 초.
 ##
 ## 🔴 2026-08-05 재작성 — `runUltimate`/`initPosition`/`action<El>_C` 재정독 + 레퍼런스 영상으로
@@ -3006,9 +3012,15 @@ func _ultimate_position(atk: Dictionary) -> float:
 	var s := DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO
 	# 무대 자리 = 절대 좌표. 원작 `initPosition`:
 	#   내 팀 → `VisibleRect::left() + (225, −50)` · 상대 → `right() + (−225, −50)`
+	# 🔴 2026-08-06 y 앵커 정정 — 원작은 그 좌표에 스프라이트의 **중심**을 놓는다(cocos 앵커
+	#   0.5/0.5). 우리 holder 원점은 **발밑**이라(`_build_side` 가 몸통을 −h/2 만큼 올린다)
+	#   그대로 쓰면 드래곤이 제 키의 절반만큼 떠 버렸다 — 레퍼런스 영상 실측으로 확인:
+	#   원작 시전자 발밑 y-down 574pt · 중심 383pt ≈ 무대 y 396pt, 우리는 발밑이 396pt 였다.
+	#   증상 = 도약하면 머리가 화면 위로 잘리고, 불기둥 바닥(같은 앵커 + dy)보다 100pt 위에
+	#   떠서 불 위를 밟고 선 그림이 됐다. `ULT_STAGE_Y` 한 곳으로 모은다.
 	var vis := _vis()
 	var stage := Vector2(ULT_DX if mine else vis.x - ULT_DX,
-		vis.y * 0.5 + ULT_DROP)     # cocos −50(y-up) ⇒ 우리 화면에선 아래로 +50
+		_ult_stage_y(float(atk.get("dragon_h", DRAGON_H))))
 	var el := String(atk.get("element", ""))
 	# 팀원 퇴장 hold = 원작 `DAT_021af270`(탐험 표) — 복귀 시각이 연출 끝과 맞물린다.
 	var hold := float(ULT_HOLD_ORIG.get(el, 9.0))
@@ -3149,11 +3161,13 @@ func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 	#   슬롯 좌표로 깔면 시전자가 뛰어간 자리와 어긋난다.
 	var caster: Vector2 = _body_pos(atk) if not atk.is_empty() else at
 	if not atk.is_empty():
-		# `_ultimate_position` 이 옮긴 **절대 무대 자리**를 그대로 쓴다. 슬롯 기준 상대이동으로
-		# 계산하면(종전) 3v3 뒷줄에서 링이 시전자와 다른 곳에 깔린다.
+		# `init<El>_C` 의 기준점 = `VisibleRect::left()/right() ± (225, −50)` — 무대 좌표 **그대로**다.
+		# 🔴 2026-08-06 — 종전엔 여기서 `− dragon_h*0.5` 를 뺐다. 몸통을 발밑 기준으로 놓아
+		#   드래곤이 반 키만큼 떠 있던 것을 링 쪽에서 되돌리려던 보정인데, 두 임시방편이
+		#   서로를 가리고 있었다(`_ult_stage_y` 주석). 몸통을 중심 기준으로 고쳤으니 여기선 뺀다.
 		var vis := _vis()
 		caster = Vector2(ULT_DX if bool(atk.get("mine", false)) else vis.x - ULT_DX,
-			vis.y * 0.5 + ULT_DROP) - Vector2(0.0, float(atk.get("dragon_h", DRAGON_H)) * 0.5)
+			vis.y * 0.5 + ULT_DROP)
 	# 🔴 2026-08-05 재확정 — 기준점·방향은 `UltimateFx.base_at()` 이 원작 `initWithDragon` 의
 	#   race 스위치대로 계산한다(earth/fire/shadow/aqua = **시전자 반대편**, 나머지 = 중앙 계열).
 	#   여기서는 시전자 진영(`mine`)만 넘긴다. 바닥 링만 시전자 발밑(`ring_at`)이다.
@@ -3161,6 +3175,8 @@ func _awaken_fx(atk: Dictionary, at: Vector2) -> void:
 		"element": String(atk.get("element", "")),
 		"mine": bool(atk.get("mine", false)),
 		"ring_at": caster,
+		# 원작 `initFire_C` 의 W = 시전자 dragonLayer contentSize.x — 불덩이가 퍼지는 폭.
+		"caster_w": float(atk.get("dragon_w", DRAGON_H)),
 		# 원작 `this+0x22c` = 시전자 레이어 스케일(3v3 = 0.75, 1v1 = 1.0).
 		"scale": DRAGON_SCALE_TEAM if _mode == "team" else DRAGON_SCALE_SOLO,
 		"speed": _speed,

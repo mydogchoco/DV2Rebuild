@@ -55,6 +55,33 @@ const POS_RET := 0.5               # initPosition 반환값(0x3f000000 실측)
 const ACT_AT := LEAD + POS_RET + 0.75      # = 2.25, action<El>_C 시각
 const RUN_AT := ACT_AT + 0.5               # = 2.75, run<El>(+run<El>_C) 시각
 
+# ── 속성 공통 지연 `this + 0x228` — `setElement` @00fdf48c 이 박는다 ──────────
+#
+# 🔴 2026-08-06 신규 발견. 각 `run<El>` 의 액션은 전부 `Delay(this[0x228] + <표값>)` 으로
+#   걸린다(불: 폭발 20단 `0x228 + 0x378[i]` · 백색 레이어 `0x228 + 4.25` · 장막 `0x228 + 6.5`).
+#   생성자(@00fdee78 :58)가 0 으로 두지만 **`setElement` 의 스위치가 속성마다 덮어쓴다**:
+#     fire 0x3f800000=1.0 · holy 0x3f400000=0.75 · aqua/earth/shadow 0x3fa00000=1.25 ·
+#     chaos/dark/light/wind 0x3fb33333=1.4
+#   우리는 이 항을 0 으로 두고 있었다 ⇒ 안무 본체가 통째로 그만큼 일렀다.
+# ⚠️ **`run<El>_C`(바닥 링·먼지)에는 안 붙는다.** 그래서 원작은 링이 먼저 깔리고 뜸을 들인 뒤
+#   폭발이 시작된다 — 우리가 "링과 첫 폭발이 붙어 있다"고 본 차이의 정체가 이것이다.
+# 실측 교차검증(레퍼런스 영상, 배속 1.35 · run<El> = 영상 2.22s):
+#   링·먼지 run+0 → 2.22s(실측 2.20) · 첫 폭발 run+1.0+0.25 → 3.15s(실측 3.15) ·
+#   백색 섬광 run+1.0+4.25 → 6.11s(실측 6.05) · 장막 걷힘 run+1.0+6.5 → 7.78s(실측 7.9).
+const ELEMENT_DELAY := {
+	"aqua": 1.25, "chaos": 1.4, "dark": 1.4, "earth": 1.25, "fire": 1.0,
+	"holy": 0.75, "light": 1.4, "wind": 1.4, "shadow": 1.25,
+}
+## 위 표를 실제로 적용한 속성. 나머지 8속성의 `run<El>` 은 이 항을 모르는 채 **영상에 맞춰**
+## 시간을 조정해 둔 곳이 섞여 있어(예: wind 장막 "영상 실측 run+5.5") 일괄로 더하면 맞아 있던
+## 정합이 깨진다. 속성별로 영상 재대조를 마칠 때마다 여기 이름을 추가한다.
+const ELEMENT_DELAY_ON := ["fire"]
+
+## `run<El>` 액션에 붙는 공통 지연(초). `run<El>_C` 계열에는 쓰지 않는다.
+static func elem_delay(el: String) -> float:
+	return float(ELEMENT_DELAY.get(el, 0.0)) if ELEMENT_DELAY_ON.has(el) else 0.0
+
+
 # ── 화면 장막 — `setElement` 가 만드는 검은 `CCLayerColor`(tag 0x60044) ───────
 #
 # 🔵 2026-08-05 실측 재작성 — 종전의 "속성별 색 레이어 + ASSUMPTION 알파 0.62"는
@@ -100,6 +127,8 @@ static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -
 	t.tween_interval(LEAD / sp)
 	t.tween_property(r, "color:a", VEIL_A, 1.0 / sp)
 	t.tween_interval((RUN_AT - LEAD - 1.0) / sp)
+	# 아래 표는 `run<El>` 이 장막에 거는 액션이라 속성 공통 지연(`this+0x228`)이 앞에 붙는다.
+	t.tween_interval(elem_delay(el) / sp)
 	for step in VEIL.get(el, []):
 		match String(step[0]):
 			"wait":
@@ -124,7 +153,8 @@ static func _master_veil(host: CanvasItem, el: String, at: Vector2, sp: float) -
 ## [시각(초, 시전 기준), 트랙] 목록.
 const SFX := {
 	# fire 의 `effect_fire_fillar` 는 여기(고정 시각)가 아니라 **기둥마다** 낸다(`_fire_burst`).
-	"fire":   [[RUN_AT, "effect_fire1"], [RUN_AT + 4.25, "effect_fire2"]],
+	# `effect_fire2` 는 백색 섬광과 같은 박자다 = `0x228(1.0) + 4.25`(위 ELEMENT_DELAY).
+	"fire":   [[RUN_AT, "effect_fire1"], [RUN_AT + 5.25, "effect_fire2"]],
 	"aqua":   [[RUN_AT, "effect_aqua1"], [RUN_AT + 5.0, "effect_aqua2"]],
 	"earth":  [[RUN_AT, "effect_earth1"], [RUN_AT + 2.0, "effect_earth2"]],
 	"wind":   [[RUN_AT, "effect_wind"]],
@@ -232,6 +262,52 @@ const FIRE_FLASH_IN := 1.0
 const FIRE_FLASH_HOLD := 1.0
 const FIRE_FLASH_OUT := 0.5
 
+# ── §5-fire 불덩이 20발 — `initFire_C` @0100c928 + `runFire_C` @01003df8 꼬리 ──
+#
+# 🔴 2026-08-06 신규 이식. 종전엔 불기둥만 솟았다 — 원작은 **시전자 머리 위에 불덩이가
+#   생겨 표적 지점으로 대각선으로 떨어지고, 닿는 순간 그 자리에서 폭발+기둥이 솟는다.**
+#   자산(`fire_fireball1~4`)은 변환본에 있었는데 아무 데서도 안 부르는 **미배선** 상태였다.
+#
+# `initFire_C` 배치(루프 20회, 태그 0x22470+i · z = FIRE_Z[i]*5 · setScale(0)):
+#     pos = 시전자쪽 base + ( k*(−0.5*W + rand%301), rand%75 + 100 )      k = 시전자 바라보는 방향
+#   ⇒ W = 시전자 dragonLayer 의 contentSize.x, y 는 cocos y-up 이라 **위쪽** 100~175.
+# `initFire_C` 애니: fireball1→4, 0x3d75c28f = **0.06초/프레임**, 무한(loops=0) — `this+0x418`.
+# `runFire_C` 안무(A = FIRE_POINTS[i] 의 절대 좌표 = 그 지점의 폭발 자리):
+#     Delay(0x228 + FIRE_DELAYS[i] − 0.5)
+#     → Spawn( Repeat(Animate(fireball1~4, 0.06), 20),
+#              Seq( ScaleTo(0.1, k*S*1.25, S*1.25) → CallFunc → ScaleTo(0.1, k*S, S)
+#                   → MoveBy(0.2, (start+A)*0.01)
+#                   → Spawn( MoveTo(0.1, A), Seq(Delay(0.05), FadeTo(0.05, 0)) ) → 제거 ) )
+#   ⇒ 비행 총 0.5초라 **도착 = 폭발 시각**과 정확히 맞물린다.
+const FB_LEAD := 0.5           # 폭발보다 0.5초 먼저 뜬다(= 비행 시간)
+const FB_FRAME_SEC := 0.06     # fireball1~4
+const FB_POP_SEC := 0.1        # ScaleTo ×1.25 / 되돌림
+const FB_POP_MUL := 1.25
+const FB_DRIFT_SEC := 0.2      # MoveBy((start+A)*0.01)
+const FB_DRIFT_K := 0.01
+const FB_DASH_SEC := 0.1       # MoveTo(A)
+const FB_FADE_AT := 0.05       # 낙하 도중 0.05초 뒤부터 0.05초에 걸쳐 소멸
+const FB_FADE_SEC := 0.05
+const FB_SPREAD := 301         # rand % 301 (시전자 앞쪽으로 퍼지는 폭)
+const FB_UP_MIN := 100.0       # rand % 75 + 100 (시전자 머리 위)
+const FB_UP_RAND := 75
+const FB_CASTER_W := 170.0     # W 기본값 — 호출자가 `caster_w` 를 안 주면 이 값(= DRAGON_H)
+
+# ── 도약·착지 먼지 — `MakeInterface::setDust` @0108a2b0 ─────────────────────
+#
+# 🔴 2026-08-06 신규 이식. `runFire_C` 가 **링 위치 +(0,80)** 에 세 번 부른다(지연 0 / 4.3 / 5.3).
+#   ⚠️ 공통 지연(`this+0x228`)이 안 붙는 `_C` 계열이다.
+# 자산은 `skill/ultimate/earth/earth_dust1·2`(땅 각성기와 같은 프레임 — 원작도 공용).
+#   dust1: pos+(0, −80*S)      setScale(0.2) · 숨김
+#     → Delay(d) → Show → Spawn( Seq(Delay(0.75), FadeTo(1.0, 0)),
+#                                Seq(ScaleTo(0.25, 0.5), ScaleTo(1.5, 0.75, 0.5)) ) → 제거
+#   dust2: dust1 + (rand%200 − 100, 75)   setScale(0.5) · 숨김 · z=+10
+#     → Delay(d) → Show → Spawn( MoveBy(1.85, (rand%150 − 75, 50)), ScaleTo(1.85, 0.75),
+#                                Seq(Delay(0.75), FadeTo(1.1, 0)) ) → 제거
+const DUST_EL := "earth"                      # 프레임이 사는 아틀라스(원작도 earth 것을 쓴다)
+const FIRE_DUST_AT := [0.0, 4.3, 5.3]         # runFire_C 의 setDust 3회
+const DUST_UP := 80.0                         # 호출자가 얹는 +80, setDust 안의 −80*S
+
 ## 아직 `run<El>` 을 이식하지 않은 속성의 임시 골격 — 최장 프레임 계열 1개.
 const FALLBACK_FRAME_SEC := 0.08
 
@@ -277,8 +353,8 @@ static func base_at(host: CanvasItem, el: String, mine: bool) -> Vector2:
 
 # ── 진입점 ──────────────────────────────────────────────────────────────────
 ## 각성기 재생. host 아래에 스프라이트를 붙인다(좌표는 host 로컬).
-##   ctx = {element, mine(시전자가 왼쪽 진영?), ring_at(시전자 발밑), scale(S),
-##          speed, alive(Callable), mat}
+##   ctx = {element, mine(시전자가 왼쪽 진영?), ring_at(시전자 무대 자리), caster_w(시전자 폭),
+##          scale(S), speed, alive(Callable), mat}
 ##
 ## 기준점 `at` 과 방향 `dir` 은 **여기서 계산**한다(위 `base_at` — 원작 `initWithDragon`).
 ## 바닥 링(`init<El>_C`)만은 `CCPoint::ZERO − (0, S*87.5)` = 시전자 발밑(`ring_at`)이다.
@@ -293,6 +369,8 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 	var mine := bool(ctx.get("mine", true))
 	var at := base_at(host, el, mine)
 	var ring_at: Vector2 = ctx.get("ring_at", at)
+	# 원작 `initFire_C` 의 W = 시전자 dragonLayer 의 contentSize.x — 불덩이가 퍼지는 폭의 기준.
+	var caster_w := float(ctx.get("caster_w", 0.0))
 	var s := float(ctx.get("scale", 1.0))
 	# 원작 dir = 레이어가 왼쪽 절반이면 +1(중앙 쪽으로 편다), 오른쪽이면 −1.
 	var ctr := _screen_center(host)
@@ -319,7 +397,7 @@ static func play(host: CanvasItem, ctx: Dictionary) -> float:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		match el:
-			"fire":   _run_fire(host, at, s, dir, sp, mat, alive)
+			"fire":   _run_fire(host, at, ring_at, s, dir, sp, mat, alive, caster_w)
 			"earth":  _run_earth(host, at, dir, sp, rng)
 			"aqua":   _run_aqua(host, at, dir, sp, rng)
 			"wind":   _run_wind(host, at, dir, sp, rng)
@@ -531,10 +609,14 @@ static func _anim_ring_sib(n: Node2D, el: String, sp: float, idx: int) -> void:
 
 
 # ── §5-fire 안무 ────────────────────────────────────────────────────────────
-## 원작 `initFire` + `runFire`: 20지점에 (폭발 + 지진 + 화염기둥 + 돌)을 지연표대로 터뜨리고,
-## base+4.25초에 화면을 하얗게 태운다.
-static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
-		sp: float, mat: CanvasItemMaterial, alive: Callable) -> void:
+## 원작 `initFire`/`runFire`(20지점 폭발+지진+기둥+돌, base+4.25 백색 암전)
+## + `initFire_C`/`runFire_C`(시전자 머리 위 **불덩이 20발**이 각 지점으로 낙하, 링 먼지 3방).
+##
+## 🔴 2026-08-06 — 두 가지를 바로잡았다.
+##   ① 폭발·섬광·장막에 속성 공통 지연 `this+0x228`(불 = 1.0초)을 붙였다(§ELEMENT_DELAY).
+##   ② 불덩이 낙하를 이식했다 — 종전엔 기둥만 솟아 "예고 없이 터지는" 그림이었다.
+static func _run_fire(host: CanvasItem, at: Vector2, ring_at: Vector2, s: float, dir: float,
+		sp: float, mat: CanvasItemMaterial, alive: Callable, caster_w: float) -> void:
 	var pfx := prefix("fire")
 	var vis: Vector2 = host.get_viewport().get_visible_rect().size
 	var w_half := vis.x * 0.5           # 원작 W = contentSize.x = VisibleRect::top().x = 화면 폭 절반
@@ -543,6 +625,11 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 	#   (물 상어의 진입 방향 실측과 반대 부호 — initFire/initAqua 가 각자 dir 을 계산하며
 	#    디컴프의 비교 방향이 흐려 두 실측을 각자 따른다.)
 	dir = -dir
+	var ed := elem_delay("fire")        # `this+0x228` — 폭발 계열에만 붙는다
+	# 원작 k = 시전자 몸통(tag 1)의 scaleX 부호 = **바라보는 방향**. 우리 쪽에서는 시전자
+	# (ring_at)에서 폭발 진영(at)으로 향하는 부호가 같은 값이다.
+	var k := 1.0 if at.x >= ring_at.x else -1.0
+	var cw := caster_w if caster_w > 1.0 else FB_CASTER_W
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	for i in FIRE_POINTS.size():
@@ -551,17 +638,127 @@ static func _run_fire(host: CanvasItem, at: Vector2, s: float, dir: float,
 		# cocos y-up 이라 dy 부호를 뒤집어 Godot 으로 옮긴다.
 		var pos := at + Vector2(dir * (w_half * float(p[0]) + float(p[1])), -float(p[2]))
 		# z = 장막 위 밑단(90) + 원작 층×5.
-		_fire_burst(host, pfx, pos, 90 + int(FIRE_Z[i]) * 5, float(FIRE_DELAYS[i]) / sp,
+		var z := 90 + int(FIRE_Z[i]) * 5
+		_fire_burst(host, pfx, pos, z, (ed + float(FIRE_DELAYS[i])) / sp,
 			rng.randi() % 6 + FIRE_STONE_MIN, s, sp, mat, alive, rng)
+		# 그 지점으로 떨어지는 불덩이 — 폭발 0.5초 전에 시전자 머리 위에서 출발한다.
+		var from := ring_at + Vector2(k * (-0.5 * cw + float(rng.randi() % FB_SPREAD)),
+			-(FB_UP_MIN + float(rng.randi() % FB_UP_RAND)))
+		_fire_ball(host, pfx, from, pos, z, (ed + float(FIRE_DELAYS[i]) - FB_LEAD) / sp,
+			k, s, sp, alive)
+
+	# 링 자리 먼지 3방 — `runFire_C` 의 `MakeInterface::setDust`(공통 지연 없음).
+	# 원작이 넘기는 좌표 = **링 노드(tag 9000)의 위치 + (0,80)**. 링은 base − (0,S*87.5)(cocos)
+	# 이므로 우리 y-down 으로는 `ring_at + s*RING_DY`. setDust 안에서 다시 −80*S 되므로
+	# S=1 이면 결국 링 자리에 정확히 얹힌다(발밑) — 종전엔 base 를 넘겨 가슴께에 떴다.
+	var dust_at := ring_at + Vector2(0.0, s * RING_DY - DUST_UP)
+	for d in FIRE_DUST_AT:
+		_ring_dust(host, dust_at, float(d) / sp, s, sp, rng, alive)
 
 	# 화면 백색 암전 — 원작 `runFire` 의 `CCLayerColor(0xffffff)`
 	var flash := _screen_veil(host, at, Color(1, 1, 1), Z_FLASH)
 	var ft := flash.create_tween()
-	ft.tween_interval(FIRE_FLASH_AT / sp)
+	ft.tween_interval((ed + FIRE_FLASH_AT) / sp)
 	ft.tween_property(flash, "color:a", 1.0, FIRE_FLASH_IN / sp)
 	ft.tween_interval(FIRE_FLASH_HOLD / sp)
 	ft.tween_property(flash, "color:a", 0.0, FIRE_FLASH_OUT / sp)
 	ft.tween_callback(flash.queue_free)
+
+
+## 불덩이 한 발 — 원작 `initFire_C` 배치 + `runFire_C` 안무(§FB_* 상수의 주석이 원문).
+##
+## 시전자 머리 위에서 `scale 0` 으로 대기하다가, 폭발 0.5초 전에 팝업(×1.25 → ×1)하고
+## 살짝 밀린 뒤 **0.1초 만에 폭발 지점으로 내리꽂히며** 사라진다 = 도착 = 폭발.
+static func _fire_ball(host: CanvasItem, pfx: String, from: Vector2, to: Vector2,
+		z: int, delay: float, k: float, s: float, sp: float, alive: Callable) -> void:
+	var n := _spr("fire", pfx + "fireball1")
+	if n == null:
+		return
+	n.position = from
+	n.z_index = z
+	n.scale = Vector2.ZERO                 # 원작 setScale(0)
+	host.add_child(n)
+	# 원작 MoveBy 는 `(출발점 + 도착점) * 0.01` — 레이어 원점 기준 좌표의 1% 만큼 밀린다.
+	var drift: Vector2 = (from + to) * FB_DRIFT_K
+	var t := n.create_tween()
+	t.tween_interval(maxf(0.01, delay))
+	t.tween_callback(func() -> void:
+		if not is_instance_valid(n):
+			return
+		if alive.is_valid() and not bool(alive.call()):
+			n.queue_free()
+			return
+		_loop_frames(n, "fire", pfx + "fireball%d", 1, 4, FB_FRAME_SEC / sp))
+	t.tween_property(n, "scale", Vector2(k * s * FB_POP_MUL, s * FB_POP_MUL), FB_POP_SEC / sp)
+	t.tween_property(n, "scale", Vector2(k * s, s), FB_POP_SEC / sp)
+	t.tween_property(n, "position", drift, FB_DRIFT_SEC / sp).as_relative()
+	# 낙하와 소멸은 원작이 `CCSpawn` 으로 겹친다 — 소멸만 0.05초 늦게 시작한다.
+	t.tween_callback(func() -> void:
+		if not is_instance_valid(n):
+			return
+		var f := n.create_tween()
+		f.tween_interval(FB_FADE_AT / sp)
+		f.tween_property(n, "modulate:a", 0.0, FB_FADE_SEC / sp))
+	t.tween_property(n, "position", to, FB_DASH_SEC / sp)
+	t.tween_callback(n.queue_free)
+
+
+## 도약·착지 먼지 한 방 — 원작 `MakeInterface::setDust`(§DUST_* 상수의 주석이 원문).
+## 프레임은 땅 각성기와 공용(`earth_dust1/2`)이라 아틀라스만 바꿔 부른다.
+static func _ring_dust(host: CanvasItem, at: Vector2, delay: float, s: float,
+		sp: float, rng: RandomNumberGenerator, alive: Callable) -> void:
+	var dpfx := prefix(DUST_EL)
+	var d1 := _spr(DUST_EL, dpfx + "dust1")
+	if d1 == null:
+		return
+	var b1: Vector2 = d1.scale                 # 홀더 기본 배율 — 원작 setScale 은 **절대값**이다
+	# cocos `pos + (0, −80*S)` = 아래로. Godot 은 y 가 아래로 자라므로 부호를 뒤집는다.
+	d1.position = at + Vector2(0.0, DUST_UP * s)
+	d1.z_index = Z_VEIL + 12                   # 장막 위, 링(89~96)보다 앞
+	d1.scale = b1 * 0.2
+	d1.visible = false
+	host.add_child(d1)
+
+	var show := func(n: Node2D) -> void:
+		if not is_instance_valid(n):
+			return
+		if alive.is_valid() and not bool(alive.call()):
+			n.queue_free()
+			return
+		n.visible = true
+
+	# dust1 — Spawn( Seq(Delay .75, FadeTo 1.0→0), Seq(ScaleTo .25→0.5, ScaleTo 1.5→(0.75,0.5)) )
+	var t1 := d1.create_tween()
+	t1.tween_interval(maxf(0.01, delay))
+	t1.tween_callback(show.bind(d1))
+	t1.tween_property(d1, "scale", b1 * 0.5, 0.25 / sp)
+	t1.tween_property(d1, "scale", Vector2(b1.x * 0.75, b1.y * 0.5), 1.5 / sp)
+	t1.tween_callback(d1.queue_free)
+	var f1 := d1.create_tween()                # Spawn 의 다른 갈래 = 별도 트윈
+	f1.tween_interval(maxf(0.01, delay) + 0.75 / sp)
+	f1.tween_property(d1, "modulate:a", 0.0, 1.0 / sp)
+
+	var d2 := _spr(DUST_EL, dpfx + "dust2")
+	if d2 == null:
+		return
+	var b2: Vector2 = d2.scale
+	d2.position = d1.position + Vector2(float(rng.randi() % 200) - 100.0, -75.0)
+	d2.z_index = d1.z_index + 10
+	d2.scale = b2 * 0.5
+	d2.visible = false
+	host.add_child(d2)
+
+	# dust2 — Spawn( MoveBy 1.85, ScaleTo 1.85→0.75, Seq(Delay .75, FadeTo 1.1→0) )
+	var t2 := d2.create_tween()
+	t2.tween_interval(maxf(0.01, delay))
+	t2.tween_callback(show.bind(d2))
+	t2.tween_property(d2, "position",
+		Vector2(float(rng.randi() % 150) - 75.0, -50.0), 1.85 / sp).as_relative()
+	t2.parallel().tween_property(d2, "scale", b2 * 0.75, 1.85 / sp)
+	t2.tween_callback(d2.queue_free)
+	var f2 := d2.create_tween()
+	f2.tween_interval(maxf(0.01, delay) + 0.75 / sp)
+	f2.tween_property(d2, "modulate:a", 0.0, 1.1 / sp)
 
 
 ## 폭발 지점 하나 — 원작 `initFire` 배치 + `runFire` 안무를 그대로.
