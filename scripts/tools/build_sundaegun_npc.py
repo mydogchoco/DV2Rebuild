@@ -53,13 +53,16 @@ TARGET_H = 340
 # ── 입 프레임 — 원작 **포포** 입 18종(표정 1~6 × 프레임 3) 이식 ──────────────
 # 🟦 사용자 확정 2026-08-07: 자작 반달(종전 draw_smile)을 폐기하고 원작 포포의 입 프레임을
 # 그대로 이식한다(형제 NPC 에셋 재사용 — 사용자가 참조 NPC 로 포포를 지정·확정).
-# 파라미터는 몽타주 4회 반복 검수로 확정(scratch_shots/popo_mouth_montage_up1.png):
-#   · 위치 = 입 중심 (148,121)  — 실측 중심(144,119)에서 사용자 보정 +4x +2y
-#   · 각도 = 15° 반시계        — 눈선 실측 -15.7°(눈동자 중심 좌(324,292)·우(452,256))에 정합
+# 파라미터는 몽타주·테스트 창 반복 검수로 확정(🟦 사용자 확정 2026-08-07):
+#   · 위치 = 입 중심 (148.5, 120.5) — 실측 중심(144,119)에서 사용자가 몽타주/실행 화면을
+#     보며 픽셀 단위(0.5px 포함)로 보정한 값. 좌표는 npc_face 포인트라 소수도 그대로 실린다.
+#   · 각도 = 20° 반시계 — 눈선 실측은 -15.7°(눈동자 중심 좌(324,292)·우(452,256))지만,
+#     17px 입에서 1° ≈ 0.15px 라 15~17은 구분이 안 됐고(실측 +14.0~+15.0°로 죽기도 한다)
+#     실행 화면 비교로 20 이 얼굴에 맞는다고 확정.
 #   · 포포 원본의 입 아래 음영(고정 아랫입술)은 **제거** — 이 원화에 없는 요소
 POPO = "assets/converted/npc_popo"
-MOUTH_POS = (148, 121)                    # 최종 몸통 px, 입(원본 상자) 중심
-TILT = 15.0                               # PIL rotate 양수 = 반시계(뷰어 오른쪽 입꼬리 위)
+MOUTH_POS = (148.5, 120.5)                # 최종 몸통 px, 입(원본 상자) 중심
+TILT = 20.0                               # PIL rotate 양수 = 반시계(뷰어 오른쪽 입꼬리 위)
 SS = 8                                    # 슈퍼샘플 배율(회전 후 LANCZOS 축소로 AA)
 EMOS = (1, 2, 3, 4, 5, 6)
 # 입 아래 음영 시작 행(프레임 로컬 y) — 18프레임 픽셀 맵 전수 실측 2026-08-07.
@@ -118,7 +121,7 @@ def load_popo_frame(key: str, atlas: Image.Image) -> Image.Image:
 
 
 def prep_mouth(e: int, f: int, pman: dict, atlas: Image.Image) -> Image.Image:
-    """포포 프레임 1장 → 선대군용: 음영 컷 → 트림 복원(src 상자 정위치) → 15° 회전.
+    """포포 프레임 1장 → 선대군용: 음영 컷 → 트림 복원(src 상자 정위치) → TILT° 회전.
 
     반환 이미지의 **중심**이 입 앵커(MOUTH_POS)다 — 프레임마다 크기가 달라도 원본 상자
     중심을 공유하므로, 매니페스트 `src` 를 공통 상자로 적으면 `NpcPortrait._place` 가
@@ -161,7 +164,7 @@ def main() -> None:
     # 몸통에는 입이 없어야 한다(안 지우면 다문 입 위에 포포 입이 겹친다).
     body.paste(body.crop(STAMP_SRC), STAMP_DST)
 
-    # ── 입 프레임 18장 — 포포 이식(음영 컷 → 트림 복원 → 15° 회전) ──
+    # ── 입 프레임 18장 — 포포 이식(음영 컷 → 트림 복원 → TILT° 회전) ──
     pman = json.load(open(os.path.join(POPO, "_manifest.json"), encoding="utf-8"))
     atlas = Image.open(os.path.join(POPO, "popo.png")).convert("RGBA")
     frames = {(e, f): prep_mouth(e, f, pman, atlas) for e in EMOS for f in (1, 2, 3)}
