@@ -60,13 +60,21 @@ MOUTH_DARK = 480                          # r+g+b 이 이 미만이면 라인 �
 # 입 파츠 상자(최종 몸통 px, 입 중심 기준 오프셋). 전개 웃는 입(w11·h7)+여백이 들어가는 크기.
 # 위 6px 은 코점(중심에서 -8px)을 안 건드리고, 아래 12px 도 턱 라인(+20px)에 못 미친다.
 PATCH_L, PATCH_R, PATCH_T, PATCH_B = 13, 13, 6, 12
-# 웃는 입 모양 — 입꼬리 두 점을 잇는 **아래로 볼록한 포물선 두 개** 사이 영역.
-#   u = 윗입술 중앙이 입꼬리보다 내려간 깊이, v = 아랫입술 깊이(px, 최종 몸통 기준).
-#   입꼬리가 위, 중앙이 아래 = ⌣ 모양 웃는 입. 프레임 2 = 반개, 3 = 전개.
-SMILE = {2: {"w": 8.0, "u": 1.6, "v": 4.2},
-         3: {"w": 11.0, "u": 2.2, "v": 7.0}}
-LINE_RGB = (40, 30, 62)                   # 원화 입 라인 실측색(어두운 보라) — 윤곽선
-FILL_RGB = (92, 56, 74)                   # 입 안(자둣빛 — 라인색보다 한 단 밝고 붉게)
+# 웃는 입 모양 — 원작 딜리스(`npc_dilis_mouth_1_2/3` 11×10~12px)·포포를 참조한 **반달(D형)**:
+#   거의 평평한 윗선(u 작게) + 깊고 둥근 아래 호(v). 🟦 사용자 피드백 2026-08-07 —
+#   "초승달이 아니라 반달형으로, 조금 더 크게, 얼굴 구도·각도에 맞게".
+#   u/v = 입꼬리 기준 윗/아랫입술 중앙 깊이(px, 최종 몸통 기준). 프레임 2 = 반개, 3 = 전개.
+SMILE = {2: {"w": 10.5, "u": 0.8, "v": 5.0},
+         3: {"w": 13.5, "u": 1.1, "v": 8.5}}
+# 얼굴 각도 반영 — 이 원화는 고개를 기울인 3/4 구도다(정중앙 대칭 입은 어색하다는
+# 사용자 피드백). 실측: 눈동자 중심 좌(324,292)·우(452,256) ⇒ 눈선 **-15.7°**(뷰어 왼쪽이
+# 낮다), 입 중심(400)이 눈 중점(388)보다 오른쪽 = 얼굴을 뷰어 **왼쪽**으로 살짝 돌림.
+# 다문 입 라인 자체는 거의 수평(-1°)으로 그려져 있어 눈선을 다 따르지 않고 6할만 준다.
+TILT_DEG = -9.5                           # 반달 전체 회전(음수 = 뷰어 왼쪽 입꼬리가 내려감)
+NEAR_BULGE = 0.18                         # 아래 호 비대칭 — 가까운 쪽(뷰어 오른쪽)을 더 볼록하게
+LINE_RGB = (40, 30, 62)                   # 원화 입 라인 실측색(어두운 보라) — 윗선/윤곽
+FILL_RGB = (201, 114, 122)                # 입 안 — 딜리스 실측 새먼(238,136,119)을 이 원화의
+                                          #   수채 채도에 맞춰 로즈모브로 한 단 눌렀다
 SS = 8                                    # 슈퍼샘플 배율(그리고 LANCZOS 축소로 AA)
 
 
@@ -105,24 +113,36 @@ def find_mouth(im2: Image.Image) -> tuple[float, float]:
 
 
 def draw_smile(patch: Image.Image, cx: float, cy: float, w: float, u: float, v: float) -> Image.Image:
-    """patch(최종 몸통 px) 위에 웃는 입을 그린다. (cx,cy) = 입꼬리 높이의 중심.
+    """patch(최종 몸통 px) 위에 웃는 반달 입을 그린다. (cx,cy) = 입꼬리 높이의 중심.
 
-    모양 = 입꼬리 (±w/2, cy) 두 점을 잇는 포물선 두 개 사이: 윗변 깊이 u, 아랫변 깊이 v.
-    입꼬리가 중앙보다 위 = ⌣. SS 배로 그려 LANCZOS 축소 — 원화의 부드러운 수채 라인에 맞춘다.
+    모양 = 입꼬리 (±w/2, cy) 두 점 사이의 **반달(D형)**: 거의 평평한 윗선(깊이 u) +
+    둥근 아래 호(깊이 v, `NEAR_BULGE` 만큼 뷰어 오른쪽이 더 볼록) — 딜리스 입 프레임 참조.
+    전체를 `TILT_DEG` 회전해 원화의 기울인 얼굴 각도에 맞춘다.
+    SS 배로 그려 LANCZOS 축소 — 원화의 부드러운 수채 라인에 맞춘다.
     """
+    import math
+    th = math.radians(TILT_DEG)
+    co, si = math.cos(th), math.sin(th)
+
+    def rot(x: float, y: float) -> tuple[float, float]:
+        # (cx,cy) 중심 회전 → SS 좌표
+        dx0, dy0 = x - cx, y - cy
+        return ((cx + dx0 * co - dy0 * si) * SS, (cy + dx0 * si + dy0 * co) * SS)
+
     ov = Image.new("RGBA", (patch.width * SS, patch.height * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(ov)
     pts_top, pts_bot = [], []
     n = 24
     for i in range(n + 1):
         t = i / n * 2.0 - 1.0                 # -1(왼 입꼬리) ~ +1(오른 입꼬리)
-        x = (cx + t * w * 0.5) * SS
-        pts_top.append((x, (cy + u * (1.0 - t * t)) * SS))
-        pts_bot.append((x, (cy + v * (1.0 - t * t)) * SS))
+        x = cx + t * w * 0.5
+        pts_top.append(rot(x, cy + u * (1.0 - t * t)))
+        # 아래 호: 포물선 깊이에 (1 + k·t) — 얼굴이 돌아간 반대쪽(가까운 쪽)이 더 둥글다
+        pts_bot.append(rot(x, cy + v * (1.0 - t * t) * (1.0 + NEAR_BULGE * t)))
     d.polygon(pts_top + pts_bot[::-1], fill=FILL_RGB + (255,))
-    # 윤곽 — 원화의 입 라인처럼 위쪽 라인을 또렷하게, 아래는 반 톤 얇게.
+    # 윤곽 — 원화의 입 라인처럼 윗선을 또렷하게, 아래 호는 반 톤 얇게.
     d.line(pts_top, fill=LINE_RGB + (255,), width=SS)
-    d.line(pts_bot, fill=LINE_RGB + (210,), width=max(1, SS // 2))
+    d.line(pts_bot, fill=LINE_RGB + (185,), width=max(1, SS // 2))
     ov = ov.resize(patch.size, Image.LANCZOS)
     out = patch.copy()
     out.alpha_composite(ov)
