@@ -378,7 +378,7 @@ func _play() -> void:
 		_target.modulate.a = 1.0
 	var el: String = ELEMENTS[_sel]
 	# ⚫ 종전의 `effect_bigbang` 은 원작에 없던 자작 배정이라 제거(사용자 확정 2026-08-05).
-	#   효과음은 UltimateFx.SFX(원작 리터럴) + 타격음 배선이 낸다.
+	#   효과음은 UltimateFx.SFX_ACT/SFX_RUN_C/SFX_RUN(원작 실측 시각) + 타격음 배선이 낸다.
 	var dur := float(UltimateFx.DURATION.get(el, 9.0))
 
 	# 시전자 — 속성별 무대 안무 + 스파인 3단계(ultimate1→ultimate2→wait)는
@@ -398,22 +398,22 @@ func _play() -> void:
 			"node": _caster, "anim": ap, "shadow": null,
 			"home": _caster_home, "stage": _caster_home, "scale": 1.0, "host": _stage,
 		}, el)
-	if _target != null:
+	# 피격 반응 — 원작 `damage<El>_C` 를 그대로 이식한 속성(§UltimateFx.TGT_FX_ON)은 그쪽,
+	# 나머지는 대전의 `_ultimate_knockback` 골격을 흉내 낸다. 둘 다 **대전과 같은 코드**여야
+	# 이 창이 대전을 대변한다.
+	# 어둠의 소용돌이 중심 = `_run_dark` 의 `dk`(시전자 무대점 x · 화면 세로 중앙)와 같아야 한다.
+	var vis1 := get_viewport_rect().size
+	var tgt_ported := _target != null and UltimateFx.target_fx({
+		"node": _target, "anim": FightScene._find_anim_player(_target), "shadow": null,
+		"home": _target_home, "scale": 1.0, "mine": false,
+		"vortex": Vector2(FightScene.ULT_DX, vis1.y * 0.5),
+	}, el) >= 0.0
+	if _target != null and not tgt_ported:
 		# 피격 반응 — 대전의 `_ultimate_knockback`(원작 `damage<El>_C` 실측 표)을 그대로 흉내:
 		# 저글링 n회 + 마무리 큰 띄우기, 그동안 스파인은 **damaged** 모션(원작
 		# `runSpineWithAnimationName`), 끝나면 wait 복귀.
 		# 높이는 원작 그대로(S×) — 종전 ×0.35 축소는 영상(화면 절반까지 던져진다)과 달랐다.
 		var home := _target_home
-		if el == "dark":
-			# 어둠 — 소용돌이 중심(화면 중앙 중단)으로 빨려 들어가 저글링(영상 실측).
-			var vis2 := get_viewport_rect().size
-			var suck := Vector2(vis2.x * 0.5, vis2.y * 0.45)
-			var pull := _target.create_tween()
-			pull.tween_interval(UltimateFx.RUN_AT + 2.3)
-			pull.tween_property(_target, "position", suck, 0.4)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			_actor_tweens.append(pull)
-			home = suck
 		var k: Array = FightScene.ULT_KNOCK.get(el, [1.0, 4, 0.2, 0.3, 150.0, 800.0])
 		var n_j := int(k[1])
 		var jsec := float(k[2])
@@ -454,10 +454,13 @@ func _play() -> void:
 		tt.tween_property(_target, "position", home, 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tt.tween_callback(func() -> void: tplay.call("wait"))
-		if home != _target_home:            # 흡입형(어둠)은 마지막에 제자리로 떨어진다
-			tt.tween_property(_target, "position", _target_home, 0.3)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		_actor_tweens.append(tt)
+
+	# 피해 **분할 표시**(다단히트) — 대전과 같은 표(`FightScene._ult_dmg_plan`, 원작
+	# `calculateDamage` 실측)를 그대로 읽어 수치를 띄운다. 🔴 2026-08-06 신설:
+	# 종전엔 이 창에 숫자가 하나도 없어서 "잔타가 몇 번 들어가는가"를 눈으로 못 셌다
+	# (바람 = 0.1초 간격 **45연타** — `calculateDamage` case 8 `uVar11 < 0x2d`).
+	_schedule_damage(el)
 
 	# 대전과 같은 인자 모양으로 부른다 — 다르면 이 창이 대전을 대변하지 못한다.
 	# 1vs1 기준(scale 1.0), 시전자는 왼쪽(내) 진영. 기준점·방향은 UltimateFx 가
@@ -470,6 +473,55 @@ func _play() -> void:
 		"caster_w": _caster_w,
 		"scale": 1.0, "speed": 1.0, "mat": _pma,
 	})
+
+
+# ── 피해 분할 표시 ──────────────────────────────────────────────────────────
+## 대전(`fight.gd::_ultimate_damage`)과 **같은 표**로 잔타를 예약한다. 여기서 세어지는 타수가
+## 곧 대전에서 뜨는 타수다. 총 피해는 확인용 상수(`Battle.simulate()` 소유라 여기선 임의).
+const DEMO_DAMAGE := 4600
+
+func _schedule_damage(el: String) -> void:
+	var plan: Array = FightScene._ult_dmg_plan(el)
+	var chips: Array = plan[0]
+	var share := float(plan[1])
+	# 표의 시각은 **run<El> 기준**이라 RUN_AT 을 더한다 — 대전(`_ultimate_damage`)과 같은 보정.
+	var at0 := UltimateFx.RUN_AT
+	var spent := 0
+	for ct: float in chips:
+		var amount := 1 if share < 0.0 else int(float(DEMO_DAMAGE) * share)
+		amount = clampi(amount, 0, maxi(0, DEMO_DAMAGE - spent - 1))
+		if amount <= 0:
+			continue
+		spent += amount
+		var a := amount
+		var tw := _stage.create_tween()
+		tw.tween_interval(maxf(0.01, at0 + ct))
+		tw.tween_callback(func() -> void: _pop_damage(str(a), false))
+	var rest := DEMO_DAMAGE - spent
+	var last := float(plan[2])
+	var tw2 := _stage.create_tween()
+	tw2.tween_interval(maxf(0.01, at0 + last))
+	tw2.tween_callback(func() -> void: _pop_damage(str(rest), true))
+
+
+## 수치 한 개 — 피격자 머리 위에서 떠올랐다 사라진다(대전 `_float_text` 의 축소판).
+func _pop_damage(text: String, big: bool) -> void:
+	if _target == null or not is_instance_valid(_target):
+		return
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 44 if big else 24)
+	l.add_theme_color_override("font_color", Color(1.0, 0.72, 0.16) if big else Color(1, 1, 1))
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_constant_override("outline_size", 5)
+	l.z_index = 190
+	l.position = _target.position + Vector2(randf_range(-140.0, 40.0),
+		-_target_h * 0.9 + randf_range(-70.0, 70.0))
+	add_child(l)
+	var t := l.create_tween()
+	t.tween_property(l, "position", l.position - Vector2(0.0, 46.0), 0.8)
+	t.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.5)
+	t.tween_callback(l.queue_free)
 
 
 # ── 판정 ────────────────────────────────────────────────────────────────────

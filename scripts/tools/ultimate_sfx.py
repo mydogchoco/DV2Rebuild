@@ -130,16 +130,160 @@ def strings_in(blob: bytes, body: int, count: int = 64) -> list[str]:
     return found
 
 
+# ── 재생 **시각** — 같은 람다 앞에 쌓인 `CCDelayTime` 합 ──────────────────────
+#
+# 출처는 `docs/ref/design/ultimate_layer_sequences.md`(= `resolve_actions.py` 가 디컴프에서
+# 기계 복원한 액션 트리)다. 거기 `CCCallFunc → lambda@PTR_FUN_x` 가 그대로 찍혀 있으므로,
+# 그 노드까지의 경과시간을 트리로 계산하면 **추측 없이** 시각이 나온다.
+#
+# 시간 규칙(Cocos 액션 의미 그대로):
+#   CCSequence = 자식 합 · CCSpawn = 자식 최대 · CCEase*/CCRepeat* = 자식 그대로
+#   시간 있는 액션(Move/Scale/Fade/Rotate/Jump/Bezier/Tint/Blink/Delay) = **첫 인자**
+#   Show/Hide/Place/CallFunc/RemoveSelf/Flip 등 = 0
+# `*(this + 0x228)` 은 **속성 공통 지연**이라 수로 접지 않고 `D` 계수로 남긴다
+#   (`run<El>` 에만 붙고 `action<El>_C` 에는 안 붙는다 — 이 표가 그 사실의 근거이기도 하다).
+SEQ_MD = REPO / "docs/ref/design/ultimate_layer_sequences.md"
+ZERO_ACTS = ("CCShow", "CCHide", "CCPlace", "CCCallFunc", "CCRemoveSelf", "CCFlip",
+             "CCToggleVisibility", "CCReuseGrid", "CCStopGrid")
+TIMED = re.compile(r"^CC\w+\((.*)$")
+
+
+def _first_arg(inner: str) -> str:
+    """`0.5, 0.15)` → `0.5` — 괄호 깊이를 세며 첫 인자만 끊는다."""
+    depth, out = 0, []
+    for ch in inner:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            if depth == 0:
+                break
+            depth -= 1
+        elif ch == "," and depth == 0:
+            break
+        out.append(ch)
+    return "".join(out).strip()
+
+
+def _dur(label: str) -> tuple[float, float] | None:
+    """리프 액션의 지속시간 → (D 계수, 초). 못 읽으면 None(= 이후 시각을 '?' 로 만든다)."""
+    name = label.split("(")[0].split()[0]
+    if name.startswith(ZERO_ACTS):
+        return (0.0, 0.0)
+    m = TIMED.match(label)
+    if not m:
+        return (0.0, 0.0)                      # 인자 없는 액션
+    arg = _first_arg(m.group(1))
+    d = 1.0 if "0x228" in arg else 0.0
+    if d:
+        arg = re.sub(r"\*\(this \+ 0x228\)", "0", arg)
+    try:                                       # `1.45` · `0 + 1.45` · `0` 만 받는다
+        return (d, float(eval(arg, {"__builtins__": {}}, {})))
+    except Exception:
+        return None                            # `(float)(iVar5 % 0xb) * 0.025 + 1.75` 등
+
+
+def parse_tree(lines: list[str]) -> list[tuple[int, str]]:
+    """`  - CCDelayTime(1.25)` → (깊이, 라벨). 깊이는 2칸 = 1단."""
+    out = []
+    for ln in lines:
+        m = re.match(r"^(\s*)- (.*?)\s*(\?)?$", ln)
+        if m:
+            out.append((len(m.group(1)) // 2, m.group(2)))
+    return out
+
+
+def walk(nodes: list[tuple[int, str]], i: int, base: tuple[float, float],
+         hits: dict[int, tuple[float, float] | None]) -> tuple[int, tuple[float, float] | None]:
+    """nodes[i] 서브트리를 훑으며 람다 노드의 시각을 hits 에 적는다. → (다음 인덱스, 지속시간)"""
+    depth, label = nodes[i]
+    kids: list[int] = []
+    j = i + 1
+    while j < len(nodes) and nodes[j][0] > depth:
+        if nodes[j][0] == depth + 1:
+            kids.append(j)
+        j += 1
+    m = re.search(r"lambda@PTR_FUN_([0-9a-f]+)", label)
+    if m:
+        # ⚠️ **덮어쓰지 않는다** — 같은 람다가 여러 runAction 에 등장한다(땅 `02824aa8` 이 그렇다).
+        #    덮어쓰면 마지막 등장만 남아 "고정 시각"으로 보이고, 루프 안의 미지 시각이 조용히
+        #    사라진다(2026-08-06 실측).
+        got = hits.setdefault(int(m.group(1), 16), [])
+        if base not in got:
+            got.append(base)
+    if not kids:                                          # 리프
+        return j, _dur(label)
+    if label.startswith("CCSequence"):
+        acc: tuple[float, float] | None = base
+        for k in kids:
+            _, d = walk(nodes, k, acc, hits)
+            if acc is None or d is None:
+                acc = None                                # 한 번 모르면 뒤는 전부 모른다
+            else:
+                acc = (acc[0] + d[0], acc[1] + d[1])
+        tot = None if acc is None or base is None else (acc[0] - base[0], acc[1] - base[1])
+        return j, tot
+    # CCSpawn = 자식이 **동시에** 시작 / CCEase*·CCRepeat* = 자식 그대로
+    best: tuple[float, float] | None = (0.0, 0.0)
+    for k in kids:
+        _, d = walk(nodes, k, base, hits)
+        if d is None or best is None:
+            best = None
+        elif label.startswith("CCSpawn"):
+            best = max(best, d, key=lambda t: t[0] * 10.0 + t[1])
+        else:
+            best = d
+    return j, best
+
+
+def lambda_times() -> dict[str, dict[int, list]]:
+    """함수명 → {람다 주소: [(D 계수, 초) | None, …]} — 등장이 여럿이면 전부 담는다."""
+    out: dict[str, dict[int, list]] = {}
+    fn = None
+    buf: list[str] = []
+
+    def flush() -> None:
+        if fn is None:
+            return
+        nodes = parse_tree(buf)
+        hits = out.setdefault(fn, {})
+        i = 0
+        while i < len(nodes):
+            if nodes[i][0] == 0:
+                i, _ = walk(nodes, i, (0.0, 0.0), hits)
+            else:
+                i += 1
+
+    for ln in SEQ_MD.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^## UltimateLayer::(\w+)", ln)
+        if m:
+            flush()
+            fn, buf = m.group(1), []
+        else:
+            buf.append(ln)
+    flush()
+    return out
+
+
+def fmt_time(t: tuple[float, float] | None) -> str:
+    if t is None:
+        return "     ?"
+    return ("D*%g + %.4g" % t).replace("D*0 + ", "").replace("D*1 + ", "D + ").rjust(11)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--el", default=None, help="속성 이름(fire/aqua/… )으로 함수 필터")
     ap.add_argument("--have", action="store_true", help="DV2/music 에 mp3 가 있는지 표시")
+    ap.add_argument("--times", action="store_true",
+                    help="재생 시각까지(액션 트리에서 계산 — D = 속성 공통 지연 0x228)")
     a = ap.parse_args()
 
     blob = SO.read_bytes()
     rel = load_relocs(blob)
     src = DECOMP.read_text(encoding="utf-8", errors="replace")
     by_fn = lambdas_by_func(src)
+
+    times = lambda_times() if a.times else {}
 
     total = hit = 0
     for fn in sorted(by_fn):
@@ -158,10 +302,17 @@ def main() -> None:
                 if a.have:
                     stem = Path(s).stem
                     mark = "  ✔" if (MUSIC / (stem + ".mp3")).exists() else "  ✗없음"
-                rows.append("    PTR_FUN_%08x → %08x  %s%s" % (g, body, s, mark))
+                when, key = "", (1, 0.0)
+                if a.times:
+                    ts = times.get(fn, {}).get(g)
+                    when = "  @ %s" % (" / ".join(fmt_time(t).strip() for t in ts).rjust(11)
+                                       if ts else "(트리에 없음)")
+                    first = ts[0] if ts else None
+                    key = (0, first[0] * 100.0 + first[1]) if first else (2, 0.0)
+                rows.append((key, "    PTR_FUN_%08x → %08x%s  %s%s" % (g, body, when, s, mark)))
         if rows:
             print("== UltimateLayer::%s" % fn)
-            print("\n".join(rows))
+            print("\n".join(r for _, r in sorted(rows, key=lambda x: x[0])))
     print("\n람다 %d개 중 효과음 %d건." % (total, hit))
 
 
