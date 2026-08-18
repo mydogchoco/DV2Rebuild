@@ -1,0 +1,115 @@
+{
+ "drink": {
+  "stack_mode": "duration",
+  "duration_turns": 10,
+  "pct_per_tier": 5,
+  "stats": {
+   "att_drink": "att",
+   "def_drink": "def",
+   "hp_drink": "hp",
+   "cri_drink": "crit",
+   "miss_drink": "dodge",
+   "prodef_drink": "block"
+  }
+ },
+ "drink_craft": {
+  "success_pct": 100,
+  "essence_per_craft": 3,
+  "base_item": "drink",
+  "families": [
+   "att",
+   "def",
+   "hp",
+   "cri",
+   "miss",
+   "prodef"
+  ],
+  "max_tier": 3,
+  "gold_by_tier": {
+   "0": 300,
+   "1": 500,
+   "2": 700
+  },
+  "essence_family": {
+   "fire": "att",
+   "chaos": "att",
+   "earth": "def",
+   "dark": "def",
+   "aqua": "hp",
+   "holy": "hp",
+   "light": "cri",
+   "wind": "miss",
+   "shadow": "prodef"
+  }
+ },
+ "heal_potion": {
+  "heal_pct_of_max": 30,
+  "tiers": [
+   {
+    "key": "heal_potion1",
+    "level_min": 1,
+    "level_max": 24
+   },
+   {
+    "key": "heal_potion2",
+    "level_min": 25,
+    "level_max": 44
+   },
+   {
+    "key": "heal_potion3",
+    "level_min": 45,
+    "level_max": 50
+   }
+  ]
+ },
+ "reward_buff": {
+  "duration_sec": 3600,
+  "items": {
+   "expx2": {
+    "axis": "exp",
+    "mult": 2
+   },
+   "expx4": {
+    "axis": "exp",
+    "mult": 4
+   },
+   "goldx2": {
+    "axis": "gold",
+    "mult": 2
+   },
+   "goldx4": {
+    "axis": "gold",
+    "mult": 4
+   }
+  }
+ },
+ "feed": {
+  "food_max": 100,
+  "restore_pct": {
+   "full": 100,
+   "half": 50
+  },
+  "half": [
+   "food_water_fly_pirania",
+   "food_chaos_tadpole",
+   "food_dark_darkmelon_piece",
+   "food_ground_paopao_half",
+   "food_fire_chickenleg",
+   "food_holy_small_ginseng",
+   "food_light_lightmelon_piece",
+   "food_shadow_chocolate_piece",
+   "food_wind_branch_yggdrasil"
+  ],
+  "full": [
+   "food_chaos_toud",
+   "food_dark_darkmelon",
+   "food_fire_chicken",
+   "food_ground_paopao",
+   "food_holy_big_ginseng",
+   "food_light_lightmelon",
+   "food_shadow_chocolate",
+   "food_water_pirania",
+   "food_wind_yggdrasil"
+  ]
+ }
+}

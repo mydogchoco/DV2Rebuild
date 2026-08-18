@@ -1,0 +1,251 @@
+{
+  "egg_upgrade": {
+    "grades": {
+      "1": 7.0,
+      "2": 7.2,
+      "3": 7.5,
+      "4": 8.0
+    },
+    "max_step": 3,
+    "materials": [
+      {
+        "step": 1,
+        "spirit": "stone_spirit2",
+        "heart": "stone_heart2"
+      },
+      {
+        "step": 2,
+        "spirit": "stone_spirit3",
+        "heart": "stone_heart3"
+      },
+      {
+        "step": 3,
+        "spirit": "stone_spirit4",
+        "heart": "stone_heart4"
+      }
+    ],
+    "spirit_chain": [
+      "stone_spirit1",
+      "stone_spirit2",
+      "stone_spirit3",
+      "stone_spirit4"
+    ],
+    "heart_chain": [
+      "stone_heart1",
+      "stone_heart2",
+      "stone_heart3",
+      "stone_heart4"
+    ],
+    "chain_ratio": [
+      12,
+      6,
+      3
+    ]
+  },
+  "lab_upgrade": {
+    "max_level": 99,
+    "daily_limit": 30,
+    "points": {
+      "egg_normal": 15,
+      "egg_grade3": 1500,
+      "egg_grade4": 0,
+      "essence": 5,
+      "crystal": 4,
+      "crystal_shadow": 100
+    },
+    "rewards": {
+      "10": [
+        [
+          "mall_question_egg",
+          1
+        ]
+      ],
+      "20": [
+        [
+          "stone_spirit1",
+          3
+        ],
+        [
+          "stone_heart1",
+          3
+        ]
+      ],
+      "30": [
+        [
+          "stone_spirit1",
+          6
+        ]
+      ],
+      "40": [
+        [
+          "stone_heart1",
+          6
+        ]
+      ],
+      "50": [
+        [
+          "stone_spirit2",
+          1
+        ]
+      ],
+      "60": [
+        [
+          "stone_heart2",
+          1
+        ]
+      ],
+      "70": [
+        [
+          "stone_spirit3",
+          1
+        ]
+      ],
+      "80": [
+        [
+          "stone_heart3",
+          1
+        ]
+      ],
+      "90": [
+        [
+          "stone_spirit4",
+          1
+        ]
+      ],
+      "99": [
+        [
+          "stone_heart4",
+          1
+        ]
+      ]
+    },
+    "exp_per_level": {
+      "base": 900,
+      "growth": 1.045
+    },
+    "skills": {
+      "max_step": 10,
+      "list": [
+        {
+          "id": "crystal_time",
+          "name": "#e6ff99bc",
+          "icon": 1,
+          "cost": 2,
+          "base": 0.0,
+          "per": 0.02,
+          "fmt": "pct0"
+        },
+        {
+          "id": "unique_bonus",
+          "name": "#0049af7b",
+          "icon": 2,
+          "cost": 1,
+          "base": 0.5,
+          "per": 0.02,
+          "fmt": "pct0"
+        },
+        {
+          "id": "crystal_bonus",
+          "name": "#f5e0f1fa",
+          "icon": 3,
+          "cost": 2,
+          "base": 0,
+          "per": 1,
+          "fmt": "cnt"
+        },
+        {
+          "id": "mix_discount",
+          "name": "#f003b262",
+          "icon": 4,
+          "cost": 3,
+          "base": 0.0,
+          "per": 0.04,
+          "fmt": "pct_gold"
+        },
+        {
+          "id": "essence_bonus",
+          "name": "#13cfa94b",
+          "icon": 5,
+          "cost": 1,
+          "base": 0,
+          "per": 1,
+          "fmt": "cnt"
+        },
+        {
+          "id": "essence_discount",
+          "name": "#00ec6f79",
+          "icon": 6,
+          "cost": 1,
+          "base": 2500,
+          "per": -100,
+          "fmt": "gold"
+        },
+        {
+          "id": "extract_bonus",
+          "name": "#27f1cb25",
+          "icon": 7,
+          "cost": 2,
+          "base": 0.0,
+          "per": 0.02,
+          "fmt": "pct1"
+        },
+        {
+          "id": "extract_grade",
+          "name": "#31cca025",
+          "icon": 8,
+          "cost": 3,
+          "base": 1.0,
+          "per": -0.1,
+          "fmt": "grade"
+        }
+      ]
+    }
+  },
+  "egg_release": {
+    "cost_gold": 2500,
+    "essence_min": 3,
+    "essence_max": 6
+  },
+  "dragon_enhance": {
+    "slots": [
+      "all",
+      "battle",
+      "support",
+      "artifact"
+    ],
+    "material_grade_min": [
+      0.0,
+      3.0,
+      6.0
+    ],
+    "cost": {
+      "bless_of_amor": {
+        "base": 1,
+        "per": 1
+      },
+      "bonner": {
+        "base": 10,
+        "per": 20
+      },
+      "anima": {
+        "base": 10,
+        "per": 20
+      }
+    }
+  },
+  "crystal": {
+    "produce": {
+      "min_grade": 1.0,
+      "min_level": 45,
+      "hours_base": 38,
+      "hours_per_grade": -2,
+      "unique_star_min": 5,
+      "slots_max": 3,
+      "slot_unlock_dia": 75
+    },
+    "extract": {
+      "min_grade": 1.0,
+      "yield_per_grade": 100
+    }
+  }
+}

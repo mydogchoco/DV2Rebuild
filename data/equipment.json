@@ -1,0 +1,1815 @@
+{
+  "stat_keys": {
+    "hp": "#99f237b5",
+    "att": "#ad048879",
+    "def": "#b69a7711",
+    "blk": "#94cf790c",
+    "evd": "#1842a450",
+    "cri": "#3d2a6c6c",
+    "cri_pow": "#7aec0497",
+    "pure": "#690725d8",
+    "depure": "#9df9f4e6",
+    "accuracy": "#3085c6c3",
+    "cure": "#a2fa95f9",
+    "awaken_rate": "#3b1d8f3d",
+    "gold": "#57717c39",
+    "exp": "#4323d26e"
+  },
+  "slots": [
+    {
+      "id": "all",
+      "name": "#3b5f19e7",
+      "accepts": "*"
+    },
+    {
+      "id": "battle",
+      "name": "#fc719ec6",
+      "accepts": [
+        "cri",
+        "pure",
+        "cri_pow",
+        "accuracy"
+      ]
+    },
+    {
+      "id": "support",
+      "name": "#9b5ad1b5",
+      "accepts": [
+        "evd",
+        "cure",
+        "awaken_rate",
+        "depure"
+      ]
+    },
+    {
+      "id": "artifact",
+      "name": "#c9df0479",
+      "accepts": [
+        "artifact"
+      ]
+    }
+  ],
+  "basic": {
+    "깃털": {
+      "stat": "evd",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#0647f6a8",
+          "value": 2
+        },
+        {
+          "grade": 1,
+          "name": "#de05342d",
+          "value": 3
+        },
+        {
+          "grade": 2,
+          "name": "#935d59bc",
+          "value": 4
+        },
+        {
+          "grade": 3,
+          "name": "#bb85945e",
+          "value": 5
+        },
+        {
+          "grade": 4,
+          "name": "#150f83fe",
+          "value": 6
+        },
+        {
+          "grade": 5,
+          "name": "#3ed00021",
+          "value": 8
+        },
+        {
+          "grade": 6,
+          "name": "#27351d4b",
+          "value": 10
+        }
+      ]
+    },
+    "발톱": {
+      "stat": "cri",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#f6693529",
+          "value": 2
+        },
+        {
+          "grade": 1,
+          "name": "#e982312a",
+          "value": 3
+        },
+        {
+          "grade": 2,
+          "name": "#fb3187ab",
+          "value": 4
+        },
+        {
+          "grade": 3,
+          "name": "#0d27caf7",
+          "value": 5
+        },
+        {
+          "grade": 4,
+          "name": "#a4b194a7",
+          "value": 6
+        },
+        {
+          "grade": 5,
+          "name": "#a2c6712d",
+          "value": 8
+        },
+        {
+          "grade": 6,
+          "name": "#b8d0aa7e",
+          "value": 10
+        }
+      ]
+    },
+    "부적": {
+      "stat": "cure",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#00a6cf58",
+          "value": 10
+        },
+        {
+          "grade": 1,
+          "name": "#df520d23",
+          "value": 16
+        },
+        {
+          "grade": 2,
+          "name": "#49f08fef",
+          "value": 24
+        },
+        {
+          "grade": 3,
+          "name": "#54aa6bc8",
+          "value": 32
+        },
+        {
+          "grade": 4,
+          "name": "#1a7933eb",
+          "value": 40
+        },
+        {
+          "grade": 5,
+          "name": "#575b2d0e",
+          "value": 50
+        }
+      ]
+    },
+    "묘안석": {
+      "stat": "pure",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#d3defdb5",
+          "value": 5
+        },
+        {
+          "grade": 1,
+          "name": "#418f6378",
+          "value": 10
+        },
+        {
+          "grade": 2,
+          "name": "#37b8235f",
+          "value": 15
+        },
+        {
+          "grade": 3,
+          "name": "#6880ced0",
+          "value": 20
+        },
+        {
+          "grade": 4,
+          "name": "#ab9245c4",
+          "value": 25
+        },
+        {
+          "grade": 5,
+          "name": "#7446747e",
+          "value": 30
+        }
+      ]
+    },
+    "흑요석": {
+      "stat": "cri_pow",
+      "slot": "battle",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#5b13ca27",
+          "value": 10
+        },
+        {
+          "grade": 1,
+          "name": "#0f0847e4",
+          "value": 20
+        },
+        {
+          "grade": 2,
+          "name": "#a6eb559c",
+          "value": 30
+        },
+        {
+          "grade": 3,
+          "name": "#254fbc19",
+          "value": 40
+        },
+        {
+          "grade": 4,
+          "name": "#2555bc85",
+          "value": 50
+        },
+        {
+          "grade": 5,
+          "name": "#ee3b6133",
+          "value": 60
+        }
+      ]
+    },
+    "백금석": {
+      "stat": "awaken_rate",
+      "slot": "support",
+      "grades": [
+        {
+          "grade": 0,
+          "name": "#79a45ba4",
+          "value": 5
+        },
+        {
+          "grade": 1,
+          "name": "#d3b6a0ff",
+          "value": 10
+        },
+        {
+          "grade": 2,
+          "name": "#faca7a18",
+          "value": 15
+        },
+        {
+          "grade": 3,
+          "name": "#015e1414",
+          "value": 20
+        },
+        {
+          "grade": 4,
+          "name": "#9e36c3db",
+          "value": 25
+        },
+        {
+          "grade": 5,
+          "name": "#2ff206d1",
+          "value": 30
+        }
+      ]
+    }
+  },
+  "event": [
+    {
+      "name": "#9ce90a55",
+      "main": {
+        "cri": 13
+      },
+      "event": "#83969e40",
+      "implemented": true
+    },
+    {
+      "name": "#cebe0bcb",
+      "main": {
+        "evd": 13
+      },
+      "event": "#83969e40",
+      "implemented": true
+    },
+    {
+      "name": "#5eb9ce10",
+      "main": {
+        "cure": 69
+      },
+      "event": "#83969e40",
+      "implemented": true
+    },
+    {
+      "name": "#5341b1d2",
+      "main": {
+        "awaken_rate": 40
+      },
+      "event": "#83969e40",
+      "implemented": true
+    },
+    {
+      "name": "#57cbc89e",
+      "main": {
+        "cri": 12
+      },
+      "event": "#ca2f35c9",
+      "implemented": true
+    },
+    {
+      "name": "#e59fc1dc",
+      "main": {
+        "evd": 12
+      },
+      "event": "#ca2f35c9",
+      "implemented": true
+    },
+    {
+      "name": "#b81d596e",
+      "main": {
+        "cure": 69
+      },
+      "event": "#ca2f35c9",
+      "implemented": true
+    },
+    {
+      "name": "#3f41170f",
+      "main": {
+        "cri_pow": 60
+      },
+      "event": "#efcbe961",
+      "implemented": true
+    },
+    {
+      "name": "#83ff97ec",
+      "main": {
+        "pure": 35
+      },
+      "event": "#efcbe961",
+      "implemented": true
+    },
+    {
+      "name": "#99422e5e",
+      "main": {
+        "awaken_rate": 35
+      },
+      "event": "#efcbe961",
+      "implemented": true
+    },
+    {
+      "name": "#b4e5b8f9",
+      "main": {
+        "evd": 11
+      },
+      "event": "#75f8a9d3",
+      "implemented": true
+    },
+    {
+      "name": "#5d88e547",
+      "main": {
+        "cri": 11
+      },
+      "event": "#75f8a9d3",
+      "implemented": true
+    },
+    {
+      "name": "#cd954e1b",
+      "main": {
+        "cri_pow": 60
+      },
+      "event": "#75f8a9d3",
+      "implemented": true
+    },
+    {
+      "name": "#0c11a842",
+      "main": {
+        "evd": 13
+      },
+      "event": "#40804e79",
+      "implemented": true
+    },
+    {
+      "name": "#90b67532",
+      "main": {
+        "cri": 13
+      },
+      "event": "#40804e79",
+      "implemented": true
+    },
+    {
+      "name": "#de05fcba",
+      "main": {
+        "pure": 40
+      },
+      "event": "#40804e79",
+      "implemented": true
+    },
+    {
+      "name": "#df5aebb2",
+      "main": {
+        "cri": 11
+      },
+      "event": "#394b7e70",
+      "implemented": true
+    },
+    {
+      "name": "#03edf9ac",
+      "main": {
+        "evd": 10
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#5f1163f4",
+      "main": {
+        "cure": 50
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#dd54cabc",
+      "main": {
+        "cri": 10
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#dab4d580",
+      "main": {
+        "cri_pow": 45
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#6454cfc9",
+      "main": {
+        "pure": 25
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#a833a41f",
+      "main": {
+        "awaken_rate": 25
+      },
+      "event": "#65d2a6fd",
+      "implemented": true
+    },
+    {
+      "name": "#cef87c82",
+      "main": {
+        "pure": 40
+      },
+      "event": "#7a47db74",
+      "implemented": true
+    },
+    {
+      "name": "#a5232197",
+      "main": {
+        "pure": 40
+      },
+      "event": "#dfd9d79c",
+      "implemented": true
+    }
+  ],
+  "special": {
+    "skull": {
+      "name": "#72405a26",
+      "acquire": "#b90018d4",
+      "gacha_excluded": true,
+      "items": [
+        {
+          "name": "#655a9782",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#21028247",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#f80b0f52",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#b9c32370",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#f0602633",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#ee77fa59",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        }
+      ],
+      "implemented": true
+    },
+    "balrog": {
+      "name": "#38b8f5e3",
+      "acquire": "#6063365a",
+      "items": [
+        {
+          "name": "#5952a7df",
+          "main": {
+            "pure": 40
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#0dbbc433",
+          "main": {
+            "evd": 13
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#6694d8cd",
+          "main": {
+            "cri": 13
+          },
+          "bonus": ""
+        }
+      ],
+      "implemented": true
+    },
+    "fiod": {
+      "name": "#2ef90cfe",
+      "acquire": "#6063365a",
+      "items": [
+        {
+          "name": "#464e2bbe",
+          "main": {
+            "evd": 13
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#40b4d8a6",
+          "main": {
+            "accuracy": 13
+          },
+          "bonus": ""
+        },
+        {
+          "name": "#21f23f43",
+          "main": {
+            "depure": 20
+          },
+          "bonus": ""
+        }
+      ],
+      "implemented": true
+    }
+  },
+  "artifacts": {
+    "grades": [
+      "#f0f5805d",
+      "#6dbccc16",
+      "#1514af4d",
+      "#88bdc7ba",
+      "#08956d3b",
+      "#40f5562f"
+    ],
+    "types": [
+      {
+        "name": "#2fcae0cf",
+        "effect": "",
+        "skills": [
+          "#b3c788c4",
+          "#6ca3a9b4",
+          "#69038aaa",
+          "#cd27a05f",
+          "#2c19cd00",
+          "#cf4094e4",
+          "#123b9ee2",
+          "#1f5dca53",
+          "#2a82b0e2",
+          "#cd0326ab",
+          "#eaf110f8",
+          "#a7f05c3e",
+          "#8469b6a5",
+          "#cba0f1d0",
+          "#f187a28a",
+          "#317ffd35",
+          "#62d71b10",
+          "#c54bbf7c"
+        ]
+      },
+      {
+        "name": "#8c35670f",
+        "effect": "",
+        "skills": [
+          "#2bb02ec9",
+          "#2c19cd00",
+          "#8b74a62c",
+          "#9207b1cb"
+        ]
+      },
+      {
+        "name": "#b5402a1c",
+        "effect": "",
+        "skills": [
+          "#cf4094e4",
+          "#2a82b0e2",
+          "#1f5dca53",
+          "#6ca3a9b4",
+          "#9207b1cb"
+        ]
+      },
+      {
+        "name": "#27298e5f",
+        "effect": "",
+        "skills": [
+          "#849594b9",
+          "#d3bef3ca",
+          "#6ca3a9b4",
+          "#0147be21",
+          "#b9e4800f",
+          "#bfa2a22e",
+          "#cd27a05f",
+          "#f8c7f1d7",
+          "#aa677f3d",
+          "#03992f8d"
+        ]
+      },
+      {
+        "name": "#95d7b0e1",
+        "effect": "",
+        "skills": [
+          "#849594b9",
+          "#d3bef3ca",
+          "#6ca3a9b4",
+          "#0147be21",
+          "#b9e4800f",
+          "#bfa2a22e",
+          "#cd27a05f",
+          "#aa677f3d",
+          "#f8c7f1d7",
+          "#03992f8d"
+        ]
+      },
+      {
+        "name": "#e33efdae",
+        "effect": "",
+        "skills": [
+          "#849594b9",
+          "#6ca3a9b4",
+          "#cd27a05f",
+          "#69038aaa",
+          "#123b9ee2",
+          "#1f5dca53",
+          "#2a82b0e2",
+          "#cd0326ab",
+          "#eaf110f8",
+          "#a7f05c3e"
+        ]
+      }
+    ],
+    "axes": {
+      "이그니스": "BOOST",
+      "마리스": "REQHP",
+      "테라": "BNR",
+      "벤투스": "DEDMG",
+      "루멘": "INRATE",
+      "옵스큐럼": "DERATE"
+    },
+    "power": {
+      "BOOST": {
+        "power_lv": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3
+        ]
+      },
+      "BNR": {
+        "power_lv": [
+          1,
+          1,
+          1,
+          2,
+          2,
+          2
+        ],
+        "proc_add": [
+          2,
+          3,
+          5,
+          6,
+          8,
+          9
+        ]
+      },
+      "INRATE": {
+        "proc_add": [
+          3,
+          5,
+          7,
+          9,
+          11,
+          12
+        ]
+      },
+      "DERATE": {
+        "foe_proc_sub": [
+          3,
+          5,
+          7,
+          9,
+          11,
+          12
+        ]
+      },
+      "DEDMG": {
+        "skill_dmg_taken_pct": [
+          5,
+          8,
+          11,
+          15,
+          19,
+          22
+        ]
+      },
+      "REQHP": {
+        "req_hp_relax_pct": [
+          5,
+          8,
+          11,
+          15,
+          19,
+          22
+        ]
+      }
+    },
+    "hidden": {
+      "REQHP": {
+        "proc_add_all": 5
+      },
+      "DEDMG": {
+        "evd": 5
+      },
+      "BNR": {
+        "skill_uses": 1
+      }
+    },
+    "mix": {
+      "materials": 3,
+      "cost_per_material": [
+        9375,
+        18750,
+        37500,
+        75000,
+        150000,
+        0
+      ],
+      "same_type_required": true,
+      "same_grade_required": true,
+      "success_pct": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        0
+      ]
+    }
+  },
+  "option": {
+    "grades": [
+      {
+        "name": "#aef1a1e7",
+        "options": 0
+      },
+      {
+        "name": "#c01e9ae7",
+        "options": 1
+      },
+      {
+        "name": "#4cd2c49d",
+        "options": 2
+      },
+      {
+        "name": "#c824e35d",
+        "options": 3
+      },
+      {
+        "name": "#472e7a8d",
+        "options": 4
+      },
+      {
+        "name": "#d58e2af1",
+        "options": 5
+      }
+    ],
+    "stats": [
+      "hp",
+      "att",
+      "def",
+      "blk",
+      "gold",
+      "exp",
+      "pure"
+    ],
+    "enhance_per_option": 5,
+    "extra_option_possible": true,
+    "pct_stats": [
+      "hp",
+      "att",
+      "def"
+    ],
+    "percent_display": [
+      "hp",
+      "att",
+      "def",
+      "blk",
+      "exp",
+      "gold",
+      "accuracy"
+    ],
+    "value_ranges": {
+      "hp": [
+        4,
+        10
+      ],
+      "att": [
+        4,
+        10
+      ],
+      "def": [
+        4,
+        10
+      ],
+      "blk": [
+        4,
+        5
+      ],
+      "gold": [
+        4,
+        10
+      ],
+      "exp": [
+        4,
+        10
+      ],
+      "pure": [
+        4,
+        12
+      ]
+    },
+    "bind_grade": 2,
+    "unbind_item": "item_disconnect",
+    "reroll_items": {
+      "2": "ginu_coin_green",
+      "3": "ginu_coin_yellow",
+      "4": "ginu_coin_red"
+    },
+    "artifact_smelt": {
+      "items": {
+        "anima": 3,
+        "bonner": 3
+      },
+      "option_weights": {
+        "pure": 9.0,
+        "hp": 1.0,
+        "att": 1.0,
+        "def": 1.0,
+        "blk": 1.0,
+        "gold": 1.0,
+        "exp": 1.0
+      }
+    },
+    "rarity_rolls": {
+      "drop": {
+        "0": 70,
+        "2": 20,
+        "3": 8,
+        "4": 2
+      },
+      "shop_gold": {
+        "0": 100
+      },
+      "shop_gacha": {
+        "2": 60,
+        "3": 30,
+        "4": 10
+      },
+      "shop_gacha_special": {
+        "2": 30,
+        "3": 40,
+        "4": 30
+      },
+      "imp_shop": {
+        "0": 40,
+        "2": 30,
+        "3": 20,
+        "4": 10
+      }
+    },
+    "rarity_colors": [
+      null,
+      "E6E6E6",
+      "7AF04C",
+      "FFF600",
+      "FF3924",
+      "00FFEA"
+    ],
+    "rarity_text_colors": [
+      "D2D2D2",
+      "FFFFFF",
+      "7AF04C",
+      "FFF600",
+      "FF3924",
+      "00FFEA"
+    ],
+    "enhance_step_pct": 20
+  },
+  "enchant": {
+    "base_percent": 50,
+    "percent_per_weight": -1.5,
+    "gold_per_weight": 500,
+    "material_slots": 3,
+    "material_denom": 5,
+    "require_material": true,
+    "type_level_group": {
+      "event": 5,
+      "special": 7,
+      "exclusive": 7
+    },
+    "extra_option_pct": 15
+  },
+  "pieces": {
+    "slots": 3,
+    "option_stats": [
+      "hp",
+      "hp_pct",
+      "hp_cap",
+      "att",
+      "att_pct",
+      "att_cap",
+      "def",
+      "def_pct",
+      "def_cap",
+      "evd",
+      "cri_pow",
+      "blk",
+      "cri"
+    ],
+    "grades": [
+      "#aef1a1e7",
+      "#c01e9ae7",
+      "#4cd2c49d",
+      "#c824e35d"
+    ],
+    "list": [
+      {
+        "name": "#31217321",
+        "source": "#2af9e6a3",
+        "set2": "#02d1f572",
+        "set3": "#982490b5"
+      },
+      {
+        "name": "#79e7f420",
+        "source": "#2af9e6a3",
+        "set2": "#cb9e55bd",
+        "set3": "#60400bbd"
+      },
+      {
+        "name": "#d9769249",
+        "source": "#c551e876",
+        "set2": "#bd187bf9",
+        "set3": "#ba8d7131"
+      },
+      {
+        "name": "#927fcbbc",
+        "source": "#c551e876",
+        "set2": "#a2a932f4",
+        "set3": "#8268ef43"
+      },
+      {
+        "name": "#ff0c9a66",
+        "source": "#e894b860",
+        "set2": "#bc564be2",
+        "set3": "#4d312f71"
+      },
+      {
+        "name": "#1b6024c7",
+        "source": "#e894b860",
+        "set2": "#e9e0f9e9",
+        "set3": "#a8ae5651"
+      }
+    ],
+    "implemented": true
+  },
+  "exclusive": {
+    "list": [
+      {
+        "name": "#a62f9b9a",
+        "dragon": "#1fa9b072",
+        "dragon_id": 1,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#98cb5a22",
+        "dragon": "#c5505166",
+        "dragon_id": 53,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#da076a66",
+        "dragon": "#63953735",
+        "dragon_id": 6,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8d055685",
+        "dragon": "#cc2c53e9",
+        "dragon_id": 9,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#5f4db36f",
+        "dragon": "#aedcdcb0",
+        "dragon_id": 14,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#d68c6daf",
+        "dragon": "#8620d6b0",
+        "dragon_id": 21,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#e36c2f92",
+        "dragon": "#56dd8d20",
+        "dragon_id": 54,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#ffb85061",
+        "dragon": "#ed3136ab",
+        "dragon_id": 34,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8a078351",
+        "dragon": "#03e8a475",
+        "dragon_id": 4012,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#d09ff772",
+        "dragon": "#e302b18c",
+        "dragon_id": 4005,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#278254c6",
+        "dragon": "#564a6ee1",
+        "dragon_id": 180,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#218ed10c",
+        "dragon": "#044aab92",
+        "dragon_id": 179,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#6b73c6ba",
+        "dragon": "#ac661677",
+        "dragon_id": 4036,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#4ccf3288",
+        "dragon": "#0a630df8",
+        "dragon_id": 4035,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#5b2c119d",
+        "dragon": "#a5059cbe",
+        "dragon_id": 3020,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#29e0caad",
+        "dragon": "#2c76b4c0",
+        "dragon_id": 3002,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#1985e654",
+        "dragon": "#ea08df9b",
+        "dragon_id": 3034,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#3183bf80",
+        "dragon": "#b268c0c8",
+        "dragon_id": 3001,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8b57f1a5",
+        "dragon": "#86622217",
+        "dragon_id": 65,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8a28c0c9",
+        "dragon": "#6847838a",
+        "dragon_id": 66,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#023ad795",
+        "dragon": "#ca25aaf8",
+        "dragon_id": 4,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#7e79cbd5",
+        "dragon": "#7eb88160",
+        "dragon_id": 10,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#04f87ed6",
+        "dragon": "#47399065",
+        "dragon_id": 23,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#55d0378e",
+        "dragon": "#c7317a16",
+        "dragon_id": 58,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#35648068",
+        "dragon": "#49f1c8f9",
+        "dragon_id": 125,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#17e0a6dc",
+        "dragon": "#3e586d01",
+        "dragon_id": 145,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#fb4e2b4b",
+        "dragon": "#5233ff27",
+        "dragon_id": 184,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#d11312db",
+        "dragon": "#f36d641a",
+        "dragon_id": 3017,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#0d600cf0",
+        "dragon": "#69b011ad",
+        "dragon_id": 3029,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#df0bdf55",
+        "dragon": "#23d1c1ee",
+        "dragon_id": 4008,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#a031e2ac",
+        "dragon": "#1020619a",
+        "dragon_id": 3014,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#e94eecf6",
+        "dragon": "#e5c4faf9",
+        "dragon_id": 3005,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#a37cd591",
+        "dragon": "#025cca0d",
+        "dragon_id": 92,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#4f8a1efd",
+        "dragon": "#b0301f9a",
+        "dragon_id": 4139,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#b6a6c281",
+        "dragon": "#258c6466",
+        "dragon_id": 74,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#903a0548",
+        "dragon": "#ea45f262",
+        "dragon_id": 3024,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#939869b0",
+        "dragon": "#ee0e909c",
+        "dragon_id": 4041,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#6d932754",
+        "dragon": "#b6734cb6",
+        "dragon_id": 4059,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#10361c6c",
+        "dragon": "#95eba43b",
+        "dragon_id": 178,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#670f1beb",
+        "dragon": "#0a169242",
+        "dragon_id": 35,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#7e2ad10e",
+        "dragon": "#3274cc0c",
+        "dragon_id": 137,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#cbef86c5",
+        "dragon": "#b3f55cd3",
+        "dragon_id": 3013,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#3d082570",
+        "dragon": "#3cd9bcb2",
+        "dragon_id": 4142,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#30abd4d3",
+        "dragon": "#f6b5dba4",
+        "dragon_id": 4140,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#e9eddf80",
+        "dragon": "#088ccdd8",
+        "dragon_id": 51,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#9933ddcb",
+        "dragon": "#af8624bc",
+        "dragon_id": 3030,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#6ab12988",
+        "dragon": "#f948e2ea",
+        "dragon_id": 3032,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#ad8dfd08",
+        "dragon": "#88c290d1",
+        "dragon_id": 4015,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#270d5fdc",
+        "dragon": "#4ba084c8",
+        "dragon_id": 4151,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#de983a64",
+        "dragon": "#e52ff115",
+        "dragon_id": 67,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#535919af",
+        "dragon": "#7e9423d5",
+        "dragon_id": 4018,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#5c38ea39",
+        "dragon": "#e6acc476",
+        "dragon_id": 4024,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#83f359f6",
+        "dragon": "#d773d3e3",
+        "dragon_id": 4136,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#3b98f26a",
+        "dragon": "#1235d1da",
+        "dragon_id": 4166,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#300dd7bc",
+        "dragon": "#2cc48863",
+        "dragon_id": 4162,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#179ca08b",
+        "dragon": "#e42e4061",
+        "dragon_id": 129,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#1a74279f",
+        "dragon": "#dd67e98b",
+        "dragon_id": 4022,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#28558798",
+        "dragon": "#d7b65355",
+        "dragon_id": 4023,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#76fed0e0",
+        "dragon": "#db7b38c7",
+        "dragon_id": 4120,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#c493f6a0",
+        "dragon": "#3065a89b",
+        "dragon_id": 4175,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#c65a6dd0",
+        "dragon": "#86ac4cb6",
+        "dragon_id": 3026,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#03fa35cf",
+        "dragon": "#de9800f9",
+        "dragon_id": 4138,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#1b0eb0f1",
+        "dragon": "#c15eb88e",
+        "dragon_id": 4115,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#3f2b81d2",
+        "dragon": "#3d8657de",
+        "dragon_id": 4111,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#f01c7098",
+        "dragon": "#97761687",
+        "dragon_id": 4135,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#4709e5f9",
+        "dragon": "#4d919379",
+        "dragon_id": 4052,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#1632d7c1",
+        "dragon": "#d2fb2ada",
+        "dragon_id": 77,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#1ca7bc7c",
+        "dragon": "#3d3bff23",
+        "dragon_id": 4143,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#fe53216e",
+        "dragon": "#3ecbdf2c",
+        "dragon_id": 4144,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#de9070a1",
+        "dragon": "#88c09b9b",
+        "dragon_id": 3036,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#f0622cce",
+        "dragon": "#2734e20a",
+        "dragon_id": 4191,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#aa806ff9",
+        "dragon": "#9e9f08c7",
+        "dragon_id": 4019,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#031298ec",
+        "dragon": "#ee3b8e97",
+        "dragon_id": 4049,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#d7f84bd1",
+        "dragon": "#927ba985",
+        "dragon_id": 4002,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#d4be8c6f",
+        "dragon": "#69f3c7ae",
+        "dragon_id": 4197,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#b2683fc1",
+        "dragon": "#b0cb5e7a",
+        "dragon_id": 4198,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#9381afb4",
+        "dragon": "#03585675",
+        "dragon_id": 4199,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#85f7f826",
+        "dragon": "#485d8b02",
+        "dragon_id": 4200,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#dbde9bf2",
+        "dragon": "#664b4553",
+        "dragon_id": 3035,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#14974d23",
+        "dragon": "#394a36e5",
+        "dragon_id": 4189,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#baa0d4a3",
+        "dragon": "#7d73e5d4",
+        "dragon_id": 4201,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#bc29227c",
+        "dragon": "#ea4ef28a",
+        "dragon_id": 4099,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#0aa6eb1b",
+        "dragon": "#942aee1d",
+        "dragon_id": 4204,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#013726ad",
+        "dragon": "#b1170a7f",
+        "dragon_id": 4205,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#e68c412d",
+        "dragon": "#23e3f9c3",
+        "dragon_id": 4206,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8545ab1e",
+        "dragon": "#61aed3a3",
+        "dragon_id": 4125,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#ecee63a9",
+        "dragon": "#4bc08a0d",
+        "dragon_id": 3033,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#b4d25ad4",
+        "dragon": "#17189b72",
+        "dragon_id": 4207,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#481d5b3c",
+        "dragon": "#2c18dfef",
+        "dragon_id": 4180,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#71eb22f2",
+        "dragon": "#8f09d7d6",
+        "dragon_id": 3008,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#07d7c534",
+        "dragon": "#d1d391d1",
+        "dragon_id": 4209,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#14b0b402",
+        "dragon": "#6d4b86d1",
+        "dragon_id": 4211,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#a38264d5",
+        "dragon": "#c298cfe6",
+        "dragon_id": 4044,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#de3a0a78",
+        "dragon": "#5c38cb42",
+        "dragon_id": 4212,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#dca7c9af",
+        "dragon": "#0211c5ba",
+        "dragon_id": 4159,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true
+      },
+      {
+        "name": "#8bbdc244",
+        "dragon": "#1b3525ef",
+        "dragon_id": 666,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true,
+        "gacha_excluded": true,
+        "acquire": "#06ff6adb"
+      },
+      {
+        "name": "#a0abde3b",
+        "dragon": "#b6e20f03",
+        "dragon_id": 777,
+        "effect": "",
+        "stat_main": {},
+        "implemented": true,
+        "gacha_excluded": true,
+        "acquire": "#06ff6adb"
+      }
+    ]
+  }
+}

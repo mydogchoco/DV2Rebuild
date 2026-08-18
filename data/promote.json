@@ -1,0 +1,101 @@
+{
+  "breed_enable": 0,
+  "training": {
+    "camps": 3,
+    "slot_open_dia": 99,
+    "clean_reset_sec_per_dia": 300,
+    "camp_unlock": [
+      {
+        "cond": "none",
+        "label": ""
+      },
+      {
+        "cond": "colosseum_rating",
+        "mode": "single",
+        "value": 2000,
+        "label": "#45bf244a"
+      },
+      {
+        "cond": "colosseum_rating",
+        "mode": "team",
+        "value": 2000,
+        "label": "#2954e870"
+      }
+    ],
+    "info_train_v2": [
+      {
+        "train_no": 1,
+        "name": "#019bb089",
+        "fee_type": "gold",
+        "fee": 3350,
+        "exp": 191584,
+        "need_time": 1200,
+        "icon": "train1",
+        "icon2": "train2"
+      },
+      {
+        "train_no": 2,
+        "name": "#5b3610d3",
+        "fee_type": "gold",
+        "fee": 8200,
+        "exp": 383168,
+        "need_time": 3600,
+        "icon": "train3",
+        "icon2": "train4"
+      },
+      {
+        "train_no": 3,
+        "name": "#3a024879",
+        "fee_type": "gold",
+        "fee": 13900,
+        "exp": 574753,
+        "need_time": 10800,
+        "icon": "train5",
+        "icon2": "train6"
+      },
+      {
+        "train_no": 4,
+        "name": "#59fe259d",
+        "fee_type": "gold",
+        "fee": 20200,
+        "exp": 766337,
+        "need_time": 21600,
+        "icon": "train7",
+        "icon2": "train8"
+      },
+      {
+        "train_no": 5,
+        "name": "#a3c4d781",
+        "fee_type": "gold",
+        "fee": 27000,
+        "exp": 957921,
+        "need_time": 43200,
+        "icon": "train9",
+        "icon2": "train10",
+        "special": true
+      }
+    ]
+  },
+  "mate": {
+    "min_level": 35,
+    "grade_cost_gold": 500,
+    "instant_sec_per_dia": 3600,
+    "breed_sec": 21600,
+    "history_max": 30
+  },
+  "restore": {
+    "tier_max_level": [
+      24,
+      44
+    ],
+    "price_dia": [
+      5,
+      15,
+      30
+    ]
+  },
+  "latea": {
+    "expire_days": 7,
+    "max_records": 50
+  }
+}

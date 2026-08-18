@@ -1,0 +1,4396 @@
+{
+  "stages": {
+    "15": {
+      "name": "#317c71af",
+      "region": "yutakan",
+      "bg": 15,
+      "level": 45,
+      "enemies": [
+        {
+          "id": 67,
+          "name": "#ddc213c0",
+          "level": 45,
+          "element": "none",
+          "hp_max": 588,
+          "att": 176,
+          "def": 90,
+          "boss": false
+        },
+        {
+          "id": 68,
+          "name": "#732fb68e",
+          "level": 45,
+          "element": "none",
+          "hp_max": 588,
+          "att": 176,
+          "def": 90,
+          "boss": false
+        },
+        {
+          "id": 69,
+          "name": "#66cd2e1e",
+          "level": 45,
+          "element": "none",
+          "hp_max": 588,
+          "att": 176,
+          "def": 90,
+          "boss": false
+        },
+        {
+          "id": 70,
+          "name": "#0ba7015a",
+          "level": 45,
+          "element": "none",
+          "hp_max": 588,
+          "att": 176,
+          "def": 90,
+          "boss": false,
+          "skills": [
+            11
+          ]
+        },
+        {
+          "id": 71,
+          "name": "#86836494",
+          "level": 45,
+          "element": "none",
+          "hp_max": 594,
+          "att": 176,
+          "def": 90,
+          "boss": false
+        },
+        {
+          "id": 72,
+          "name": "#cda22f32",
+          "level": 45,
+          "element": "none",
+          "hp_max": 880,
+          "att": 275,
+          "def": 180,
+          "boss": true,
+          "skills": [
+            12
+          ]
+        }
+      ],
+      "boss": "#cda22f32",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 52
+        },
+        {
+          "id": 61
+        },
+        {
+          "id": 82
+        },
+        {
+          "id": 21,
+          "hero": true
+        },
+        {
+          "id": 77,
+          "hero": true
+        }
+      ],
+      "element": "light",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 12,
+            "skill_name": "#d3bef3ca",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 12,
+            "skill_name": "#d3bef3ca",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "4": {
+      "name": "#f3c1fcd7",
+      "region": "yutakan",
+      "bg": 4,
+      "level": 15,
+      "enemies": [
+        {
+          "id": 16,
+          "name": "#a6adef34",
+          "level": 15,
+          "element": "none",
+          "hp_max": 228,
+          "att": 72,
+          "def": 30,
+          "boss": false
+        },
+        {
+          "id": 17,
+          "name": "#0b231031",
+          "level": 15,
+          "element": "none",
+          "hp_max": 204,
+          "att": 72,
+          "def": 30,
+          "boss": false
+        },
+        {
+          "id": 18,
+          "name": "#c70ab792",
+          "level": 15,
+          "element": "none",
+          "hp_max": 204,
+          "att": 72,
+          "def": 30,
+          "boss": false,
+          "skills": [
+            120
+          ]
+        },
+        {
+          "id": 19,
+          "name": "#e30d8ec6",
+          "level": 15,
+          "element": "none",
+          "hp_max": 228,
+          "att": 72,
+          "def": 30,
+          "boss": false
+        },
+        {
+          "id": 20,
+          "name": "#973ec08e",
+          "level": 15,
+          "element": "none",
+          "hp_max": 297,
+          "att": 78,
+          "def": 37,
+          "boss": true,
+          "skills": [
+            120
+          ]
+        }
+      ],
+      "boss": "#973ec08e",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "wind",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 3
+        },
+        {
+          "id": 30
+        },
+        {
+          "id": 4,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 188
+          }
+        ],
+        "enemies": [
+          {
+            "id": 166,
+            "asset_id": 166,
+            "name": "#5949dc8c",
+            "level": 50,
+            "element": "earth",
+            "hp_max": 840,
+            "att": 193,
+            "def": 210,
+            "boss": true,
+            "skills": [
+              24,
+              28
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 185,
+            "asset_id": 185,
+            "name": "#973ec08e",
+            "level": 15,
+            "element": "none",
+            "hp_max": 297,
+            "att": 78,
+            "def": 37,
+            "boss": true,
+            "skills": [
+              120
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 120,
+            "skill_name": "#62d71b10",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 120,
+            "skill_name": "#62d71b10",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "2": {
+      "name": "#47e22ec2",
+      "region": "yutakan",
+      "bg": 2,
+      "level": 5,
+      "enemies": [
+        {
+          "id": 6,
+          "name": "#d47c09a5",
+          "level": 5,
+          "element": "none",
+          "hp_max": 132,
+          "att": 39,
+          "def": 18,
+          "boss": false
+        },
+        {
+          "id": 7,
+          "name": "#10777429",
+          "level": 5,
+          "element": "none",
+          "hp_max": 132,
+          "att": 39,
+          "def": 18,
+          "boss": false
+        },
+        {
+          "id": 8,
+          "name": "#d76fbffc",
+          "level": 5,
+          "element": "none",
+          "hp_max": 132,
+          "att": 39,
+          "def": 18,
+          "boss": false,
+          "skills": [
+            70
+          ]
+        },
+        {
+          "id": 9,
+          "name": "#955eab42",
+          "level": 5,
+          "element": "none",
+          "hp_max": 132,
+          "att": 39,
+          "def": 18,
+          "boss": false,
+          "skills": [
+            100
+          ]
+        },
+        {
+          "id": 10,
+          "name": "#45fbe17c",
+          "level": 5,
+          "element": "none",
+          "hp_max": 198,
+          "att": 45,
+          "def": 25,
+          "boss": true,
+          "skills": [
+            23
+          ]
+        }
+      ],
+      "boss": "#45fbe17c",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "water",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 17
+        },
+        {
+          "id": 29
+        },
+        {
+          "id": 58
+        },
+        {
+          "id": 10,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 187
+          }
+        ],
+        "enemies": [
+          {
+            "id": 164,
+            "asset_id": 164,
+            "name": "#42d0ccb8",
+            "level": 50,
+            "element": "aqua",
+            "hp_max": 4560,
+            "att": 198,
+            "def": 12,
+            "boss": true,
+            "skills": [
+              29,
+              26
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 183,
+            "asset_id": 183,
+            "name": "#45fbe17c",
+            "level": 5,
+            "element": "none",
+            "hp_max": 198,
+            "att": 45,
+            "def": 25,
+            "boss": true,
+            "skills": [
+              23
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 23,
+            "skill_name": "#bc1afe3c",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 23,
+            "skill_name": "#bc1afe3c",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "1": {
+      "name": "#df1f3303",
+      "region": "yutakan",
+      "bg": 1,
+      "level": 1,
+      "enemies": [
+        {
+          "id": 1,
+          "name": "#43944140",
+          "level": 1,
+          "element": "none",
+          "hp_max": 78,
+          "att": 22,
+          "def": 12,
+          "boss": false
+        },
+        {
+          "id": 2,
+          "name": "#f4e5c2d9",
+          "level": 1,
+          "element": "none",
+          "hp_max": 78,
+          "att": 22,
+          "def": 12,
+          "boss": false
+        },
+        {
+          "id": 3,
+          "name": "#1e4950d4",
+          "level": 1,
+          "element": "none",
+          "hp_max": 78,
+          "att": 22,
+          "def": 12,
+          "boss": false,
+          "skills": [
+            100
+          ]
+        },
+        {
+          "id": 4,
+          "name": "#fcacd4f9",
+          "level": 1,
+          "element": "none",
+          "hp_max": 78,
+          "att": 22,
+          "def": 12,
+          "boss": false
+        },
+        {
+          "id": 5,
+          "name": "#8f155a19",
+          "level": 1,
+          "element": "earth",
+          "hp_max": 149,
+          "att": 29,
+          "def": 19,
+          "boss": true,
+          "skills": [
+            32
+          ]
+        }
+      ],
+      "boss": "#8f155a19",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "ground",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 25
+        },
+        {
+          "id": 28
+        },
+        {
+          "id": 117
+        },
+        {
+          "id": 14,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 187
+          }
+        ],
+        "enemies": [
+          {
+            "id": 163,
+            "asset_id": 163,
+            "name": "#98c03092",
+            "level": 50,
+            "element": "dark",
+            "hp_max": 2100,
+            "att": 171,
+            "def": 66,
+            "boss": true,
+            "skills": [
+              32
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 182,
+            "asset_id": 182,
+            "name": "#8f155a19",
+            "level": 1,
+            "element": "earth",
+            "hp_max": 149,
+            "att": 29,
+            "def": 19,
+            "boss": true,
+            "skills": [
+              32
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 32,
+            "skill_name": "#cf4094e4",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 32,
+            "skill_name": "#cf4094e4",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "3": {
+      "name": "#38894d60",
+      "region": "yutakan",
+      "bg": 3,
+      "level": 10,
+      "enemies": [
+        {
+          "id": 11,
+          "name": "#c3a496b1",
+          "level": 10,
+          "element": "fire",
+          "hp_max": 162,
+          "att": 55,
+          "def": 24,
+          "boss": false
+        },
+        {
+          "id": 12,
+          "name": "#5c2e77a5",
+          "level": 10,
+          "element": "fire",
+          "hp_max": 162,
+          "att": 55,
+          "def": 24,
+          "boss": false
+        },
+        {
+          "id": 13,
+          "name": "#2a27c6c5",
+          "level": 10,
+          "element": "fire",
+          "hp_max": 162,
+          "att": 55,
+          "def": 24,
+          "boss": false
+        },
+        {
+          "id": 14,
+          "name": "#e10b984e",
+          "level": 10,
+          "element": "fire",
+          "hp_max": 162,
+          "att": 55,
+          "def": 24,
+          "boss": false,
+          "skills": [
+            22
+          ]
+        },
+        {
+          "id": 15,
+          "name": "#7ff36342",
+          "level": 10,
+          "element": "fire",
+          "hp_max": 248,
+          "att": 62,
+          "def": 31,
+          "boss": true,
+          "skills": [
+            50
+          ]
+        }
+      ],
+      "boss": "#97393b0e",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "fire",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 5
+        },
+        {
+          "id": 7
+        },
+        {
+          "id": 8
+        },
+        {
+          "id": 6,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 187
+          }
+        ],
+        "enemies": [
+          {
+            "id": 165,
+            "asset_id": 165,
+            "name": "#97393b0e",
+            "level": 50,
+            "element": "fire",
+            "hp_max": 780,
+            "att": 352,
+            "def": 132,
+            "boss": true,
+            "skills": [
+              21,
+              60
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 184,
+            "asset_id": 184,
+            "name": "#7ff36342",
+            "level": 10,
+            "element": "fire",
+            "hp_max": 248,
+            "att": 62,
+            "def": 31,
+            "boss": true,
+            "skills": [
+              50
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 50,
+            "skill_name": "#13c99189",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 50,
+            "skill_name": "#13c99189",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "14": {
+      "name": "#bd8bc787",
+      "region": "yutakan",
+      "bg": 14,
+      "level": 42,
+      "enemies": [
+        {
+          "id": 62,
+          "name": "#34543bf8",
+          "level": 45,
+          "element": "aqua",
+          "hp_max": 540,
+          "att": 161,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 63,
+          "name": "#5ba25660",
+          "level": 45,
+          "element": "aqua",
+          "hp_max": 540,
+          "att": 161,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 64,
+          "name": "#6afc06b0",
+          "level": 45,
+          "element": "wind",
+          "hp_max": 540,
+          "att": 161,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 65,
+          "name": "#182816f4",
+          "level": 45,
+          "element": "aqua",
+          "hp_max": 540,
+          "att": 161,
+          "def": 66,
+          "boss": false,
+          "skills": [
+            56
+          ]
+        },
+        {
+          "id": 66,
+          "name": "#a7e6bbc7",
+          "level": 45,
+          "element": "aqua",
+          "hp_max": 600,
+          "att": 161,
+          "def": 66,
+          "boss": true,
+          "skills": [
+            11
+          ]
+        }
+      ],
+      "boss": "#a3bbb9ef",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "story_monsters": [
+        {
+          "id": 75,
+          "name": "#6847838a",
+          "level": 45,
+          "element": "dark",
+          "hp_max": 700,
+          "att": 170,
+          "def": 75,
+          "boss": false
+        }
+      ],
+      "bgm": "bg_12",
+      "element": "wind",
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3038
+          }
+        ],
+        "enemies": [
+          {
+            "id": 174,
+            "asset_id": 174,
+            "name": "#7d9c7fb4",
+            "level": 50,
+            "element": "aqua",
+            "hp_max": 900,
+            "att": 176,
+            "def": 216,
+            "boss": true,
+            "skills": [
+              11,
+              160
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "dragons": [
+        {
+          "id": 2
+        },
+        {
+          "id": 50
+        },
+        {
+          "id": 57
+        },
+        {
+          "id": 9,
+          "hero": true
+        }
+      ],
+      "desc": "",
+      "kades": {
+        "enemies": [
+          {
+            "id": 193,
+            "asset_id": 193,
+            "name": "#a7e6bbc7",
+            "level": 45,
+            "element": "aqua",
+            "hp_max": 600,
+            "att": 161,
+            "def": 66,
+            "boss": true,
+            "skills": [
+              11
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 11,
+            "skill_name": "#11e04bba",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 11,
+            "skill_name": "#11e04bba",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "12": {
+      "name": "#c8575920",
+      "region": "yutakan",
+      "bg": 12,
+      "level": 38,
+      "enemies": [
+        {
+          "id": 52,
+          "name": "#0f09601e",
+          "level": 38,
+          "element": "none",
+          "hp_max": 389,
+          "att": 144,
+          "def": 62,
+          "boss": false
+        },
+        {
+          "id": 53,
+          "name": "#0c5ebee9",
+          "level": 38,
+          "element": "none",
+          "hp_max": 389,
+          "att": 144,
+          "def": 62,
+          "boss": false,
+          "skills": [
+            46
+          ]
+        },
+        {
+          "id": 54,
+          "name": "#3cdd741e",
+          "level": 38,
+          "element": "none",
+          "hp_max": 389,
+          "att": 144,
+          "def": 62,
+          "boss": false
+        },
+        {
+          "id": 55,
+          "name": "#a9a80ea3",
+          "level": 38,
+          "element": "none",
+          "hp_max": 389,
+          "att": 144,
+          "def": 62,
+          "boss": false
+        },
+        {
+          "id": 56,
+          "name": "#aee154c0",
+          "level": 38,
+          "element": "none",
+          "hp_max": 515,
+          "att": 151,
+          "def": 80,
+          "boss": true,
+          "skills": [
+            46
+          ]
+        }
+      ],
+      "boss": "#aee154c0",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "fire",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 37
+        },
+        {
+          "id": 39
+        },
+        {
+          "id": 35,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3038
+          }
+        ],
+        "enemies": [
+          {
+            "id": 172,
+            "asset_id": 172,
+            "name": "#cec8e766",
+            "level": 50,
+            "element": "dark",
+            "hp_max": 4560,
+            "att": 198,
+            "def": 12,
+            "boss": true,
+            "skills": [
+              53,
+              54
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 191,
+            "asset_id": 191,
+            "name": "#aee154c0",
+            "level": 38,
+            "element": "none",
+            "hp_max": 515,
+            "att": 151,
+            "def": 80,
+            "boss": true,
+            "skills": [
+              46
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 46,
+            "skill_name": "#f8c7f1d7",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 46,
+            "skill_name": "#f8c7f1d7",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "13": {
+      "name": "#a5e60872",
+      "region": "yutakan",
+      "bg": 13,
+      "level": 40,
+      "enemies": [
+        {
+          "id": 57,
+          "name": "#fbb6c95d",
+          "level": 40,
+          "element": "none",
+          "hp_max": 414,
+          "att": 154,
+          "def": 66,
+          "boss": false,
+          "skills": [
+            46
+          ]
+        },
+        {
+          "id": 58,
+          "name": "#6f0e7641",
+          "level": 40,
+          "element": "none",
+          "hp_max": 414,
+          "att": 154,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 59,
+          "name": "#ab8fc786",
+          "level": 40,
+          "element": "none",
+          "hp_max": 414,
+          "att": 154,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 60,
+          "name": "#5cce4fc1",
+          "level": 40,
+          "element": "none",
+          "hp_max": 414,
+          "att": 154,
+          "def": 66,
+          "boss": false
+        },
+        {
+          "id": 61,
+          "name": "#0b6df8aa",
+          "level": 40,
+          "element": "none",
+          "hp_max": 545,
+          "att": 161,
+          "def": 84,
+          "boss": true,
+          "skills": [
+            28,
+            60
+          ]
+        }
+      ],
+      "boss": "#0b6df8aa",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "bgm": "bg_12",
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3038
+          }
+        ],
+        "enemies": [
+          {
+            "id": 173,
+            "asset_id": 173,
+            "name": "#803453e0",
+            "level": 50,
+            "element": "light",
+            "hp_max": 900,
+            "att": 193,
+            "def": 210,
+            "boss": true,
+            "skills": [
+              23,
+              36
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "dragons": [
+        {
+          "id": 38
+        },
+        {
+          "id": 61
+        },
+        {
+          "id": 115
+        },
+        {
+          "id": 124,
+          "hero": true
+        }
+      ],
+      "element": "ground",
+      "desc": "",
+      "kades": {
+        "enemies": [
+          {
+            "id": 192,
+            "asset_id": 192,
+            "name": "#0b6df8aa",
+            "level": 40,
+            "element": "none",
+            "hp_max": 545,
+            "att": 161,
+            "def": 84,
+            "boss": true,
+            "skills": [
+              28,
+              60
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 60,
+            "skill_name": "#cd0326ab",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 60,
+            "skill_name": "#cd0326ab",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "10": {
+      "name": "#e87e6d0f",
+      "region": "yutakan",
+      "bg": 10,
+      "level": 33,
+      "enemies": [
+        {
+          "id": 42,
+          "name": "#9f9707d3",
+          "level": 33,
+          "element": "dark",
+          "hp_max": 355,
+          "att": 131,
+          "def": 58,
+          "boss": false
+        },
+        {
+          "id": 43,
+          "name": "#bbdcc6e3",
+          "level": 33,
+          "element": "dark",
+          "hp_max": 355,
+          "att": 131,
+          "def": 58,
+          "boss": false
+        },
+        {
+          "id": 44,
+          "name": "#a13bfe7f",
+          "level": 33,
+          "element": "dark",
+          "hp_max": 355,
+          "att": 131,
+          "def": 58,
+          "boss": false
+        },
+        {
+          "id": 45,
+          "name": "#c446ec85",
+          "level": 33,
+          "element": "wind",
+          "hp_max": 355,
+          "att": 131,
+          "def": 58,
+          "boss": false
+        },
+        {
+          "id": 46,
+          "name": "#4e075e31",
+          "level": 33,
+          "element": "dark",
+          "hp_max": 480,
+          "att": 140,
+          "def": 70,
+          "boss": true,
+          "skills": [
+            22,
+            15
+          ]
+        }
+      ],
+      "boss": "#898ce388",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "story_monsters": [
+        {
+          "id": 73,
+          "name": "#456f7aa4",
+          "level": 33,
+          "element": "wind",
+          "hp_max": 388,
+          "att": 131,
+          "def": 58,
+          "boss": false
+        }
+      ],
+      "element": "ground",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 119
+        },
+        {
+          "id": 120
+        },
+        {
+          "id": 121
+        },
+        {
+          "id": 122,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3021
+          }
+        ],
+        "enemies": [
+          {
+            "id": 170,
+            "asset_id": 171,
+            "name": "#176db72f",
+            "level": 50,
+            "element": "wind",
+            "hp_max": 1020,
+            "att": 275,
+            "def": 138,
+            "boss": true,
+            "skills": [
+              54
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 189,
+            "asset_id": 189,
+            "name": "#4e075e31",
+            "level": 33,
+            "element": "dark",
+            "hp_max": 480,
+            "att": 140,
+            "def": 70,
+            "boss": true,
+            "skills": [
+              22,
+              15
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 22,
+            "skill_name": "#69b282ec",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 22,
+            "skill_name": "#69b282ec",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "11": {
+      "name": "#754efc23",
+      "region": "yutakan",
+      "bg": 11,
+      "level": 36,
+      "enemies": [
+        {
+          "id": 47,
+          "name": "#370d4d82",
+          "level": 36,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 48,
+          "name": "#856ad419",
+          "level": 36,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false,
+          "skills": [
+            57
+          ]
+        },
+        {
+          "id": 49,
+          "name": "#f1b53152",
+          "level": 36,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 50,
+          "name": "#1b32ecc7",
+          "level": 36,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 51,
+          "name": "#04f9b06b",
+          "level": 36,
+          "element": "none",
+          "hp_max": 495,
+          "att": 144,
+          "def": 78,
+          "boss": true,
+          "skills": [
+            24
+          ]
+        }
+      ],
+      "boss": "#04f9b06b",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "story_monsters": [
+        {
+          "id": 74,
+          "name": "#516dc282",
+          "level": 36,
+          "element": "none",
+          "hp_max": 100,
+          "att": 11,
+          "def": 11,
+          "boss": false
+        }
+      ],
+      "element": "water",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 11
+        },
+        {
+          "id": 12
+        },
+        {
+          "id": 42
+        },
+        {
+          "id": 33,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3021
+          }
+        ],
+        "enemies": [
+          {
+            "id": 171,
+            "asset_id": 170,
+            "name": "#68a17ef4",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 720,
+            "att": 171,
+            "def": 540,
+            "boss": true,
+            "skills": [
+              120,
+              70
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 190,
+            "asset_id": 190,
+            "name": "#04f9b06b",
+            "level": 36,
+            "element": "none",
+            "hp_max": 495,
+            "att": 144,
+            "def": 78,
+            "boss": true,
+            "skills": [
+              24
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 24,
+            "skill_name": "#aa677f3d",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 24,
+            "skill_name": "#aa677f3d",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "9": {
+      "name": "#fc2d24cd",
+      "region": "yutakan",
+      "bg": 9,
+      "level": 30,
+      "enemies": [
+        {
+          "id": 37,
+          "name": "#c7d60d30",
+          "level": 30,
+          "element": "aqua",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 38,
+          "name": "#a96a4559",
+          "level": 30,
+          "element": "aqua",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 39,
+          "name": "#05df082e",
+          "level": 30,
+          "element": "aqua",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 40,
+          "name": "#94bfd4ef",
+          "level": 30,
+          "element": "dark",
+          "hp_max": 372,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 41,
+          "name": "#7691722c",
+          "level": 30,
+          "element": "dark",
+          "hp_max": 446,
+          "att": 128,
+          "def": 72,
+          "boss": true,
+          "skills": [
+            15
+          ]
+        }
+      ],
+      "boss": "#40efaaa8",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "water",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 16
+        },
+        {
+          "id": 27
+        },
+        {
+          "id": 118
+        },
+        {
+          "id": 56,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 3021
+          }
+        ],
+        "enemies": [
+          {
+            "id": 169,
+            "asset_id": 169,
+            "name": "#4ef197dd",
+            "level": 50,
+            "element": "aqua",
+            "hp_max": 4560,
+            "att": 308,
+            "def": 12,
+            "boss": true,
+            "skills": [
+              14,
+              13
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 188,
+            "asset_id": 188,
+            "name": "#7691722c",
+            "level": 30,
+            "element": "dark",
+            "hp_max": 446,
+            "att": 128,
+            "def": 72,
+            "boss": true,
+            "skills": [
+              15
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 15,
+            "skill_name": "#0147be21",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 15,
+            "skill_name": "#0147be21",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "7": {
+      "name": "#f5355ac9",
+      "region": "yutakan",
+      "bg": 7,
+      "level": 25,
+      "enemies": [
+        {
+          "id": 31,
+          "name": "#bc5f5d95",
+          "level": 25,
+          "element": "none",
+          "hp_max": 324,
+          "att": 105,
+          "def": 42,
+          "boss": false
+        },
+        {
+          "id": 32,
+          "name": "#4d387153",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 42,
+          "boss": false
+        },
+        {
+          "id": 33,
+          "name": "#789193d5",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 42,
+          "boss": false
+        },
+        {
+          "id": 34,
+          "name": "#9e685270",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 42,
+          "boss": false
+        },
+        {
+          "id": 35,
+          "name": "#1b50f919",
+          "level": 25,
+          "element": "none",
+          "hp_max": 396,
+          "att": 111,
+          "def": 49,
+          "boss": true,
+          "skills": [
+            80
+          ]
+        }
+      ],
+      "boss": "#1b50f919",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "dark",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 46
+        },
+        {
+          "id": 48
+        },
+        {
+          "id": 49
+        },
+        {
+          "id": 47,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 188
+          }
+        ],
+        "enemies": [
+          {
+            "id": 168,
+            "asset_id": 168,
+            "name": "#07666dfa",
+            "level": 50,
+            "element": "earth",
+            "hp_max": 600,
+            "att": 171,
+            "def": 480,
+            "boss": true,
+            "skills": [
+              11,
+              12
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 187,
+            "asset_id": 187,
+            "name": "#1b50f919",
+            "level": 25,
+            "element": "none",
+            "hp_max": 396,
+            "att": 111,
+            "def": 49,
+            "boss": true,
+            "skills": [
+              80
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 80,
+            "skill_name": "#6f9e8ece",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 80,
+            "skill_name": "#6f9e8ece",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "6": {
+      "name": "#cb197b33",
+      "region": "yutakan",
+      "bg": 6,
+      "level": 22,
+      "enemies": [
+        {
+          "id": 26,
+          "name": "#2e9c5b64",
+          "level": 22,
+          "element": "none",
+          "hp_max": 285,
+          "att": 96,
+          "def": 39,
+          "boss": false,
+          "skills": [
+            46
+          ]
+        },
+        {
+          "id": 27,
+          "name": "#c8416a52",
+          "level": 22,
+          "element": "none",
+          "hp_max": 285,
+          "att": 96,
+          "def": 39,
+          "boss": false
+        },
+        {
+          "id": 28,
+          "name": "#ed2ae59d",
+          "level": 22,
+          "element": "none",
+          "hp_max": 285,
+          "att": 96,
+          "def": 39,
+          "boss": false
+        },
+        {
+          "id": 29,
+          "name": "#ba21129a",
+          "level": 22,
+          "element": "none",
+          "hp_max": 285,
+          "att": 96,
+          "def": 39,
+          "boss": false
+        },
+        {
+          "id": 30,
+          "name": "#dcdfb712",
+          "level": 22,
+          "element": "none",
+          "hp_max": 370,
+          "att": 103,
+          "def": 46,
+          "boss": true,
+          "skills": [
+            120
+          ]
+        }
+      ],
+      "boss": "#dcdfb712",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "dark",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 104
+        },
+        {
+          "id": 43
+        },
+        {
+          "id": 44
+        },
+        {
+          "id": 102
+        }
+      ],
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 120,
+            "skill_name": "#62d71b10",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 120,
+            "skill_name": "#62d71b10",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "8": {
+      "name": "#f2d33da5",
+      "region": "yutakan",
+      "bg": 8,
+      "level": 28,
+      "enemies": [
+        {
+          "level": 28,
+          "att": 176,
+          "def": 108,
+          "hp_max": 968,
+          "element": "none",
+          "id": 36,
+          "name": "#a79c3231",
+          "boss": true
+        },
+        {
+          "id": 138,
+          "name": "#3869fbbd",
+          "level": 28,
+          "element": "none",
+          "hp_max": 980,
+          "att": 176,
+          "def": 100,
+          "boss": true,
+          "skills": [
+            13
+          ]
+        },
+        {
+          "id": 139,
+          "name": "#0ef1b9c0",
+          "level": 28,
+          "element": "none",
+          "hp_max": 1188,
+          "att": 286,
+          "def": 140,
+          "boss": true,
+          "skills": [
+            14
+          ]
+        }
+      ],
+      "boss": "#0ef1b9c0",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "random_boss": true,
+      "summon": {
+        "item": "portal",
+        "item_count": 1,
+        "cash": 1,
+        "duration": 3600,
+        "two_phase": true,
+        "phase2": {
+          "hp_threshold": 0.33,
+          "damage_taken_mult": 0.5
+        },
+        "spine": "w_darknix",
+        "anchor_piece": 8,
+        "design_offset": [
+          0,
+          -70
+        ],
+        "variants": [
+          {
+            "status": 1,
+            "enemy": 0,
+            "weight": 5,
+            "anim": [
+              "appear",
+              "breath",
+              "touch"
+            ]
+          },
+          {
+            "status": 2,
+            "enemy": 1,
+            "weight": 3,
+            "anim": [
+              "appear2",
+              "breath2",
+              "touch2"
+            ]
+          },
+          {
+            "status": 3,
+            "enemy": 2,
+            "weight": 2,
+            "anim": [
+              "appear3",
+              "breath3",
+              "touch3"
+            ]
+          }
+        ],
+        "sound_empty": "effect_yutakan_8_chaos"
+      },
+      "element": "dark",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 53
+        },
+        {
+          "id": 4037
+        },
+        {
+          "id": 3034
+        }
+      ],
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 13,
+            "skill_name": "#6ca3a9b4",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 13,
+            "skill_name": "#6ca3a9b4",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "5": {
+      "name": "#aa185ae3",
+      "region": "yutakan",
+      "bg": 5,
+      "level": 20,
+      "enemies": [
+        {
+          "id": 21,
+          "name": "#d20bc3c4",
+          "level": 20,
+          "element": "none",
+          "hp_max": 246,
+          "att": 88,
+          "def": 36,
+          "boss": false,
+          "skills": [
+            130
+          ]
+        },
+        {
+          "id": 22,
+          "name": "#6b923f0b",
+          "level": 20,
+          "element": "none",
+          "hp_max": 246,
+          "att": 88,
+          "def": 36,
+          "boss": false
+        },
+        {
+          "id": 23,
+          "name": "#f631ddaf",
+          "level": 20,
+          "element": "none",
+          "hp_max": 246,
+          "att": 88,
+          "def": 36,
+          "boss": false
+        },
+        {
+          "id": 24,
+          "name": "#76dec74b",
+          "level": 20,
+          "element": "none",
+          "hp_max": 246,
+          "att": 88,
+          "def": 36,
+          "boss": false
+        },
+        {
+          "id": 25,
+          "name": "#f7bee648",
+          "level": 20,
+          "element": "none",
+          "hp_max": 347,
+          "att": 95,
+          "def": 43,
+          "boss": true,
+          "skills": [
+            160
+          ]
+        }
+      ],
+      "boss": "#f7bee648",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "light",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 40
+        },
+        {
+          "id": 36
+        },
+        {
+          "id": 84
+        },
+        {
+          "id": 1,
+          "hero": true
+        }
+      ],
+      "night": {
+        "level": 50,
+        "desc": "",
+        "dragons": [
+          {
+            "id": 188
+          }
+        ],
+        "enemies": [
+          {
+            "id": 167,
+            "asset_id": 167,
+            "name": "#a3c58969",
+            "level": 50,
+            "element": "dark",
+            "hp_max": 720,
+            "att": 178,
+            "def": 132,
+            "boss": true,
+            "skills": [
+              56
+            ],
+            "weight": 7
+          },
+          {
+            "id": 160,
+            "asset_id": 160,
+            "name": "#178f4710",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 161,
+            "asset_id": 161,
+            "name": "#fc37f8b1",
+            "level": 50,
+            "element": "none",
+            "hp_max": 456,
+            "att": 171,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "weight": 1
+          },
+          {
+            "id": 162,
+            "asset_id": 162,
+            "name": "#d19ee1db",
+            "level": 50,
+            "element": "chaos",
+            "hp_max": 1680,
+            "att": 275,
+            "def": 66,
+            "boss": false,
+            "encounter": true,
+            "skills": [
+              60,
+              14
+            ],
+            "weight": 1
+          },
+          {
+            "id": 175,
+            "asset_id": 175,
+            "name": "#eee69578",
+            "level": 50,
+            "element": "none",
+            "hp_max": 2400,
+            "att": 264,
+            "def": 180,
+            "boss": true,
+            "encounter": true,
+            "weight": 1
+          }
+        ],
+        "random_boss": true
+      },
+      "kades": {
+        "enemies": [
+          {
+            "id": 186,
+            "asset_id": 186,
+            "name": "#f7bee648",
+            "level": 20,
+            "element": "none",
+            "hp_max": 347,
+            "att": 95,
+            "def": 43,
+            "boss": true,
+            "skills": [
+              160
+            ]
+          }
+        ]
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 160,
+            "skill_name": "#9d317a17",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 160,
+            "skill_name": "#9d317a17",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "18": {
+      "name": "#35b47280",
+      "region": "elf",
+      "bg": 18,
+      "level": 35,
+      "enemies": [
+        {
+          "id": 86,
+          "name": "#7a5c7ba1",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 87,
+          "name": "#cd2f0572",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 88,
+          "name": "#465f7fa0",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 89,
+          "name": "#9d0d260a",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false,
+          "skills": [
+            160
+          ]
+        },
+        {
+          "id": 90,
+          "name": "#7e8de9d4",
+          "level": 35,
+          "element": "none",
+          "hp_max": 495,
+          "att": 144,
+          "def": 78,
+          "boss": true,
+          "skills": [
+            56
+          ]
+        }
+      ],
+      "boss": "#7e8de9d4",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 174
+        },
+        {
+          "id": 178
+        },
+        {
+          "id": 185,
+          "hero": true
+        }
+      ],
+      "element": "water",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 55,
+            "skill_name": "#f8da8a5b",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 55,
+            "skill_name": "#f8da8a5b",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "16": {
+      "name": "#7adde1de",
+      "region": "elf",
+      "bg": 16,
+      "level": 25,
+      "enemies": [
+        {
+          "id": 76,
+          "name": "#5fd94eae",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 48,
+          "boss": false,
+          "skills": [
+            24
+          ]
+        },
+        {
+          "id": 77,
+          "name": "#e626cb46",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 48,
+          "boss": false,
+          "skills": [
+            24
+          ]
+        },
+        {
+          "id": 78,
+          "name": "#7600ba6d",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 48,
+          "boss": false,
+          "skills": [
+            150
+          ]
+        },
+        {
+          "id": 79,
+          "name": "#1c4598fa",
+          "level": 25,
+          "element": "none",
+          "hp_max": 288,
+          "att": 105,
+          "def": 48,
+          "boss": false
+        },
+        {
+          "id": 80,
+          "name": "#1c79c2ec",
+          "level": 25,
+          "element": "none",
+          "hp_max": 396,
+          "att": 111,
+          "def": 66,
+          "boss": true
+        }
+      ],
+      "boss": "#1c79c2ec",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 24
+        },
+        {
+          "id": 170
+        },
+        {
+          "id": 3021,
+          "hero": true
+        }
+      ],
+      "element": "ground",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 150,
+            "skill_name": "#50cc2492",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 150,
+            "skill_name": "#50cc2492",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "17": {
+      "name": "#dff8d9a9",
+      "region": "elf",
+      "bg": 17,
+      "level": 30,
+      "enemies": [
+        {
+          "id": 81,
+          "name": "#ad611c44",
+          "level": 30,
+          "element": "none",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false,
+          "skills": [
+            150
+          ]
+        },
+        {
+          "id": 82,
+          "name": "#9aecfb72",
+          "level": 30,
+          "element": "none",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 83,
+          "name": "#5af251c8",
+          "level": 30,
+          "element": "none",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 84,
+          "name": "#4d13f414",
+          "level": 30,
+          "element": "none",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false,
+          "skills": [
+            55
+          ]
+        },
+        {
+          "id": 85,
+          "name": "#24b3f1a8",
+          "level": 30,
+          "element": "none",
+          "hp_max": 446,
+          "att": 128,
+          "def": 72,
+          "boss": true,
+          "skills": [
+            110
+          ]
+        }
+      ],
+      "boss": "#24b3f1a8",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 31
+        },
+        {
+          "id": 171
+        },
+        {
+          "id": 169,
+          "hero": true
+        }
+      ],
+      "element": "wind",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 110,
+            "skill_name": "#317ffd35",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 110,
+            "skill_name": "#317ffd35",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "19": {
+      "name": "#71883df3",
+      "region": "elf",
+      "bg": 19,
+      "level": 45,
+      "enemies": [
+        {
+          "id": 91,
+          "name": "#53a9b98d",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 92,
+          "name": "#152d4361",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false,
+          "skills": [
+            54
+          ]
+        },
+        {
+          "id": 93,
+          "name": "#607cb5eb",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 94,
+          "name": "#bb7b13a7",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 95,
+          "name": "#52accb4e",
+          "level": 45,
+          "element": "none",
+          "hp_max": 594,
+          "att": 177,
+          "def": 90,
+          "boss": true,
+          "skills": [
+            150
+          ]
+        }
+      ],
+      "boss": "#52accb4e",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 73
+        },
+        {
+          "id": 26
+        },
+        {
+          "id": 173,
+          "hero": true
+        }
+      ],
+      "element": "light",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 150,
+            "skill_name": "#50cc2492",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 150,
+            "skill_name": "#50cc2492",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "20": {
+      "name": "#3c5047c6",
+      "region": "dwarf",
+      "bg": 20,
+      "level": 30,
+      "enemies": [
+        {
+          "id": 101,
+          "name": "#4380079d",
+          "level": 30,
+          "element": "earth",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 105,
+          "name": "#9fb2a8f4",
+          "level": 30,
+          "element": "earth",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 102,
+          "name": "#16841b75",
+          "level": 30,
+          "element": "earth",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false,
+          "skills": [
+            31
+          ]
+        },
+        {
+          "id": 103,
+          "name": "#6b0b84a0",
+          "level": 30,
+          "element": "earth",
+          "hp_max": 330,
+          "att": 121,
+          "def": 54,
+          "boss": false
+        },
+        {
+          "id": 104,
+          "name": "#bddf2098",
+          "level": 30,
+          "element": "earth",
+          "hp_max": 450,
+          "att": 130,
+          "def": 66,
+          "boss": true,
+          "skills": [
+            31
+          ]
+        }
+      ],
+      "boss": "#bddf2098",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "element": "wind",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 45
+        },
+        {
+          "id": 63
+        },
+        {
+          "id": 184,
+          "hero": true
+        }
+      ],
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 31,
+            "skill_name": "#880a11f2",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 31,
+            "skill_name": "#880a11f2",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "22": {
+      "name": "#55100696",
+      "region": "dwarf",
+      "bg": 22,
+      "level": 35,
+      "enemies": [
+        {
+          "id": 106,
+          "name": "#a6a1872c",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 107,
+          "name": "#cf8fdcca",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 108,
+          "name": "#473f7c39",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false,
+          "skills": [
+            28
+          ]
+        },
+        {
+          "id": 109,
+          "name": "#4703a55d",
+          "level": 35,
+          "element": "none",
+          "hp_max": 420,
+          "att": 138,
+          "def": 60,
+          "boss": false
+        },
+        {
+          "id": 110,
+          "name": "#d541dfbc",
+          "level": 35,
+          "element": "none",
+          "hp_max": 495,
+          "att": 144,
+          "def": 78,
+          "boss": true,
+          "skills": [
+            14
+          ]
+        }
+      ],
+      "boss": "#d541dfbc",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "dragons": [
+        {
+          "id": 182
+        },
+        {
+          "id": 176
+        },
+        {
+          "id": 103,
+          "hero": true
+        }
+      ],
+      "element": "ground",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 14,
+            "skill_name": "#69038aaa",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 14,
+            "skill_name": "#69038aaa",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "21": {
+      "name": "#9d784e02",
+      "region": "dwarf",
+      "bg": 21,
+      "level": 25,
+      "enemies": [
+        {
+          "id": 96,
+          "name": "#89c90e2d",
+          "level": 25,
+          "element": "earth",
+          "hp_max": 285,
+          "att": 105,
+          "def": 48,
+          "boss": false
+        },
+        {
+          "id": 97,
+          "name": "#266eaa52",
+          "level": 25,
+          "element": "earth",
+          "hp_max": 285,
+          "att": 105,
+          "def": 48,
+          "boss": false,
+          "skills": [
+            20
+          ]
+        },
+        {
+          "id": 98,
+          "name": "#3e4fbeae",
+          "level": 25,
+          "element": "earth",
+          "hp_max": 285,
+          "att": 105,
+          "def": 48,
+          "boss": false
+        },
+        {
+          "id": 99,
+          "name": "#9f0ed877",
+          "level": 25,
+          "element": "earth",
+          "hp_max": 285,
+          "att": 105,
+          "def": 48,
+          "boss": false
+        },
+        {
+          "id": 100,
+          "name": "#d08833c6",
+          "level": 25,
+          "element": "earth",
+          "hp_max": 400,
+          "att": 115,
+          "def": 58,
+          "boss": true,
+          "skills": [
+            38
+          ]
+        }
+      ],
+      "boss": "#d08833c6",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "bgm": "bg_24",
+      "element": "fire",
+      "desc": "",
+      "dragons": [
+        {
+          "id": 62
+        },
+        {
+          "id": 76
+        },
+        {
+          "id": 186,
+          "hero": true
+        }
+      ],
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 38,
+            "skill_name": "#123b9ee2",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 38,
+            "skill_name": "#123b9ee2",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "23": {
+      "name": "#306ac99a",
+      "region": "dwarf",
+      "bg": 23,
+      "level": 45,
+      "enemies": [
+        {
+          "id": 111,
+          "name": "#a37782ef",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 112,
+          "name": "#193e030f",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 113,
+          "name": "#9995a257",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false,
+          "skills": [
+            24
+          ]
+        },
+        {
+          "id": 114,
+          "name": "#ca9bdc76",
+          "level": 45,
+          "element": "none",
+          "hp_max": 516,
+          "att": 171,
+          "def": 72,
+          "boss": false
+        },
+        {
+          "id": 115,
+          "name": "#691f2c0b",
+          "level": 45,
+          "element": "none",
+          "hp_max": 594,
+          "att": 177,
+          "def": 90,
+          "boss": true,
+          "skills": [
+            170
+          ]
+        }
+      ],
+      "boss": "#691f2c0b",
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "bgm": "bg_22",
+      "dragons": [
+        {
+          "id": 167
+        },
+        {
+          "id": 74
+        },
+        {
+          "id": 116,
+          "hero": true
+        }
+      ],
+      "element": "dark",
+      "desc": "",
+      "drops": {
+        "normal": [
+          {
+            "kind": "skill_scroll",
+            "skill": 170,
+            "skill_name": "#80d97aee",
+            "levels": [
+              1,
+              2,
+              3
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.1,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "skill_scroll",
+            "skill": 170,
+            "skill_name": "#80d97aee",
+            "levels": [
+              2,
+              3,
+              4
+            ],
+            "level_weights": [
+              5,
+              3,
+              2
+            ],
+            "chance": 0.2,
+            "boss_only": true
+          }
+        ]
+      },
+      "field_text": ""
+    },
+    "24": {
+      "name": "#23903019",
+      "region": "uno",
+      "bg": 24,
+      "level": 50,
+      "enemies": [
+        {
+          "id": 181,
+          "name": "#a6f4f10d",
+          "level": 50,
+          "element": "chaos",
+          "hp_max": 543,
+          "att": 180,
+          "def": 130,
+          "boss": true,
+          "skills_hero": [
+            11
+          ]
+        }
+      ],
+      "boss": "#a6f4f10d",
+      "scale_by_party_count": {
+        "power": 2
+      },
+      "hero_stat_mult": 1.0,
+      "once_per_day": true,
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "item",
+            "item": "anima",
+            "min": 5,
+            "max": 10,
+            "chance": 100.0,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "item",
+            "item": "anima",
+            "min": 15,
+            "max": 20,
+            "chance": 100.0,
+            "boss_only": true
+          }
+        ]
+      },
+      "bgm": "bg_22",
+      "desc": ""
+    },
+    "25": {
+      "name": "#25eaeb97",
+      "region": "uno",
+      "bg": 25,
+      "level": 50,
+      "enemies": [
+        {
+          "id": 125,
+          "name": "#30b24f88",
+          "level": 50,
+          "element": "none",
+          "hp_max": 4500,
+          "att": 25,
+          "def": 50,
+          "boss": true
+        },
+        {
+          "id": 124,
+          "name": "#8be0c959",
+          "level": 50,
+          "element": "aqua",
+          "hp_max": 2625,
+          "att": 375,
+          "def": 150,
+          "boss": true
+        },
+        {
+          "id": 123,
+          "name": "#1a4bc2e6",
+          "level": 50,
+          "element": "none",
+          "hp_max": 5625,
+          "att": 150,
+          "def": 75,
+          "boss": true
+        },
+        {
+          "id": 122,
+          "name": "#6bf51b71",
+          "level": 50,
+          "element": "none",
+          "hp_max": 2250,
+          "att": 150,
+          "def": 410,
+          "boss": true
+        },
+        {
+          "id": 121,
+          "name": "#0a4187d7",
+          "level": 50,
+          "element": "none",
+          "hp_max": 3000,
+          "att": 225,
+          "def": 260,
+          "boss": true
+        },
+        {
+          "id": 120,
+          "name": "#203889af",
+          "level": 50,
+          "element": "none",
+          "hp_max": 2500,
+          "att": 175,
+          "def": 100,
+          "boss": true
+        }
+      ],
+      "boss": "#770eb4b0",
+      "boss_by_weekday": {
+        "1": 5,
+        "2": 4,
+        "3": 3,
+        "4": 2,
+        "5": 1,
+        "6": 0,
+        "7": -1
+      },
+      "no_skills": true,
+      "once_per_day": true,
+      "rewards": {
+        "exp": null,
+        "gold": null,
+        "items": []
+      },
+      "drops": {
+        "normal": [
+          {
+            "kind": "item",
+            "item": "bonner",
+            "min": 5,
+            "max": 10,
+            "chance": 100.0,
+            "boss_only": true
+          }
+        ],
+        "hero": [
+          {
+            "kind": "item",
+            "item": "bonner",
+            "min": 15,
+            "max": 20,
+            "chance": 100.0,
+            "boss_only": true
+          }
+        ]
+      },
+      "bgm": "bg_22",
+      "desc": ""
+    }
+  },
+  "_variant_rules": {
+    "hero_stat_mult": {
+      "hp": 3.0,
+      "att": 1.5,
+      "def": 1.5
+    },
+    "night_min_level": 50
+  }
+}

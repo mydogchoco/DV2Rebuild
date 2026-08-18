@@ -1,0 +1,246 @@
+{
+ "damage": {
+  "model": "measured_defense_saturation",
+  "attack_scale": 0.9489,
+  "stat_pivot": 127.9008,
+  "attack_exponent": 1.0,
+  "defense_exponent": 1.2,
+  "guard_exponent": 0.48,
+  "crit_mult": 1.5,
+  "rand_min": 0.95,
+  "rand_max": 1.05
+ },
+ "judge": {
+  "block_reduction": 0.5,
+  "prob_cap": 70,
+  "crit_cap": 80,
+  "pure_cap": 100,
+  "crit_hits": 2
+ },
+ "awaken": {
+  "damage_mult": 2.0,
+  "ignore_evade": true,
+  "ignore_block": true,
+  "charge_per_turn": 2.5,
+  "charge_per_hit": 2.5,
+  "hits_by_element": {
+   "aqua": {
+    "hits": 11,
+    "steps": [
+     {
+      "n": 10,
+      "flat": 1,
+      "min_total": 51
+     }
+    ]
+   },
+   "chaos": {
+    "hits": 1,
+    "steps": []
+   },
+   "dark": {
+    "hits": 16,
+    "steps": [
+     {
+      "n": 15,
+      "div": 30,
+      "jitter": 60,
+      "min_total": 30
+     }
+    ]
+   },
+   "earth": {
+    "hits": 6,
+    "steps": [
+     {
+      "n": 4,
+      "div": 10,
+      "jitter": 20,
+      "min_total": 10
+     },
+     {
+      "n": 1,
+      "div": 5,
+      "jitter": 10,
+      "min_total": 5
+     }
+    ]
+   },
+   "fire": {
+    "hits": 20,
+    "steps": [
+     {
+      "n": 19,
+      "div": 20
+     }
+    ]
+   },
+   "holy": {
+    "hits": 3,
+    "steps": [
+     {
+      "n": 2,
+      "div": 3
+     }
+    ]
+   },
+   "light": {
+    "hits": 31,
+    "steps": [
+     {
+      "n": 1,
+      "flat": 1,
+      "min_total": 11
+     },
+     {
+      "n": 29,
+      "div": 31,
+      "jitter": 60,
+      "min_total": 31
+     }
+    ]
+   },
+   "wind": {
+    "hits": 46,
+    "steps": [
+     {
+      "n": 1,
+      "flat": 1,
+      "min_total": 11
+     },
+     {
+      "n": 44,
+      "div": 46,
+      "jitter": 90,
+      "min_total": 46
+     }
+    ]
+   },
+   "shadow": {
+    "hits": 6,
+    "steps": [
+     {
+      "n": 4,
+      "div": 10,
+      "jitter": 20,
+      "min_total": 10
+     },
+     {
+      "n": 1,
+      "div": 5,
+      "jitter": 10,
+      "min_total": 5
+     }
+    ]
+   }
+  }
+ },
+ "double": {},
+ "element": {
+  "good_mult": 1.25,
+  "bad_mult": 0.85,
+  "neutral_mult": 1.0,
+  "good_vs": {
+   "aqua": [
+    "fire"
+   ],
+   "fire": [
+    "wind"
+   ],
+   "wind": [
+    "earth"
+   ],
+   "earth": [
+    "aqua"
+   ],
+   "light": [
+    "dark"
+   ],
+   "dark": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind"
+   ],
+   "holy": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind",
+    "light",
+    "dark",
+    "chaos"
+   ],
+   "chaos": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind",
+    "light",
+    "dark",
+    "holy"
+   ],
+   "shadow": []
+  },
+  "bad_vs": {
+   "aqua": [
+    "earth"
+   ],
+   "fire": [
+    "aqua"
+   ],
+   "wind": [
+    "fire"
+   ],
+   "earth": [
+    "wind"
+   ],
+   "light": [
+    "aqua",
+    "earth",
+    "fire",
+    "wind"
+   ],
+   "dark": [
+    "light"
+   ],
+   "holy": [],
+   "chaos": [],
+   "shadow": []
+  }
+ },
+ "skill_proc": {
+  "base_pct": 20.0,
+  "low_hp_pct": 66.0
+ },
+ "free_cast": {
+  "categories": [
+   "buff",
+   "debuff"
+  ]
+ },
+ "skill_slot_match": {
+  "power_pct": 15,
+  "heal_use_bonus": 1,
+  "level_bonus": 1,
+  "heal_categories": [
+   "heal",
+   "cleanse"
+  ]
+ },
+ "skill_hp_gate": {
+  "threshold_pct": 50,
+  "skills": [
+   25,
+   29,
+   30,
+   36
+  ]
+ },
+ "skill_damage_cap_pct": {
+  "30": 70
+ },
+ "skill_damage_cap_flat": {
+  "55": 2000
+ }
+}

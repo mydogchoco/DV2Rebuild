@@ -1,0 +1,969 @@
+{
+ "battle": {
+  "monster_id": 0,
+  "level": 1
+ },
+ "speakers": {
+  "1": {
+   "npc": "nuri"
+  },
+  "2": {
+   "npc": "jimon"
+  },
+  "4": {
+   "npc": "jimon"
+  },
+  "0": {
+   "npc": "hero"
+  },
+  "3": {
+   "npc": "nuri"
+  },
+  "5": {
+   "npc": "nuri"
+  },
+  "6": {
+   "npc": "jimon"
+  },
+  "7": {
+   "npc": "nuri"
+  },
+  "8": {
+   "npc": "jimon"
+  },
+  "9": {
+   "npc": "nuri"
+  },
+  "10": {
+   "npc": "nuri"
+  },
+  "11": {
+   "npc": "jimon"
+  },
+  "12": {
+   "npc": "jimon"
+  },
+  "13": {
+   "npc": "nuri"
+  },
+  "14": {
+   "npc": "jimon"
+  },
+  "15": {
+   "npc": "nuri"
+  },
+  "16": {
+   "npc": "jimon"
+  },
+  "17": {
+   "npc": "nuri"
+  },
+  "19": {
+   "npc": "jimon"
+  },
+  "20": {
+   "npc": "nuri"
+  },
+  "21": {
+   "npc": "jimon"
+  },
+  "22": {
+   "npc": "popo"
+  },
+  "23": {
+   "npc": "prologuemonster"
+  },
+  "24": {
+   "npc": "popo"
+  },
+  "25": {
+   "npc": "prologuemonster"
+  },
+  "26": {
+   "npc": "popo"
+  },
+  "27": {
+   "npc": "popo"
+  },
+  "29": {
+   "npc": "popo"
+  },
+  "30": {
+   "npc": "nuri"
+  },
+  "31": {
+   "npc": "jimon"
+  },
+  "32": {
+   "npc": "popo"
+  },
+  "33": {
+   "npc": "nuri"
+  }
+ },
+ "talk_offset": {
+  "prologue_max": 34,
+  "tutorial_offset": 36
+ },
+ "cutscene": {
+  "village_1": [
+   19,
+   25
+  ],
+  "village_2": [
+   26,
+   33
+  ]
+ },
+ "opening_talk": [
+  0,
+  13
+ ],
+ "steps": {
+  "SN_0_18": {
+   "action": "name_dragon",
+   "talk_index": 18,
+   "talk": "p18",
+   "text": ""
+  },
+  "SN_0_20": {
+   "talk_index": 20,
+   "talk": "p20",
+   "text": ""
+  },
+  "SN_0_26": {
+   "action": "adventure",
+   "field": 1,
+   "battle": 4,
+   "talk_index": 26,
+   "talk": "p26"
+  },
+  "SN_0_35": {
+   "talk_index": 35
+  },
+  "SN_0_41": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": false,
+     "rot": 90
+    }
+   ],
+   "frames": [
+    "scene/worldmap/ma_btn_cave_image.png"
+   ],
+   "target": "cave",
+   "target_basis": "#bafa2680",
+   "talk_index": 41,
+   "talk": "Tutorial_5",
+   "text": "",
+   "skip": "#37a61052"
+  },
+  "SN_0_42": {
+   "talk_index": 42,
+   "talk": "Tutorial_6",
+   "text": ""
+  },
+  "SN_0_45": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true,
+     "on_target": true
+    }
+   ],
+   "target": "dragon_list",
+   "target_basis": "#448dbe6c",
+   "talk_index": 45,
+   "talk": "Tutorial_9",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_48": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/book.png"
+   ],
+   "target": "skin",
+   "target_basis": "#448dbe6c",
+   "talk_index": 48,
+   "talk": "Tutorial_12",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_51": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/book.png"
+   ],
+   "target": "book",
+   "target_basis": "#448dbe6c",
+   "talk_index": 51,
+   "talk": "Tutorial_15",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_53": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/card.png"
+   ],
+   "target": "card",
+   "target_basis": "#448dbe6c",
+   "talk_index": 53,
+   "talk": "Tutorial_17",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_56": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "target": "bag",
+   "target_basis": "#448dbe6c",
+   "talk_index": 56,
+   "talk": "Tutorial_20",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_58": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "target": "slot_item",
+   "target_basis": "#448dbe6c",
+   "talk_index": 58,
+   "talk": "Tutorial_22",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_60": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "target": "slot_gem",
+   "target_basis": "#448dbe6c",
+   "talk_index": 60,
+   "talk": "Tutorial_24",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_63": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "target": "slot_skill",
+   "target_basis": "#448dbe6c",
+   "talk_index": 63,
+   "talk": "Tutorial_27",
+   "text": "",
+   "highlight": true
+  },
+  "SN_0_66": {
+   "talk_index": 66,
+   "talk": "Tutorial_30",
+   "text": "",
+   "target": "slot_item",
+   "target_basis": "#448dbe6c",
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "highlight": true
+  },
+  "SN_0_69": {
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": ""
+  },
+  "SN_0_77": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true,
+     "on_target": true
+    },
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "stand/stand1.png"
+   ],
+   "target": "stand",
+   "target_basis": "#0818e145",
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": "",
+   "skip": "#19cb2adf"
+  },
+  "SN_0_81": {
+   "talk_index": 81,
+   "talk": "Tutorial_45",
+   "text": ""
+  },
+  "SN_0_82": {
+   "action": "finish",
+   "talk_index": 82,
+   "talk": "Tutorial_46"
+  },
+  "SN_0_17_4_reset": {
+   "cut": "〃",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_14_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/worldmap/ma_btn_cave_image.png"
+   ],
+   "target": "cave",
+   "target_basis": "#bafa2680",
+   "talk_index": 14,
+   "talk": "p14",
+   "text": "",
+   "press_target": true,
+   "press_basis": "#c14a7711"
+  },
+  "SN_0_14_2": {
+   "action": "enter_cave",
+   "talk_index": 14,
+   "talk": "p14",
+   "text": ""
+  },
+  "SN_0_17_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "gate": "hatched_dragon",
+   "gate_basis": "#aa329b14",
+   "gate_wait_talk": [
+    "p15",
+    "p16"
+   ],
+   "target": "bag",
+   "target_basis": "#9cf1d6ab",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": "",
+   "gate_wait_text": "#87aebca3",
+   "gate_howto_basis": "#f073078a",
+   "highlight": true
+  },
+  "SN_0_17_2": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "common/element_bg.png"
+   ],
+   "cut": "#713b4f4f",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_3": {
+   "cut": "〃",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_4": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true
+    }
+   ],
+   "cut": "〃",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_5": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "cut": "〃",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_6": {
+   "cut": "#2c7bf7d2",
+   "action": "hatch_confirm",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_7": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "cut": "〃",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_17_8": {
+   "cut": "〃",
+   "action": "dialog",
+   "talk_index": 17,
+   "talk": "p17",
+   "text": ""
+  },
+  "SN_0_20_1": {
+   "talk_index": 20,
+   "talk": "p20",
+   "text": ""
+  },
+  "SN_0_67_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "target": "bag",
+   "target_basis": "#9cf1d6ab",
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": ""
+  },
+  "SN_0_67_2": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "frames": [
+    "common/element_bg.png"
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": ""
+  },
+  "SN_0_67_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": ""
+  },
+  "SN_0_67_4": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": ""
+  },
+  "SN_0_69_1": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": ""
+  },
+  "SN_0_69_2": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": ""
+  },
+  "SN_0_69_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": ""
+  },
+  "SN_0_69_4": {
+   "talk_index": 69,
+   "talk": "Tutorial_33",
+   "text": ""
+  },
+  "SN_0_77_1": {
+   "arrows": [
+    {
+     "delay": 0.3,
+     "flip_x": false,
+     "rot": 45
+    }
+   ],
+   "frames": [
+    "scene/cave/bag.png"
+   ],
+   "target": "bag",
+   "target_basis": "#9cf1d6ab",
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": ""
+  },
+  "SN_0_77_2": {
+   "arrows": [
+    {
+     "delay": 0.5,
+     "flip_x": true
+    }
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": ""
+  },
+  "SN_0_77_3": {
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 0
+    }
+   ],
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": ""
+  },
+  "SN_0_77_4": {
+   "action": "dialog",
+   "talk_index": 77,
+   "talk": "Tutorial_41",
+   "text": ""
+  },
+  "SN_0_0": {
+   "talk_index": 0,
+   "talk": "p0",
+   "text": ""
+  },
+  "SN_0_1": {
+   "talk_index": 1,
+   "talk": "p1",
+   "text": ""
+  },
+  "SN_0_2": {
+   "talk_index": 2,
+   "talk": "p2",
+   "text": ""
+  },
+  "SN_0_3": {
+   "talk_index": 3,
+   "talk": "p3",
+   "text": ""
+  },
+  "SN_0_4": {
+   "talk_index": 4,
+   "talk": "p4",
+   "text": ""
+  },
+  "SN_0_5": {
+   "talk_index": 5,
+   "talk": "p5",
+   "text": ""
+  },
+  "SN_0_6": {
+   "talk_index": 6,
+   "talk": "p6",
+   "text": ""
+  },
+  "SN_0_7": {
+   "talk_index": 7,
+   "talk": "p7",
+   "text": ""
+  },
+  "SN_0_8": {
+   "talk_index": 8,
+   "talk": "p8",
+   "text": ""
+  },
+  "SN_0_9": {
+   "talk_index": 9,
+   "talk": "p9",
+   "text": ""
+  },
+  "SN_0_10": {
+   "talk_index": 10,
+   "talk": "p10",
+   "text": ""
+  },
+  "SN_0_11": {
+   "talk_index": 11,
+   "talk": "p11",
+   "text": ""
+  },
+  "SN_0_12": {
+   "talk_index": 12,
+   "talk": "p12",
+   "text": ""
+  },
+  "SN_0_13": {
+   "talk_index": 13,
+   "talk": "p13",
+   "text": ""
+  },
+  "SN_0_37": {
+   "talk_index": 37,
+   "talk": "Tutorial_1",
+   "text": ""
+  },
+  "SN_0_38": {
+   "talk_index": 38,
+   "talk": "Tutorial_2",
+   "text": ""
+  },
+  "SN_0_39": {
+   "talk_index": 39,
+   "talk": "Tutorial_3",
+   "text": ""
+  },
+  "SN_0_43": {
+   "talk_index": 43,
+   "talk": "Tutorial_7",
+   "text": ""
+  },
+  "SN_0_44": {
+   "talk_index": 44,
+   "talk": "Tutorial_8",
+   "text": ""
+  },
+  "SN_0_46": {
+   "talk_index": 46,
+   "talk": "Tutorial_10",
+   "text": ""
+  },
+  "SN_0_47": {
+   "talk_index": 47,
+   "talk": "Tutorial_11",
+   "text": "",
+   "target": "dragon_list",
+   "target_basis": "#448dbe6c",
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "highlight": true
+  },
+  "SN_0_49": {
+   "talk_index": 49,
+   "talk": "Tutorial_13",
+   "text": ""
+  },
+  "SN_0_50": {
+   "talk_index": 50,
+   "talk": "Tutorial_14",
+   "text": ""
+  },
+  "SN_0_52": {
+   "talk_index": 52,
+   "talk": "Tutorial_16",
+   "text": ""
+  },
+  "SN_0_59": {
+   "talk_index": 59,
+   "talk": "Tutorial_23",
+   "text": ""
+  },
+  "SN_0_61": {
+   "talk_index": 61,
+   "talk": "Tutorial_25",
+   "text": ""
+  },
+  "SN_0_62": {
+   "talk_index": 62,
+   "talk": "Tutorial_26",
+   "text": ""
+  },
+  "SN_0_64": {
+   "talk_index": 64,
+   "talk": "Tutorial_28",
+   "text": ""
+  },
+  "SN_0_65": {
+   "talk_index": 65,
+   "talk": "Tutorial_29",
+   "text": ""
+  },
+  "SN_0_67": {
+   "talk_index": 67,
+   "talk": "Tutorial_31",
+   "text": ""
+  },
+  "SN_0_68": {
+   "talk_index": 68,
+   "talk": "Tutorial_32",
+   "text": "",
+   "target": "slot_gem",
+   "target_basis": "#448dbe6c",
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "highlight": true
+  },
+  "SN_0_71": {
+   "talk_index": 71,
+   "talk": "Tutorial_35",
+   "text": ""
+  },
+  "SN_0_72": {
+   "talk_index": 72,
+   "talk": "Tutorial_36",
+   "text": ""
+  },
+  "SN_0_73": {
+   "talk_index": 73,
+   "talk": "Tutorial_37",
+   "text": ""
+  },
+  "SN_0_74": {
+   "talk_index": 74,
+   "talk": "Tutorial_38",
+   "text": ""
+  },
+  "SN_0_75": {
+   "talk_index": 75,
+   "talk": "Tutorial_39",
+   "text": ""
+  },
+  "SN_0_76": {
+   "talk_index": 76,
+   "talk": "Tutorial_40",
+   "text": "",
+   "target": "bag",
+   "target_basis": "#448dbe6c",
+   "arrows": [
+    {
+     "delay": 0.0,
+     "flip_x": false,
+     "rot": 90,
+     "on_target": true
+    }
+   ],
+   "highlight": true
+  },
+  "CUTSCENE_VILLAGE_1": {
+   "action": "cutscene",
+   "from": 19,
+   "to": 25
+  },
+  "CUTSCENE_VILLAGE_2": {
+   "action": "cutscene",
+   "from": 26,
+   "to": 33
+  },
+  "SN_0_40": {
+   "talk_index": 40,
+   "talk": "Tutorial_4",
+   "skip": "#0174a21d"
+  },
+  "SN_0_54": {
+   "talk_index": 54,
+   "talk": "Tutorial_18",
+   "skip": "#9383d40a"
+  },
+  "SN_0_55": {
+   "talk_index": 55,
+   "talk": "Tutorial_19",
+   "skip": "#6d957fc0"
+  },
+  "SN_0_57": {
+   "talk_index": 57,
+   "talk": "Tutorial_21",
+   "skip": "#7cd5b18d"
+  },
+  "SN_0_70": {
+   "talk_index": 70,
+   "talk": "Tutorial_34",
+   "skip": "#f7f41d56"
+  },
+  "SN_0_78": {
+   "talk_index": 78,
+   "talk": "Tutorial_42",
+   "skip": "〃"
+  },
+  "SN_0_79": {
+   "talk_index": 79,
+   "talk": "Tutorial_43",
+   "skip": "〃"
+  },
+  "SN_0_80": {
+   "talk_index": 80,
+   "talk": "Tutorial_44",
+   "skip": "〃"
+  }
+ },
+ "order": [
+  "SN_0_0",
+  "SN_0_1",
+  "SN_0_2",
+  "SN_0_3",
+  "SN_0_4",
+  "SN_0_5",
+  "SN_0_6",
+  "SN_0_7",
+  "SN_0_8",
+  "SN_0_9",
+  "SN_0_10",
+  "SN_0_11",
+  "SN_0_12",
+  "SN_0_13",
+  "SN_0_14_1",
+  "SN_0_14_2",
+  "SN_0_17_1",
+  "SN_0_18",
+  "SN_0_37",
+  "SN_0_38",
+  "SN_0_39",
+  "SN_0_42",
+  "SN_0_43",
+  "SN_0_44",
+  "SN_0_45",
+  "SN_0_46",
+  "SN_0_47",
+  "SN_0_48",
+  "SN_0_49",
+  "SN_0_50",
+  "SN_0_51",
+  "SN_0_52",
+  "SN_0_53",
+  "SN_0_56",
+  "SN_0_58",
+  "SN_0_59",
+  "SN_0_60",
+  "SN_0_61",
+  "SN_0_62",
+  "SN_0_63",
+  "SN_0_64",
+  "SN_0_65",
+  "SN_0_66",
+  "SN_0_67",
+  "SN_0_68",
+  "SN_0_69",
+  "SN_0_71",
+  "SN_0_72",
+  "SN_0_73",
+  "SN_0_74",
+  "SN_0_75",
+  "SN_0_76",
+  "SN_0_81",
+  "CUTSCENE_VILLAGE_1",
+  "SN_0_26",
+  "CUTSCENE_VILLAGE_2",
+  "SN_0_82"
+ ]
+}

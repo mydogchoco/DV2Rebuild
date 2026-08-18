@@ -1,0 +1,715 @@
+{
+ "_cut": [
+  "#7f5af49c",
+  "#06c59ad4",
+  "#7f0ad0d5",
+  "#ff088a19",
+  "#bccf89ea"
+ ],
+ "_wallet": {
+  "money": [
+   "gold",
+   "diamond"
+  ],
+  "element": [
+   "ele_ground",
+   "ele_water",
+   "ele_light",
+   "ele_wind",
+   "ele_dark",
+   "ele_fire"
+  ],
+  "pvp": [
+   "colosseum_coin"
+  ]
+ },
+ "sell": {
+  "ratio": {
+   "item": 0.1,
+   "gem": 0.25,
+   "equip": 0.25
+  },
+  "talk_price_threshold": 4000,
+  "food_base": {
+   "by_item": {
+    "drink": 500
+   },
+   "feed": {
+    "by_size": {
+     "소": 250,
+     "대": 500
+    }
+   },
+   "drink": {
+    "by_tier": [
+     300,
+     600,
+     1200
+    ]
+   },
+   "heal": {
+    "by_tier": [
+     100,
+     2500,
+     5000
+    ]
+   },
+   "revive": {
+    "flat": 5000
+   }
+  },
+  "gem": {
+   "base_cost": 3000,
+   "category_mult": {
+    "normal": 1.0,
+    "hybrid": 2.0,
+    "soul": 4.0
+   },
+   "broken_mult": 0.5
+  },
+  "equip": {
+   "basic_base": 4000,
+   "basic_per_grade": 4000,
+   "group_cost": {
+    "event": 37500,
+    "special": 77700,
+    "exclusive": 75000
+   },
+   "artifact_base": 4000,
+   "artifact_grade_mult": 4.0,
+   "rarity_mult": [
+    1.0,
+    1.5,
+    2.5,
+    4.0,
+    6.0,
+    9.0
+   ],
+   "enhance_mult_pct": 5,
+   "bound_mult": 0.5
+  }
+ },
+ "tabs": [
+  {
+   "id": "hot",
+   "label": "HOT",
+   "icon": "tab_osusume_en",
+   "tab_bg": "tab_bg4",
+   "npc": "pino",
+   "wallet": "money",
+   "line": "",
+   "stock": [
+    {
+     "item": "jem_random",
+     "price": 15,
+     "cur": "diamond"
+    },
+    {
+     "item": "gemslot_change",
+     "price": 5,
+     "cur": "diamond"
+    },
+    {
+     "item": "skillslot_change",
+     "price": 5,
+     "cur": "diamond"
+    },
+    {
+     "item": "portal",
+     "price": 3,
+     "cur": "diamond",
+     "bundle": 5,
+     "label": "#2cec0e9a"
+    }
+   ]
+  },
+  {
+   "id": "pvp",
+   "label": "PVP",
+   "icon": "colosseum_ui/scene_colosseum_icon_fist1",
+   "tab_bg": "tab_bg3",
+   "npc": "raon",
+   "wallet": "pvp",
+   "line": "",
+   "npc_alt": {
+    "when": "not_admin",
+    "npc": "sundaegun",
+    "name": "???",
+    "welcome": "어서옵쇼! 세상 어디에도 없는 물건을 파는 만?물상입니다~",
+    "touch": [
+     {
+      "text": "입장 멘트는 사실 제 말투는 아니에요. 왠지 그런 멘트를 날려야 상인처럼 보일 것 같아서요!",
+      "emo": 2
+     },
+     {
+      "text": "디콘은 더 이상 존재하지 않아요. 정확히는, 세계가 재구축될때 선택받지 못했죠.",
+      "emo": 5
+     },
+     {
+      "text": "이야기가 깔끔하게 완결되진 않았지만, 적어도 세상이 위기에 놓여 있다거나 하진 않아요. @님이 계시는 한, 아마 영원히 평화롭겠죠. 남은 몬스터요? ...그 정도는 남아있어야 재미있으니까요!",
+      "emo": 5
+     },
+     {
+      "text": "저는 이 세상이 좋아요. 드래곤은 정말 멋지지 않나요?",
+      "emo": 2
+     },
+     {
+      "text": "혼돈의 잔재, 디콘의 유산들은 이제 더 이상 구할 수 없어요. 하지만 없으면 섭하실 것 같아서, 이렇게나마 만들어 드리고 있습니다.",
+      "emo": 3
+     },
+     {
+      "text": "이런 귀한 걸 그냥 드리면 모험이 너무 재미없잖아요. @님의 실력과 열정을 제게 증명해주세요!",
+      "emo": 1
+     },
+     {
+      "text": "한번 사라졌던 세상을 다시 세우는 것은 쉽지 않았어요. 불완전한 부분이 많지만, 너그럽게 눈감아 주셨으면 해요.",
+      "emo": 5
+     },
+     {
+      "text": "특별히 좋아하는 드래곤이 약해서 실전에서 함께하기 어려웠던 기억도 있죠. 늘 아쉬웠어요. @님도 그런 적이 있나요?",
+      "emo": 3
+     },
+     {
+      "text": "평화로운 세상에서는 영웅이 할 일이 생각보다 별로 없어요, 그렇지 않나요?\n지루해지면 콜로세움을 열심히 해 보시는 건 어떤가요? 제가 이스터에그를 좋아하거든요.",
+      "emo": 2
+     }
+    ],
+    "welcome_emo": 2
+   },
+   "gacha": [
+    {
+     "id": "equip_special",
+     "label": "#d429d7d4",
+     "price": 777,
+     "cur": "colosseum_coin",
+     "n": 1,
+     "grade": "special"
+    }
+   ],
+   "stock": [
+    {
+     "item": "drink",
+     "price": 5,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "balrog_core",
+     "price": 30,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_spirit1",
+     "price": 3,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_spirit2",
+     "price": 30,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_spirit3",
+     "price": 180,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_spirit4",
+     "price": 540,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_heart1",
+     "price": 3,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_heart2",
+     "price": 30,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_heart3",
+     "price": 180,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "stone_heart4",
+     "price": 540,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_n1",
+     "price": 15,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_silver",
+     "price": 30,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_n2",
+     "price": 30,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_gold",
+     "price": 60,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_n3",
+     "price": 60,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_n4",
+     "price": 110,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "scroll_n5",
+     "price": 200,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "s_skillbook1",
+     "price": 45,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "s_skillbook2",
+     "price": 90,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "s_skillbook3",
+     "price": 180,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "s_skillbook4",
+     "price": 330,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "s_skillbook5",
+     "price": 600,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "bless_of_maia",
+     "price": 80,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "bless_of_dragon",
+     "price": 150,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "bless_of_dersa",
+     "price": 400,
+     "cur": "colosseum_coin"
+    },
+    {
+     "item": "bless_of_amor",
+     "price": 1000,
+     "cur": "colosseum_coin"
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "label": "FOOD",
+   "icon": "tab_food_en",
+   "tab_bg": "tab_bg",
+   "npc": "pino",
+   "wallet": "money",
+   "line": "",
+   "stock": [
+    {
+     "item": "food_ground_paopao_half",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_water_fly_pirania",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_fire_chickenleg",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_wind_branch_yggdrasil",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_light_lightmelon_piece",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_dark_darkmelon_piece",
+     "price": 250,
+     "cur": "gold",
+     "sale": 125
+    },
+    {
+     "item": "food_holy_small_ginseng",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_shadow_chocolate_piece",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "food_chaos_tadpole",
+     "price": 250,
+     "cur": "gold"
+    },
+    {
+     "item": "att_drink3",
+     "price": 30,
+     "cur": "ele_fire"
+    },
+    {
+     "item": "hp_drink3",
+     "price": 30,
+     "cur": "ele_water"
+    },
+    {
+     "item": "def_drink3",
+     "price": 30,
+     "cur": "ele_ground"
+    },
+    {
+     "item": "cri_drink3",
+     "price": 30,
+     "cur": "ele_dark"
+    },
+    {
+     "item": "miss_drink3",
+     "price": 30,
+     "cur": "ele_light"
+    },
+    {
+     "item": "prodef_drink3",
+     "price": 30,
+     "cur": "ele_wind"
+    },
+    {
+     "item": "heal_potion1",
+     "price": 100,
+     "cur": "gold"
+    },
+    {
+     "item": "heal_potion2",
+     "price": 2500,
+     "cur": "gold"
+    },
+    {
+     "item": "heal_potion3",
+     "price": 5000,
+     "cur": "gold"
+    }
+   ]
+  },
+  {
+   "id": "item",
+   "label": "ITEM",
+   "icon": "tab_item_en",
+   "tab_bg": "tab_bg",
+   "npc": "randolph",
+   "wallet": "money",
+   "line": "",
+   "extra": [
+    "gem_gacha",
+    "gem_shop",
+    "equip_shop"
+   ],
+   "gacha": [
+    {
+     "id": "acc_normal",
+     "label": "#040fc4e9",
+     "price": 5000,
+     "cur": "gold",
+     "n": 1,
+     "grade": "normal"
+    },
+    {
+     "id": "acc_high",
+     "label": "#eb9a02cf",
+     "price": 15,
+     "cur": "diamond",
+     "n": 1,
+     "grade": "high"
+    },
+    {
+     "id": "acc_normal10",
+     "label": "#45af5572",
+     "price": 45000,
+     "cur": "gold",
+     "n": 10,
+     "grade": "normal"
+    },
+    {
+     "id": "acc_high10",
+     "label": "#ba92acc6",
+     "price": 150,
+     "cur": "diamond",
+     "n": 10,
+     "grade": "high"
+    },
+    {
+     "id": "acc_only",
+     "label": "#78e584f1",
+     "price": 30,
+     "cur": "diamond",
+     "n": 1,
+     "grade": "only"
+    },
+    {
+     "id": "acc_only10",
+     "label": "#fae3f417",
+     "price": 300,
+     "cur": "diamond",
+     "n": 10,
+     "grade": "only"
+    }
+   ],
+   "stock": [
+    {
+     "item": "item_disconnect",
+     "price": 20,
+     "cur": "diamond"
+    },
+    {
+     "item": "ginu_coin_green",
+     "price": 10,
+     "cur": "diamond"
+    },
+    {
+     "item": "ginu_coin_yellow",
+     "price": 20,
+     "cur": "diamond"
+    },
+    {
+     "item": "ginu_coin_red",
+     "price": 40,
+     "cur": "diamond"
+    }
+   ]
+  },
+  {
+   "id": "egg",
+   "label": "EGG",
+   "icon": "tab_egg_en",
+   "tab_bg": "tab_bg",
+   "npc": "popo",
+   "wallet": "element",
+   "line": "",
+   "stock": [
+    {
+     "item": "mall_ground_egg",
+     "price": 20,
+     "cur": "ele_ground"
+    },
+    {
+     "item": "mall_water_egg",
+     "price": 20,
+     "cur": "ele_water"
+    },
+    {
+     "item": "mall_fire_egg",
+     "price": 20,
+     "cur": "ele_fire"
+    },
+    {
+     "item": "mall_wind_egg",
+     "price": 20,
+     "cur": "ele_wind"
+    },
+    {
+     "item": "mall_light_egg",
+     "price": 20,
+     "cur": "ele_light"
+    },
+    {
+     "item": "mall_dark_egg",
+     "price": 20,
+     "cur": "ele_dark"
+    },
+    {
+     "item": "mall_black_egg",
+     "price": 30,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_back_egg",
+     "price": 30,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_zephyros_egg",
+     "price": 30,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_tropheus_egg",
+     "price": 30,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_bagma_egg",
+     "price": 150,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_jin_egg",
+     "price": 150,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_gaoron_egg",
+     "price": 150,
+     "cur": "diamond"
+    },
+    {
+     "item": "mall_question_egg2",
+     "price": 30,
+     "cur": "diamond"
+    }
+   ]
+  },
+  {
+   "id": "etc",
+   "label": "ETC",
+   "icon": "tab_etc_en",
+   "tab_bg": "tab_bg",
+   "npc": "baruseu",
+   "wallet": "money",
+   "line": "",
+   "extra": [
+    "cash"
+   ],
+   "stock": [
+    {
+     "item": "dragon_enhance_ticket",
+     "price": 500,
+     "cur": "diamond"
+    },
+    {
+     "item": "jem_random",
+     "price": 15,
+     "cur": "diamond"
+    },
+    {
+     "item": "jem_random",
+     "price": 125,
+     "cur": "diamond",
+     "bundle": 10,
+     "label": "#317af3bb"
+    },
+    {
+     "item": "level_down",
+     "price": 1000,
+     "cur": "gold"
+    },
+    {
+     "item": "gem_init",
+     "price": 1500,
+     "cur": "gold"
+    },
+    {
+     "item": "holynest",
+     "price": 300,
+     "cur": "diamond",
+     "once": "blessed_nest"
+    },
+    {
+     "item": "namechange",
+     "price": 33,
+     "cur": "diamond"
+    },
+    {
+     "item": "dragon_namechange",
+     "price": 10,
+     "cur": "diamond"
+    },
+    {
+     "item": "portal",
+     "price": 3,
+     "cur": "diamond",
+     "bundle": 5,
+     "label": "#2cec0e9a"
+    },
+    {
+     "item": "gemslot_change",
+     "price": 5,
+     "cur": "diamond"
+    },
+    {
+     "item": "skillslot_change",
+     "price": 5,
+     "cur": "diamond"
+    },
+    {
+     "item": "key_all",
+     "price": 7500,
+     "cur": "gold"
+    },
+    {
+     "item": "slot_reset",
+     "price": 2500,
+     "cur": "gold"
+    },
+    {
+     "item": "expx2",
+     "price": 3,
+     "cur": "diamond"
+    },
+    {
+     "item": "goldx2",
+     "price": 3,
+     "cur": "diamond"
+    },
+    {
+     "item": "expx4",
+     "price": 8,
+     "cur": "diamond"
+    },
+    {
+     "item": "goldx4",
+     "price": 8,
+     "cur": "diamond"
+    },
+    {
+     "item": "bridle",
+     "price": 5,
+     "cur": "diamond"
+    },
+    {
+     "item": "ascension",
+     "price": 3,
+     "cur": "diamond"
+    }
+   ]
+  },
+  {
+   "id": "sell",
+   "label": "SELL",
+   "icon": "tab_sell_en",
+   "tab_bg": "tab_bg2",
+   "npc": "romini",
+   "wallet": "money",
+   "line": ""
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "steps": {
+  "max_events_per_step": 1,
+  "nothing_weight": 120,
+  "events": [
+   {
+    "type": "heal_plain",
+    "weight": 14,
+    "needs_hurt": true,
+    "min_enc": 1
+   },
+   {
+    "type": "heal_holy",
+    "weight": 6,
+    "needs_hurt": true,
+    "min_enc": 1
+   },
+   {
+    "type": "shop",
+    "weight": 10,
+    "fortress_only": true
+   },
+   {
+    "type": "cardgame",
+    "weight": 9,
+    "fortress_only": true
+   }
+  ]
+ },
+ "night": {
+  "weights": {
+   "nothing": 20,
+   "encounter": 15,
+   "boss": 65
+  }
+ },
+ "run": {
+  "chance": 0.75,
+  "boss_chance": 0.4
+ }
+}

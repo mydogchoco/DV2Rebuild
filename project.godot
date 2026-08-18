@@ -1,0 +1,53 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="DragonVillage2 Offline"
+config/description="서비스 종료된 드래곤빌리지2의 개인 소장용 오프라인 재구현 (PC)"
+run/main_scene="res://scenes/main.tscn"
+run/max_fps=144
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.png"
+config/windows_native_icon="res://icon.ico"
+
+[importer_defaults]
+
+; 에셋은 premultiplied-alpha라 PMA 블렌드로 그린다. fix_alpha_border는 투명 영역에
+; 가장자리 색을 번지게 해 PMA에서 파츠마다 사각 박스를 만든다 → 끈다.
+texture={
+"process/fix_alpha_border": false
+}
+
+[autoload]
+
+Data="*res://scripts/core/data_loader.gd"
+RNG="*res://scripts/core/rng.gd"
+SaveSystem="*res://scripts/core/save_system.gd"
+UserDB="*res://scripts/core/user_db.gd"
+Scenes="*res://scripts/core/scene_manager.gd"
+Bgm="*res://scripts/core/audio.gd"
+ShotHelper="*res://scripts/tools/shot_helper.gd"
+
+[display]
+
+; 원작 디자인해상도 = 높이 692 고정(FIXED_HEIGHT), 너비 가변. 근거: docs/_resolution_probe.c,
+; 헬퍼: scripts/core/design.gd. 창은 PC용 1366x768로 열되 로직 좌표는 1024x692 기준.
+window/size/viewport_width=1024
+window/size/viewport_height=692
+window/size/window_width_override=1366
+window/size/window_height_override=768
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep_height"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

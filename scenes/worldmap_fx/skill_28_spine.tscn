@@ -1,0 +1,346 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_skill_28_spine/skill_28_spine.png" id="1_x6hev"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_m7a6o"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ygk3b"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(217, 111, 127, 99)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gnby0"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(217, 2, 167, 107)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jxo43"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(386, 2, 117, 155)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7oxex"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(217, 111, 127, 99)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xnchs"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(217, 2, 167, 107)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1en7k"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(386, 2, 117, 155)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n6fp3"]
+atlas = ExtResource("1_x6hev")
+region = Rect2(2, 2, 213, 207)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_ykrvl"]
+length = 0.5333
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone1-copy:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.3333, 0.4333, 0.5333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, -0.998), Vector2(0.799, -1.195604), Vector2(1.2, -0.796404)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone1:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.3333, 0.4333, 0.5333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(0.799, 0.799), Vector2(1.2, 1.2)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone2:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.4, 0.5333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.489, 0.489), Vector2(1.421, 1.421)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone2/skill_crossdefense4_frame/skill_crossdefense4:visible")
+tracks/3/interp = 0
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone2/skill_crossdefense4_frame/skill_crossdefense4:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.4666, 0.5333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone1/skill_crossdefense1_frame/skill_crossdefense1:visible")
+tracks/5/interp = 0
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bone1/skill_crossdefense1_frame/skill_crossdefense1:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.3647059, 0.3647059, 0.3647059, 0.3647059)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bone1-copy/skill_crossdefense1-copy_frame/skill_crossdefense1-copy:visible")
+tracks/7/interp = 0
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 0.1333, 0.2333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bone1-copy/skill_crossdefense1-copy_frame/skill_crossdefense1-copy:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0.1333),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.4627451, 0.4627451, 0.4627451, 0.4627451)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bone1/bone1_slot_frame/bone1_slot:visible")
+tracks/9/interp = 0
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/bone1/bone1_slot_frame/bone1_slot:modulate")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0.1),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.8117647, 0.8117647, 0.8117647, 0.8117647)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/bone1-copy/bone1-copy_slot_frame/bone1-copy_slot:visible")
+tracks/11/interp = 0
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.2333, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/bone1-copy/bone1-copy_slot_frame/bone1-copy_slot:modulate")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0.2333),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.85882354, 0.85882354, 0.85882354, 0.85882354)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/bone1/bone12_frame/bone12:visible")
+tracks/13/interp = 0
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/bone1/bone12_frame/bone12:modulate")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0.4333, 0.5333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/bone1-copy/bone12-copy_frame/bone12-copy:visible")
+tracks/15/interp = 0
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 0.3333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/bone1-copy/bone12-copy_frame/bone12-copy:modulate")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0.4333, 0.5333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1umgj"]
+_data = {
+&"animation": SubResource("Animation_ykrvl")
+}
+
+[node name="Dragon_skill_28_spine_scene" type="Node2D" unique_id=284559079]
+
+[node name="root" type="Node2D" parent="." unique_id=1260691105]
+scale = Vector2(1.175, 1.175)
+
+[node name="bone1" type="Node2D" parent="root" unique_id=613336520]
+position = Vector2(-9.49, 12)
+rotation = -0.81786126
+
+[node name="skill_crossdefense1_frame" type="Node2D" parent="root/bone1" unique_id=1195827726]
+rotation = 0.81786126
+
+[node name="skill_crossdefense1" type="Sprite2D" parent="root/bone1/skill_crossdefense1_frame" unique_id=518205998]
+z_index = 1
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-23.930635, 6.6568046)
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_ygk3b")
+
+[node name="bone1_slot_frame" type="Node2D" parent="root/bone1" unique_id=820682609]
+rotation = 0.81786126
+
+[node name="bone1_slot" type="Sprite2D" parent="root/bone1/bone1_slot_frame" unique_id=1819427173]
+z_index = 3
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-2.6589596, 10.6508875)
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_gnby0")
+
+[node name="bone12_frame" type="Node2D" parent="root/bone1" unique_id=1145209640]
+rotation = 0.81786126
+
+[node name="bone12" type="Sprite2D" parent="root/bone1/bone12_frame" unique_id=1592155308]
+z_index = 5
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-1.3294798, -6.6568046)
+rotation = 1.5707964
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_jxo43")
+
+[node name="bone1-copy" type="Node2D" parent="root" unique_id=368765557]
+position = Vector2(19.5, 10)
+rotation = -2.2633429
+scale = Vector2(1, -0.998)
+
+[node name="skill_crossdefense1-copy_frame" type="Node2D" parent="root/bone1-copy" unique_id=1866313592]
+rotation = 0.81786126
+
+[node name="skill_crossdefense1-copy" type="Sprite2D" parent="root/bone1-copy/skill_crossdefense1-copy_frame" unique_id=1394204356]
+z_index = 2
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-23.930635, 6.6568046)
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_7oxex")
+
+[node name="bone1-copy_slot_frame" type="Node2D" parent="root/bone1-copy" unique_id=892391807]
+rotation = 0.81786126
+
+[node name="bone1-copy_slot" type="Sprite2D" parent="root/bone1-copy/bone1-copy_slot_frame" unique_id=210391903]
+z_index = 4
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-2.6589596, 10.6508875)
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_xnchs")
+
+[node name="bone12-copy_frame" type="Node2D" parent="root/bone1-copy" unique_id=1667480432]
+rotation = 0.81786126
+
+[node name="bone12-copy" type="Sprite2D" parent="root/bone1-copy/bone12-copy_frame" unique_id=574406396]
+z_index = 6
+material = SubResource("CanvasItemMaterial_m7a6o")
+position = Vector2(-1.3294798, -6.6568046)
+rotation = 1.5707964
+scale = Vector2(1.3294798, 1.3313609)
+texture = SubResource("AtlasTexture_1en7k")
+
+[node name="bone2" type="Node2D" parent="root" unique_id=889494834]
+position = Vector2(3.5, -3)
+rotation = 0.07853982
+
+[node name="skill_crossdefense4_frame" type="Node2D" parent="root/bone2" unique_id=1567524264]
+rotation = -0.07853982
+
+[node name="skill_crossdefense4" type="Sprite2D" parent="root/bone2/skill_crossdefense4_frame" unique_id=97463226]
+material = SubResource("CanvasItemMaterial_m7a6o")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3333334)
+texture = SubResource("AtlasTexture_n6fp3")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1415643333]
+libraries/ = SubResource("AnimationLibrary_1umgj")

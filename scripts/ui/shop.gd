@@ -1,0 +1,1195 @@
+extends Control
+
+const CARD_DX := 165.0
+const CARD_ROW_TOP := 299.0
+const CARD_ROW_BOTTOM := 99.0
+const CARD_X0 := 92.0
+const CARD_PAD := 20.0
+const TITLE_H := 90.0
+const NPC_COL := 290.0
+
+var _params: Dictionary = {}
+var _pma: CanvasItemMaterial
+var _tab := 0
+var _wallet_root: Control
+var _npc: NpcPortrait
+var _box: BottomTextBox
+var _scroll: ScrollContainer
+var _react := ""
+var _react_price := 0
+var _touch_last := -1
+
+func enter(params: Dictionary = {}) -> void:
+	Bgm.play("bg_shop")
+	_params = params
+	var want := String(params.get("tab", ""))
+	if want == "cash":
+		want = "etc"
+	if want != "":
+		for i in _tabs().size():
+			if String(_tabs()[i].get("id", "")) == want:
+				_tab = i
+				break
+	_scroll = null
+	if _pma != null:
+		_rebuild()
+
+func _ready() -> void:
+	_pma = CanvasItemMaterial.new()
+	_pma.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	_rebuild()
+
+func _tabs() -> Array:
+	return Data.shop.get("tabs", [])
+
+func _cur() -> Dictionary:
+	var t := _tabs()
+	return t[_tab] if _tab >= 0 and _tab < t.size() else {}
+
+func _rebuild() -> void:
+	var keep_x := _scroll.scroll_horizontal if is_instance_valid(_scroll) else 0
+	for c in get_children():
+		c.queue_free()
+	_npc = null
+	_box = null
+	_scroll = null
+	var vis := _vis()
+	_build_bg()
+	var rect := _item_box_rect(vis)
+	_build_shelf(rect, vis)
+	_build_scroll(rect, vis, keep_x)
+	_build_npc(vis)
+	_build_wallet(vis)
+	_build_title(vis)
+	_build_tabs(vis)
+
+func _item_box_rect(vis: Vector2) -> Rect2:
+	return Rect2(30.0, 115.0, vis.x - 30.0 - 290.0, vis.y - 128.0 - 115.0)
+
+func _build_bg() -> void:
+	var p := "res://assets/converted/shop_bg/shop_bg.jpg"
+	if ResourceLoader.exists(p):
+		var full := TextureRect.new()
+		full.texture = load(p)
+		full.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		full.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		full.set_anchors_preset(Control.PRESET_FULL_RECT)
+		full.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(full)
+	else:
+		var bg := ColorRect.new()
+		bg.color = Color(0.16, 0.11, 0.08)
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(bg)
+
+func _build_shelf(rect: Rect2, vis: Vector2) -> void:
+	var top_h := rect.size.y * 0.5 + 11.0
+	var bot_h := rect.size.y * 0.5 + 3.0
+	var top := _nine("9patch_shop_box_top", Vector2(rect.size.x, top_h), Rect2(40, 40, 4, 4))
+	if top != null:
+		top.position = Vector2(rect.position.x, vis.y - (rect.position.y + rect.size.y + 2.0))
+		add_child(top)
+	var bot := _nine("9patch_shop_box_bottom", Vector2(rect.size.x, bot_h), Rect2(40, 12, 4, 4))
+	if bot != null:
+		bot.position = Vector2(rect.position.x, vis.y - rect.position.y - bot_h)
+		add_child(bot)
+	for i in 4:
+		var s := _spr("ninepatch_ui", "9patch_box_shadow", 0.97)
+		if s == null:
+			break
+		var right_side := (i & 2) != 0
+		var top_side := (i & 1) == 0
+		var cx: float = rect.position.x + rect.size.x - 23.0 + 1.0 if right_side else rect.position.x + 23.0 - 1.0
+		var cy: float = rect.position.y + rect.size.y - 23.0 - 8.0 if top_side else rect.position.y + 23.0 + 4.0
+		s.flip_h = right_side
+		var w: float = s.texture.get_width() * 0.97
+		var h: float = s.texture.get_height() * 0.97
+		s.position = Vector2(cx + (-w * 0.5 if right_side else w * 0.5),
+			vis.y - cy - (h * 0.5 if top_side else -h * 0.5))
+		s.z_index = 1
+		add_child(s)
+
+func _build_scroll(rect: Rect2, vis: Vector2, keep_x: int = 0) -> void:
+	var sw := rect.size.x - 46.0
+	var sh := rect.size.y - 46.0
+	var scroll := ScrollContainer.new()
+	scroll.size = Vector2(sw, sh)
+	scroll.position = Vector2(rect.position.x + 23.0, vis.y - rect.position.y - 23.0 - sh)
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.z_index = 2
+	add_child(scroll)
+	_scroll = scroll
+
+	var entries := _entries()
+	var per_row := int(ceil(entries.size() / 2.0))
+	var content := Control.new()
+	content.custom_minimum_size = Vector2(maxf(sw, per_row * CARD_DX + CARD_PAD), sh)
+	scroll.add_child(content)
+
+	for i in entries.size():
+		var col := i if i < per_row else i - per_row
+		var cocos_y := CARD_ROW_TOP if i < per_row else CARD_ROW_BOTTOM
+		var card := _build_card(entries[i])
+		card.position = Vector2(col * CARD_DX + CARD_X0, sh - cocos_y) - card.size * 0.5
+		content.add_child(card)
+
+	if entries.is_empty():
+		var none := Label.new()
+		none.text = "판매 중인 물건이 없습니다."
+		none.add_theme_color_override("font_color", Color(0.42, 0.33, 0.2))
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		none.size = Vector2(sw, 30)
+		none.position = Vector2(0, sh * 0.5 - 15)
+		content.add_child(none)
+
+	if keep_x > 0:
+		_restore_scroll(scroll, keep_x)
+
+func _restore_scroll(scroll: ScrollContainer, x: int) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(scroll):
+		scroll.scroll_horizontal = x
+
+func _build_card(e: Dictionary) -> Control:
+	var S := Design.ASSET_SCALE
+	var bg_info: Dictionary = _man("common_ui").get("common_item_bg", {})
+	var cw: float = float(bg_info.get("w", 109)) * S
+	var ch: float = float(bg_info.get("h", 138)) * S
+	var card := Control.new()
+	card.size = Vector2(cw, ch)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var frame := _spr("common_ui", "common_item_bg", S)
+	if frame != null:
+		frame.position = Vector2(cw * 0.5, ch * 0.5)
+		card.add_child(frame)
+
+	var back := _spr("common_ui", "common_backlight3", 0.35 * S)
+	if back != null:
+		back.position = Vector2(cw * 0.5, ch - 90.0)
+		back.modulate = Color(1, 1, 1, 0.85)
+		card.add_child(back)
+
+	var tex := _entry_icon(e)
+	if tex != null:
+		var ic := Sprite2D.new()
+		ic.texture = tex
+		ic.material = _pma
+		var iw: float = maxf(1.0, float(tex.get_width()))
+		ic.scale = Vector2(56.0 / iw, 56.0 / iw)
+		ic.position = Vector2(cw * 0.5, ch - 90.0)
+		card.add_child(ic)
+
+	var nm := Label.new()
+	nm.text = String(e.get("label", ""))
+	nm.add_theme_font_size_override("font_size", 13)
+	nm.add_theme_color_override("font_color", Color(0.26, 0.16, 0.05))
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.size = Vector2(cw - 10.0, 36.0)
+	nm.position = Vector2(5.0, ch - 155.0 - 18.0)
+	card.add_child(nm)
+
+	var price := int(e.get("price", 0))
+	var sale := int(e.get("sale", 0))
+	var cur := String(e.get("cur", "gold"))
+	var cur_tex := _currency_icon(cur)
+	var py := ch - 26.0
+	if cur_tex != null:
+		var ci := Sprite2D.new()
+		ci.texture = cur_tex
+		ci.material = _pma
+		var cs: float = 34.0 / maxf(1.0, float(maxi(cur_tex.get_width(), cur_tex.get_height())))
+		ci.scale = Vector2(cs, cs)
+		ci.position = Vector2(24.0, py)
+		card.add_child(ci)
+	var pl := Label.new()
+	pl.text = _comma(sale if sale > 0 else price)
+	pl.add_theme_font_size_override("font_size", 15)
+	pl.add_theme_color_override("font_color", Color(0.9, 0.25, 0.1) if sale > 0 else Color(0.2, 0.14, 0.05))
+	pl.position = Vector2(40.0, py - 12.0)
+	pl.size = Vector2(cw - 44.0, 24.0)
+	card.add_child(pl)
+
+	if sale > 0:
+		var badge := _spr("shop_ui", "scene_shop_sale_en", S * 0.8)
+		if badge != null:
+			badge.position = Vector2(cw - 24.0, 30.0)
+			card.add_child(badge)
+
+	var btn := Button.new()
+	btn.flat = true
+	btn.size = Vector2(cw, ch)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(func(): _on_card(e))
+	card.add_child(btn)
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	return card
+
+func _build_wallet(vis: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var info: Dictionary = _man("common_ui").get("common_money_bg", {})
+	var w: float = float(info.get("w", 207)) * S
+	var h: float = float(info.get("h", 146)) * S
+	_wallet_root = Control.new()
+	_wallet_root.size = Vector2(w, h)
+	_wallet_root.position = Vector2(vis.x - 5.0 - w, 15.0)
+	_wallet_root.z_index = 8
+	_wallet_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_wallet_root)
+	var bgs := _spr("common_ui", "common_money_bg", S)
+	if bgs != null:
+		bgs.position = Vector2(w * 0.5, h * 0.5)
+		_wallet_root.add_child(bgs)
+
+	var kind := String(_cur().get("wallet", "money"))
+	if kind == "element":
+		var order: Array = Data.shop.get("_wallet", {}).get("element", [])
+		var slots := [Vector2(40, 100), Vector2(40, 70), Vector2(40, 40),
+			Vector2(150, 100), Vector2(150, 70), Vector2(150, 40)]
+		for i in mini(order.size(), slots.size()):
+			var key := String(order[i])
+			var p: Vector2 = slots[i]
+			var it := _item_texture(key)
+			if it != null:
+				var s := Sprite2D.new()
+				s.texture = it
+				s.material = _pma
+				var iw: float = maxf(1.0, float(it.get_width()))
+				s.scale = Vector2(26.0 / iw, 26.0 / iw)
+				s.position = Vector2(p.x, h - p.y)
+				_wallet_root.add_child(s)
+			var l := Label.new()
+			l.text = _comma(UserDB.item_count(key))
+			l.add_theme_font_size_override("font_size", 15)
+			l.add_theme_color_override("font_color", Color(1, 1, 1))
+			l.add_theme_color_override("font_outline_color", Color(0.25, 0.14, 0.05))
+			l.add_theme_constant_override("outline_size", 4)
+			l.position = Vector2(p.x + 15.0, h - p.y - 11.0)
+			l.size = Vector2(80, 22)
+			_wallet_root.add_child(l)
+	elif kind == "pvp":
+		for key in Data.shop.get("_wallet", {}).get("pvp", ["colosseum_coin"]):
+			_wallet_line(0, String(Data.items.get(key, {}).get("icon", "")),
+				_comma(UserDB.item_count(String(key))), h, 100.0)
+	else:
+		_wallet_line(0, "common_coin_small1", _comma(UserDB.gold()), h, 100.0)
+		_wallet_line(1, "common_diamond_small1", _comma(UserDB.diamond()), h, 62.0)
+
+func _wallet_line(_i: int, icon_key: String, text: String, h: float, cocos_y: float) -> void:
+	var S := Design.ASSET_SCALE
+	var s := (_spr(icon_key.get_slice("/", 0), icon_key.get_slice("/", 1), S)
+		if icon_key.contains("/") else _spr("common_ui", icon_key, S))
+	if s != null:
+		s.position = Vector2(40.0, h - cocos_y)
+		_wallet_root.add_child(s)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 19)
+	l.add_theme_color_override("font_color", Color(1, 1, 1))
+	l.add_theme_color_override("font_outline_color", Color(0.25, 0.14, 0.05))
+	l.add_theme_constant_override("outline_size", 4)
+	l.position = Vector2(62.0, h - cocos_y - 14.0)
+	l.size = Vector2(190, 26)
+	_wallet_root.add_child(l)
+
+func _build_title(vis: Vector2) -> void:
+	var bar := _nine("9patch_pop_title_bg", Vector2(vis.x, TITLE_H), Rect2())
+	if bar != null:
+		bar.position = Vector2(0, 0)
+		bar.z_index = 9
+		add_child(bar)
+	var t := Label.new()
+	t.text = "상점"
+	t.add_theme_font_size_override("font_size", 32)
+	t.add_theme_color_override("font_color", Color(1, 0.85, 0.35))
+	t.add_theme_color_override("font_outline_color", Color(0.3, 0.13, 0.03))
+	t.add_theme_constant_override("outline_size", 6)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	t.size = Vector2(vis.x, TITLE_H)
+	t.z_index = 10
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(t)
+
+	var x := _spr("common_ui", "common_close_btn", Design.ASSET_SCALE)
+	if x != null:
+		x.position = Vector2(vis.x - 42, TITLE_H * 0.5)
+		x.z_index = 11
+		add_child(x)
+	var xb := Button.new()
+	xb.flat = true
+	xb.size = Vector2(56, 56)
+	xb.position = Vector2(vis.x - 70, TITLE_H * 0.5 - 28)
+	xb.z_index = 11
+	xb.pressed.connect(_close)
+	add_child(xb)
+
+func _build_tabs(vis: Vector2) -> void:
+	var S := Design.ASSET_SCALE
+	var tabs := _tabs()
+	var info: Dictionary = _man("common_ui").get("common_tab_bg", {})
+	var tw: float = float(info.get("w", 78)) * S
+	var th: float = float(info.get("h", 122)) * S
+	var narrow := (vis.x / vis.y) < 1.6
+	var k := 0.86 if narrow else 1.0
+	var x0 := (70.0 - 90.0) if narrow else 70.0
+	var idx := 0
+	for i in tabs.size():
+		var td: Dictionary = tabs[i]
+		var is_sell := String(td.get("id", "")) == "sell"
+		var tx := x0 + (tw + 5.0) * k * idx
+		if not is_sell:
+			idx += 1
+		var holder := Control.new()
+		holder.position = Vector2(tx, 0)
+		holder.z_index = 6
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(holder)
+		var bg := _spr("common_ui", "common_%s" % String(td.get("tab_bg", "tab_bg")), S * k)
+		if bg != null:
+			bg.position = Vector2(tw * k * 0.5, th * k * 0.5)
+			if i != _tab:
+				bg.position.y -= 10
+				bg.modulate = Color(0.86, 0.82, 0.78)
+			holder.add_child(bg)
+		var ikey := String(td.get("icon", ""))
+		var ic: Sprite2D = (_spr(ikey.get_slice("/", 0), ikey.get_slice("/", 1), S * k)
+			if ikey.contains("/") else _spr("shop_ui", "scene_shop_%s" % ikey, S * k))
+		if ic != null:
+			ic.position = Vector2(tw * k * 0.5, th * k - 50.0 * k)
+			if i != _tab:
+				ic.position.y -= 10
+				ic.modulate = Color(0.9, 0.88, 0.85)
+			holder.add_child(ic)
+		var b := Button.new()
+		b.flat = true
+		b.size = Vector2(tw * k, th * k - 40.0)
+		b.position = Vector2(tx, 30)
+		b.z_index = 7
+		var ti := i
+		b.pressed.connect(func(): _on_tab(ti))
+		add_child(b)
+
+func _on_tab(i: int) -> void:
+	if i == _tab:
+		return
+	_tab = i
+	_scroll = null
+	_rebuild()
+
+func _build_npc(vis: Vector2) -> void:
+	var td := _cur()
+	var name := _seller_npc()
+	if name == "":
+		return
+	var greet := _seller_line(name, String(td.get("id", "")))
+	var emo: int = greet["emo"]
+	_npc = NpcPortrait.create(name, emo)
+	if _npc == null:
+		return
+	_npc.z_index = 5
+	add_child(_npc)
+	var bw := _npc.body_width()
+	_npc.position = Vector2(vis.x - NPC_COL * 0.5, vis.y)
+	var to_x := _npc.position.x
+	_npc.position.x = vis.x + bw * 0.5
+	var tw := create_tween()
+	tw.tween_property(_npc, "position:x", to_x, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_build_npc_touch(vis, to_x, bw)
+
+	_box = BottomTextBox.new()
+	_box.max_width = vis.x - NPC_COL
+	_box.z_index = 12
+	add_child(_box)
+	if not _npc_alt().is_empty():
+		_box.clicked.connect(_on_npc_touch)
+	_say(String(greet["line"]))
+
+func _npc_alt() -> Dictionary:
+	var alt = _cur().get("npc_alt", null)
+	if not (alt is Dictionary):
+		return {}
+	match String((alt as Dictionary).get("when", "")):
+		"not_admin":
+			return {} if UserDB.is_admin() else alt
+		"admin":
+			return alt if UserDB.is_admin() else {}
+	return {}
+
+func _seller_npc() -> String:
+	var alt := _npc_alt()
+	if not alt.is_empty():
+		return String(alt.get("npc", ""))
+	return String(_cur().get("npc", ""))
+
+func _build_npc_touch(vis: Vector2, cx: float, bw: float) -> void:
+	var alt := _npc_alt()
+	if alt.is_empty() or (alt.get("touch", []) as Array).is_empty():
+		return
+	var bh := _npc.body_height()
+	var left := maxf(cx - bw * 0.5, vis.x - NPC_COL)
+	var b := Button.new()
+	b.name = "NpcTouchButton"
+	b.flat = true
+	b.size = Vector2(vis.x - left, bh)
+	b.position = Vector2(left, vis.y - bh)
+	b.z_index = 6
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.pressed.connect(_on_npc_touch)
+	add_child(b)
+
+func _on_npc_touch() -> void:
+	var pool: Array = _npc_alt().get("touch", [])
+	if pool.is_empty() or _box == null:
+		return
+	var i := randi() % pool.size()
+	if pool.size() > 1 and i == _touch_last:
+		i = (i + 1) % pool.size()
+	_touch_last = i
+	var d: Dictionary = pool[i] if pool[i] is Dictionary else {"text": String(pool[i])}
+	_say(_fill_nick(String(d.get("text", ""))), int(d.get("emo", 0)))
+
+func _fill_nick(line: String) -> String:
+	var nick := UserDB.user_nickname()
+	return line.replace("@", nick) if nick != "" else line
+
+func _seller_line(npc: String, tab_id: String) -> Dictionary:
+	var shop: Dictionary = Data.npc_lines_doc.get("shop", {})
+	var alt := _npc_alt()
+	if not alt.is_empty() and String(alt.get("npc", "")) == npc:
+		_react = ""
+		return {"line": _fill_nick(String(alt.get("welcome", ""))),
+			"emo": int(alt.get("welcome_emo", 1))}
+	if _react != "":
+		var key := "sell" if tab_id == "sell" else "buy"
+		var pool: Array = (shop.get(key, {}) as Dictionary).get(npc, [])
+		var label := _react
+		var sold := _react_price
+		_react = ""
+		_react_price = 0
+		if not pool.is_empty():
+			var raw := SellPrice.talk_index(sold, _sell_tables()) if key == "sell" \
+				else (randi() % 2) + 1
+			var i: int = mini(raw, pool.size())
+			return {"line": String(pool[i - 1]).replace("%1$s", label), "emo": i}
+	var idx := 1 if npc == "baruseu" else (randi() % 3) + 1
+	if tab_id == "hot":
+		var fixed := String((shop.get("tab", {}) as Dictionary).get("hot", ""))
+		if fixed != "":
+			return {"line": fixed, "emo": idx}
+	var lines: Array = (shop.get("welcome", {}) as Dictionary).get(npc, [])
+	if idx <= lines.size():
+		return {"line": String(lines[idx - 1]), "emo": idx}
+	return {"line": String(_cur().get("line", "")), "emo": idx}
+
+func _say(line: String, emo := 0) -> void:
+	if _box == null:
+		return
+	_box.show_text(_npc_display_name(_seller_npc()), line)
+	if _npc != null:
+		if emo > 0:
+			_npc.set_emotion(emo)
+		_npc.set_talking(true)
+	_box.finished.connect(func(): if is_instance_valid(_npc): _npc.set_talking(false),
+		CONNECT_ONE_SHOT)
+
+const NPC_KR := {
+	"pino": "피노", "raon": "라온", "randolph": "란돌프",
+	"popo": "포포", "baruseu": "바루스", "romini": "루미니",
+}
+func _npc_display_name(key: String) -> String:
+	var alt := _npc_alt()
+	if not alt.is_empty() and String(alt.get("npc", "")) == key:
+		return String(alt.get("name", key))
+	var per = Data.npc_lines().get(key, null)
+	if per is Dictionary and String(per.get("name", "")) != "":
+		return String(per["name"])
+	return String(NPC_KR.get(key, key))
+
+func _entries() -> Array:
+	var td := _cur()
+	var out: Array = []
+	if String(td.get("id", "")) == "sell":
+		return _sell_entries()
+	for g in td.get("gacha", []):
+		var ge: Dictionary = (g as Dictionary).duplicate()
+		ge["kind"] = "gacha"
+		out.append(ge)
+	for s in td.get("stock", []):
+		var e: Dictionary = (s as Dictionary).duplicate()
+		var key := String(e.get("item", ""))
+		var it: Dictionary = Data.items.get(key, {})
+		if it.is_empty():
+			continue
+		if String(it.get("offline", "")) in ["dummy", "cut"]:
+			continue
+		if e.has("once") and bool(UserDB.get_pmeta(String(e["once"]), false)):
+			continue
+		e["kind"] = "item"
+		if not e.has("label"):
+			e["label"] = String(it.get("name", key))
+		out.append(e)
+	out.append_array(_extra_entries(td))
+	return out
+
+func _extra_entries(td: Dictionary) -> Array:
+	var out: Array = []
+	for tag in td.get("extra", []):
+		match String(tag):
+			"gem_shop":
+				for g in Drops.shop_gems(Data.drops):
+					out.append({"kind": "gear", "gear": String(g["key"]),
+						"label": Drops.display_name(String(g["key"]), Data.gems, Data.equipment),
+						"price": int(g["price"]), "cur": "gold"})
+			"equip_shop":
+				for q in Drops.shop_equips(Data.drops):
+					out.append({"kind": "gear", "gear": String(q["key"]),
+						"label": Drops.display_name(String(q["key"]), Data.gems, Data.equipment),
+						"price": int(q["price"]), "cur": "gold"})
+			"gem_gacha":
+				var gc: Dictionary = Data.drops.get("gacha", {}).get("gem", {})
+				out.append({"kind": "gacha", "pool": "gem", "label": "젬 뽑기",
+					"price": int(gc.get("price_single", 15)), "cur": "diamond", "n": 1})
+				out.append({"kind": "gacha", "pool": "gem",
+					"label": "젬 뽑기 %d연속" % int(gc.get("ten_count", 10)),
+					"price": int(gc.get("price_ten", 125)), "cur": "diamond",
+					"n": int(gc.get("ten_count", 10))})
+			"cash":
+				out.append_array(_cash_entries())
+	return out
+
+func _cash_entries() -> Array:
+	var cash: Dictionary = Data.drops.get("cash", {})
+	var out: Array = []
+	var gp: Dictionary = cash.get("gold_pack", {})
+	var per := int(gp.get("gold_per_dia", 1000))
+	var bonus: Array = gp.get("bonus_pct", [])
+	var tiers: Array = gp.get("dia_tiers", [])
+	for i in tiers.size():
+		var dia := int(tiers[i])
+		var b := int(bonus[i]) if i < bonus.size() else 0
+		var gold := int(dia * per * (100 + b) / 100.0)
+		out.append({"kind": "exchange", "give": "diamond", "give_n": dia,
+			"get": "gold", "get_n": gold, "bonus": b,
+			"label": "골드 %s" % _comma(gold), "price": dia, "cur": "diamond",
+			"icon_frame": "scene_shop_cash_gold%d" % mini(i + 1, 6)})
+	var dp: Dictionary = cash.get("dia_pack", {})
+	var dper := int(dp.get("gold_per_dia", 2500))
+	for j in dp.get("dia_tiers", []).size():
+		var d2 := int(dp["dia_tiers"][j])
+		var cost := d2 * dper
+		out.append({"kind": "exchange", "give": "gold", "give_n": cost,
+			"get": "diamond", "get_n": d2, "bonus": 0,
+			"label": "다이아 %d" % d2, "price": cost, "cur": "gold",
+			"icon_frame": "scene_shop_cash_diamond%d" % mini(j + 1, 6)})
+	return out
+
+func _sell_entries() -> Array:
+	var tables := _sell_tables()
+	var out: Array = []
+	for key in UserDB.inventory().keys():
+		var k := String(key)
+		if UserDB.item_count(k) <= 0:
+			continue
+		var price := SellPrice.unit_price(k, tables)
+		if price <= 0:
+			continue
+		out.append({"kind": "sell", "item": k, "label": _sell_label(k),
+			"price": price, "cur": "gold"})
+	out.sort_custom(_sell_order)
+	return out
+
+func _sell_order(a: Dictionary, b: Dictionary) -> bool:
+	if int(a["price"]) != int(b["price"]):
+		return int(a["price"]) > int(b["price"])
+	return String(a["item"]) < String(b["item"])
+
+func _sell_tables() -> Dictionary:
+	return {"shop": Data.shop, "items": Data.items, "gems": Data.gems,
+		"equipment": Data.equipment, "buy": _buy_price_index()}
+
+func _sell_label(key: String) -> String:
+	var it: Dictionary = Data.items.get(key, {})
+	if not it.is_empty():
+		return String(it.get("name", key))
+	return Drops.display_name(key, Data.gems, Data.equipment)
+
+func _buy_price_index() -> Dictionary:
+	var idx := {}
+	for td in _tabs():
+		for s in td.get("stock", []):
+			if String(s.get("cur", "gold")) == "gold":
+				idx[String(s.get("item", ""))] = int(s.get("price", 0))
+	return idx
+
+func _on_card(e: Dictionary) -> void:
+	match String(e.get("kind", "item")):
+		"gacha": _confirm_gacha(e)
+		"sell": _confirm_sell(e)
+		"gear": _confirm_gear(e)
+		"exchange": _confirm_exchange(e)
+		_: _confirm_buy(e)
+
+func _confirm_gear(e: Dictionary) -> void:
+	var key := String(e.get("gear", ""))
+	var price := int(e.get("price", 0))
+	var glabel := String(e.get("label", key))
+	var is_equip := Equipment.parse_item_key(key) != ""
+	_detail_popup({
+		"title": glabel, "desc": _item_desc(key), "icon": _entry_icon(e),
+		"price": price, "cur": "gold", "action": "구매",
+		"max": 1 if is_equip else _afford_max("gold", price),
+		"on_ok": func(n: int):
+			if not UserDB.spend("gold", price * n):
+				_toast(Data.ui("#f3aeeb0c"))
+				return
+			UserDB.add_item(key, n)
+			UserDB.bump_quest("buys")
+			_react = glabel
+			_rebuild()
+			_toast("%s 구매 완료%s" % [glabel, ("  ×%d" % n) if n > 1 else ""])
+			ItemRewardView.open(self, [{"key": key, "count": n}]),
+	})
+
+func _confirm_exchange(e: Dictionary) -> void:
+	var give := String(e.get("give", "gold"))
+	var give_n := int(e.get("give_n", 0))
+	var get_kind := String(e.get("get", "gold"))
+	var get_n := int(e.get("get_n", 0))
+	_detail_popup({
+		"title": "환전", "icon": _currency_icon(get_kind), "action": "환전",
+		"desc": "%s %s 를 %s %s 로 바꿉니다." % [_comma(give_n), _cur_name(give),
+			_comma(get_n), _cur_name(get_kind)],
+		"price": give_n, "cur": give, "max": 1,
+		"on_ok": func(_n: int):
+			if not UserDB.spend(give, give_n):
+				_toast("재화가 부족합니다.")
+				return
+			UserDB.add_currency(get_kind, get_n)
+			_toast("환전 완료")
+			_rebuild(),
+	})
+
+func _confirm_buy(e: Dictionary) -> void:
+	var key := String(e.get("item", ""))
+	var price := int(e.get("sale", 0)) if int(e.get("sale", 0)) > 0 else int(e.get("price", 0))
+	var cur := String(e.get("cur", "gold"))
+	var bundle := int(e.get("bundle", 1))
+	var label := String(e.get("label", key))
+	var once := String(e.get("once", ""))
+	_detail_popup({
+		"title": label, "desc": _item_desc(key), "icon": _entry_icon(e),
+		"note": ("1회 구매 시 %d개" % bundle) if bundle > 1 else "",
+		"price": price, "cur": cur, "action": "구매",
+		"max": 1 if once != "" else _afford_max(cur, price),
+		"on_ok": func(n: int):
+			if not _pay(cur, price * n):
+				_toast("재화가 부족합니다.")
+				return
+			if once != "":
+				UserDB.set_pmeta(once, true)
+			else:
+				UserDB.add_item(key, bundle * n)
+			UserDB.bump_quest("buys")
+			_react = label
+			_rebuild()
+			_toast("%s 구매 완료%s" % [label, ("  ×%d" % (bundle * n)) if bundle * n > 1 else ""])
+			ItemRewardView.open(self, [{"key": key, "count": bundle * n if once == "" else 1}]),
+	})
+
+const PURCHASE_LIMIT := 99
+func _afford_max(cur: String, price: int) -> int:
+	if price <= 0:
+		return PURCHASE_LIMIT
+	var have := 0
+	if cur == "gold" or cur == "diamond":
+		have = UserDB.currency(cur)
+	else:
+		have = UserDB.item_count(cur)
+	return clampi(have / price, 1, PURCHASE_LIMIT)
+
+func _confirm_sell(e: Dictionary) -> void:
+	var key := String(e.get("item", ""))
+	var price := int(e.get("price", 0))
+	var label := String(e.get("label", key))
+	var cap := clampi(UserDB.item_count(key), 1, PURCHASE_LIMIT) if SellPrice.stacks(key) else 1
+	_detail_popup({
+		"title": label, "desc": _item_desc(key), "icon": _entry_icon(e),
+		"price": price, "cur": "gold", "action": "판매", "max": cap,
+		"on_ok": func(n: int):
+			if not UserDB.use_item(key, n):
+				return
+			UserDB.add_currency("gold", price * n)
+			_toast("%s 판매%s" % [label, ("  ×%d" % n) if n > 1 else ""])
+			_react = label
+			_react_price = price
+			_rebuild(),
+	})
+
+func _confirm_gacha(e: Dictionary) -> void:
+	var price := int(e.get("price", 0))
+	var cur := String(e.get("cur", "diamond"))
+	var n := int(e.get("n", 1))
+	var grade := String(e.get("grade", "high"))
+	_detail_popup({
+		"title": String(e.get("label", "")), "icon": _entry_icon(e), "action": "뽑기",
+		"desc": "%d회 뽑습니다." % n if n > 1 else "1회 뽑습니다.",
+		"price": price, "cur": cur, "max": 1,
+		"on_ok": func(_n: int):
+			if not _pay(cur, price):
+				_toast("재화가 부족합니다.")
+				return
+			var rng := RandomNumberGenerator.new()
+			rng.randomize()
+			var pool := String(e.get("pool", "equip"))
+			var got: Array = []
+			for _i in n:
+				var k := Drops.roll_gem_gacha(Data.drops, Data.gems, rng) if pool == "gem" \
+					else Drops.roll_equip_gacha(Data.drops, Data.equipment, rng, grade)
+				if k == "":
+					continue
+				UserDB.add_item(k, 1)
+				got.append(k)
+			_rebuild()
+			_show_result(got),
+	})
+
+func _pay(cur: String, amount: int) -> bool:
+	if amount <= 0:
+		return true
+	if cur == "gold" or cur == "diamond":
+		return UserDB.spend(cur, amount)
+	return UserDB.use_item(cur, amount)
+
+func _item_desc(key: String) -> String:
+	var it: Dictionary = Data.items.get(key, {})
+	return String(it.get("desc", ""))
+
+func _cur_name(cur: String) -> String:
+	if cur == "gold":
+		return "골드"
+	if cur == "diamond":
+		return "다이아"
+	var it: Dictionary = Data.items.get(cur, {})
+	return String(it.get("name", cur))
+
+func _currency_icon(cur: String) -> Texture2D:
+	if cur == "gold":
+		return _tex("common_ui", "common_coin_small1")
+	if cur == "diamond":
+		return _tex("common_ui", "common_diamond_small1")
+	return _item_texture(cur)
+
+func _entry_icon(e: Dictionary) -> Texture2D:
+	if e.has("icon_frame"):
+		return _tex("shop_ui", String(e["icon_frame"]))
+	match String(e.get("kind", "")):
+		"gacha":
+			if String(e.get("pool", "")) != "gem":
+				var t := Icons.texture("shop",
+					"equip_gacha_gold" if String(e.get("cur", "")) == "gold" else "equip_gacha_diamond")
+				if t != null:
+					return t
+			return _item_texture("jem_random")
+		"gear":
+			return _gear_texture(String(e.get("gear", "")))
+		"sell":
+			var gt := _gear_texture(String(e.get("item", "")))
+			if gt != null:
+				return gt
+	return _item_texture(String(e.get("item", "")))
+
+func _gear_texture(key: String) -> Texture2D:
+	var g := Gem.parse_item_key(key)
+	if not g.is_empty():
+		return Icons.gem_texture(
+			String(Gem.gem_def(String(g["name"]), Data.gems).get("code", "")), int(g["tier"]))
+	var ck := Equipment.parse_item_key(key)
+	if ck != "":
+		return Icons.equip_texture(Equipment.catalog(Data.equipment).get(ck, {}))
+	return null
+
+func _item_texture(key: String) -> Texture2D:
+	var p := Data.item_icon_path(key)
+	if p != "" and ResourceLoader.exists(p):
+		return load(p)
+	return null
+
+const DETAIL_PANEL := Vector2(650.0, 400.0)
+const DETAIL_CAP := Rect2(130, 190, 40, 58)
+
+func _pg(x: float, y: float) -> Vector2:
+	return Vector2(x, DETAIL_PANEL.y - y)
+
+func _detail_popup(cfg: Dictionary) -> void:
+	var S := Design.ASSET_SCALE
+	var vis := _vis()
+	var maxn: int = maxi(1, int(cfg.get("max", 1)))
+	var price := int(cfg.get("price", 0))
+	var cur := String(cfg.get("cur", "gold"))
+	var on_ok: Callable = cfg.get("on_ok", Callable())
+
+	var lay := CanvasLayer.new()
+	lay.layer = 40
+	add_child(lay)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 127.0 / 255.0)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.modulate = Color(1, 1, 1, 0)
+	lay.add_child(dim)
+	dim.create_tween().tween_property(dim, "modulate:a", 1.0, 0.2)
+
+	var box := _item_box_rect(vis)
+	var center := Vector2(box.position.x + box.size.x * 0.5, vis.y * 0.5)
+	var panel := Control.new()
+	panel.size = DETAIL_PANEL
+	panel.position = (center - DETAIL_PANEL * 0.5).round()
+	panel.pivot_offset = DETAIL_PANEL * 0.5
+	lay.add_child(panel)
+	var tw := panel.create_tween()
+	tw.tween_property(panel, "scale", Vector2(1.2, 1.2), 0.1)
+	tw.tween_property(panel, "scale", Vector2.ONE, 0.1)
+
+	var bg := _nine("9patch_popup4", DETAIL_PANEL, DETAIL_CAP)
+	if bg != null:
+		panel.add_child(bg)
+
+	_detail_title(panel, String(cfg.get("title", "")), func(): lay.queue_free())
+	_detail_item(panel, cfg.get("icon") as Texture2D, S)
+	_detail_text(panel, String(cfg.get("desc", "")), String(cfg.get("note", "")))
+
+	var count := [1]
+	var total := Label.new()
+	var step := func(d: int):
+		var v: int = clampi(int(count[0]) + d, 1, maxn)
+		if v == int(count[0]):
+			return
+		count[0] = v
+		total.text = _comma(price * v)
+	if maxn > 1:
+		_detail_qty(panel, maxn, count, step, S)
+	_detail_action(panel, cfg, total, price, cur, count, S, func():
+		lay.queue_free()
+		if on_ok.is_valid():
+			on_ok.call(int(count[0])))
+
+func _detail_title(panel: Control, title: String, on_close: Callable) -> void:
+	var S := Design.ASSET_SCALE
+	var bar_h: float = float(_man("ninepatch_ui").get("9patch_pop_title_bg", {}).get("h", 33)) * S
+	var bar_w := DETAIL_PANEL.x * 0.9
+	var bar := _nine("9patch_pop_title_bg", Vector2(bar_w, bar_h), Rect2())
+	if bar != null:
+		bar.position = _pg(DETAIL_PANEL.x * 0.5, 350.0) - Vector2(bar_w, bar_h) * 0.5
+		panel.add_child(bar)
+	var tl := Label.new()
+	tl.text = title
+	var f := _orig_font()
+	if f != null:
+		tl.add_theme_font_override("font", f)
+	tl.add_theme_font_size_override("font_size", 22)
+	tl.add_theme_color_override("font_color", Color.WHITE)
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tl.size = Vector2(bar_w, bar_h)
+	tl.position = _pg(DETAIL_PANEL.x * 0.5, 350.0) - Vector2(bar_w, bar_h) * 0.5
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(tl)
+
+	var x := _spr("common_ui", "common_close_btn", 1.5 * S)
+	if x != null:
+		x.position = _pg(600.0, 350.0)
+		panel.add_child(x)
+	var xb := Button.new()
+	xb.flat = true
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		xb.add_theme_stylebox_override(st, empty)
+	xb.size = Vector2(64, 64)
+	xb.position = _pg(600.0, 350.0) - Vector2(32, 32)
+	xb.pressed.connect(on_close)
+	panel.add_child(xb)
+
+func _detail_item(panel: Control, icon: Texture2D, S: float) -> void:
+	var back := _spr("common_ui", "common_backlight3", 0.6 * S)
+	if back != null:
+		back.position = _pg(150.0, 220.0)
+		back.modulate = Color(1, 1, 1, 0.85)
+		panel.add_child(back)
+		var rot := back.create_tween().set_loops()
+		rot.tween_property(back, "rotation", back.rotation + deg_to_rad(60.0), 5.0)\
+			.as_relative().from_current()
+	if icon == null:
+		return
+	var ic := Sprite2D.new()
+	ic.texture = icon
+	ic.material = _pma
+	var long_side: float = maxf(1.0, float(maxi(icon.get_width(), icon.get_height())))
+	ic.scale = Vector2.ONE * minf(S, 150.0 / long_side)
+	ic.position = _pg(150.0, 220.0)
+	panel.add_child(ic)
+
+func _detail_text(panel: Control, desc: String, note: String) -> void:
+	const COL_W := 300.0
+	var f := _bmfont("font_common")
+	var body := int(round(17.0 * Design.ASSET_SCALE * 0.8))
+	var y := 280.0
+	if desc != "":
+		var dl := Label.new()
+		dl.text = desc
+		if f != null:
+			dl.add_theme_font_override("font", f)
+		dl.add_theme_font_size_override("font_size", body - 2 if desc.length() > 240 else body)
+		dl.add_theme_color_override("font_color", Color(129.0 / 255.0, 67.0 / 255.0, 29.0 / 255.0))
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl.size = Vector2(COL_W, 150.0)
+		dl.position = _pg(300.0, y)
+		dl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(dl)
+		y -= 150.0
+	if note == "":
+		return
+	var nl := Label.new()
+	nl.text = note
+	if f != null:
+		nl.add_theme_font_override("font", f)
+	nl.add_theme_font_size_override("font_size", body)
+	nl.add_theme_color_override("font_color", Color(0.24, 0.16, 0.08))
+	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nl.size = Vector2(COL_W, 60.0)
+	nl.position = _pg(300.0, y)
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(nl)
+
+func _detail_qty(panel: Control, maxn: int, count: Array, step: Callable, S: float) -> void:
+	const BOX := Vector2(100.0, 60.0)
+	var box := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0x66 / 255.0)
+	sb.set_corner_radius_all(10)
+	box.add_theme_stylebox_override("panel", sb)
+	box.size = BOX
+	box.position = _pg(150.0, 70.0) - BOX * 0.5
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(box)
+
+	var num := Label.new()
+	num.text = "1"
+	var f := _orig_font()
+	if f != null:
+		num.add_theme_font_override("font", f)
+	num.add_theme_font_size_override("font_size", 24)
+	num.add_theme_color_override("font_color", Color.WHITE)
+	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	num.size = BOX
+	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(num)
+
+	var bump := func(d: int):
+		step.call(d)
+		num.text = str(int(count[0]))
+	var aw: float = float(_man("common_ui").get("common_btn_arrow1", {}).get("w", 26)) * S * 1.05
+	_arrow_button(panel, "common_btn_arrow1", _pg(150.0 - BOX.x * 0.5 - aw * 0.5 - 10.0, 70.0),
+		bump, -1)
+	_arrow_button(panel, "common_btn_arrow2", _pg(150.0 + BOX.x * 0.5 + aw * 0.5 + 10.0, 70.0),
+		bump, 1)
+
+	var maxb := Button.new()
+	maxb.text = "MAX"
+	maxb.size = Vector2(56, 30)
+	maxb.position = _pg(150.0 + BOX.x * 0.5 + aw + 40.0, 70.0) - Vector2(28, 15)
+	maxb.add_theme_font_size_override("font_size", 15)
+	maxb.pressed.connect(func(): bump.call(maxn))
+	panel.add_child(maxb)
+
+func _detail_action(panel: Control, cfg: Dictionary, total: Label, price: int, cur: String,
+		count: Array, S: float, on_ok: Callable) -> void:
+	const BTN := Vector2(270.0, 56.0)
+	var root := Control.new()
+	root.size = BTN
+	root.position = _pg(450.0, 70.0) - BTN * 0.5
+	panel.add_child(root)
+	var frame := _nine("9patch_btn", BTN, Rect2(20, 20, 4, 4))
+	if frame != null:
+		root.add_child(frame)
+
+	var f := _orig_font()
+	if price > 0:
+		var ci := _currency_icon(cur)
+		if ci != null:
+			var sp := Sprite2D.new()
+			sp.texture = ci
+			sp.material = _pma
+			var cs: float = 34.0 / maxf(1.0, float(maxi(ci.get_width(), ci.get_height())))
+			sp.scale = Vector2(cs, cs)
+			sp.position = Vector2(55.0 - ci.get_width() * cs * 0.5, BTN.y * 0.5)
+			root.add_child(sp)
+		total.text = _comma(price * int(count[0]))
+		if f != null:
+			total.add_theme_font_override("font", f)
+		total.add_theme_font_size_override("font_size", 18)
+		total.add_theme_color_override("font_color", Color.WHITE)
+		total.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		total.size = Vector2(120, BTN.y)
+		total.position = Vector2(58.0, 2.0)
+		total.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	else:
+		total.visible = false
+	root.add_child(total)
+
+	var word := Label.new()
+	word.text = String(cfg.get("action", "확인"))
+	if f != null:
+		word.add_theme_font_override("font", f)
+	word.add_theme_font_size_override("font_size", 20)
+	word.add_theme_color_override("font_color", Color.WHITE)
+	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	word.size = Vector2(110, BTN.y)
+	word.position = Vector2(BTN.x - 20.0 - 110.0, 2.0)
+	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(word)
+
+	var b := Button.new()
+	b.flat = true
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, empty)
+	b.size = BTN
+	b.pressed.connect(on_ok)
+	root.add_child(b)
+
+func _arrow_button(win: Control, frame: String, center: Vector2, step: Callable, d: int) -> void:
+	const HOLD_DELAY := 0.2
+	const HOLD_TICK := 0.025
+	var t := _tex("common_ui", frame)
+	var size := Vector2(44, 44)
+	if t != null:
+		var s := Sprite2D.new()
+		s.texture = t
+		s.material = _pma
+		var sc := Design.ASSET_SCALE * 1.05
+		s.scale = Vector2(sc, sc)
+		s.position = center
+		win.add_child(s)
+		size = Vector2(t.get_width(), t.get_height()) * sc
+	var b := Button.new()
+	b.flat = true
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, empty)
+	b.size = size
+	b.position = center - size * 0.5
+	win.add_child(b)
+	var held := [false]
+	b.button_down.connect(func():
+		step.call(d)
+		held[0] = true
+		await get_tree().create_timer(HOLD_DELAY).timeout
+		while held[0] and is_instance_valid(b):
+			step.call(d)
+			await get_tree().create_timer(HOLD_TICK).timeout)
+	b.button_up.connect(func(): held[0] = false)
+	b.mouse_exited.connect(func(): held[0] = false)
+
+var _bmfont_cache := {}
+func _bmfont(name: String) -> Font:
+	if _bmfont_cache.has(name):
+		return _bmfont_cache[name]
+	var p := "res://assets/converted/font_ui/%s.fnt" % name
+	if not ResourceLoader.exists(p):
+		_bmfont_cache[name] = null
+		return null
+	var f := (load(p) as FontFile)
+	if f == null:
+		_bmfont_cache[name] = null
+		return null
+	f = f.duplicate() as FontFile
+	f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+	var fb := SystemFont.new()
+	fb.font_names = PackedStringArray(["Malgun Gothic", "맑은 고딕", "Gulim"])
+	f.fallbacks = [fb]
+	_bmfont_cache[name] = f
+	return f
+
+func _orig_font() -> Font:
+	return _bmfont("font_subtitle")
+
+func _show_result(keys: Array) -> void:
+	if keys.is_empty():
+		_toast("아무것도 나오지 않았습니다.")
+		return
+	var names: Array = []
+	var entries: Array = []
+	for k in keys:
+		names.append(Drops.display_name(String(k), Data.gems, Data.equipment))
+		entries.append({"key": String(k), "count": 1})
+	_toast("획득: " + ", ".join(names))
+	ItemRewardView.open(self, entries)
+
+func _toast(msg: String) -> void:
+	if is_instance_valid(_box):
+		_box.show_text(_npc_display_name(_seller_npc()), msg)
+		if is_instance_valid(_npc):
+			_npc.set_talking(true)
+
+func _close() -> void:
+	var from := String(_params.get("from", "town"))
+	if from == "worldmap":
+		Scenes.goto("worldmap", {"region": "yutakan"})
+	else:
+		Scenes.goto("town", {"area": _params.get("area", "elpis")})
+
+func _man(dir: String) -> Dictionary:
+	return AtlasUI.manifest(dir)
+
+func _tex(dir: String, key: String) -> Texture2D:
+	return AtlasUI.tex(dir, key)
+
+func _spr(dir: String, key: String, scale := 1.0) -> Sprite2D:
+	return AtlasUI.spr(dir, key, scale)
+
+func _nine(key: String, sz_pt: Vector2, cap: Rect2, dir := "ninepatch_ui") -> NinePatchRect:
+	var p := "res://assets/converted/%s/%s.tres" % [dir, key]
+	if not ResourceLoader.exists(p):
+		return null
+	var tex: Texture2D = load(p)
+	var inv := 1.0 / Design.ASSET_SCALE
+	var l := cap.position.x * inv
+	var t := cap.position.y * inv
+	var cwid := cap.size.x * inv
+	var chei := cap.size.y * inv
+	if cap.size == Vector2.ZERO:
+		l = tex.get_width() / 3.0
+		t = tex.get_height() / 3.0
+		cwid = tex.get_width() / 3.0
+		chei = tex.get_height() / 3.0
+	var np := NinePatchRect.new()
+	np.texture = tex
+	np.patch_margin_left = int(round(l))
+	np.patch_margin_top = int(round(t))
+	np.patch_margin_right = int(round(maxf(0.0, tex.get_width() - l - cwid)))
+	np.patch_margin_bottom = int(round(maxf(0.0, tex.get_height() - t - chei)))
+	np.scale = Vector2(Design.ASSET_SCALE, Design.ASSET_SCALE)
+	np.size = sz_pt * inv
+	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	np.material = _pma
+	return np
+
+func _comma(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	var c := 0
+	for i in range(s.length() - 1, -1, -1):
+		out = s[i] + out
+		c += 1
+		if c % 3 == 0 and i > 0:
+			out = "," + out
+	return ("-" if n < 0 else "") + out
+
+func _vis() -> Vector2:
+	return get_viewport_rect().size

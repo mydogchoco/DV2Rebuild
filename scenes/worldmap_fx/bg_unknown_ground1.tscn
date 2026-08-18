@@ -1,0 +1,268 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_bg_unknown_ground1/temple_spine.png" id="1_vx14t"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_3ga7l"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_twuqp"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(135, 2, 107, 97)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2xnc4"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(2, 2, 131, 97)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_81plq"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(244, 2, 68, 66)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n3ik8"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(360, 64, 41, 32)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7vqlp"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(244, 70, 25, 25)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kgpum"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(314, 2, 44, 68)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uf5mf"]
+atlas = ExtResource("1_vx14t")
+region = Rect2(360, 2, 33, 60)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_se5tl"]
+length = 10.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bg_unknown_ground_effect:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(-0.87, -0.24), Vector2(-0.87, -0.24), Vector2(-0.87, -0.24)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bg_unknown_ground_effect/bg_unknown_ground_effect1:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bg_unknown_ground_effect/bg_unknown_ground_effect3:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(27.38, -36.9), Vector2(27.38, -36.9), Vector2(27.38, -36.9)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bg_unknown_ground_effect/bg_unknown_ground_effect2:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 9.9999, 10),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bg_unknown_ground_floaters2:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 3, 5.3333, 8, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-28.61, -72.12), Vector2(-28.61, -82.43), Vector2(-28.61, -72.12), Vector2(-28.61, -82.43), Vector2(-28.61, -72.12)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bg_unknown_ground_floaters1:position")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 3.1333, 5, 7.7, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-201.58, -99.98), Vector2(-201.58, -109.56), Vector2(-201.58, -99.98), Vector2(-201.58, -109.56), Vector2(-201.58, -99.98)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bg_unknown_ground_island1:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 2.6666, 5.3, 8.0333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-46.61, -181.9), Vector2(-46.61, -173.06), Vector2(-46.61, -185.18), Vector2(-46.61, -173.06), Vector2(-46.61, -181.9)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bg_unknown_ground_island2:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 2.7, 5.4666, 7.8, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(2.66, -230.92), Vector2(2.66, -222.08), Vector2(2.66, -230.92), Vector2(2.66, -222.08), Vector2(2.66, -230.92)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bg_unknown_ground_effect/bg_unknown_ground_effect2/bg_unknown_ground_effect2_slot_frame/bg_unknown_ground_effect2_slot:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 2.3333, 4.6666, 6.9333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bg_unknown_ground_effect/bg_unknown_ground_effect3/bg_unknown_ground_effect3_slot_frame/bg_unknown_ground_effect3_slot:modulate")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 1.6666, 3.2666, 5.0666, 6.8, 8.4333, 10),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_a783k"]
+_data = {
+&"animation": SubResource("Animation_se5tl")
+}
+
+[node name="Dragon_bg_unknown_ground1_scene" type="Node2D" unique_id=804865083]
+
+[node name="root" type="Node2D" parent="." unique_id=1264352274]
+
+[node name="bg_unknown_ground_effect" type="Node2D" parent="root" unique_id=2059859704]
+position = Vector2(-0.87, -0.24)
+
+[node name="bg_unknown_ground_effect1" type="Node2D" parent="root/bg_unknown_ground_effect" unique_id=269234218]
+
+[node name="bg_unknown_ground_effect1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect1" unique_id=643911048]
+position = Vector2(0.91, 0.24)
+
+[node name="bg_unknown_ground_effect1_slot" type="Sprite2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect1/bg_unknown_ground_effect1_slot_frame" unique_id=1739548907]
+material = SubResource("CanvasItemMaterial_3ga7l")
+position = Vector2(0, 16.030535)
+rotation = 1.5707964
+scale = Vector2(1.3298969, 1.3358779)
+texture = SubResource("AtlasTexture_twuqp")
+
+[node name="bg_unknown_ground_effect2" type="Node2D" parent="root/bg_unknown_ground_effect" unique_id=224466557]
+
+[node name="bg_unknown_ground_effect2_slot_frame" type="Node2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect2" unique_id=1764629308]
+position = Vector2(0.87, 0.24)
+
+[node name="bg_unknown_ground_effect2_slot" type="Sprite2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect2/bg_unknown_ground_effect2_slot_frame" unique_id=790062140]
+z_index = 1
+material = SubResource("CanvasItemMaterial_3ga7l")
+rotation = 1.5707964
+scale = Vector2(1.3298969, 1.3358779)
+texture = SubResource("AtlasTexture_2xnc4")
+
+[node name="bg_unknown_ground_effect3" type="Node2D" parent="root/bg_unknown_ground_effect" unique_id=1014008037]
+position = Vector2(27.38, -36.9)
+
+[node name="bg_unknown_ground_effect3_slot_frame" type="Node2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect3" unique_id=446368462]
+position = Vector2(-11.77, 4.9)
+
+[node name="bg_unknown_ground_effect3_slot" type="Sprite2D" parent="root/bg_unknown_ground_effect/bg_unknown_ground_effect3/bg_unknown_ground_effect3_slot_frame" unique_id=499082129]
+z_index = 2
+material = SubResource("CanvasItemMaterial_3ga7l")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3235294)
+texture = SubResource("AtlasTexture_81plq")
+
+[node name="bg_unknown_ground_floaters1" type="Node2D" parent="root" unique_id=36079650]
+position = Vector2(-201.58, -99.98)
+
+[node name="bg_unknown_ground_floaters1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_floaters1" unique_id=1368234063]
+position = Vector2(0.85, 4.61)
+
+[node name="bg_unknown_ground_floaters1_slot" type="Sprite2D" parent="root/bg_unknown_ground_floaters1/bg_unknown_ground_floaters1_slot_frame" unique_id=1208464103]
+z_index = 3
+material = SubResource("CanvasItemMaterial_3ga7l")
+rotation = 1.5707964
+scale = Vector2(1.3125, 1.3170732)
+texture = SubResource("AtlasTexture_n3ik8")
+
+[node name="bg_unknown_ground_floaters2" type="Node2D" parent="root" unique_id=1101286559]
+position = Vector2(-28.61, -72.12)
+
+[node name="bg_unknown_ground_floaters2_slot_frame" type="Node2D" parent="root/bg_unknown_ground_floaters2" unique_id=179854111]
+position = Vector2(-2.65, 4.59)
+
+[node name="bg_unknown_ground_floaters2_slot" type="Sprite2D" parent="root/bg_unknown_ground_floaters2/bg_unknown_ground_floaters2_slot_frame" unique_id=314929288]
+z_index = 4
+material = SubResource("CanvasItemMaterial_3ga7l")
+scale = Vector2(1.32, 1.32)
+texture = SubResource("AtlasTexture_7vqlp")
+
+[node name="bg_unknown_ground_island1" type="Node2D" parent="root" unique_id=1167619987]
+position = Vector2(-46.61, -181.9)
+
+[node name="bg_unknown_ground_island1_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island1" unique_id=442828718]
+position = Vector2(-5.24, 3.99)
+
+[node name="bg_unknown_ground_island1_slot" type="Sprite2D" parent="root/bg_unknown_ground_island1/bg_unknown_ground_island1_slot_frame" unique_id=102382403]
+z_index = 5
+material = SubResource("CanvasItemMaterial_3ga7l")
+rotation = 1.5707964
+scale = Vector2(1.3235294, 1.3181819)
+texture = SubResource("AtlasTexture_kgpum")
+
+[node name="bg_unknown_ground_island2" type="Node2D" parent="root" unique_id=817112521]
+position = Vector2(2.66, -230.92)
+
+[node name="bg_unknown_ground_island2_slot_frame" type="Node2D" parent="root/bg_unknown_ground_island2" unique_id=858539962]
+position = Vector2(0.69, 4.9)
+
+[node name="bg_unknown_ground_island2_slot" type="Sprite2D" parent="root/bg_unknown_ground_island2/bg_unknown_ground_island2_slot_frame" unique_id=481668963]
+z_index = 6
+material = SubResource("CanvasItemMaterial_3ga7l")
+rotation = 1.5707964
+scale = Vector2(1.3333334, 1.3333334)
+texture = SubResource("AtlasTexture_uf5mf")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1964676618]
+libraries/ = SubResource("AnimationLibrary_a783k")

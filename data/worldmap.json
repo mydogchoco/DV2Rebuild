@@ -1,0 +1,1449 @@
+{
+ "regions": [
+  {
+   "id": "yutakan",
+   "bgm": "bg_yutakan",
+   "label_kr": "#3cd4963a",
+   "thumb": "scene_worldmap_map_world_map_yukatan",
+   "label_frame": "scene_worldmap_map_world_label_yukatan_kr",
+   "world": [
+    250,
+    150
+   ],
+   "unlocked": true,
+   "town": "elpis",
+   "native": {
+    "atlas_dir": "worldmap_yutakan_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_yutakan_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.72,
+     "bg_tex_center": [
+      735,
+      467.5
+     ],
+     "bg_design": [
+      615,
+      346
+     ],
+     "layer": {
+      "s": 0.75,
+      "tx": 93.91,
+      "ty": 910.72
+     },
+     "label": {
+      "s": 0.75,
+      "tx": 22.0,
+      "ty": 872.81
+     }
+    },
+    "content_w": 1360,
+    "light_tower": {
+     "hour_cycle": [
+      "water",
+      "chaos",
+      "dark",
+      "ground",
+      "fire",
+      "holy",
+      "light",
+      "wind"
+     ],
+     "frames": {
+      "water": "scene_worldmap_map_yutakan_new_map_tower_water",
+      "chaos": "scene_worldmap_map_yutakan_new_map_tower_chaos",
+      "dark": "scene_worldmap_map_yutakan_new_map_tower_dark",
+      "ground": "scene_worldmap_map_yutakan_new_map_tower_ground",
+      "fire": "scene_worldmap_map_yutakan_new_map_tower_fire",
+      "holy": "scene_worldmap_map_yutakan_new_map_tower_holy",
+      "light": "scene_worldmap_map_yutakan_new_map_tower_light",
+      "normal": "scene_worldmap_map_yutakan_new_map_tower_normal",
+      "wind": "scene_worldmap_map_yutakan_new_map_tower_wind"
+     },
+     "scenario_min": 45,
+     "scenario_max": 1000,
+     "touch_anims": {
+      "water": "touch_water",
+      "chaos": "touch_chaos",
+      "dark": "touch_dark",
+      "ground": "touch_ground",
+      "fire": "touch_fire",
+      "holy": "touch_holy",
+      "light": "touch_right",
+      "normal": "touch_wind",
+      "wind": "touch_wind"
+     }
+    },
+    "ambient_prefix": "scene_worldmap_map_yutakan_ani_new_",
+    "ambient": [
+     {
+      "kind": "flip",
+      "base": "ani_cow",
+      "n": 6,
+      "pos": [
+       870,
+       201
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_flag",
+      "n": 8,
+      "pos": [
+       718,
+       154
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_fractioin",
+      "n": 3,
+      "pos": [
+       823,
+       325
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_watercave",
+      "n": 3,
+      "pos": [
+       235,
+       559
+      ]
+     },
+     {
+      "kind": "spin",
+      "base": "ani_windmill",
+      "pos": [
+       818,
+       199
+      ],
+      "period": 2.0
+     },
+     {
+      "kind": "pulse",
+      "base": "ani_shadow",
+      "pos": [
+       1368,
+       555
+      ],
+      "to": 1.2,
+      "period": 2.0
+     },
+     {
+      "kind": "bob",
+      "base": "ani_wreck01",
+      "pos": [
+       1074,
+       681
+      ]
+     },
+     {
+      "kind": "sway",
+      "base": "ani_wreck02",
+      "pos": [
+       1074,
+       681
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_falls",
+      "n": 6,
+      "pos": [
+       351,
+       333
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_lava",
+      "n": 6,
+      "pos": [
+       1132,
+       230
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_crystal",
+      "n": 13,
+      "pos": [
+       537,
+       405
+      ]
+     },
+     {
+      "kind": "flip",
+      "base": "ani_smoke",
+      "n": 12,
+      "pos": [
+       465,
+       649
+      ],
+      "no_offset": true
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_fire_new_spine",
+      "anim": "normal",
+      "pos": [
+       1059,
+       199
+      ]
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_cave_spine",
+      "anim": "bat",
+      "pos": [
+       235,
+       554
+      ],
+      "cycle": "flash",
+      "gap_min": 10.0,
+      "gap_max": 19.0
+     },
+     {
+      "kind": "spine",
+      "scene": "ani_veti_spine",
+      "pos": [
+       165,
+       248
+      ],
+      "id": "veti",
+      "cycle": "veti"
+     }
+    ],
+    "sounds": [
+     {
+      "track": "effect_area_water",
+      "rect": [
+       184.8,
+       153.8,
+       332.5,
+       332.5
+      ]
+     },
+     {
+      "track": "effect_area_village",
+      "rect": [
+       657.8,
+       254.2,
+       332.5,
+       199.5
+      ]
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       974.0,
+       533.8,
+       532.0,
+       332.5
+      ]
+     }
+    ],
+    "field_fx": [
+     {
+      "field": 1,
+      "kind": "sound",
+      "sound": "effect_yutakan_1_forest"
+     },
+     {
+      "field": 2,
+      "kind": "spine",
+      "scene": "ani_shipwreck_spine",
+      "anim": "shiptouch",
+      "pos": [
+       1020,
+       571
+      ],
+      "loop": false
+     },
+     {
+      "field": 4,
+      "kind": "spine",
+      "scene": "ani_wind_spine",
+      "anim": "wind",
+      "pos": [
+       1186,
+       521
+      ],
+      "sound": "effect_wind",
+      "loop": false
+     },
+     {
+      "field": 5,
+      "kind": "flip",
+      "base": "ani_skyeffect",
+      "n": 13,
+      "pos": [
+       1380,
+       389
+      ]
+     },
+     {
+      "field": 6,
+      "kind": "sound",
+      "sound": "effect_yutakan_6_skelett"
+     },
+     {
+      "field": 7,
+      "kind": "spine",
+      "scene": "ani_treedungeon_spine",
+      "anim": "treee",
+      "pos": [
+       694,
+       504
+      ],
+      "loop": false
+     },
+     {
+      "field": 8,
+      "kind": "sound",
+      "sound": "effect_yutakan_8_chaos"
+     },
+     {
+      "field": 9,
+      "kind": "sound",
+      "sound": "effect_metal_2_mountain"
+     },
+     {
+      "field": 10,
+      "kind": "sound",
+      "sound": "effect_yutakan_10_crystal"
+     },
+     {
+      "field": 11,
+      "kind": "spine",
+      "scene": "ani_lake_spine",
+      "anim": "worldmap_lake",
+      "pos": [
+       365,
+       453
+      ],
+      "loop": true
+     },
+     {
+      "field": 12,
+      "kind": "spine",
+      "scene": "ani_waterfall_spine",
+      "anim": "animation",
+      "pos": [
+       351,
+       290
+      ],
+      "sound": "effect_yutakan_12_waterfall",
+      "loop": false
+     },
+     {
+      "field": 13,
+      "kind": "sound",
+      "sound": "effect_yutakan_13_igroo",
+      "ambient_touch": "veti"
+     },
+     {
+      "field": 14,
+      "kind": "spine",
+      "scene": "ani_snow_spine",
+      "anim": "kal",
+      "pos": [
+       447,
+       146
+      ],
+      "sound": "effect_yutakan_14_mountain",
+      "loop": true
+     },
+     {
+      "field": 15,
+      "kind": "spine",
+      "scene": "ani_lighttower_spine",
+      "anim": "appear",
+      "pos": [
+       1450.5,
+       164.5
+      ],
+      "anim_by_light_tower": true,
+      "design_offset": [
+       -47.0,
+       23.0
+      ],
+      "loop": false
+     }
+    ],
+    "night_fx": {
+     "light2": {
+      "layer_pos": [
+       1566.0,
+       994.0
+      ],
+      "design_offset": [
+       -70.0,
+       20.0
+      ]
+     }
+    }
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map_tower_water",
+     "frame_from": "light_tower",
+     "field": 15,
+     "type": "battle",
+     "label": "#317c71af",
+     "target": "battle:15",
+     "pos": [
+      1380,
+      195
+     ],
+     "label_level": 45,
+     "label_pos": [
+      1475,
+      1145
+     ],
+     "label_align": 0,
+     "label_color": 2,
+     "label_offset": [
+      112,
+      81
+     ],
+     "mark_at_label": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map001",
+     "field": 4,
+     "type": "battle",
+     "label": "#f3c1fcd7",
+     "target": "battle:4",
+     "pos": [
+      1186,
+      521
+     ],
+     "label_level": 15,
+     "label_pos": [
+      1670,
+      580
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map002",
+     "field": 2,
+     "type": "battle",
+     "label": "#47e22ec2",
+     "target": "battle:2",
+     "pos": [
+      1020,
+      571
+     ],
+     "label_level": 5,
+     "label_pos": [
+      1470,
+      300
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map003",
+     "field": 1,
+     "type": "battle",
+     "label": "#df1f3303",
+     "target": "battle:1",
+     "pos": [
+      1039,
+      396
+     ],
+     "label_level": 1,
+     "label_pos": [
+      1500,
+      750
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map004",
+     "field": 1002,
+     "type": "town",
+     "label": "#38b297ec",
+     "target": "town:elpis",
+     "pos": [
+      824,
+      354
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1200,
+      700
+     ],
+     "label_align": 1,
+     "label_color": 1
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map005",
+     "field": 0,
+     "type": "deco",
+     "label": "",
+     "target": "",
+     "pos": [
+      873,
+      222
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map006",
+     "field": 0,
+     "type": "deco",
+     "label": "",
+     "target": "",
+     "pos": [
+      639,
+      277
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map007",
+     "field": 1000,
+     "type": "colosseum",
+     "label": "#0dc97f22",
+     "target": "colosseum",
+     "pos": [
+      728,
+      129
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1125,
+      1125
+     ],
+     "label_align": 0,
+     "label_color": 5,
+     "label_offset": [
+      -16,
+      60
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map008",
+     "field": 1001,
+     "type": "cave",
+     "label": "#87351ee0",
+     "target": "cave",
+     "pos": [
+      850,
+      530
+     ],
+     "label_level": 0,
+     "label_hidden": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map010",
+     "field": 3,
+     "type": "battle",
+     "label": "#38894d60",
+     "target": "battle:3",
+     "pos": [
+      1155,
+      306
+     ],
+     "label_level": 10,
+     "label_pos": [
+      1630,
+      930
+     ],
+     "label_align": 0,
+     "label_color": 2,
+     "label_offset": [
+      -62,
+      39
+     ]
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map012",
+     "field": 14,
+     "type": "battle",
+     "label": "#bd8bc787",
+     "target": "battle:14",
+     "pos": [
+      447,
+      146
+     ],
+     "label_level": 42,
+     "label_pos": [
+      550,
+      1000
+     ],
+     "label_align": 0,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map013",
+     "field": 12,
+     "type": "battle",
+     "label": "#c8575920",
+     "target": "battle:12",
+     "pos": [
+      351,
+      290
+     ],
+     "label_level": 38,
+     "label_pos": [
+      560,
+      800
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map014",
+     "field": 13,
+     "type": "battle",
+     "label": "#a5e60872",
+     "target": "battle:13",
+     "pos": [
+      165,
+      186
+     ],
+     "label_level": 40,
+     "label_pos": [
+      250,
+      850
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map015",
+     "field": 10,
+     "type": "battle",
+     "label": "#e87e6d0f",
+     "target": "battle:10",
+     "pos": [
+      541,
+      413
+     ],
+     "label_level": 33,
+     "label_pos": [
+      800,
+      580
+     ],
+     "label_align": 1,
+     "label_color": 6
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map016",
+     "field": 11,
+     "type": "battle",
+     "label": "#754efc23",
+     "target": "battle:11",
+     "pos": [
+      365,
+      453
+     ],
+     "label_level": 36,
+     "label_pos": [
+      600,
+      650
+     ],
+     "label_align": 1,
+     "label_color": 2
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map017",
+     "field": 9,
+     "type": "battle",
+     "label": "#fc2d24cd",
+     "target": "battle:9",
+     "pos": [
+      235,
+      554
+     ],
+     "label_level": 30,
+     "label_pos": [
+      380,
+      430
+     ],
+     "label_align": 1,
+     "label_color": 6
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map018",
+     "field": 7,
+     "type": "battle",
+     "label": "#f5355ac9",
+     "target": "battle:7",
+     "pos": [
+      694,
+      504
+     ],
+     "label_level": 25,
+     "label_pos": [
+      1020,
+      475
+     ],
+     "label_align": 1,
+     "label_color": 5
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map019",
+     "field": 6,
+     "type": "battle",
+     "label": "#cb197b33",
+     "target": "battle:6",
+     "pos": [
+      687,
+      696
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1000,
+      300
+     ],
+     "label_align": 1,
+     "label_color": 4,
+     "label_special": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map020",
+     "field": 8,
+     "type": "battle",
+     "label": "#f2d33da5",
+     "target": "battle:8",
+     "pos": [
+      457,
+      698
+     ],
+     "label_level": 0,
+     "label_pos": [
+      700,
+      255
+     ],
+     "label_align": 1,
+     "label_color": 4,
+     "label_special": true
+    },
+    {
+     "frame": "scene_worldmap_map_yutakan_new_map009",
+     "field": 5,
+     "type": "battle",
+     "label": "#aa185ae3",
+     "target": "battle:5",
+     "pos": [
+      1380,
+      389
+     ],
+     "label_level": 20,
+     "label_pos": [
+      1900,
+      680
+     ],
+     "label_align": 1,
+     "label_color": 3
+    }
+   ]
+  },
+  {
+   "id": "elf",
+   "bgm": "bg_elysium",
+   "label_kr": "#268d461a",
+   "thumb": "scene_worldmap_map_world_map_elf",
+   "label_frame": "scene_worldmap_map_world_label_elf_kr",
+   "world": [
+    250,
+    420
+   ],
+   "unlocked": true,
+   "town": "",
+   "native": {
+    "atlas_dir": "worldmap_elf_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_elf_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.7138,
+     "center_x": true,
+     "bg_tex_center": [
+      547.0,
+      469.5
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -149.57,
+      "ty": 945.63
+     },
+     "ambient": {
+      "s": 0.75,
+      "tx": -149.57,
+      "ty": 945.63
+     }
+    },
+    "content_w": 1360,
+    "ambient_prefix": "scene_worldmap_map_elf_ani_new_",
+    "field_fx": [
+     {
+      "field": 16,
+      "kind": "spine",
+      "scene": "ani_elf_wood_new_spine",
+      "anim": "touch",
+      "loop": false,
+      "layer_pos": [
+       1515,
+       741
+      ],
+      "scale": 0.75,
+      "sounds": [
+       "effect_elysium_1_fire",
+       "effect_elysium_1_wii"
+      ],
+      "remove_after": 7.0
+     },
+     {
+      "field": 17,
+      "kind": "spine",
+      "scene": "ani_elf_valley_new_spine",
+      "anim": "animation",
+      "loop": false,
+      "layer_pos": [
+       484,
+       772
+      ],
+      "scale": 0.75,
+      "sounds": [
+       "effect_elysium_2_eye",
+       "effect_elysium_2_puuok"
+      ],
+      "remove_after": 7.0
+     },
+     {
+      "field": 18,
+      "kind": "spine",
+      "scene": "ani_elf_temple_spine",
+      "anim": "animation",
+      "loop": false,
+      "layer_pos": [
+       709,
+       481
+      ],
+      "scale": 0.75,
+      "sounds": [
+       "effect_elysium_3_ghost",
+       "effect_elysium_3_sword"
+      ],
+      "remove_after": 6.0
+     },
+     {
+      "field": 19,
+      "kind": "sprite",
+      "base": "ani_tree_touch",
+      "layer_pos": [
+       895,
+       1029
+      ],
+      "sounds": [
+       "effect_elysium_4_worldwood"
+      ],
+      "fade_in": 0.5,
+      "hold": 2.0,
+      "fade_out": 0.5
+     }
+    ],
+    "ambient": [
+     {
+      "base": "ani_elf_waterflow_spine",
+      "kind": "spine",
+      "scene": "ani_elf_waterflow_spine",
+      "anim": "animation",
+      "design_offset": [
+       40,
+       200
+      ],
+      "layer_pos": [
+       1024,
+       693
+      ],
+      "scale": 0.75
+     },
+     {
+      "base": "ani_elf_wave_new_spine",
+      "kind": "spine",
+      "scene": "ani_elf_wave_new_spine",
+      "anim": "animation",
+      "design_offset": [
+       40,
+       200
+      ],
+      "layer_pos": [
+       1025,
+       693
+      ],
+      "scale": 0.75
+     },
+     {
+      "base": "ani_elf_livingwaters_new_spine",
+      "kind": "spine",
+      "scene": "ani_elf_livingwaters_new_spine",
+      "anim": "animation",
+      "layer_pos": [
+       921,
+       980
+      ],
+      "scale": 0.75
+     },
+     {
+      "base": "ani_elf_tree_spine",
+      "kind": "spine",
+      "scene": "ani_elf_tree_spine",
+      "anim": "animation",
+      "layer_pos": [
+       906,
+       1039
+      ],
+      "design_offset": [
+       -44.7,
+       42.3
+      ],
+      "scale": 0.75
+     }
+    ],
+    "sounds": [
+     {
+      "track": "effect_area_river",
+      "rect": [
+       456.9,
+       279.2,
+       281.6,
+       281.6
+      ]
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       175.3,
+       701.6,
+       352.0,
+       281.6
+      ]
+     },
+     {
+      "track": "effect_area_water",
+      "rect": [
+       738.5,
+       631.2,
+       352.0,
+       352.0
+      ]
+     }
+    ]
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_elf_new_map002",
+     "field": 18,
+     "type": "battle",
+     "label": "#35b47280",
+     "target": "battle:18",
+     "pos": [
+      309.5,
+      635.5
+     ],
+     "label_level": 35,
+     "label_pos": [
+      700,
+      400
+     ],
+     "label_align": 1,
+     "label_color": "#E3A14C"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map001",
+     "field": 16,
+     "type": "battle",
+     "label": "#7adde1de",
+     "target": "battle:16",
+     "pos": [
+      910.0,
+      477.5
+     ],
+     "label_level": 25,
+     "label_pos": [
+      1500,
+      596
+     ],
+     "label_align": 1,
+     "label_color": "#76DF48"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map003",
+     "field": 17,
+     "type": "battle",
+     "label": "#dff8d9a9",
+     "target": "battle:17",
+     "pos": [
+      169.5,
+      454.5
+     ],
+     "label_level": 30,
+     "label_pos": [
+      500,
+      700
+     ],
+     "label_align": 1,
+     "label_color": "#6CC99A"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map005",
+     "field": 1004,
+     "type": "deco",
+     "label": "#2d5f67c5",
+     "target": "",
+     "pos": [
+      746.0,
+      401.0
+     ],
+     "label_level": 0,
+     "label_pos": [
+      1300,
+      800
+     ],
+     "label_align": 1,
+     "label_color": "#40E056"
+    },
+    {
+     "frame": "scene_worldmap_map_elf_new_map004",
+     "field": 19,
+     "type": "battle",
+     "label": "#71883df3",
+     "target": "battle:19",
+     "pos": [
+      413.3,
+      252.6
+     ],
+     "label_level": 45,
+     "label_pos": [
+      925,
+      870
+     ],
+     "label_align": 1,
+     "label_color": "#2A86B9"
+    }
+   ]
+  },
+  {
+   "id": "dwarf",
+   "bgm": "bg_metal_tower",
+   "label_kr": "#10f7ce67",
+   "thumb": "scene_worldmap_map_world_map_dwarf",
+   "label_frame": "scene_worldmap_map_world_label_dwarf_kr",
+   "world": [
+    250,
+    690
+   ],
+   "unlocked": true,
+   "town": "dwarf",
+   "native": {
+    "atlas_dir": "worldmap_dwarf_new",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_dwarf_new_background1_bg"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 0.7625,
+     "center_x": true,
+     "bg_tex_center": [
+      586.0,
+      439.5
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -117.43,
+      "ty": 895.62
+     },
+     "ambient": {
+      "s": 0.75,
+      "tx": -117.43,
+      "ty": 895.62
+     }
+    },
+    "content_w": 1360,
+    "ambient_prefix": "scene_worldmap_map_dwarf_ani_new_",
+    "field_fx": [
+     {
+      "field": 20,
+      "kind": "sprite",
+      "base": "ani_mineral",
+      "layer_pos": [
+       279,
+       143
+      ],
+      "sounds": [
+       "effect_metal_2_mountain"
+      ],
+      "pulses": 3,
+      "fade_in": 1.0,
+      "fade_out": 1.0
+     },
+     {
+      "field": 21,
+      "kind": "spine",
+      "scene": "ani_grave_new_spine",
+      "anim": "animation",
+      "loop": false,
+      "layer_pos": [
+       861,
+       670.5
+      ],
+      "scale": 0.75,
+      "sounds": [
+       "effect_metal_1_grave"
+      ],
+      "remove_after": 6.0
+     },
+     {
+      "field": 22,
+      "kind": "ambient_touch",
+      "ambient_touch": "dwarf_statue",
+      "anim": "animation",
+      "sounds": [
+       "effect_metal_3_big"
+      ]
+     }
+    ],
+    "ambient": [
+     {
+      "base": "ani_elevator_new_spine",
+      "kind": "spine",
+      "scene": "ani_elevator_new_spine",
+      "anim": "elevator",
+      "layer_pos": [
+       571,
+       730
+      ],
+      "design_offset": [
+       -77.3,
+       56.3
+      ],
+      "scale": 0.75,
+      "hide_slots": [
+       "w_dwarf_elevator_book"
+      ]
+     },
+     {
+      "base": "ani_fire",
+      "kind": "flip",
+      "n": 3,
+      "layer_pos": [
+       781,
+       912
+      ]
+     },
+     {
+      "base": "ani_dwarfstatue_new_spine",
+      "id": "dwarf_statue",
+      "kind": "spine",
+      "scene": "ani_dwarfstatue_new_spine",
+      "autoplay": false,
+      "layer_pos": [
+       1390,
+       550
+      ],
+      "design_offset": [
+       -55.0,
+       36.0
+      ],
+      "scale": 0.75
+     },
+     {
+      "base": "ani_ogre_spine",
+      "kind": "spine",
+      "scene": "ani_ogre_spine",
+      "anim": "breath",
+      "layer_pos": [
+       1270,
+       367
+      ],
+      "scale": 0.75
+     }
+    ],
+    "sounds": [
+     {
+      "track": "effect_area_rail",
+      "rect": [
+       728.3,
+       218.4,
+       292.6,
+       292.6
+      ]
+     },
+     {
+      "track": "effect_area_dor",
+      "rect": [
+       216.4,
+       145.3,
+       292.6,
+       292.6
+      ]
+     },
+     {
+      "track": "effect_area_wave",
+      "rect": [
+       216.4,
+       657.2,
+       585.1,
+       292.6
+      ]
+     }
+    ]
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map005",
+     "field": 20,
+     "type": "battle",
+     "label": "#3c5047c6",
+     "target": "battle:20",
+     "pos": [
+      219.5,
+      580.0
+     ],
+     "z_index": 10,
+     "label_level": 30,
+     "label_pos": [
+      579,
+      400
+     ],
+     "label_align": 1,
+     "label_color": "#26ADFE"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map002",
+     "field": 22,
+     "type": "battle",
+     "label": "#55100696",
+     "target": "battle:22",
+     "pos": [
+      821.5,
+      551.5
+     ],
+     "label_level": 35,
+     "label_pos": [
+      1385,
+      556
+     ],
+     "label_align": 1,
+     "label_color": "#D7949D"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map003",
+     "field": 21,
+     "type": "battle",
+     "label": "#9d784e02",
+     "target": "battle:21",
+     "pos": [
+      448.0,
+      520.5
+     ],
+     "label_level": 25,
+     "label_pos": [
+      886,
+      650
+     ],
+     "label_align": 1,
+     "label_color": "#C79FB1"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map001",
+     "field": 23,
+     "type": "battle",
+     "label": "#306ac99a",
+     "target": "battle:23",
+     "pos": [
+      919.2,
+      355.5
+     ],
+     "label_level": 45,
+     "label_pos": [
+      1509,
+      821
+     ],
+     "label_align": 1,
+     "label_color": "#CEA6C0"
+    },
+    {
+     "frame": "scene_worldmap_map_dwarf_new_map004",
+     "field": 1003,
+     "type": "town",
+     "label": "#4040a4ad",
+     "target": "town:dwarf",
+     "pos": [
+      437.0,
+      185.0
+     ],
+     "label_level": 0,
+     "label_pos": [
+      875,
+      870
+     ],
+     "label_align": 1,
+     "label_color": "#8794B5"
+    }
+   ]
+  },
+  {
+   "id": "uno",
+   "bgm": "uno_worldmap_bgm",
+   "label_kr": "#cff53b94",
+   "thumb": "scene_worldmap_map_world_map_uno",
+   "label_frame": "scene_worldmap_map_world_label_uno_kr",
+   "world": [
+    250,
+    900
+   ],
+   "unlocked": true,
+   "town": "",
+   "native": {
+    "atlas_dir": "worldmap_uno",
+    "background": "background",
+    "bg": {
+     "frame": "scene_worldmap_map_uno_background_background1"
+    },
+    "coord": {
+     "mode": "bg_image",
+     "scale": 1.0673,
+     "center_x": true,
+     "bg_tex_center": [
+      491.0,
+      314.0
+     ],
+     "bg_design": [
+      680.0,
+      346.0
+     ],
+     "label": {
+      "s": 0.75,
+      "tx": -131.62,
+      "ty": 744.62
+     }
+    },
+    "content_w": 1360,
+    "ambient_prefix": "",
+    "ambient": [
+     {
+      "base": "bg_black_island1",
+      "kind": "spine",
+      "scene": "bg_black_island1",
+      "anim": "animation",
+      "pos": [
+       412.6,
+       227.6
+      ],
+      "scale": 0.74563
+     },
+     {
+      "base": "bg_black_island2",
+      "kind": "spine",
+      "scene": "bg_black_island2",
+      "anim": "animation",
+      "pos": [
+       665.4,
+       496.8
+      ],
+      "scale": 0.74563
+     },
+     {
+      "base": "bg_unknown_ground1",
+      "kind": "spine",
+      "scene": "bg_unknown_ground1",
+      "anim": "animation",
+      "pos": [
+       647.5,
+       88.9
+      ],
+      "scale": 0.74563
+     },
+     {
+      "base": "bg_unknown_ground2",
+      "kind": "spine",
+      "scene": "bg_unknown_ground2",
+      "anim": "animation",
+      "pos": [
+       874.9,
+       101.6
+      ],
+      "scale": 0.74563
+     }
+    ],
+    "facility": {
+     "scene": "worldmap_mamorudik",
+     "anim": "normal",
+     "pos": [
+      662.4,
+      381.9
+     ],
+     "scale": 0.74563,
+     "target": "mamorudiclab",
+     "label": "#e62e8e56",
+     "hit": [
+      150,
+      200
+     ]
+    }
+   },
+   "pieces": [
+    {
+     "frame": "scene_worldmap_map_uno_background_map001",
+     "field": 24,
+     "type": "battle",
+     "label": "#23903019",
+     "target": "battle:24",
+     "pos": [
+      425.5,
+      255.0
+     ],
+     "label_level": 50,
+     "label_pos": [
+      766,
+      855
+     ],
+     "label_align": 1,
+     "label_color": "#8794B5"
+    },
+    {
+     "frame": "scene_worldmap_map_uno_background_map002",
+     "field": 25,
+     "type": "battle",
+     "label": "#25eaeb97",
+     "target": "battle:25",
+     "pos": [
+      755.0,
+      215.0
+     ],
+     "label_level": 50,
+     "label_pos": [
+      1313,
+      788
+     ],
+     "label_align": 1,
+     "label_color": "#26ADFE"
+    }
+   ]
+  }
+ ]
+}

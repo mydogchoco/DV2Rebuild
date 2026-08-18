@@ -1,0 +1,1689 @@
+{
+  "exclusive": {
+    "고대신룡의 금관": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "depure",
+          "mode": "flat",
+          "value": 50
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "다크닉스의 구슬": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "pure",
+          "mode": "flat",
+          "value": 50
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "에메랄드 드래곤의 보석 왕관": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "depure",
+          "mode": "flat",
+          "value": 40
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "루너스의 달빛불꽃": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "cri_pow",
+          "mode": "flat",
+          "value": 150
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "루미네스의 빙결신발": {
+      "ops": [
+        {
+          "kind": "dmg_deal",
+          "pct": 30
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "아가레스의 투구": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "hp",
+          "mode": "pct",
+          "value": -10
+        },
+        {
+          "kind": "stat",
+          "stat": "att",
+          "mode": "pct",
+          "value": 30
+        },
+        {
+          "kind": "stat",
+          "stat": "def",
+          "mode": "pct",
+          "value": 30
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "트로페우스의얼음결정": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "hp",
+          "mode": "pct",
+          "from": {
+            "stat": "cri",
+            "ratio": 1.0
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "라 솔라의 불꽃": {
+      "ops": [
+        {
+          "kind": "skill_uses",
+          "value": 2
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "팡팡드래곤의풍선": {
+      "ops": [
+        {
+          "kind": "skill_uses",
+          "value": 2
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "섬머샤인의 선글라스": {
+      "ops": [
+        {
+          "kind": "skill_uses",
+          "value": 2
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "소라게 드래곤의 마법의 소라": {
+      "ops": [
+        {
+          "kind": "skill_uses",
+          "value": 2
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "노웨마의 갈기": {
+      "ops": [
+        {
+          "kind": "dmg_cap_pct",
+          "pct": 30
+        },
+        {
+          "kind": "dmg_deal",
+          "pct": 10,
+          "to": "ally"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "설리반의 가면": {
+      "cond": {
+        "kind": "party_has_element",
+        "value": "holy"
+      },
+      "ops": [
+        {
+          "kind": "dmg_cap_pct",
+          "pct": 30
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "가오론의 뿔갑옷": {
+      "ops": [
+        {
+          "kind": "dmg_taken_flat",
+          "value": 20
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "빙하고룡의 칼날": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_element",
+          "pct": 50,
+          "element": "fire"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "파워드래곤의장갑": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_element",
+          "pct": 50,
+          "element": "aqua"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "즈믄의 빛나는갑주": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_element",
+          "pct": 100,
+          "element": "holy"
+        },
+        {
+          "kind": "dmg_deal_vs_element",
+          "pct": 100,
+          "element": "light"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "백룡의 보주": {
+      "react": [
+        {
+          "on": "evade",
+          "do": "skill_restore",
+          "value": 1
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "네시의 머리장식": {
+      "react": [
+        {
+          "on": "evade",
+          "do": "skill_restore",
+          "value": 1
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "흑룡의 보주": {
+      "react": [
+        {
+          "on": "crit",
+          "do": "skill_restore",
+          "value": 1
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "시타엘의 신성한 뿔": {
+      "react": [
+        {
+          "on": "evade",
+          "do": "skill_restore",
+          "value": 1,
+          "to": "ally"
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "저네르의 정기": {
+      "react": [
+        {
+          "on": "crit",
+          "pct": 10,
+          "max": 300
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "다크나이트의투구": {
+      "react": [
+        {
+          "on": "hit_taken",
+          "do": "stack",
+          "stats": [
+            "blk"
+          ],
+          "mode": "flat",
+          "value": 2,
+          "max_total": 20
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "레드와이번의뿔": {
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "survive_once"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "발레포르의 고리": {
+      "awaken_mod": {
+        "skill": "#0438286d",
+        "patch": {
+          "ops.0.pct": "+20"
+        },
+        "no": 16
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "프로스티의 무늬": {
+      "awaken_mod": {
+        "skill": "#7af5671c",
+        "patch": {
+          "ops.0.pct": -20
+        },
+        "no": 39
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "프리스트의 빛나는 날개": {
+      "awaken_mod": {
+        "skill": "#09c2c687",
+        "patch": {
+          "ops.0.to": "self|ally_element:holy|ally_element:light",
+          "ops.0.value": "+15"
+        },
+        "no": 62
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "아틀라스의 마력 수정": {
+      "awaken_mod": {
+        "skill": "#2b7c79be",
+        "patch": {
+          "ops.0.pct": "+30",
+          "ops.1.pct": "+30"
+        },
+        "no": 27
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "금오드래곤의고대목걸이": {
+      "awaken_mod": {
+        "skill": "#9765c279",
+        "patch": {
+          "ops.0.value": "*2",
+          "ops.1.value": "*2",
+          "ops.2.value": "*2"
+        },
+        "no": 56
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "루시퍼의 날개장식": {
+      "awaken_mod": {
+        "skill": "#a9cc759c",
+        "patch": {
+          "ops.0.value": 100
+        },
+        "no": 32
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "살라의 화염창": {
+      "awaken_mod": {
+        "skill": "#abd1015f",
+        "add_ops": [
+          {
+            "kind": "dmg_deal",
+            "pct": 50
+          }
+        ],
+        "no": 95
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "라이오스의 바람방패": {
+      "awaken_mod": {
+        "skill": "#01fa0687",
+        "add_ops": [
+          {
+            "kind": "dmg_taken_flat",
+            "from": {
+              "stat": "def",
+              "ratio": 0.03
+            }
+          }
+        ],
+        "no": 14
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "파이썬의 갑옷": {
+      "awaken_mod": {
+        "skill": "#1fe7987b",
+        "add_ops": [
+          {
+            "kind": "flag",
+            "flag": "awaken_taken_applies",
+            "to": "ally_element:earth"
+          }
+        ],
+        "no": 28
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "발칸의 푸른불꽃": {
+      "awaken_mod": {
+        "skill": "#46e14e23",
+        "add_ops": [
+          {
+            "kind": "stat",
+            "stat": "cri_pow",
+            "mode": "flat",
+            "value": 30,
+            "to": "ally"
+          }
+        ],
+        "no": 88
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "헤네스의 지성의 왕관": {
+      "awaken_mod": {
+        "skill": "#375c743a",
+        "patch": {
+          "react.0.left": "+3"
+        },
+        "no": 81
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "다르고스의 파괴의 힘": {
+      "awaken_mod": {
+        "skill": "#9febc569",
+        "add_react": [
+          {
+            "on": "pre_damage",
+            "fix": 1,
+            "left": 2
+          }
+        ],
+        "no": 94
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "팔라곤의 권위의 투구": {
+      "awaken_mod": {
+        "skill": "#2d1b46bf",
+        "patch": {
+          "ops.0.from.ratio": 1.5
+        },
+        "no": 18
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "루키르의 바람의 날개": {
+      "awaken_mod": {
+        "skill": "#fe712ac4",
+        "patch": {
+          "react.0.to": "ally"
+        },
+        "no": 63
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "나이트 드래곤의 기사 투구": {
+      "awaken_mod": {
+        "skill": "#920cc9da",
+        "patch": {
+          "ops.0.from.ratio": "*2",
+          "ops.0.max": "*2"
+        },
+        "no": 48
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "말덱의 흡수의서": {
+      "awaken_mod": {
+        "skill": "#e5b98937",
+        "patch": {
+          "ops.0.effective": true
+        },
+        "no": 100
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "스트라의 방출의 서": {
+      "awaken_mod": {
+        "skill": "#61460d65",
+        "patch": {
+          "react.0.gauge_pct": "*2"
+        },
+        "no": 38
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "푸르푸르의 혼돈의 번개": {
+      "awaken_mod": {
+        "skill": "#f5a10904",
+        "patch": {
+          "react.0.left": "+2"
+        },
+        "no": 85
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "사이커드래곤의 초록 번개": {
+      "awaken_mod": {
+        "skill": "#be9468c2",
+        "patch": {
+          "ops.0.pct": 10,
+          "ops.1.pct": 30
+        },
+        "no": 20
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "데스퍼라티오의 용암신발": {
+      "awaken_mod": {
+        "skill": "#d5d50175",
+        "patch": {
+          "ops.0.pct": 100,
+          "ops.0.value": 2
+        },
+        "no": 83
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "제피로스의 보석": {
+      "awaken_mod": {
+        "skill": "#d5d50175",
+        "patch": {
+          "ops.0.pct": "+15"
+        },
+        "no": 83
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "크로우 드래곤의 해골투구": {
+      "awaken_mod": {
+        "skill": "#1969ca28",
+        "add_react": [
+          {
+            "on": "block",
+            "do": "react_restore",
+            "target_no": 40,
+            "max": 4
+          },
+          {
+            "on": "evade",
+            "do": "react_restore",
+            "target_no": 40,
+            "max": 4
+          }
+        ],
+        "no": 40
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "쏜 네일의 가시갑옷": {
+      "awaken_mod": {
+        "skill": "#41449bfd",
+        "patch": {
+          "ops.0.from.ratio": -2.0,
+          "ops.1.from.ratio": 2.0
+        },
+        "no": 102
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "아카이아의 성물": {
+      "awaken_mod": {
+        "skill": "#d3355e7d",
+        "patch": {
+          "dyn.0.ops.0.to": "ally",
+          "dyn.0.ops.1.to": "ally"
+        },
+        "no": 66
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "샤마쉬의 흉갑": {
+      "awaken_mod": {
+        "skill": "#540165f6",
+        "patch": {
+          "ops.1.to": "ally"
+        },
+        "no": 86
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "샤크곤의 물안경": {
+      "awaken_mod": {
+        "skill": "#fbb50ed8",
+        "explore": {
+          "artifact_chance_pct": 100
+        },
+        "no": 17
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "오르페우스의비석": {
+      "awaken_mod": {
+        "skill": "#fbb50ed8",
+        "explore": {
+          "artifact_chance_pct": 100
+        },
+        "no": 17
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "번개고룡의 팬던트": {
+      "ops": [
+        {
+          "kind": "skill_dmg_deal",
+          "pct": 200,
+          "skill_id": 21
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "포세이돈의 삼지창": {
+      "awaken_mod": {
+        "skill": "#467508d2",
+        "patch": {
+          "react.0.target_value": "*2",
+          "react.0.self_value": "*2"
+        },
+        "no": 25
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "블랙홀의 암흑결정체": {
+      "awaken_mod": {
+        "skill": "#48411a5d",
+        "patch": {
+          "react.0.ratio": 1.0,
+          "react.0.value": 20,
+          "react.0.max_total": 100
+        },
+        "no": 46
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "아루루가의 물갈퀴": {
+      "awaken_mod": {
+        "skill": "#d0fcd980",
+        "patch": {
+          "react.0.plant.left": "+2"
+        },
+        "no": 35
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "커스리퍼의 뼈투구": {
+      "awaken_mod": {
+        "skill": "#17f18fc5",
+        "patch": {
+          "ops.0.value": "*2",
+          "react.0.value": "*2"
+        },
+        "no": 52
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "콜테일의 헛된희망": {
+      "awaken_mod": {
+        "skill": "#38805d72",
+        "add_ops": [
+          {
+            "kind": "stat",
+            "stat": "att",
+            "mode": "pct",
+            "value": 15
+          },
+          {
+            "kind": "stat",
+            "stat": "def",
+            "mode": "pct",
+            "value": 15
+          }
+        ],
+        "no": 91
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "루페스의 결정화된 분노": {
+      "impl": false,
+      "why": "skill:복수의 거울",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "불나래의 불꽃구슬": {
+      "ops": [
+        {
+          "kind": "dmg_taken_flat",
+          "from": {
+            "stat": "skill_level_sum",
+            "ratio": 4.0
+          }
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "미니드래곤 고리": {
+      "impl": false,
+      "why": "#620c7a50",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "투탕카의 도리깨": {
+      "impl": false,
+      "why": "#199bc1e8",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "번네스의 화염신발": {
+      "impl": false,
+      "why": "#93c047db",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "홀리의 빛나는양뿔": {
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "crit_ignores_evade"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "레이어스의 반석 방패": {
+      "awaken_mod": {
+        "skill": "#a50281ed",
+        "patch": {
+          "ops.0.from.ratio": 4.0,
+          "ops.1.from.ratio": 2.0
+        },
+        "no": 92
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "실러캔스의 물빛 투구": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "def",
+          "mode": "pct",
+          "value": 50
+        }
+      ],
+      "awaken_mod": {
+        "skill": "#493486e9",
+        "patch": {
+          "dyn.0.ops.0.from.ratio": -1.0,
+          "dyn.1.ops.0.from.ratio": 1.0
+        },
+        "no": 13
+      },
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "카일루스의 신성 방패": {
+      "awaken_mod": {
+        "skill": "#bb761516",
+        "patch": {
+          "react.0.pct": 10
+        },
+        "no": 65
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "디기의 금빛장식": {
+      "awaken_mod": {
+        "skill": "#2bc815b7",
+        "patch": {
+          "react.0.max": 250
+        },
+        "no": 71
+      },
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "세로님의 전쟁보닛": {
+      "cond": {
+        "kind": "team_buff_active",
+        "value": "#6f27cc53"
+      },
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "no_attack"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "진의 나무비늘": {
+      "ops": [
+        {
+          "kind": "awaken_dmg",
+          "pct": 20,
+          "per": "ally_element:earth",
+          "max": 60
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "레지아나의 빛나는 깃털": {
+      "react": [
+        {
+          "on": "death",
+          "do": "party_buff",
+          "to": "ally",
+          "ops": [
+            {
+              "kind": "awaken_dmg",
+              "pct": 50
+            }
+          ]
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "발로드의 갈기": {
+      "ops": [
+        {
+          "kind": "awaken_dmg",
+          "pct": 30
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "청룡의 여의주": {
+      "impl": false,
+      "why": "#70e419a9",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "익시아의 왕관": {
+      "awaken_mod": {
+        "skill": "#84946513",
+        "patch": {
+          "ops.0.value": "+30",
+          "ops.1.value": "+30",
+          "ops.2.value": "+30"
+        },
+        "no": 7
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "솔라의 불꽃구슬": {
+      "awaken_mod": {
+        "skill": "#37e59a62",
+        "patch": {
+          "ops.0.value": "+30",
+          "ops.1.value": "+30",
+          "ops.2.value": "+30"
+        },
+        "no": 9
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "수라드래곤의고대 장식": {
+      "awaken_mod": {
+        "skill": "#929bdfbf",
+        "patch": {
+          "ops.0.value": "+30",
+          "ops.1.value": "+30",
+          "ops.2.value": "+30"
+        },
+        "no": 8
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "프로스트랩터의 얼음수정": {
+      "awaken_mod": {
+        "skill": "#9902ffae",
+        "patch": {
+          "ops.0.value": "+30",
+          "ops.1.value": "+30",
+          "ops.2.value": "+30"
+        },
+        "no": 10
+      },
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "바리안의 백색갑옷": {
+      "impl": false,
+      "why": "#e1769a64",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "다크프로스티의 무늬": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "att",
+          "mode": "pct",
+          "from": {
+            "stat": "explore_gold_pct",
+            "ratio": 1.0
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "엔젤 드래곤의티아라": {
+      "ops": [
+        {
+          "kind": "pen_share"
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "엔투라스의 불꽃 주먹": {
+      "ops": [
+        {
+          "kind": "crit_pen",
+          "pct": 50
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "글라시아의 왕관": {
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "crit_sure_if_no_evade"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "일란의 영예의관": {
+      "ops": [
+        {
+          "kind": "double_dmg",
+          "pct": 50
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "세크라포의 어깨보호대": {
+      "react": [
+        {
+          "on": "double",
+          "do": "heal_dealt",
+          "ratio": 1.0,
+          "left": 3
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "완숙이의 후라이팬": {
+      "dyn": [
+        {
+          "when": {
+            "kind": "self_hp_at_most",
+            "pct": 20
+          },
+          "ops": [
+            {
+              "kind": "dmg_deal",
+              "pct": 25
+            }
+          ]
+        }
+      ],
+      "react": [
+        {
+          "on": "attack_done",
+          "do": "heal_pct",
+          "pct": 1,
+          "when": {
+            "kind": "self_hp_at_most",
+            "pct": 20
+          }
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "ops": [],
+      "text": ""
+    },
+    "워든의 부유검": {
+      "react": [
+        {
+          "on": "attack_done",
+          "do": "stack_from_target",
+          "stat": "att",
+          "pct": 10,
+          "max_total": 1000,
+          "when": {
+            "kind": "has_debuff",
+            "except_src": [
+              23
+            ]
+          }
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "모노케로스의붉은 보주": {
+      "impl": false,
+      "why": "#77b49b1c",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "발록의 전투갑주": {
+      "impl": false,
+      "why": "#7d978fdb",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "쿠르파의 푸른갑주": {
+      "react": [
+        {
+          "on": "death",
+          "do": "party_buff",
+          "plant": "ally_element:shadow",
+          "to": "ally",
+          "turns": 5,
+          "ops": [
+            {
+              "kind": "stat",
+              "stat": "att",
+              "mode": "pct",
+              "value": 50
+            }
+          ]
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "오울드라의 어둠갑옷": {
+      "react": [
+        {
+          "on": "pre_damage",
+          "fix": 1,
+          "left": 1,
+          "plant": "ally"
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "페이스리스의사슬": {
+      "impl": false,
+      "why": "#d2f116b7",
+      "ops": [],
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "미르의 별빛방울": {
+      "dyn": [
+        {
+          "when": {
+            "kind": "enemy_hp_sum"
+          },
+          "ops": [
+            {
+              "kind": "stat",
+              "stat": "att",
+              "mode": "flat",
+              "value": 0.1,
+              "max": 1000
+            }
+          ]
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "react": [],
+      "text": ""
+    },
+    "타로스의 용암구슬": {
+      "ops": [
+        {
+          "kind": "skill_dmg_deal",
+          "from": {
+            "stat": "cri",
+            "ratio": 1.0
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "운디네의 물방울": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "hp",
+          "mode": "pct",
+          "to": "ally_element:aqua",
+          "max": 30,
+          "from": {
+            "stat": "blk",
+            "ratio": 1.0
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "현무드래곤의동방갑옷": {
+      "ops": [
+        {
+          "kind": "dmg_deal",
+          "pct": 10,
+          "to": "ally_element:aqua"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "샛별의 날개장식": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "evd",
+          "mode": "flat",
+          "value": 33
+        },
+        {
+          "kind": "dmg_taken_flat",
+          "from": {
+            "stat": "skill_level_sum",
+            "ratio": 4.0
+          }
+        },
+        {
+          "kind": "dmg_deal",
+          "pct": 30,
+          "to": "ally"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "한울의 불꽃": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "cri",
+          "mode": "flat",
+          "value": 75
+        },
+        {
+          "kind": "stat",
+          "stat": "evd",
+          "mode": "flat",
+          "value": 25
+        },
+        {
+          "kind": "skill_uses",
+          "value": 2
+        },
+        {
+          "kind": "crit_pen",
+          "pct": 50
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "멜로우 드래곤의 부메랑": {
+      "cond": {
+        "kind": "party_element_count",
+        "value": "wind",
+        "min": 2
+      },
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "no_attack"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    }
+  },
+  "special": {
+    "balrog:카이저 발록의 팔찌": {
+      "ops": [
+        {
+          "kind": "flag",
+          "flag": "survive_once"
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "balrog:카이저 발록의 보주": {
+      "ops": [
+        {
+          "kind": "stat",
+          "stat": "cri_pow",
+          "mode": "flat",
+          "value": 100
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "balrog:카이저 발록의 투구": {
+      "react": [
+        {
+          "on": "attack_target_hp",
+          "do": "cur_pct",
+          "pct": 5,
+          "max": 300
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "fiod:피오드의 부서진 낙인": {
+      "ops": [
+        {
+          "kind": "skill_level",
+          "value": 1
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "fiod:피오드의 빛을 잃은 마석": {
+      "ops": [
+        {
+          "kind": "awaken_dmg_cap",
+          "value": 1000
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "fiod:피오드의 텅 빈 모래시계": {
+      "react": [
+        {
+          "on": "attack_target_hp",
+          "do": "max_per_unit",
+          "per_unit_pct": 0.002,
+          "max": 300
+        }
+      ],
+      "impl": true,
+      "ops": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:엘더 블랙퀸의 스태프": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "hd"
+        },
+        {
+          "kind": "stat",
+          "stat": "evd",
+          "mode": "flat",
+          "value": 10,
+          "cond": {
+            "kind": "self_type",
+            "value": "def"
+          }
+        }
+      ],
+      "partial": "",
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:엘더 블랙퀸의 목걸이": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "def"
+        }
+      ],
+      "impl": true,
+      "partial": "",
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:엘더 블랙퀸의 목도리": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "ad"
+        },
+        {
+          "kind": "skill_dmg_taken",
+          "pct": -10,
+          "cond": {
+            "kind": "self_type",
+            "value": "hd"
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:G스컬의 은빛망토": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "ha"
+        },
+        {
+          "kind": "flag",
+          "flag": "oblivion_immune",
+          "cond": {
+            "kind": "self_type",
+            "value": "ad"
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:G스컬의 붉은장갑": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "hp"
+        },
+        {
+          "kind": "stat",
+          "stat": "cri_pow",
+          "mode": "flat",
+          "value": 100,
+          "cond": {
+            "kind": "self_type",
+            "value": "atk"
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    },
+    "skull:G스컬의 영혼불길": {
+      "ops": [
+        {
+          "kind": "dmg_deal_vs_type",
+          "pct": 25,
+          "atk_type": "atk"
+        },
+        {
+          "kind": "stat",
+          "stat": "hp",
+          "mode": "pct",
+          "value": 15,
+          "cond": {
+            "kind": "self_type",
+            "value": "ha"
+          }
+        },
+        {
+          "kind": "stat",
+          "stat": "att",
+          "mode": "pct",
+          "value": 15,
+          "cond": {
+            "kind": "self_type",
+            "value": "ha"
+          }
+        }
+      ],
+      "impl": true,
+      "react": [],
+      "dyn": [],
+      "text": ""
+    }
+  }
+}

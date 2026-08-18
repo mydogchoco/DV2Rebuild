@@ -1,0 +1,3896 @@
+{
+ "_about": "assets/converted 재생성 맵 — rebuild_assets.py 가 소비. gen_asset_map.py(로컬)로 재생성.",
+ "builders": {
+  "adventure_bg": "build_adventure_bg.py",
+  "atlas_fix": "spine_export.py",
+  "card_game": "build_battle_fx.py",
+  "critical_8": "build_loki800.py",
+  "critical_80": "build_loki800.py",
+  "critical_800": "build_loki800.py",
+  "dragon_8": "author_loki_motions.py",
+  "dragon_80": "author_loki_motions.py",
+  "dragon_800": "author_loki_motions.py",
+  "dragon_800_fx": "build_loki800.py",
+  "equip_wiki": "build_item_icons.py",
+  "font_ui": "build_fonts.py",
+  "gem_soul": "build_item_icons.py",
+  "hit_effect": "build_battle_fx.py",
+  "hit_talk": "build_battle_fx.py",
+  "item_accessory": "build_item_icons.py",
+  "item_doc": "build_item_icons.py",
+  "item_egg": "build_item_icons.py",
+  "item_etc": "build_dex.py",
+  "item_food": "build_item_icons.py",
+  "item_gem": "build_item_icons.py",
+  "item_mtr": "build_item_icons.py",
+  "item_quest": "build_item_icons.py",
+  "item_small_acc": "build_item_icons.py",
+  "item_small_egg_piece": "build_item_icons.py",
+  "item_small_event": "build_item_icons.py",
+  "item_small_evol": "build_item_icons.py",
+  "item_small_new": "build_item_icons.py",
+  "item_small_slot": "build_item_icons.py",
+  "item_small_ui": "build_item_icons.py",
+  "item_spc": "build_item_icons.py",
+  "laboratory_bg": "build_facility_bg.py",
+  "laboratory_ui": "build_facility_bg.py",
+  "lab_furnace": "convert_lab_furnace.py",
+  "lab_machine": "convert_lab_furnace.py",
+  "magicshop_alchemy": "build_facility_bg.py",
+  "magicshop_bg": "build_facility_bg.py",
+  "magicshop_ui": "build_facility_bg.py",
+  "mainbar_ui": "build_ui_bar.py",
+  "mamorudiclab_bg": "build_facility_bg.py",
+  "mamorudiclab_ui": "build_facility_bg.py",
+  "npc_popo": "build_sundaegun_npc.py",
+  "npc_sundaegun": "build_sundaegun_npc.py",
+  "particles": "particle_export.py",
+  "portrait_8": "build_loki800.py",
+  "portrait_80": "build_loki800.py",
+  "portrait_800": "build_loki800.py",
+  "promote_bg": "build_facility_bg.py",
+  "scenespine_egglight_spine": "build_cave_fx.py",
+  "scenespine_holy_wing_spine": "build_ultimate_fx.py",
+  "scenespine_shadow_spine": "build_ultimate_fx.py",
+  "shop_bg": "build_shop_bg.py",
+  "skill": "build_skill_fx.py",
+  "title_ui": "build_titles.py",
+  "town_elpis": "build_town_sky.py",
+  "town_elpis_sky": "build_town_sky.py",
+  "worldmap_sea": "build_worldmap_sea.py"
+ },
+ "atlases": {
+  "achievement_ui": [
+   "DV2/480/scene/achievement.img_plist"
+  ],
+  "adventure_fountain": [
+   "DV2/480/scene/adventure/fountain.img_plist"
+  ],
+  "adventure_ui": [
+   "DV2/480/scene/adventure.img_plist"
+  ],
+  "aura_ui": [
+   "DV2/480/dragon/aura_aqua.img_plist",
+   "DV2/480/dragon/aura_chaos.img_plist",
+   "DV2/480/dragon/aura_dark.img_plist",
+   "DV2/480/dragon/aura_earth.img_plist",
+   "DV2/480/dragon/aura_fire.img_plist",
+   "DV2/480/dragon/aura_holy.img_plist",
+   "DV2/480/dragon/aura_light.img_plist",
+   "DV2/480/dragon/aura_shadow.img_plist",
+   "DV2/480/dragon/aura_wind.img_plist"
+  ],
+  "battle_combine_amagethon": [
+   "DV2/480/battle/amagethon.img_plist"
+  ],
+  "battle_combine_apocalypse": [
+   "DV2/480/battle/apocalypse.img_plist"
+  ],
+  "battle_combine_aqualight": [
+   "DV2/480/battle/aqualight.img_plist"
+  ],
+  "battle_combine_asgard": [
+   "DV2/480/battle/asgard.img_plist"
+  ],
+  "battle_combine_avatar": [
+   "DV2/480/battle/avatar.img_plist"
+  ],
+  "battle_combine_blackwind": [
+   "DV2/480/battle/blackwind.img_plist"
+  ],
+  "battle_combine_corona": [
+   "DV2/480/battle/corona.img_plist"
+  ],
+  "battle_combine_dark": [
+   "DV2/480/battle/dark.img_plist"
+  ],
+  "battle_combine_dyingbreath": [
+   "DV2/480/battle/dyingbreath.img_plist"
+  ],
+  "battle_combine_flood": [
+   "DV2/480/battle/flood.img_plist"
+  ],
+  "battle_combine_gaia": [
+   "DV2/480/battle/gaia.img_plist"
+  ],
+  "battle_combine_hellfire": [
+   "DV2/480/battle/hellfire.img_plist"
+  ],
+  "battle_combine_highness": [
+   "DV2/480/battle/highness.img_plist"
+  ],
+  "battle_combine_hurricane": [
+   "DV2/480/battle/hurricane.img_plist"
+  ],
+  "battle_combine_landslide": [
+   "DV2/480/battle/landslide.img_plist"
+  ],
+  "battle_combine_lavastorm": [
+   "DV2/480/battle/lavastorm.img_plist"
+  ],
+  "battle_combine_legion": [
+   "DV2/480/battle/legion.img_plist"
+  ],
+  "battle_combine_light": [
+   "DV2/480/battle/light.img_plist"
+  ],
+  "battle_combine_mirinae": [
+   "DV2/480/battle/mirinae.img_plist"
+  ],
+  "battle_combine_rainbow": [
+   "DV2/480/battle/rainbow.img_plist"
+  ],
+  "battle_combine_shimmer": [
+   "DV2/480/battle/shimmer.img_plist"
+  ],
+  "battle_combine_storm": [
+   "DV2/480/battle/storm.img_plist"
+  ],
+  "battle_combine_supernova": [
+   "DV2/480/battle/supernova.img_plist"
+  ],
+  "battle_combine_tearsofagod": [
+   "DV2/480/battle/tearsofagod.img_plist"
+  ],
+  "battle_ui": [
+   "DV2/480/battle.img_plist"
+  ],
+  "card_game": [
+   "DV2/480/scene/adventure/card_game.img_plist"
+  ],
+  "cave_ui": [
+   "DV2/480/scene/cave.img_plist"
+  ],
+  "colosseum_ui": [
+   "DV2/480/scene/colosseum.img_plist"
+  ],
+  "common_ui": [
+   "DV2/480/common.img_plist"
+  ],
+  "critical_1": [
+   "DV2/480/dragon/dragon_1_critical.img_plist"
+  ],
+  "critical_10": [
+   "DV2/480/dragon/dragon_10_critical.img_plist"
+  ],
+  "critical_100": [
+   "DV2/480/dragon/dragon_100_critical.img_plist"
+  ],
+  "critical_101": [
+   "DV2/480/dragon/dragon_101_critical.img_plist"
+  ],
+  "critical_102": [
+   "DV2/480/dragon/dragon_102_critical.img_plist"
+  ],
+  "critical_103": [
+   "DV2/480/dragon/dragon_103_critical.img_plist"
+  ],
+  "critical_104": [
+   "DV2/480/dragon/dragon_104_critical.img_plist"
+  ],
+  "critical_105": [
+   "DV2/480/dragon/dragon_105_critical.img_plist"
+  ],
+  "critical_106": [
+   "DV2/480/dragon/dragon_106_critical.img_plist"
+  ],
+  "critical_107": [
+   "DV2/480/dragon/dragon_107_critical.img_plist"
+  ],
+  "critical_108": [
+   "DV2/480/dragon/dragon_108_critical.img_plist"
+  ],
+  "critical_11": [
+   "DV2/480/dragon/dragon_11_critical.img_plist"
+  ],
+  "critical_115": [
+   "DV2/480/dragon/dragon_115_critical.img_plist"
+  ],
+  "critical_116": [
+   "DV2/480/dragon/dragon_116_critical.img_plist"
+  ],
+  "critical_117": [
+   "DV2/480/dragon/dragon_117_critical.img_plist"
+  ],
+  "critical_118": [
+   "DV2/480/dragon/dragon_118_critical.img_plist"
+  ],
+  "critical_119": [
+   "DV2/480/dragon/dragon_119_critical.img_plist"
+  ],
+  "critical_12": [
+   "DV2/480/dragon/dragon_12_critical.img_plist"
+  ],
+  "critical_120": [
+   "DV2/480/dragon/dragon_120_critical.img_plist"
+  ],
+  "critical_121": [
+   "DV2/480/dragon/dragon_121_critical.img_plist"
+  ],
+  "critical_122": [
+   "DV2/480/dragon/dragon_122_critical.img_plist"
+  ],
+  "critical_123": [
+   "DV2/480/dragon/dragon_123_critical.img_plist"
+  ],
+  "critical_124": [
+   "DV2/480/dragon/dragon_124_critical.img_plist"
+  ],
+  "critical_125": [
+   "DV2/480/dragon/dragon_125_critical.img_plist"
+  ],
+  "critical_129": [
+   "DV2/480/dragon/dragon_129_critical.img_plist"
+  ],
+  "critical_13": [
+   "DV2/480/dragon/dragon_13_critical.img_plist"
+  ],
+  "critical_133": [
+   "DV2/480/dragon/dragon_133_critical.img_plist"
+  ],
+  "critical_137": [
+   "DV2/480/dragon/dragon_137_critical.img_plist"
+  ],
+  "critical_14": [
+   "DV2/480/dragon/dragon_14_critical.img_plist"
+  ],
+  "critical_141": [
+   "DV2/480/dragon/dragon_141_critical.img_plist"
+  ],
+  "critical_145": [
+   "DV2/480/dragon/dragon_145_critical.img_plist"
+  ],
+  "critical_15": [
+   "DV2/480/dragon/dragon_15_critical.img_plist"
+  ],
+  "critical_16": [
+   "DV2/480/dragon/dragon_16_critical.img_plist"
+  ],
+  "critical_167": [
+   "DV2/480/dragon/dragon_167_critical.img_plist"
+  ],
+  "critical_168": [
+   "DV2/480/dragon/dragon_168_critical.img_plist"
+  ],
+  "critical_169": [
+   "DV2/480/dragon/dragon_169_critical.img_plist"
+  ],
+  "critical_17": [
+   "DV2/480/dragon/dragon_17_critical.img_plist"
+  ],
+  "critical_170": [
+   "DV2/480/dragon/dragon_170_critical.img_plist"
+  ],
+  "critical_171": [
+   "DV2/480/dragon/dragon_171_critical.img_plist"
+  ],
+  "critical_172": [
+   "DV2/480/dragon/dragon_172_critical.img_plist"
+  ],
+  "critical_173": [
+   "DV2/480/dragon/dragon_173_critical.img_plist"
+  ],
+  "critical_174": [
+   "DV2/480/dragon/dragon_174_critical.img_plist"
+  ],
+  "critical_175": [
+   "DV2/480/dragon/dragon_175_critical.img_plist"
+  ],
+  "critical_176": [
+   "DV2/480/dragon/dragon_176_critical.img_plist"
+  ],
+  "critical_177": [
+   "DV2/480/dragon/dragon_177_critical.img_plist"
+  ],
+  "critical_178": [
+   "DV2/480/dragon/dragon_178_critical.img_plist"
+  ],
+  "critical_179": [
+   "DV2/480/dragon/dragon_179_critical.img_plist"
+  ],
+  "critical_18": [
+   "DV2/480/dragon/dragon_18_critical.img_plist"
+  ],
+  "critical_180": [
+   "DV2/480/dragon/dragon_180_critical.img_plist"
+  ],
+  "critical_181": [
+   "DV2/480/dragon/dragon_181_critical.img_plist"
+  ],
+  "critical_182": [
+   "DV2/480/dragon/dragon_182_critical.img_plist"
+  ],
+  "critical_183": [
+   "DV2/480/dragon/dragon_183_critical.img_plist"
+  ],
+  "critical_184": [
+   "DV2/480/dragon/dragon_184_critical.img_plist"
+  ],
+  "critical_185": [
+   "DV2/480/dragon/dragon_185_critical.img_plist"
+  ],
+  "critical_186": [
+   "DV2/480/dragon/dragon_186_critical.img_plist"
+  ],
+  "critical_187": [
+   "DV2/480/dragon/dragon_187_critical.img_plist"
+  ],
+  "critical_188": [
+   "DV2/480/dragon/dragon_188_critical.img_plist"
+  ],
+  "critical_189": [
+   "DV2/480/dragon/dragon_189_critical.img_plist"
+  ],
+  "critical_19": [
+   "DV2/480/dragon/dragon_19_critical.img_plist"
+  ],
+  "critical_195": [
+   "DV2/480/dragon/dragon_195_critical.img_plist"
+  ],
+  "critical_196": [
+   "DV2/480/dragon/dragon_196_critical.img_plist"
+  ],
+  "critical_2": [
+   "DV2/480/dragon/dragon_2_critical.img_plist"
+  ],
+  "critical_20": [
+   "DV2/480/dragon/dragon_20_critical.img_plist"
+  ],
+  "critical_21": [
+   "DV2/480/dragon/dragon_21_critical.img_plist"
+  ],
+  "critical_22": [
+   "DV2/480/dragon/dragon_22_critical.img_plist"
+  ],
+  "critical_23": [
+   "DV2/480/dragon/dragon_23_critical.img_plist"
+  ],
+  "critical_24": [
+   "DV2/480/dragon/dragon_24_critical.img_plist"
+  ],
+  "critical_25": [
+   "DV2/480/dragon/dragon_25_critical.img_plist"
+  ],
+  "critical_26": [
+   "DV2/480/dragon/dragon_26_critical.img_plist"
+  ],
+  "critical_27": [
+   "DV2/480/dragon/dragon_27_critical.img_plist"
+  ],
+  "critical_28": [
+   "DV2/480/dragon/dragon_28_critical.img_plist"
+  ],
+  "critical_29": [
+   "DV2/480/dragon/dragon_29_critical.img_plist"
+  ],
+  "critical_3": [
+   "DV2/480/dragon/dragon_3_critical.img_plist"
+  ],
+  "critical_30": [
+   "DV2/480/dragon/dragon_30_critical.img_plist"
+  ],
+  "critical_3001": [
+   "DV2/480/dragon/dragon_3001_critical.img_plist"
+  ],
+  "critical_3002": [
+   "DV2/480/dragon/dragon_3002_critical.img_plist"
+  ],
+  "critical_3003": [
+   "DV2/480/dragon/dragon_3003_critical.img_plist"
+  ],
+  "critical_3004": [
+   "DV2/480/dragon/dragon_3004_critical.img_plist"
+  ],
+  "critical_3005": [
+   "DV2/480/dragon/dragon_3005_critical.img_plist"
+  ],
+  "critical_3006": [
+   "DV2/480/dragon/dragon_3006_critical.img_plist"
+  ],
+  "critical_3007": [
+   "DV2/480/dragon/dragon_3007_critical.img_plist"
+  ],
+  "critical_3008": [
+   "DV2/480/dragon/dragon_3008_critical.img_plist"
+  ],
+  "critical_3009": [
+   "DV2/480/dragon/dragon_3009_critical.img_plist"
+  ],
+  "critical_3010": [
+   "DV2/480/dragon/dragon_3010_critical.img_plist"
+  ],
+  "critical_3011": [
+   "DV2/480/dragon/dragon_3011_critical.img_plist"
+  ],
+  "critical_3012": [
+   "DV2/480/dragon/dragon_3012_critical.img_plist"
+  ],
+  "critical_3013": [
+   "DV2/480/dragon/dragon_3013_critical.img_plist"
+  ],
+  "critical_3014": [
+   "DV2/480/dragon/dragon_3014_critical.img_plist"
+  ],
+  "critical_3015": [
+   "DV2/480/dragon/dragon_3015_critical.img_plist"
+  ],
+  "critical_3016": [
+   "DV2/480/dragon/dragon_3016_critical.img_plist"
+  ],
+  "critical_3017": [
+   "DV2/480/dragon/dragon_3017_critical.img_plist"
+  ],
+  "critical_3018": [
+   "DV2/480/dragon/dragon_3018_critical.img_plist"
+  ],
+  "critical_3019": [
+   "DV2/480/dragon/dragon_3019_critical.img_plist"
+  ],
+  "critical_3020": [
+   "DV2/480/dragon/dragon_3020_critical.img_plist"
+  ],
+  "critical_3021": [
+   "DV2/480/dragon/dragon_3021_critical.img_plist"
+  ],
+  "critical_3022": [
+   "DV2/480/dragon/dragon_3022_critical.img_plist"
+  ],
+  "critical_3023": [
+   "DV2/480/dragon/dragon_3023_critical.img_plist"
+  ],
+  "critical_3024": [
+   "DV2/480/dragon/dragon_3024_critical.img_plist"
+  ],
+  "critical_3025": [
+   "DV2/480/dragon/dragon_3025_critical.img_plist"
+  ],
+  "critical_3026": [
+   "DV2/480/dragon/dragon_3026_critical.img_plist"
+  ],
+  "critical_3027": [
+   "DV2/480/dragon/dragon_3027_critical.img_plist"
+  ],
+  "critical_3028": [
+   "DV2/480/dragon/dragon_3028_critical.img_plist"
+  ],
+  "critical_3029": [
+   "DV2/480/dragon/dragon_3029_critical.img_plist"
+  ],
+  "critical_3030": [
+   "DV2/480/dragon/dragon_3030_critical.img_plist"
+  ],
+  "critical_3031": [
+   "DV2/480/dragon/dragon_3031_critical.img_plist"
+  ],
+  "critical_3032": [
+   "DV2/480/dragon/dragon_3032_critical.img_plist"
+  ],
+  "critical_3033": [
+   "DV2/480/dragon/dragon_3033_critical.img_plist"
+  ],
+  "critical_3034": [
+   "DV2/480/dragon/dragon_3034_critical.img_plist"
+  ],
+  "critical_3035": [
+   "DV2/480/dragon/dragon_3035_critical.img_plist"
+  ],
+  "critical_3036": [
+   "DV2/480/dragon/dragon_3036_critical.img_plist"
+  ],
+  "critical_3037": [
+   "DV2/480/dragon/dragon_3037_critical.img_plist"
+  ],
+  "critical_3038": [
+   "DV2/480/dragon/dragon_3038_critical.img_plist"
+  ],
+  "critical_3039": [
+   "DV2/480/dragon/dragon_3039_critical.img_plist"
+  ],
+  "critical_3040": [
+   "DV2/480/dragon/dragon_3040_critical.img_plist"
+  ],
+  "critical_3041": [
+   "DV2/480/dragon/dragon_3041_critical.img_plist"
+  ],
+  "critical_3042": [
+   "DV2/480/dragon/dragon_3042_critical.img_plist"
+  ],
+  "critical_31": [
+   "DV2/480/dragon/dragon_31_critical.img_plist"
+  ],
+  "critical_32": [
+   "DV2/480/dragon/dragon_32_critical.img_plist"
+  ],
+  "critical_33": [
+   "DV2/480/dragon/dragon_33_critical.img_plist"
+  ],
+  "critical_34": [
+   "DV2/480/dragon/dragon_34_critical.img_plist"
+  ],
+  "critical_35": [
+   "DV2/480/dragon/dragon_35_critical.img_plist"
+  ],
+  "critical_36": [
+   "DV2/480/dragon/dragon_36_critical.img_plist"
+  ],
+  "critical_37": [
+   "DV2/480/dragon/dragon_37_critical.img_plist"
+  ],
+  "critical_38": [
+   "DV2/480/dragon/dragon_38_critical.img_plist"
+  ],
+  "critical_39": [
+   "DV2/480/dragon/dragon_39_critical.img_plist"
+  ],
+  "critical_4": [
+   "DV2/480/dragon/dragon_4_critical.img_plist"
+  ],
+  "critical_40": [
+   "DV2/480/dragon/dragon_40_critical.img_plist"
+  ],
+  "critical_4000": [
+   "DV2/480/dragon/dragon_4000_critical.img_plist"
+  ],
+  "critical_4001": [
+   "DV2/480/dragon/dragon_4001_critical.img_plist"
+  ],
+  "critical_4002": [
+   "DV2/480/dragon/dragon_4002_critical.img_plist"
+  ],
+  "critical_4003": [
+   "DV2/480/dragon/dragon_4003_critical.img_plist"
+  ],
+  "critical_4004": [
+   "DV2/480/dragon/dragon_4004_critical.img_plist"
+  ],
+  "critical_4005": [
+   "DV2/480/dragon/dragon_4005_critical.img_plist"
+  ],
+  "critical_4006": [
+   "DV2/480/dragon/dragon_4006_critical.img_plist"
+  ],
+  "critical_4007": [
+   "DV2/480/dragon/dragon_4007_critical.img_plist"
+  ],
+  "critical_4008": [
+   "DV2/480/dragon/dragon_4008_critical.img_plist"
+  ],
+  "critical_4009": [
+   "DV2/480/dragon/dragon_4009_critical.img_plist"
+  ],
+  "critical_4010": [
+   "DV2/480/dragon/dragon_4010_critical.img_plist"
+  ],
+  "critical_4011": [
+   "DV2/480/dragon/dragon_4011_critical.img_plist"
+  ],
+  "critical_4012": [
+   "DV2/480/dragon/dragon_4012_critical.img_plist"
+  ],
+  "critical_4013": [
+   "DV2/480/dragon/dragon_4013_critical.img_plist"
+  ],
+  "critical_4014": [
+   "DV2/480/dragon/dragon_4014_critical.img_plist"
+  ],
+  "critical_4015": [
+   "DV2/480/dragon/dragon_4015_critical.img_plist"
+  ],
+  "critical_4016": [
+   "DV2/480/dragon/dragon_4016_critical.img_plist"
+  ],
+  "critical_4017": [
+   "DV2/480/dragon/dragon_4017_critical.img_plist"
+  ],
+  "critical_4018": [
+   "DV2/480/dragon/dragon_4018_critical.img_plist"
+  ],
+  "critical_4019": [
+   "DV2/480/dragon/dragon_4019_critical.img_plist"
+  ],
+  "critical_4020": [
+   "DV2/480/dragon/dragon_4020_critical.img_plist"
+  ],
+  "critical_4021": [
+   "DV2/480/dragon/dragon_4021_critical.img_plist"
+  ],
+  "critical_4022": [
+   "DV2/480/dragon/dragon_4022_critical.img_plist"
+  ],
+  "critical_4023": [
+   "DV2/480/dragon/dragon_4023_critical.img_plist"
+  ],
+  "critical_4024": [
+   "DV2/480/dragon/dragon_4024_critical.img_plist"
+  ],
+  "critical_4025": [
+   "DV2/480/dragon/dragon_4025_critical.img_plist"
+  ],
+  "critical_4026": [
+   "DV2/480/dragon/dragon_4026_critical.img_plist"
+  ],
+  "critical_4027": [
+   "DV2/480/dragon/dragon_4027_critical.img_plist"
+  ],
+  "critical_4028": [
+   "DV2/480/dragon/dragon_4028_critical.img_plist"
+  ],
+  "critical_4029": [
+   "DV2/480/dragon/dragon_4029_critical.img_plist"
+  ],
+  "critical_4030": [
+   "DV2/480/dragon/dragon_4030_critical.img_plist"
+  ],
+  "critical_4031": [
+   "DV2/480/dragon/dragon_4031_critical.img_plist"
+  ],
+  "critical_4032": [
+   "DV2/480/dragon/dragon_4032_critical.img_plist"
+  ],
+  "critical_4033": [
+   "DV2/480/dragon/dragon_4033_critical.img_plist"
+  ],
+  "critical_4034": [
+   "DV2/480/dragon/dragon_4034_critical.img_plist"
+  ],
+  "critical_4035": [
+   "DV2/480/dragon/dragon_4035_critical.img_plist"
+  ],
+  "critical_4036": [
+   "DV2/480/dragon/dragon_4036_critical.img_plist"
+  ],
+  "critical_4037": [
+   "DV2/480/dragon/dragon_4037_critical.img_plist"
+  ],
+  "critical_4038": [
+   "DV2/480/dragon/dragon_4038_critical.img_plist"
+  ],
+  "critical_4039": [
+   "DV2/480/dragon/dragon_4039_critical.img_plist"
+  ],
+  "critical_4040": [
+   "DV2/480/dragon/dragon_4040_critical.img_plist"
+  ],
+  "critical_4041": [
+   "DV2/480/dragon/dragon_4041_critical.img_plist"
+  ],
+  "critical_4042": [
+   "DV2/480/dragon/dragon_4042_critical.img_plist"
+  ],
+  "critical_4043": [
+   "DV2/480/dragon/dragon_4043_critical.img_plist"
+  ],
+  "critical_4044": [
+   "DV2/480/dragon/dragon_4044_critical.img_plist"
+  ],
+  "critical_4045": [
+   "DV2/480/dragon/dragon_4045_critical.img_plist"
+  ],
+  "critical_4046": [
+   "DV2/480/dragon/dragon_4046_critical.img_plist"
+  ],
+  "critical_4047": [
+   "DV2/480/dragon/dragon_4047_critical.img_plist"
+  ],
+  "critical_4048": [
+   "DV2/480/dragon/dragon_4048_critical.img_plist"
+  ],
+  "critical_4049": [
+   "DV2/480/dragon/dragon_4049_critical.img_plist"
+  ],
+  "critical_4050": [
+   "DV2/480/dragon/dragon_4050_critical.img_plist"
+  ],
+  "critical_4051": [
+   "DV2/480/dragon/dragon_4051_critical.img_plist"
+  ],
+  "critical_4052": [
+   "DV2/480/dragon/dragon_4052_critical.img_plist"
+  ],
+  "critical_4053": [
+   "DV2/480/dragon/dragon_4053_critical.img_plist"
+  ],
+  "critical_4055": [
+   "DV2/480/dragon/dragon_4055_critical.img_plist"
+  ],
+  "critical_4056": [
+   "DV2/480/dragon/dragon_4056_critical.img_plist"
+  ],
+  "critical_4057": [
+   "DV2/480/dragon/dragon_4057_critical.img_plist"
+  ],
+  "critical_4058": [
+   "DV2/480/dragon/dragon_4058_critical.img_plist"
+  ],
+  "critical_4059": [
+   "DV2/480/dragon/dragon_4059_critical.img_plist"
+  ],
+  "critical_4060": [
+   "DV2/480/dragon/dragon_4060_critical.img_plist"
+  ],
+  "critical_4061": [
+   "DV2/480/dragon/dragon_4061_critical.img_plist"
+  ],
+  "critical_4062": [
+   "DV2/480/dragon/dragon_4062_critical.img_plist"
+  ],
+  "critical_4064": [
+   "DV2/480/dragon/dragon_4064_critical.img_plist"
+  ],
+  "critical_4065": [
+   "DV2/480/dragon/dragon_4065_critical.img_plist"
+  ],
+  "critical_4066": [
+   "DV2/480/dragon/dragon_4066_critical.img_plist"
+  ],
+  "critical_4067": [
+   "DV2/480/dragon/dragon_4067_critical.img_plist"
+  ],
+  "critical_4068": [
+   "DV2/480/dragon/dragon_4068_critical.img_plist"
+  ],
+  "critical_4069": [
+   "DV2/480/dragon/dragon_4069_critical.img_plist"
+  ],
+  "critical_4070": [
+   "DV2/480/dragon/dragon_4070_critical.img_plist"
+  ],
+  "critical_4071": [
+   "DV2/480/dragon/dragon_4071_critical.img_plist"
+  ],
+  "critical_4072": [
+   "DV2/480/dragon/dragon_4072_critical.img_plist"
+  ],
+  "critical_4073": [
+   "DV2/480/dragon/dragon_4073_critical.img_plist"
+  ],
+  "critical_4075": [
+   "DV2/480/dragon/dragon_4075_critical.img_plist"
+  ],
+  "critical_4083": [
+   "DV2/480/dragon/dragon_4083_critical.img_plist"
+  ],
+  "critical_4096": [
+   "DV2/480/dragon/dragon_4096_critical.img_plist"
+  ],
+  "critical_4097": [
+   "DV2/480/dragon/dragon_4097_critical.img_plist"
+  ],
+  "critical_4098": [
+   "DV2/480/dragon/dragon_4098_critical.img_plist"
+  ],
+  "critical_4099": [
+   "DV2/480/dragon/dragon_4099_critical.img_plist"
+  ],
+  "critical_41": [
+   "DV2/480/dragon/dragon_41_critical.img_plist"
+  ],
+  "critical_4100": [
+   "DV2/480/dragon/dragon_4100_critical.img_plist"
+  ],
+  "critical_4101": [
+   "DV2/480/dragon/dragon_4101_critical.img_plist"
+  ],
+  "critical_4102": [
+   "DV2/480/dragon/dragon_4102_critical.img_plist"
+  ],
+  "critical_4103": [
+   "DV2/480/dragon/dragon_4103_critical.img_plist"
+  ],
+  "critical_4104": [
+   "DV2/480/dragon/dragon_4104_critical.img_plist"
+  ],
+  "critical_4105": [
+   "DV2/480/dragon/dragon_4105_critical.img_plist"
+  ],
+  "critical_4106": [
+   "DV2/480/dragon/dragon_4106_critical.img_plist"
+  ],
+  "critical_4107": [
+   "DV2/480/dragon/dragon_4107_critical.img_plist"
+  ],
+  "critical_4108": [
+   "DV2/480/dragon/dragon_4108_critical.img_plist"
+  ],
+  "critical_4109": [
+   "DV2/480/dragon/dragon_4109_critical.img_plist"
+  ],
+  "critical_4110": [
+   "DV2/480/dragon/dragon_4110_critical.img_plist"
+  ],
+  "critical_4111": [
+   "DV2/480/dragon/dragon_4111_critical.img_plist"
+  ],
+  "critical_4112": [
+   "DV2/480/dragon/dragon_4112_critical.img_plist"
+  ],
+  "critical_4113": [
+   "DV2/480/dragon/dragon_4113_critical.img_plist"
+  ],
+  "critical_4114": [
+   "DV2/480/dragon/dragon_4114_critical.img_plist"
+  ],
+  "critical_4115": [
+   "DV2/480/dragon/dragon_4115_critical.img_plist"
+  ],
+  "critical_4116": [
+   "DV2/480/dragon/dragon_4116_critical.img_plist"
+  ],
+  "critical_4117": [
+   "DV2/480/dragon/dragon_4117_critical.img_plist"
+  ],
+  "critical_4118": [
+   "DV2/480/dragon/dragon_4118_critical.img_plist"
+  ],
+  "critical_4119": [
+   "DV2/480/dragon/dragon_4119_critical.img_plist"
+  ],
+  "critical_4120": [
+   "DV2/480/dragon/dragon_4120_critical.img_plist"
+  ],
+  "critical_4121": [
+   "DV2/480/dragon/dragon_4121_critical.img_plist"
+  ],
+  "critical_4122": [
+   "DV2/480/dragon/dragon_4122_critical.img_plist"
+  ],
+  "critical_4123": [
+   "DV2/480/dragon/dragon_4123_critical.img_plist"
+  ],
+  "critical_4124": [
+   "DV2/480/dragon/dragon_4124_critical.img_plist"
+  ],
+  "critical_4125": [
+   "DV2/480/dragon/dragon_4125_critical.img_plist"
+  ],
+  "critical_4126": [
+   "DV2/480/dragon/dragon_4126_critical.img_plist"
+  ],
+  "critical_4127": [
+   "DV2/480/dragon/dragon_4127_critical.img_plist"
+  ],
+  "critical_4128": [
+   "DV2/480/dragon/dragon_4128_critical.img_plist"
+  ],
+  "critical_4129": [
+   "DV2/480/dragon/dragon_4129_critical.img_plist"
+  ],
+  "critical_4130": [
+   "DV2/480/dragon/dragon_4130_critical.img_plist"
+  ],
+  "critical_4131": [
+   "DV2/480/dragon/dragon_4131_critical.img_plist"
+  ],
+  "critical_4132": [
+   "DV2/480/dragon/dragon_4132_critical.img_plist"
+  ],
+  "critical_4135": [
+   "DV2/480/dragon/dragon_4135_critical.img_plist"
+  ],
+  "critical_4136": [
+   "DV2/480/dragon/dragon_4136_critical.img_plist"
+  ],
+  "critical_4137": [
+   "DV2/480/dragon/dragon_4137_critical.img_plist"
+  ],
+  "critical_4138": [
+   "DV2/480/dragon/dragon_4138_critical.img_plist"
+  ],
+  "critical_4139": [
+   "DV2/480/dragon/dragon_4139_critical.img_plist"
+  ],
+  "critical_4140": [
+   "DV2/480/dragon/dragon_4140_critical.img_plist"
+  ],
+  "critical_4141": [
+   "DV2/480/dragon/dragon_4141_critical.img_plist"
+  ],
+  "critical_4142": [
+   "DV2/480/dragon/dragon_4142_critical.img_plist"
+  ],
+  "critical_4143": [
+   "DV2/480/dragon/dragon_4143_critical.img_plist"
+  ],
+  "critical_4144": [
+   "DV2/480/dragon/dragon_4144_critical.img_plist"
+  ],
+  "critical_4145": [
+   "DV2/480/dragon/dragon_4145_critical.img_plist"
+  ],
+  "critical_4146": [
+   "DV2/480/dragon/dragon_4146_critical.img_plist"
+  ],
+  "critical_4147": [
+   "DV2/480/dragon/dragon_4147_critical.img_plist"
+  ],
+  "critical_4148": [
+   "DV2/480/dragon/dragon_4148_critical.img_plist"
+  ],
+  "critical_4149": [
+   "DV2/480/dragon/dragon_4149_critical.img_plist"
+  ],
+  "critical_4150": [
+   "DV2/480/dragon/dragon_4150_critical.img_plist"
+  ],
+  "critical_4151": [
+   "DV2/480/dragon/dragon_4151_critical.img_plist"
+  ],
+  "critical_4152": [
+   "DV2/480/dragon/dragon_4152_critical.img_plist"
+  ],
+  "critical_4153": [
+   "DV2/480/dragon/dragon_4153_critical.img_plist"
+  ],
+  "critical_4154": [
+   "DV2/480/dragon/dragon_4154_critical.img_plist"
+  ],
+  "critical_4155": [
+   "DV2/480/dragon/dragon_4155_critical.img_plist"
+  ],
+  "critical_4156": [
+   "DV2/480/dragon/dragon_4156_critical.img_plist"
+  ],
+  "critical_4157": [
+   "DV2/480/dragon/dragon_4157_critical.img_plist"
+  ],
+  "critical_4158": [
+   "DV2/480/dragon/dragon_4158_critical.img_plist"
+  ],
+  "critical_4159": [
+   "DV2/480/dragon/dragon_4159_critical.img_plist"
+  ],
+  "critical_4160": [
+   "DV2/480/dragon/dragon_4160_critical.img_plist"
+  ],
+  "critical_4161": [
+   "DV2/480/dragon/dragon_4161_critical.img_plist"
+  ],
+  "critical_4162": [
+   "DV2/480/dragon/dragon_4162_critical.img_plist"
+  ],
+  "critical_4163": [
+   "DV2/480/dragon/dragon_4163_critical.img_plist"
+  ],
+  "critical_4164": [
+   "DV2/480/dragon/dragon_4164_critical.img_plist"
+  ],
+  "critical_4165": [
+   "DV2/480/dragon/dragon_4165_critical.img_plist"
+  ],
+  "critical_4166": [
+   "DV2/480/dragon/dragon_4166_critical.img_plist"
+  ],
+  "critical_4173": [
+   "DV2/480/dragon/dragon_4173_critical.img_plist"
+  ],
+  "critical_4174": [
+   "DV2/480/dragon/dragon_4174_critical.img_plist"
+  ],
+  "critical_4175": [
+   "DV2/480/dragon/dragon_4175_critical.img_plist"
+  ],
+  "critical_4176": [
+   "DV2/480/dragon/dragon_4176_critical.img_plist"
+  ],
+  "critical_4177": [
+   "DV2/480/dragon/dragon_4177_critical.img_plist"
+  ],
+  "critical_4178": [
+   "DV2/480/dragon/dragon_4178_critical.img_plist"
+  ],
+  "critical_4179": [
+   "DV2/480/dragon/dragon_4179_critical.img_plist"
+  ],
+  "critical_4180": [
+   "DV2/480/dragon/dragon_4180_critical.img_plist"
+  ],
+  "critical_4181": [
+   "DV2/480/dragon/dragon_4181_critical.img_plist"
+  ],
+  "critical_4182": [
+   "DV2/480/dragon/dragon_4182_critical.img_plist"
+  ],
+  "critical_4183": [
+   "DV2/480/dragon/dragon_4183_critical.img_plist"
+  ],
+  "critical_4184": [
+   "DV2/480/dragon/dragon_4184_critical.img_plist"
+  ],
+  "critical_4185": [
+   "DV2/480/dragon/dragon_4185_critical.img_plist"
+  ],
+  "critical_4186": [
+   "DV2/480/dragon/dragon_4186_critical.img_plist"
+  ],
+  "critical_4187": [
+   "DV2/480/dragon/dragon_4187_critical.img_plist"
+  ],
+  "critical_4188": [
+   "DV2/480/dragon/dragon_4188_critical.img_plist"
+  ],
+  "critical_4189": [
+   "DV2/480/dragon/dragon_4189_critical.img_plist"
+  ],
+  "critical_4190": [
+   "DV2/480/dragon/dragon_4190_critical.img_plist"
+  ],
+  "critical_4191": [
+   "DV2/480/dragon/dragon_4191_critical.img_plist"
+  ],
+  "critical_4192": [
+   "DV2/480/dragon/dragon_4192_critical.img_plist"
+  ],
+  "critical_4193": [
+   "DV2/480/dragon/dragon_4193_critical.img_plist"
+  ],
+  "critical_4194": [
+   "DV2/480/dragon/dragon_4194_critical.img_plist"
+  ],
+  "critical_4195": [
+   "DV2/480/dragon/dragon_4195_critical.img_plist"
+  ],
+  "critical_4196": [
+   "DV2/480/dragon/dragon_4196_critical.img_plist"
+  ],
+  "critical_4197": [
+   "DV2/480/dragon/dragon_4197_critical.img_plist"
+  ],
+  "critical_4198": [
+   "DV2/480/dragon/dragon_4198_critical.img_plist"
+  ],
+  "critical_4199": [
+   "DV2/480/dragon/dragon_4199_critical.img_plist"
+  ],
+  "critical_42": [
+   "DV2/480/dragon/dragon_42_critical.img_plist"
+  ],
+  "critical_4200": [
+   "DV2/480/dragon/dragon_4200_critical.img_plist"
+  ],
+  "critical_4201": [
+   "DV2/480/dragon/dragon_4201_critical.img_plist"
+  ],
+  "critical_4202": [
+   "DV2/480/dragon/dragon_4202_critical.img_plist"
+  ],
+  "critical_4203": [
+   "DV2/480/dragon/dragon_4203_critical.img_plist"
+  ],
+  "critical_4204": [
+   "DV2/480/dragon/dragon_4204_critical.img_plist"
+  ],
+  "critical_4205": [
+   "DV2/480/dragon/dragon_4205_critical.img_plist"
+  ],
+  "critical_4206": [
+   "DV2/480/dragon/dragon_4206_critical.img_plist"
+  ],
+  "critical_4207": [
+   "DV2/480/dragon/dragon_4207_critical.img_plist"
+  ],
+  "critical_4208": [
+   "DV2/480/dragon/dragon_4208_critical.img_plist"
+  ],
+  "critical_4209": [
+   "DV2/480/dragon/dragon_4209_critical.img_plist"
+  ],
+  "critical_4210": [
+   "DV2/480/dragon/dragon_4210_critical.img_plist"
+  ],
+  "critical_4211": [
+   "DV2/480/dragon/dragon_4211_critical.img_plist"
+  ],
+  "critical_4212": [
+   "DV2/480/dragon/dragon_4212_critical.img_plist"
+  ],
+  "critical_43": [
+   "DV2/480/dragon/dragon_43_critical.img_plist"
+  ],
+  "critical_44": [
+   "DV2/480/dragon/dragon_44_critical.img_plist"
+  ],
+  "critical_45": [
+   "DV2/480/dragon/dragon_45_critical.img_plist"
+  ],
+  "critical_46": [
+   "DV2/480/dragon/dragon_46_critical.img_plist"
+  ],
+  "critical_47": [
+   "DV2/480/dragon/dragon_47_critical.img_plist"
+  ],
+  "critical_48": [
+   "DV2/480/dragon/dragon_48_critical.img_plist"
+  ],
+  "critical_49": [
+   "DV2/480/dragon/dragon_49_critical.img_plist"
+  ],
+  "critical_5": [
+   "DV2/480/dragon/dragon_5_critical.img_plist"
+  ],
+  "critical_50": [
+   "DV2/480/dragon/dragon_50_critical.img_plist"
+  ],
+  "critical_51": [
+   "DV2/480/dragon/dragon_51_critical.img_plist"
+  ],
+  "critical_52": [
+   "DV2/480/dragon/dragon_52_critical.img_plist"
+  ],
+  "critical_53": [
+   "DV2/480/dragon/dragon_53_critical.img_plist"
+  ],
+  "critical_54": [
+   "DV2/480/dragon/dragon_54_critical.img_plist"
+  ],
+  "critical_55": [
+   "DV2/480/dragon/dragon_55_critical.img_plist"
+  ],
+  "critical_56": [
+   "DV2/480/dragon/dragon_56_critical.img_plist"
+  ],
+  "critical_57": [
+   "DV2/480/dragon/dragon_57_critical.img_plist"
+  ],
+  "critical_58": [
+   "DV2/480/dragon/dragon_58_critical.img_plist"
+  ],
+  "critical_59": [
+   "DV2/480/dragon/dragon_59_critical.img_plist"
+  ],
+  "critical_6": [
+   "DV2/480/dragon/dragon_6_critical.img_plist"
+  ],
+  "critical_60": [
+   "DV2/480/dragon/dragon_60_critical.img_plist"
+  ],
+  "critical_61": [
+   "DV2/480/dragon/dragon_61_critical.img_plist"
+  ],
+  "critical_62": [
+   "DV2/480/dragon/dragon_62_critical.img_plist"
+  ],
+  "critical_63": [
+   "DV2/480/dragon/dragon_63_critical.img_plist"
+  ],
+  "critical_64": [
+   "DV2/480/dragon/dragon_64_critical.img_plist"
+  ],
+  "critical_65": [
+   "DV2/480/dragon/dragon_65_critical.img_plist"
+  ],
+  "critical_66": [
+   "DV2/480/dragon/dragon_66_critical.img_plist"
+  ],
+  "critical_67": [
+   "DV2/480/dragon/dragon_67_critical.img_plist"
+  ],
+  "critical_68": [
+   "DV2/480/dragon/dragon_68_critical.img_plist"
+  ],
+  "critical_69": [
+   "DV2/480/dragon/dragon_69_critical.img_plist"
+  ],
+  "critical_7": [
+   "DV2/480/dragon/dragon_7_critical.img_plist"
+  ],
+  "critical_70": [
+   "DV2/480/dragon/dragon_70_critical.img_plist"
+  ],
+  "critical_71": [
+   "DV2/480/dragon/dragon_71_critical.img_plist"
+  ],
+  "critical_72": [
+   "DV2/480/dragon/dragon_72_critical.img_plist"
+  ],
+  "critical_73": [
+   "DV2/480/dragon/dragon_73_critical.img_plist"
+  ],
+  "critical_74": [
+   "DV2/480/dragon/dragon_74_critical.img_plist"
+  ],
+  "critical_75": [
+   "DV2/480/dragon/dragon_75_critical.img_plist"
+  ],
+  "critical_76": [
+   "DV2/480/dragon/dragon_76_critical.img_plist"
+  ],
+  "critical_77": [
+   "DV2/480/dragon/dragon_77_critical.img_plist"
+  ],
+  "critical_78": [
+   "DV2/480/dragon/dragon_78_critical.img_plist"
+  ],
+  "critical_79": [
+   "DV2/480/dragon/dragon_79_critical.img_plist"
+  ],
+  "critical_8": [
+   "DV2/480/dragon/dragon_8_critical.img_plist"
+  ],
+  "critical_80": [
+   "DV2/480/dragon/dragon_80_critical.img_plist"
+  ],
+  "critical_81": [
+   "DV2/480/dragon/dragon_81_critical.img_plist"
+  ],
+  "critical_82": [
+   "DV2/480/dragon/dragon_82_critical.img_plist"
+  ],
+  "critical_83": [
+   "DV2/480/dragon/dragon_83_critical.img_plist"
+  ],
+  "critical_84": [
+   "DV2/480/dragon/dragon_84_critical.img_plist"
+  ],
+  "critical_85": [
+   "DV2/480/dragon/dragon_85_critical.img_plist"
+  ],
+  "critical_86": [
+   "DV2/480/dragon/dragon_86_critical.img_plist"
+  ],
+  "critical_87": [
+   "DV2/480/dragon/dragon_87_critical.img_plist"
+  ],
+  "critical_88": [
+   "DV2/480/dragon/dragon_88_critical.img_plist"
+  ],
+  "critical_89": [
+   "DV2/480/dragon/dragon_89_critical.img_plist"
+  ],
+  "critical_9": [
+   "DV2/480/dragon/dragon_9_critical.img_plist"
+  ],
+  "critical_90": [
+   "DV2/480/dragon/dragon_90_critical.img_plist"
+  ],
+  "critical_9001": [
+   "DV2/480/dragon/dragon_9001_critical.img_plist"
+  ],
+  "critical_9002": [
+   "DV2/480/dragon/dragon_9002_critical.img_plist"
+  ],
+  "critical_9003": [
+   "DV2/480/dragon/dragon_9003_critical.img_plist"
+  ],
+  "critical_9004": [
+   "DV2/480/dragon/dragon_9004_critical.img_plist"
+  ],
+  "critical_9005": [
+   "DV2/480/dragon/dragon_9005_critical.img_plist"
+  ],
+  "critical_9006": [
+   "DV2/480/dragon/dragon_9006_critical.img_plist"
+  ],
+  "critical_9007": [
+   "DV2/480/dragon/dragon_9007_critical.img_plist"
+  ],
+  "critical_9008": [
+   "DV2/480/dragon/dragon_9008_critical.img_plist"
+  ],
+  "critical_9009": [
+   "DV2/480/dragon/dragon_9009_critical.img_plist"
+  ],
+  "critical_9012": [
+   "DV2/480/dragon/dragon_9012_critical.img_plist"
+  ],
+  "critical_9013": [
+   "DV2/480/dragon/dragon_9013_critical.img_plist"
+  ],
+  "critical_9014": [
+   "DV2/480/dragon/dragon_9014_critical.img_plist"
+  ],
+  "critical_91": [
+   "DV2/480/dragon/dragon_91_critical.img_plist"
+  ],
+  "critical_92": [
+   "DV2/480/dragon/dragon_92_critical.img_plist"
+  ],
+  "critical_93": [
+   "DV2/480/dragon/dragon_93_critical.img_plist"
+  ],
+  "critical_94": [
+   "DV2/480/dragon/dragon_94_critical.img_plist"
+  ],
+  "critical_95": [
+   "DV2/480/dragon/dragon_95_critical.img_plist"
+  ],
+  "critical_96": [
+   "DV2/480/dragon/dragon_96_critical.img_plist"
+  ],
+  "critical_9998": [
+   "DV2/480/dragon/dragon_9998_critical.img_plist"
+  ],
+  "critical_9999": [
+   "DV2/480/dragon/dragon_9999_critical.img_plist"
+  ],
+  "cut_in_a": [
+   "DV2/480/dragon/cut_in_a.img_plist"
+  ],
+  "cut_in_c": [
+   "DV2/480/dragon/cut_in_c.img_plist"
+  ],
+  "cut_in_d": [
+   "DV2/480/dragon/cut_in_d.img_plist"
+  ],
+  "cut_in_e": [
+   "DV2/480/dragon/cut_in_e.img_plist"
+  ],
+  "cut_in_f": [
+   "DV2/480/dragon/cut_in_f.img_plist"
+  ],
+  "cut_in_h": [
+   "DV2/480/dragon/cut_in_h.img_plist"
+  ],
+  "cut_in_l": [
+   "DV2/480/dragon/cut_in_l.img_plist"
+  ],
+  "cut_in_s": [
+   "DV2/480/dragon/cut_in_s.img_plist"
+  ],
+  "cut_in_w": [
+   "DV2/480/dragon/cut_in_w.img_plist"
+  ],
+  "hit_effect": [
+   "DV2/480/monster/hit_effect.img_plist"
+  ],
+  "hit_talk": [
+   "DV2/480/monster/hit_talk.img_plist"
+  ],
+  "intro_old_bg": [
+   "DV2/480/intro/intro_dragon.img_plist"
+  ],
+  "intro_old_cloud": [
+   "DV2/480/intro/intro_cloud.img_plist"
+  ],
+  "intro_ui": [
+   "DV2/480/intro.img_plist"
+  ],
+  "item_accessory": [
+   "DV2/480/item/accessory.img_plist"
+  ],
+  "item_doc": [
+   "DV2/480/item/doc.img_plist"
+  ],
+  "item_egg": [
+   "DV2/480/item/egg.img_plist"
+  ],
+  "item_etc": [
+   "DV2/480/item/etc.img_plist"
+  ],
+  "item_food": [
+   "DV2/480/item/food.img_plist"
+  ],
+  "item_gem": [
+   "DV2/480/item/gem.img_plist"
+  ],
+  "item_mtr": [
+   "DV2/480/item/mtr.img_plist"
+  ],
+  "item_quest": [
+   "DV2/480/item/quest.img_plist"
+  ],
+  "item_small_acc": [
+   "DV2/480/item/item_small/acc.img_plist"
+  ],
+  "item_small_egg_piece": [
+   "DV2/480/item/item_small/egg_piece.img_plist"
+  ],
+  "item_small_event": [
+   "DV2/480/item/item_small/event_item.img_plist"
+  ],
+  "item_small_evol": [
+   "DV2/480/item/item_small/evol.img_plist"
+  ],
+  "item_small_new": [
+   "DV2/480/item/item_small/new_item_small.img_plist"
+  ],
+  "item_small_slot": [
+   "DV2/480/item/item_small/slot_item.img_plist"
+  ],
+  "item_small_ui": [
+   "DV2/480/item/item_small.img_plist"
+  ],
+  "item_spc": [
+   "DV2/480/item/spc.img_plist"
+  ],
+  "laboratory_ui": [
+   "DV2/480/scene/laboratory.img_plist"
+  ],
+  "magicshop_alchemy": [
+   "DV2/480/scene/magicshop/alchemy.img_plist"
+  ],
+  "magicshop_ui": [
+   "DV2/480/scene/magicshop.img_plist"
+  ],
+  "mamorudiclab_ui": [
+   "DV2/480/scene/mamorudiclab.img_plist"
+  ],
+  "mission_ui": [
+   "DV2/480/scene/worldmap/mission.img_plist"
+  ],
+  "ninepatch_ui": [
+   "DV2/480/9patch.img_plist"
+  ],
+  "npc_aeuros": [
+   "DV2/480/npc/aeuros.img_plist"
+  ],
+  "npc_aida": [
+   "DV2/480/npc/aida.img_plist"
+  ],
+  "npc_aidra": [
+   "DV2/480/npc/aidra.img_plist"
+  ],
+  "npc_aim": [
+   "DV2/480/npc/aim.img_plist"
+  ],
+  "npc_amanta": [
+   "DV2/480/npc/amanta.img_plist"
+  ],
+  "npc_anjelro": [
+   "DV2/480/npc/anjelro.img_plist"
+  ],
+  "npc_annie": [
+   "DV2/480/npc/annie.img_plist"
+  ],
+  "npc_arnold": [
+   "DV2/480/npc/arnold.img_plist"
+  ],
+  "npc_baruseu": [
+   "DV2/480/npc/baruseu.img_plist"
+  ],
+  "npc_berutaon": [
+   "DV2/480/npc/berutaon.img_plist"
+  ],
+  "npc_blackrobe": [
+   "DV2/480/npc/blackrobe.img_plist"
+  ],
+  "npc_borutus": [
+   "DV2/480/npc/borutus.img_plist"
+  ],
+  "npc_dealer": [
+   "DV2/480/npc/dealer.img_plist"
+  ],
+  "npc_dieros": [
+   "DV2/480/npc/dieros.img_plist"
+  ],
+  "npc_dilis": [
+   "DV2/480/npc/dilis.img_plist"
+  ],
+  "npc_dogi": [
+   "DV2/480/npc/dogi.img_plist"
+  ],
+  "npc_eden": [
+   "DV2/480/npc/eden.img_plist"
+  ],
+  "npc_emoticon": [
+   "DV2/480/npc/emoticon.img_plist"
+  ],
+  "npc_florence": [
+   "DV2/480/npc/florence.img_plist"
+  ],
+  "npc_gargoyle": [
+   "DV2/480/npc/gargoyle.img_plist"
+  ],
+  "npc_garon": [
+   "DV2/480/npc/garon.img_plist"
+  ],
+  "npc_ghostcaptain": [
+   "DV2/480/npc/ghostcaptain.img_plist"
+  ],
+  "npc_ghostpirate": [
+   "DV2/480/npc/ghostpirate.img_plist"
+  ],
+  "npc_ghostpiratehead": [
+   "DV2/480/npc/ghostpiratehead.img_plist"
+  ],
+  "npc_gskull": [
+   "DV2/480/npc/gskull.img_plist"
+  ],
+  "npc_icon": [
+   "DV2/480/npc/icon.img_plist"
+  ],
+  "npc_jimon": [
+   "DV2/480/npc/jimon.img_plist"
+  ],
+  "npc_kanggalo": [
+   "DV2/480/npc/kanggalo.img_plist"
+  ],
+  "npc_mamorudic": [
+   "DV2/480/npc/mamorudic.img_plist"
+  ],
+  "npc_mirba": [
+   "DV2/480/npc/mirba.img_plist"
+  ],
+  "npc_monkey": [
+   "DV2/480/npc/monkey.img_plist"
+  ],
+  "npc_nuri": [
+   "DV2/480/npc/nuri.img_plist"
+  ],
+  "npc_pino": [
+   "DV2/480/npc/pino.img_plist"
+  ],
+  "npc_pong": [
+   "DV2/480/npc/pong.img_plist"
+  ],
+  "npc_popo": [
+   "DV2/480/npc/popo.img_plist"
+  ],
+  "npc_randolph": [
+   "DV2/480/npc/randolph.img_plist"
+  ],
+  "npc_raon": [
+   "DV2/480/npc/raon.img_plist"
+  ],
+  "npc_romini": [
+   "DV2/480/npc/romini.img_plist"
+  ],
+  "npc_srorin": [
+   "DV2/480/npc/srorin.img_plist"
+  ],
+  "npc_vermont": [
+   "DV2/480/npc/vermont.img_plist"
+  ],
+  "npc_worldcup_dealer": [
+   "DV2/480/npc/worldcup_dealer.img_plist"
+  ],
+  "npc_yulia": [
+   "DV2/480/npc/yulia.img_plist"
+  ],
+  "portrait_1": [
+   "DV2/480/dragon/dragon_1.img_plist"
+  ],
+  "portrait_10": [
+   "DV2/480/dragon/dragon_10.img_plist"
+  ],
+  "portrait_100": [
+   "DV2/480/dragon/dragon_100.img_plist"
+  ],
+  "portrait_101": [
+   "DV2/480/dragon/dragon_101.img_plist"
+  ],
+  "portrait_102": [
+   "DV2/480/dragon/dragon_102.img_plist"
+  ],
+  "portrait_103": [
+   "DV2/480/dragon/dragon_103.img_plist"
+  ],
+  "portrait_104": [
+   "DV2/480/dragon/dragon_104.img_plist"
+  ],
+  "portrait_105": [
+   "DV2/480/dragon/dragon_105.img_plist"
+  ],
+  "portrait_106": [
+   "DV2/480/dragon/dragon_106.img_plist"
+  ],
+  "portrait_107": [
+   "DV2/480/dragon/dragon_107.img_plist"
+  ],
+  "portrait_108": [
+   "DV2/480/dragon/dragon_108.img_plist"
+  ],
+  "portrait_11": [
+   "DV2/480/dragon/dragon_11.img_plist"
+  ],
+  "portrait_115": [
+   "DV2/480/dragon/dragon_115.img_plist"
+  ],
+  "portrait_116": [
+   "DV2/480/dragon/dragon_116.img_plist"
+  ],
+  "portrait_117": [
+   "DV2/480/dragon/dragon_117.img_plist"
+  ],
+  "portrait_118": [
+   "DV2/480/dragon/dragon_118.img_plist"
+  ],
+  "portrait_119": [
+   "DV2/480/dragon/dragon_119.img_plist"
+  ],
+  "portrait_12": [
+   "DV2/480/dragon/dragon_12.img_plist"
+  ],
+  "portrait_120": [
+   "DV2/480/dragon/dragon_120.img_plist"
+  ],
+  "portrait_121": [
+   "DV2/480/dragon/dragon_121.img_plist"
+  ],
+  "portrait_122": [
+   "DV2/480/dragon/dragon_122.img_plist"
+  ],
+  "portrait_123": [
+   "DV2/480/dragon/dragon_123.img_plist"
+  ],
+  "portrait_124": [
+   "DV2/480/dragon/dragon_124.img_plist"
+  ],
+  "portrait_125": [
+   "DV2/480/dragon/dragon_125.img_plist"
+  ],
+  "portrait_129": [
+   "DV2/480/dragon/dragon_129.img_plist"
+  ],
+  "portrait_13": [
+   "DV2/480/dragon/dragon_13.img_plist"
+  ],
+  "portrait_133": [
+   "DV2/480/dragon/dragon_133.img_plist"
+  ],
+  "portrait_137": [
+   "DV2/480/dragon/dragon_137.img_plist"
+  ],
+  "portrait_14": [
+   "DV2/480/dragon/dragon_14.img_plist"
+  ],
+  "portrait_141": [
+   "DV2/480/dragon/dragon_141.img_plist"
+  ],
+  "portrait_145": [
+   "DV2/480/dragon/dragon_145.img_plist"
+  ],
+  "portrait_15": [
+   "DV2/480/dragon/dragon_15.img_plist"
+  ],
+  "portrait_16": [
+   "DV2/480/dragon/dragon_16.img_plist"
+  ],
+  "portrait_167": [
+   "DV2/480/dragon/dragon_167.img_plist"
+  ],
+  "portrait_168": [
+   "DV2/480/dragon/dragon_168.img_plist"
+  ],
+  "portrait_169": [
+   "DV2/480/dragon/dragon_169.img_plist"
+  ],
+  "portrait_17": [
+   "DV2/480/dragon/dragon_17.img_plist"
+  ],
+  "portrait_170": [
+   "DV2/480/dragon/dragon_170.img_plist"
+  ],
+  "portrait_171": [
+   "DV2/480/dragon/dragon_171.img_plist"
+  ],
+  "portrait_172": [
+   "DV2/480/dragon/dragon_172.img_plist"
+  ],
+  "portrait_173": [
+   "DV2/480/dragon/dragon_173.img_plist"
+  ],
+  "portrait_174": [
+   "DV2/480/dragon/dragon_174.img_plist"
+  ],
+  "portrait_175": [
+   "DV2/480/dragon/dragon_175.img_plist"
+  ],
+  "portrait_176": [
+   "DV2/480/dragon/dragon_176.img_plist"
+  ],
+  "portrait_177": [
+   "DV2/480/dragon/dragon_177.img_plist"
+  ],
+  "portrait_178": [
+   "DV2/480/dragon/dragon_178.img_plist"
+  ],
+  "portrait_179": [
+   "DV2/480/dragon/dragon_179.img_plist"
+  ],
+  "portrait_18": [
+   "DV2/480/dragon/dragon_18.img_plist"
+  ],
+  "portrait_180": [
+   "DV2/480/dragon/dragon_180.img_plist"
+  ],
+  "portrait_181": [
+   "DV2/480/dragon/dragon_181.img_plist"
+  ],
+  "portrait_182": [
+   "DV2/480/dragon/dragon_182.img_plist"
+  ],
+  "portrait_183": [
+   "DV2/480/dragon/dragon_183.img_plist"
+  ],
+  "portrait_184": [
+   "DV2/480/dragon/dragon_184.img_plist"
+  ],
+  "portrait_185": [
+   "DV2/480/dragon/dragon_185.img_plist"
+  ],
+  "portrait_186": [
+   "DV2/480/dragon/dragon_186.img_plist"
+  ],
+  "portrait_187": [
+   "DV2/480/dragon/dragon_187.img_plist"
+  ],
+  "portrait_188": [
+   "DV2/480/dragon/dragon_188.img_plist"
+  ],
+  "portrait_189": [
+   "DV2/480/dragon/dragon_189.img_plist"
+  ],
+  "portrait_19": [
+   "DV2/480/dragon/dragon_19.img_plist"
+  ],
+  "portrait_195": [
+   "DV2/480/dragon/dragon_195.img_plist"
+  ],
+  "portrait_196": [
+   "DV2/480/dragon/dragon_196.img_plist"
+  ],
+  "portrait_2": [
+   "DV2/480/dragon/dragon_2.img_plist"
+  ],
+  "portrait_20": [
+   "DV2/480/dragon/dragon_20.img_plist"
+  ],
+  "portrait_21": [
+   "DV2/480/dragon/dragon_21.img_plist"
+  ],
+  "portrait_22": [
+   "DV2/480/dragon/dragon_22.img_plist"
+  ],
+  "portrait_23": [
+   "DV2/480/dragon/dragon_23.img_plist"
+  ],
+  "portrait_24": [
+   "DV2/480/dragon/dragon_24.img_plist"
+  ],
+  "portrait_25": [
+   "DV2/480/dragon/dragon_25.img_plist"
+  ],
+  "portrait_26": [
+   "DV2/480/dragon/dragon_26.img_plist"
+  ],
+  "portrait_27": [
+   "DV2/480/dragon/dragon_27.img_plist"
+  ],
+  "portrait_28": [
+   "DV2/480/dragon/dragon_28.img_plist"
+  ],
+  "portrait_29": [
+   "DV2/480/dragon/dragon_29.img_plist"
+  ],
+  "portrait_3": [
+   "DV2/480/dragon/dragon_3.img_plist"
+  ],
+  "portrait_30": [
+   "DV2/480/dragon/dragon_30.img_plist"
+  ],
+  "portrait_3001": [
+   "DV2/480/dragon/dragon_3001.img_plist"
+  ],
+  "portrait_3002": [
+   "DV2/480/dragon/dragon_3002.img_plist"
+  ],
+  "portrait_3003": [
+   "DV2/480/dragon/dragon_3003.img_plist"
+  ],
+  "portrait_3004": [
+   "DV2/480/dragon/dragon_3004.img_plist"
+  ],
+  "portrait_3005": [
+   "DV2/480/dragon/dragon_3005.img_plist"
+  ],
+  "portrait_3006": [
+   "DV2/480/dragon/dragon_3006.img_plist"
+  ],
+  "portrait_3007": [
+   "DV2/480/dragon/dragon_3007.img_plist"
+  ],
+  "portrait_3008": [
+   "DV2/480/dragon/dragon_3008.img_plist"
+  ],
+  "portrait_3009": [
+   "DV2/480/dragon/dragon_3009.img_plist"
+  ],
+  "portrait_3010": [
+   "DV2/480/dragon/dragon_3010.img_plist"
+  ],
+  "portrait_3011": [
+   "DV2/480/dragon/dragon_3011.img_plist"
+  ],
+  "portrait_3012": [
+   "DV2/480/dragon/dragon_3012.img_plist"
+  ],
+  "portrait_3013": [
+   "DV2/480/dragon/dragon_3013.img_plist"
+  ],
+  "portrait_3014": [
+   "DV2/480/dragon/dragon_3014.img_plist"
+  ],
+  "portrait_3015": [
+   "DV2/480/dragon/dragon_3015.img_plist"
+  ],
+  "portrait_3016": [
+   "DV2/480/dragon/dragon_3016.img_plist"
+  ],
+  "portrait_3017": [
+   "DV2/480/dragon/dragon_3017.img_plist"
+  ],
+  "portrait_3018": [
+   "DV2/480/dragon/dragon_3018.img_plist"
+  ],
+  "portrait_3019": [
+   "DV2/480/dragon/dragon_3019.img_plist"
+  ],
+  "portrait_3020": [
+   "DV2/480/dragon/dragon_3020.img_plist"
+  ],
+  "portrait_3021": [
+   "DV2/480/dragon/dragon_3021.img_plist"
+  ],
+  "portrait_3022": [
+   "DV2/480/dragon/dragon_3022.img_plist"
+  ],
+  "portrait_3023": [
+   "DV2/480/dragon/dragon_3023.img_plist"
+  ],
+  "portrait_3024": [
+   "DV2/480/dragon/dragon_3024.img_plist"
+  ],
+  "portrait_3025": [
+   "DV2/480/dragon/dragon_3025.img_plist"
+  ],
+  "portrait_3026": [
+   "DV2/480/dragon/dragon_3026.img_plist"
+  ],
+  "portrait_3027": [
+   "DV2/480/dragon/dragon_3027.img_plist"
+  ],
+  "portrait_3028": [
+   "DV2/480/dragon/dragon_3028.img_plist"
+  ],
+  "portrait_3029": [
+   "DV2/480/dragon/dragon_3029.img_plist"
+  ],
+  "portrait_3030": [
+   "DV2/480/dragon/dragon_3030.img_plist"
+  ],
+  "portrait_3031": [
+   "DV2/480/dragon/dragon_3031.img_plist"
+  ],
+  "portrait_3032": [
+   "DV2/480/dragon/dragon_3032.img_plist"
+  ],
+  "portrait_3033": [
+   "DV2/480/dragon/dragon_3033.img_plist"
+  ],
+  "portrait_3034": [
+   "DV2/480/dragon/dragon_3034.img_plist"
+  ],
+  "portrait_3035": [
+   "DV2/480/dragon/dragon_3035.img_plist"
+  ],
+  "portrait_3036": [
+   "DV2/480/dragon/dragon_3036.img_plist"
+  ],
+  "portrait_3037": [
+   "DV2/480/dragon/dragon_3037.img_plist"
+  ],
+  "portrait_3038": [
+   "DV2/480/dragon/dragon_3038.img_plist"
+  ],
+  "portrait_3039": [
+   "DV2/480/dragon/dragon_3039.img_plist"
+  ],
+  "portrait_3040": [
+   "DV2/480/dragon/dragon_3040.img_plist"
+  ],
+  "portrait_3041": [
+   "DV2/480/dragon/dragon_3041.img_plist"
+  ],
+  "portrait_3042": [
+   "DV2/480/dragon/dragon_3042.img_plist"
+  ],
+  "portrait_31": [
+   "DV2/480/dragon/dragon_31.img_plist"
+  ],
+  "portrait_32": [
+   "DV2/480/dragon/dragon_32.img_plist"
+  ],
+  "portrait_33": [
+   "DV2/480/dragon/dragon_33.img_plist"
+  ],
+  "portrait_34": [
+   "DV2/480/dragon/dragon_34.img_plist"
+  ],
+  "portrait_35": [
+   "DV2/480/dragon/dragon_35.img_plist"
+  ],
+  "portrait_36": [
+   "DV2/480/dragon/dragon_36.img_plist"
+  ],
+  "portrait_37": [
+   "DV2/480/dragon/dragon_37.img_plist"
+  ],
+  "portrait_38": [
+   "DV2/480/dragon/dragon_38.img_plist"
+  ],
+  "portrait_39": [
+   "DV2/480/dragon/dragon_39.img_plist"
+  ],
+  "portrait_4": [
+   "DV2/480/dragon/dragon_4.img_plist"
+  ],
+  "portrait_40": [
+   "DV2/480/dragon/dragon_40.img_plist"
+  ],
+  "portrait_4000": [
+   "DV2/480/dragon/dragon_4000.img_plist"
+  ],
+  "portrait_4001": [
+   "DV2/480/dragon/dragon_4001.img_plist"
+  ],
+  "portrait_4002": [
+   "DV2/480/dragon/dragon_4002.img_plist"
+  ],
+  "portrait_4003": [
+   "DV2/480/dragon/dragon_4003.img_plist"
+  ],
+  "portrait_4004": [
+   "DV2/480/dragon/dragon_4004.img_plist"
+  ],
+  "portrait_4005": [
+   "DV2/480/dragon/dragon_4005.img_plist"
+  ],
+  "portrait_4006": [
+   "DV2/480/dragon/dragon_4006.img_plist"
+  ],
+  "portrait_4007": [
+   "DV2/480/dragon/dragon_4007.img_plist"
+  ],
+  "portrait_4008": [
+   "DV2/480/dragon/dragon_4008.img_plist"
+  ],
+  "portrait_4009": [
+   "DV2/480/dragon/dragon_4009.img_plist"
+  ],
+  "portrait_4010": [
+   "DV2/480/dragon/dragon_4010.img_plist"
+  ],
+  "portrait_4011": [
+   "DV2/480/dragon/dragon_4011.img_plist"
+  ],
+  "portrait_4012": [
+   "DV2/480/dragon/dragon_4012.img_plist"
+  ],
+  "portrait_4013": [
+   "DV2/480/dragon/dragon_4013.img_plist"
+  ],
+  "portrait_4014": [
+   "DV2/480/dragon/dragon_4014.img_plist"
+  ],
+  "portrait_4015": [
+   "DV2/480/dragon/dragon_4015.img_plist"
+  ],
+  "portrait_4016": [
+   "DV2/480/dragon/dragon_4016.img_plist"
+  ],
+  "portrait_4017": [
+   "DV2/480/dragon/dragon_4017.img_plist"
+  ],
+  "portrait_4018": [
+   "DV2/480/dragon/dragon_4018.img_plist"
+  ],
+  "portrait_4019": [
+   "DV2/480/dragon/dragon_4019.img_plist"
+  ],
+  "portrait_4020": [
+   "DV2/480/dragon/dragon_4020.img_plist"
+  ],
+  "portrait_4021": [
+   "DV2/480/dragon/dragon_4021.img_plist"
+  ],
+  "portrait_4022": [
+   "DV2/480/dragon/dragon_4022.img_plist"
+  ],
+  "portrait_4023": [
+   "DV2/480/dragon/dragon_4023.img_plist"
+  ],
+  "portrait_4024": [
+   "DV2/480/dragon/dragon_4024.img_plist"
+  ],
+  "portrait_4025": [
+   "DV2/480/dragon/dragon_4025.img_plist"
+  ],
+  "portrait_4026": [
+   "DV2/480/dragon/dragon_4026.img_plist"
+  ],
+  "portrait_4027": [
+   "DV2/480/dragon/dragon_4027.img_plist"
+  ],
+  "portrait_4028": [
+   "DV2/480/dragon/dragon_4028.img_plist"
+  ],
+  "portrait_4029": [
+   "DV2/480/dragon/dragon_4029.img_plist"
+  ],
+  "portrait_4030": [
+   "DV2/480/dragon/dragon_4030.img_plist"
+  ],
+  "portrait_4031": [
+   "DV2/480/dragon/dragon_4031.img_plist"
+  ],
+  "portrait_4032": [
+   "DV2/480/dragon/dragon_4032.img_plist"
+  ],
+  "portrait_4033": [
+   "DV2/480/dragon/dragon_4033.img_plist"
+  ],
+  "portrait_4034": [
+   "DV2/480/dragon/dragon_4034.img_plist"
+  ],
+  "portrait_4035": [
+   "DV2/480/dragon/dragon_4035.img_plist"
+  ],
+  "portrait_4036": [
+   "DV2/480/dragon/dragon_4036.img_plist"
+  ],
+  "portrait_4037": [
+   "DV2/480/dragon/dragon_4037.img_plist"
+  ],
+  "portrait_4038": [
+   "DV2/480/dragon/dragon_4038.img_plist"
+  ],
+  "portrait_4039": [
+   "DV2/480/dragon/dragon_4039.img_plist"
+  ],
+  "portrait_4040": [
+   "DV2/480/dragon/dragon_4040.img_plist"
+  ],
+  "portrait_4041": [
+   "DV2/480/dragon/dragon_4041.img_plist"
+  ],
+  "portrait_4042": [
+   "DV2/480/dragon/dragon_4042.img_plist"
+  ],
+  "portrait_4043": [
+   "DV2/480/dragon/dragon_4043.img_plist"
+  ],
+  "portrait_4044": [
+   "DV2/480/dragon/dragon_4044.img_plist"
+  ],
+  "portrait_4045": [
+   "DV2/480/dragon/dragon_4045.img_plist"
+  ],
+  "portrait_4046": [
+   "DV2/480/dragon/dragon_4046.img_plist"
+  ],
+  "portrait_4047": [
+   "DV2/480/dragon/dragon_4047.img_plist"
+  ],
+  "portrait_4048": [
+   "DV2/480/dragon/dragon_4048.img_plist"
+  ],
+  "portrait_4049": [
+   "DV2/480/dragon/dragon_4049.img_plist"
+  ],
+  "portrait_4050": [
+   "DV2/480/dragon/dragon_4050.img_plist"
+  ],
+  "portrait_4051": [
+   "DV2/480/dragon/dragon_4051.img_plist"
+  ],
+  "portrait_4052": [
+   "DV2/480/dragon/dragon_4052.img_plist"
+  ],
+  "portrait_4053": [
+   "DV2/480/dragon/dragon_4053.img_plist"
+  ],
+  "portrait_4055": [
+   "DV2/480/dragon/dragon_4055.img_plist"
+  ],
+  "portrait_4056": [
+   "DV2/480/dragon/dragon_4056.img_plist"
+  ],
+  "portrait_4057": [
+   "DV2/480/dragon/dragon_4057.img_plist"
+  ],
+  "portrait_4058": [
+   "DV2/480/dragon/dragon_4058.img_plist"
+  ],
+  "portrait_4059": [
+   "DV2/480/dragon/dragon_4059.img_plist"
+  ],
+  "portrait_4061": [
+   "DV2/480/dragon/dragon_4061.img_plist"
+  ],
+  "portrait_4062": [
+   "DV2/480/dragon/dragon_4062.img_plist"
+  ],
+  "portrait_4064": [
+   "DV2/480/dragon/dragon_4064.img_plist"
+  ],
+  "portrait_4065": [
+   "DV2/480/dragon/dragon_4065.img_plist"
+  ],
+  "portrait_4066": [
+   "DV2/480/dragon/dragon_4066.img_plist"
+  ],
+  "portrait_4067": [
+   "DV2/480/dragon/dragon_4067.img_plist"
+  ],
+  "portrait_4068": [
+   "DV2/480/dragon/dragon_4068.img_plist"
+  ],
+  "portrait_4069": [
+   "DV2/480/dragon/dragon_4069.img_plist"
+  ],
+  "portrait_4070": [
+   "DV2/480/dragon/dragon_4070.img_plist"
+  ],
+  "portrait_4071": [
+   "DV2/480/dragon/dragon_4071.img_plist"
+  ],
+  "portrait_4072": [
+   "DV2/480/dragon/dragon_4072.img_plist"
+  ],
+  "portrait_4073": [
+   "DV2/480/dragon/dragon_4073.img_plist"
+  ],
+  "portrait_4075": [
+   "DV2/480/dragon/dragon_4075.img_plist"
+  ],
+  "portrait_4083": [
+   "DV2/480/dragon/dragon_4083.img_plist"
+  ],
+  "portrait_4097": [
+   "DV2/480/dragon/dragon_4097.img_plist"
+  ],
+  "portrait_4098": [
+   "DV2/480/dragon/dragon_4098.img_plist"
+  ],
+  "portrait_4099": [
+   "DV2/480/dragon/dragon_4099.img_plist"
+  ],
+  "portrait_41": [
+   "DV2/480/dragon/dragon_41.img_plist"
+  ],
+  "portrait_4100": [
+   "DV2/480/dragon/dragon_4100.img_plist"
+  ],
+  "portrait_4101": [
+   "DV2/480/dragon/dragon_4101.img_plist"
+  ],
+  "portrait_4102": [
+   "DV2/480/dragon/dragon_4102.img_plist"
+  ],
+  "portrait_4103": [
+   "DV2/480/dragon/dragon_4103.img_plist"
+  ],
+  "portrait_4104": [
+   "DV2/480/dragon/dragon_4104.img_plist"
+  ],
+  "portrait_4105": [
+   "DV2/480/dragon/dragon_4105.img_plist"
+  ],
+  "portrait_4106": [
+   "DV2/480/dragon/dragon_4106.img_plist"
+  ],
+  "portrait_4107": [
+   "DV2/480/dragon/dragon_4107.img_plist"
+  ],
+  "portrait_4108": [
+   "DV2/480/dragon/dragon_4108.img_plist"
+  ],
+  "portrait_4109": [
+   "DV2/480/dragon/dragon_4109.img_plist"
+  ],
+  "portrait_4110": [
+   "DV2/480/dragon/dragon_4110.img_plist"
+  ],
+  "portrait_4111": [
+   "DV2/480/dragon/dragon_4111.img_plist"
+  ],
+  "portrait_4112": [
+   "DV2/480/dragon/dragon_4112.img_plist"
+  ],
+  "portrait_4113": [
+   "DV2/480/dragon/dragon_4113.img_plist"
+  ],
+  "portrait_4114": [
+   "DV2/480/dragon/dragon_4114.img_plist"
+  ],
+  "portrait_4115": [
+   "DV2/480/dragon/dragon_4115.img_plist"
+  ],
+  "portrait_4116": [
+   "DV2/480/dragon/dragon_4116.img_plist"
+  ],
+  "portrait_4117": [
+   "DV2/480/dragon/dragon_4117.img_plist"
+  ],
+  "portrait_4118": [
+   "DV2/480/dragon/dragon_4118.img_plist"
+  ],
+  "portrait_4119": [
+   "DV2/480/dragon/dragon_4119.img_plist"
+  ],
+  "portrait_4120": [
+   "DV2/480/dragon/dragon_4120.img_plist"
+  ],
+  "portrait_4121": [
+   "DV2/480/dragon/dragon_4121.img_plist"
+  ],
+  "portrait_4122": [
+   "DV2/480/dragon/dragon_4122.img_plist"
+  ],
+  "portrait_4123": [
+   "DV2/480/dragon/dragon_4123.img_plist"
+  ],
+  "portrait_4124": [
+   "DV2/480/dragon/dragon_4124.img_plist"
+  ],
+  "portrait_4125": [
+   "DV2/480/dragon/dragon_4125.img_plist"
+  ],
+  "portrait_4126": [
+   "DV2/480/dragon/dragon_4126.img_plist"
+  ],
+  "portrait_4127": [
+   "DV2/480/dragon/dragon_4127.img_plist"
+  ],
+  "portrait_4128": [
+   "DV2/480/dragon/dragon_4128.img_plist"
+  ],
+  "portrait_4129": [
+   "DV2/480/dragon/dragon_4129.img_plist"
+  ],
+  "portrait_4130": [
+   "DV2/480/dragon/dragon_4130.img_plist"
+  ],
+  "portrait_4131": [
+   "DV2/480/dragon/dragon_4131.img_plist"
+  ],
+  "portrait_4132": [
+   "DV2/480/dragon/dragon_4132.img_plist"
+  ],
+  "portrait_4135": [
+   "DV2/480/dragon/dragon_4135.img_plist"
+  ],
+  "portrait_4136": [
+   "DV2/480/dragon/dragon_4136.img_plist"
+  ],
+  "portrait_4137": [
+   "DV2/480/dragon/dragon_4137.img_plist"
+  ],
+  "portrait_4138": [
+   "DV2/480/dragon/dragon_4138.img_plist"
+  ],
+  "portrait_4139": [
+   "DV2/480/dragon/dragon_4139.img_plist"
+  ],
+  "portrait_4140": [
+   "DV2/480/dragon/dragon_4140.img_plist"
+  ],
+  "portrait_4141": [
+   "DV2/480/dragon/dragon_4141.img_plist"
+  ],
+  "portrait_4142": [
+   "DV2/480/dragon/dragon_4142.img_plist"
+  ],
+  "portrait_4143": [
+   "DV2/480/dragon/dragon_4143.img_plist"
+  ],
+  "portrait_4144": [
+   "DV2/480/dragon/dragon_4144.img_plist"
+  ],
+  "portrait_4145": [
+   "DV2/480/dragon/dragon_4145.img_plist"
+  ],
+  "portrait_4146": [
+   "DV2/480/dragon/dragon_4146.img_plist"
+  ],
+  "portrait_4147": [
+   "DV2/480/dragon/dragon_4147.img_plist"
+  ],
+  "portrait_4148": [
+   "DV2/480/dragon/dragon_4148.img_plist"
+  ],
+  "portrait_4149": [
+   "DV2/480/dragon/dragon_4149.img_plist"
+  ],
+  "portrait_4150": [
+   "DV2/480/dragon/dragon_4150.img_plist"
+  ],
+  "portrait_4151": [
+   "DV2/480/dragon/dragon_4151.img_plist"
+  ],
+  "portrait_4152": [
+   "DV2/480/dragon/dragon_4152.img_plist"
+  ],
+  "portrait_4153": [
+   "DV2/480/dragon/dragon_4153.img_plist"
+  ],
+  "portrait_4154": [
+   "DV2/480/dragon/dragon_4154.img_plist"
+  ],
+  "portrait_4155": [
+   "DV2/480/dragon/dragon_4155 2.img_plist",
+   "DV2/480/dragon/dragon_4155.img_plist"
+  ],
+  "portrait_4156": [
+   "DV2/480/dragon/dragon_4156.img_plist"
+  ],
+  "portrait_4157": [
+   "DV2/480/dragon/dragon_4157.img_plist"
+  ],
+  "portrait_4158": [
+   "DV2/480/dragon/dragon_4158.img_plist"
+  ],
+  "portrait_4159": [
+   "DV2/480/dragon/dragon_4159.img_plist"
+  ],
+  "portrait_4160": [
+   "DV2/480/dragon/dragon_4160.img_plist"
+  ],
+  "portrait_4161": [
+   "DV2/480/dragon/dragon_4161.img_plist"
+  ],
+  "portrait_4162": [
+   "DV2/480/dragon/dragon_4162.img_plist"
+  ],
+  "portrait_4163": [
+   "DV2/480/dragon/dragon_4163.img_plist"
+  ],
+  "portrait_4164": [
+   "DV2/480/dragon/dragon_4164.img_plist"
+  ],
+  "portrait_4165": [
+   "DV2/480/dragon/dragon_4165.img_plist"
+  ],
+  "portrait_4166": [
+   "DV2/480/dragon/dragon_4166.img_plist"
+  ],
+  "portrait_4173": [
+   "DV2/480/dragon/dragon_4173.img_plist"
+  ],
+  "portrait_4174": [
+   "DV2/480/dragon/dragon_4174.img_plist"
+  ],
+  "portrait_4175": [
+   "DV2/480/dragon/dragon_4175.img_plist"
+  ],
+  "portrait_4176": [
+   "DV2/480/dragon/dragon_4176.img_plist"
+  ],
+  "portrait_4177": [
+   "DV2/480/dragon/dragon_4177.img_plist"
+  ],
+  "portrait_4178": [
+   "DV2/480/dragon/dragon_4178.img_plist"
+  ],
+  "portrait_4179": [
+   "DV2/480/dragon/dragon_4179.img_plist"
+  ],
+  "portrait_4180": [
+   "DV2/480/dragon/dragon_4180.img_plist"
+  ],
+  "portrait_4181": [
+   "DV2/480/dragon/dragon_4181.img_plist"
+  ],
+  "portrait_4182": [
+   "DV2/480/dragon/dragon_4182.img_plist"
+  ],
+  "portrait_4183": [
+   "DV2/480/dragon/dragon_4183.img_plist"
+  ],
+  "portrait_4184": [
+   "DV2/480/dragon/dragon_4184.img_plist"
+  ],
+  "portrait_4185": [
+   "DV2/480/dragon/dragon_4185.img_plist"
+  ],
+  "portrait_4186": [
+   "DV2/480/dragon/dragon_4186.img_plist"
+  ],
+  "portrait_4187": [
+   "DV2/480/dragon/dragon_4187.img_plist"
+  ],
+  "portrait_4188": [
+   "DV2/480/dragon/dragon_4188.img_plist"
+  ],
+  "portrait_4189": [
+   "DV2/480/dragon/dragon_4189.img_plist"
+  ],
+  "portrait_4190": [
+   "DV2/480/dragon/dragon_4190.img_plist"
+  ],
+  "portrait_4191": [
+   "DV2/480/dragon/dragon_4191.img_plist"
+  ],
+  "portrait_4192": [
+   "DV2/480/dragon/dragon_4192.img_plist"
+  ],
+  "portrait_4193": [
+   "DV2/480/dragon/dragon_4193.img_plist"
+  ],
+  "portrait_4194": [
+   "DV2/480/dragon/dragon_4194.img_plist"
+  ],
+  "portrait_4195": [
+   "DV2/480/dragon/dragon_4195.img_plist"
+  ],
+  "portrait_4196": [
+   "DV2/480/dragon/dragon_4196.img_plist"
+  ],
+  "portrait_4197": [
+   "DV2/480/dragon/dragon_4197.img_plist"
+  ],
+  "portrait_4198": [
+   "DV2/480/dragon/dragon_4198.img_plist"
+  ],
+  "portrait_4199": [
+   "DV2/480/dragon/dragon_4199.img_plist"
+  ],
+  "portrait_42": [
+   "DV2/480/dragon/dragon_42.img_plist"
+  ],
+  "portrait_4200": [
+   "DV2/480/dragon/dragon_4200.img_plist"
+  ],
+  "portrait_4201": [
+   "DV2/480/dragon/dragon_4201.img_plist"
+  ],
+  "portrait_4202": [
+   "DV2/480/dragon/dragon_4202.img_plist"
+  ],
+  "portrait_4203": [
+   "DV2/480/dragon/dragon_4203.img_plist"
+  ],
+  "portrait_4204": [
+   "DV2/480/dragon/dragon_4204.img_plist"
+  ],
+  "portrait_4205": [
+   "DV2/480/dragon/dragon_4205.img_plist"
+  ],
+  "portrait_4206": [
+   "DV2/480/dragon/dragon_4206.img_plist"
+  ],
+  "portrait_4207": [
+   "DV2/480/dragon/dragon_4207.img_plist"
+  ],
+  "portrait_4208": [
+   "DV2/480/dragon/dragon_4208.img_plist"
+  ],
+  "portrait_4209": [
+   "DV2/480/dragon/dragon_4209.img_plist"
+  ],
+  "portrait_4210": [
+   "DV2/480/dragon/dragon_4210.img_plist"
+  ],
+  "portrait_4211": [
+   "DV2/480/dragon/dragon_4211.img_plist"
+  ],
+  "portrait_4212": [
+   "DV2/480/dragon/dragon_4212.img_plist"
+  ],
+  "portrait_43": [
+   "DV2/480/dragon/dragon_43.img_plist"
+  ],
+  "portrait_44": [
+   "DV2/480/dragon/dragon_44.img_plist"
+  ],
+  "portrait_45": [
+   "DV2/480/dragon/dragon_45.img_plist"
+  ],
+  "portrait_46": [
+   "DV2/480/dragon/dragon_46.img_plist"
+  ],
+  "portrait_47": [
+   "DV2/480/dragon/dragon_47.img_plist"
+  ],
+  "portrait_48": [
+   "DV2/480/dragon/dragon_48.img_plist"
+  ],
+  "portrait_49": [
+   "DV2/480/dragon/dragon_49.img_plist"
+  ],
+  "portrait_5": [
+   "DV2/480/dragon/dragon_5.img_plist"
+  ],
+  "portrait_50": [
+   "DV2/480/dragon/dragon_50.img_plist"
+  ],
+  "portrait_51": [
+   "DV2/480/dragon/dragon_51.img_plist"
+  ],
+  "portrait_52": [
+   "DV2/480/dragon/dragon_52.img_plist"
+  ],
+  "portrait_53": [
+   "DV2/480/dragon/dragon_53.img_plist"
+  ],
+  "portrait_54": [
+   "DV2/480/dragon/dragon_54.img_plist"
+  ],
+  "portrait_55": [
+   "DV2/480/dragon/dragon_55.img_plist"
+  ],
+  "portrait_56": [
+   "DV2/480/dragon/dragon_56.img_plist"
+  ],
+  "portrait_57": [
+   "DV2/480/dragon/dragon_57.img_plist"
+  ],
+  "portrait_58": [
+   "DV2/480/dragon/dragon_58.img_plist"
+  ],
+  "portrait_59": [
+   "DV2/480/dragon/dragon_59.img_plist"
+  ],
+  "portrait_6": [
+   "DV2/480/dragon/dragon_6.img_plist"
+  ],
+  "portrait_60": [
+   "DV2/480/dragon/dragon_60.img_plist"
+  ],
+  "portrait_61": [
+   "DV2/480/dragon/dragon_61.img_plist"
+  ],
+  "portrait_62": [
+   "DV2/480/dragon/dragon_62.img_plist"
+  ],
+  "portrait_63": [
+   "DV2/480/dragon/dragon_63.img_plist"
+  ],
+  "portrait_64": [
+   "DV2/480/dragon/dragon_64.img_plist"
+  ],
+  "portrait_65": [
+   "DV2/480/dragon/dragon_65.img_plist"
+  ],
+  "portrait_66": [
+   "DV2/480/dragon/dragon_66.img_plist"
+  ],
+  "portrait_67": [
+   "DV2/480/dragon/dragon_67.img_plist"
+  ],
+  "portrait_68": [
+   "DV2/480/dragon/dragon_68.img_plist"
+  ],
+  "portrait_69": [
+   "DV2/480/dragon/dragon_69.img_plist"
+  ],
+  "portrait_7": [
+   "DV2/480/dragon/dragon_7.img_plist"
+  ],
+  "portrait_70": [
+   "DV2/480/dragon/dragon_70.img_plist"
+  ],
+  "portrait_71": [
+   "DV2/480/dragon/dragon_71.img_plist"
+  ],
+  "portrait_72": [
+   "DV2/480/dragon/dragon_72.img_plist"
+  ],
+  "portrait_73": [
+   "DV2/480/dragon/dragon_73.img_plist"
+  ],
+  "portrait_74": [
+   "DV2/480/dragon/dragon_74.img_plist"
+  ],
+  "portrait_75": [
+   "DV2/480/dragon/dragon_75.img_plist"
+  ],
+  "portrait_76": [
+   "DV2/480/dragon/dragon_76.img_plist"
+  ],
+  "portrait_77": [
+   "DV2/480/dragon/dragon_77.img_plist"
+  ],
+  "portrait_78": [
+   "DV2/480/dragon/dragon_78.img_plist"
+  ],
+  "portrait_79": [
+   "DV2/480/dragon/dragon_79.img_plist"
+  ],
+  "portrait_8": [
+   "DV2/480/dragon/dragon_8.img_plist"
+  ],
+  "portrait_80": [
+   "DV2/480/dragon/dragon_80.img_plist"
+  ],
+  "portrait_81": [
+   "DV2/480/dragon/dragon_81.img_plist"
+  ],
+  "portrait_82": [
+   "DV2/480/dragon/dragon_82.img_plist"
+  ],
+  "portrait_83": [
+   "DV2/480/dragon/dragon_83.img_plist"
+  ],
+  "portrait_84": [
+   "DV2/480/dragon/dragon_84.img_plist"
+  ],
+  "portrait_85": [
+   "DV2/480/dragon/dragon_85.img_plist"
+  ],
+  "portrait_86": [
+   "DV2/480/dragon/dragon_86.img_plist"
+  ],
+  "portrait_87": [
+   "DV2/480/dragon/dragon_87.img_plist"
+  ],
+  "portrait_88": [
+   "DV2/480/dragon/dragon_88.img_plist"
+  ],
+  "portrait_89": [
+   "DV2/480/dragon/dragon_89.img_plist"
+  ],
+  "portrait_9": [
+   "DV2/480/dragon/dragon_9.img_plist"
+  ],
+  "portrait_90": [
+   "DV2/480/dragon/dragon_90.img_plist"
+  ],
+  "portrait_91": [
+   "DV2/480/dragon/dragon_91.img_plist"
+  ],
+  "portrait_92": [
+   "DV2/480/dragon/dragon_92.img_plist"
+  ],
+  "portrait_93": [
+   "DV2/480/dragon/dragon_93.img_plist"
+  ],
+  "portrait_94": [
+   "DV2/480/dragon/dragon_94.img_plist"
+  ],
+  "portrait_95": [
+   "DV2/480/dragon/dragon_95.img_plist"
+  ],
+  "portrait_96": [
+   "DV2/480/dragon/dragon_96.img_plist"
+  ],
+  "prologue_ui": [
+   "DV2/480/scenario/prologue/prologue_img.img_plist"
+  ],
+  "promote_ui": [
+   "DV2/480/scene/promote.img_plist"
+  ],
+  "roadmap_ui": [
+   "DV2/480/scene/adventure/road_map.img_plist"
+  ],
+  "scenario_cut": [
+   "DV2/480/scenario/main_story/sn_100.img_plist",
+   "DV2/480/scenario/main_story/sn_20.img_plist",
+   "DV2/480/scenario/main_story/sn_24.img_plist",
+   "DV2/480/scenario/main_story/sn_24_1.img_plist",
+   "DV2/480/scenario/main_story/sn_30.img_plist",
+   "DV2/480/scenario/main_story/sn_31.img_plist",
+   "DV2/480/scenario/main_story/sn_32.img_plist",
+   "DV2/480/scenario/main_story/sn_35.img_plist",
+   "DV2/480/scenario/main_story/sn_39.img_plist",
+   "DV2/480/scenario/main_story/sn_44.img_plist",
+   "DV2/480/scenario/main_story/sn_46_1.img_plist",
+   "DV2/480/scenario/main_story/sn_46_2.img_plist",
+   "DV2/480/scenario/main_story/sn_46_3.img_plist",
+   "DV2/480/scenario/main_story/sn_46_4.img_plist",
+   "DV2/480/scenario/main_story/sn_46_5.img_plist",
+   "DV2/480/scenario/main_story/sn_57.img_plist",
+   "DV2/480/scenario/main_story/sn_63.img_plist",
+   "DV2/480/scenario/main_story/sn_67.img_plist",
+   "DV2/480/scenario/main_story/sn_94.img_plist",
+   "DV2/480/scenario/main_story/sn_99.img_plist"
+  ],
+  "scenario_item": [
+   "DV2/480/scenario/main_story/sc_item.img_plist"
+  ],
+  "scenario_monster": [
+   "DV2/480/scenario/monster_npc.img_plist"
+  ],
+  "setting_ui": [
+   "DV2/480/scene/setting.img_plist"
+  ],
+  "shop_ui": [
+   "DV2/480/scene/shop.img_plist"
+  ],
+  "skeleton_fortress": [
+   "DV2/480/scene/adventure/skeleton_fortress.img_plist"
+  ],
+  "skill": [
+   "DV2/480/skill.img_plist"
+  ],
+  "skill_evolution": [
+   "DV2/480/skill/evolution.img_plist"
+  ],
+  "skill_ui": [
+   "DV2/480/skill.img_plist"
+  ],
+  "slot_item": [
+   "DV2/480/item/item_small/slot_item.img_plist"
+  ],
+  "stand_ui": [
+   "DV2/480/stand.img_plist"
+  ],
+  "status_ui": [
+   "DV2/480/scene/worldmap/status.img_plist"
+  ],
+  "title_ui": [
+   "DV2/480/title.img_plist"
+  ],
+  "town_dwarf": [
+   "DV2/480/scene/town/dwarf_bg1.img_plist",
+   "DV2/480/scene/town/dwarf_bg2.img_plist"
+  ],
+  "town_elpis": [
+   "DV2/480/scene/town/elpis.img_plist",
+   "DV2/480/scene/town/elpis_bg.img_plist",
+   "DV2/480/scene/town/elpis_bg_night.img_plist"
+  ],
+  "town_elpis_smog": [
+   "DV2/480/scene/town/elpis/lab_smog.img_plist"
+  ],
+  "ultimate_aqua": [
+   "DV2/480/skill/ultimate/aqua.img_plist"
+  ],
+  "ultimate_chaos": [
+   "DV2/480/skill/ultimate/chaos.img_plist"
+  ],
+  "ultimate_dark": [
+   "DV2/480/skill/ultimate/dark.img_plist"
+  ],
+  "ultimate_earth": [
+   "DV2/480/skill/ultimate/earth.img_plist"
+  ],
+  "ultimate_fire": [
+   "DV2/480/skill/ultimate/fire.img_plist"
+  ],
+  "ultimate_holy": [
+   "DV2/480/skill/ultimate/holy.img_plist"
+  ],
+  "ultimate_light": [
+   "DV2/480/skill/ultimate/light.img_plist"
+  ],
+  "ultimate_shadow": [
+   "DV2/480/skill/ultimate/shadow.img_plist"
+  ],
+  "ultimate_wind": [
+   "DV2/480/skill/ultimate/wind.img_plist"
+  ],
+  "wall_ui": [
+   "DV2/480/scene/cave/wall/1.img_plist",
+   "DV2/480/scene/cave/wall/10.img_plist",
+   "DV2/480/scene/cave/wall/11.img_plist",
+   "DV2/480/scene/cave/wall/12.img_plist",
+   "DV2/480/scene/cave/wall/13.img_plist",
+   "DV2/480/scene/cave/wall/14.img_plist",
+   "DV2/480/scene/cave/wall/15.img_plist",
+   "DV2/480/scene/cave/wall/8.img_plist",
+   "DV2/480/scene/cave/wall/9.img_plist"
+  ],
+  "worldmap_dwarf_new": [
+   "DV2/480/scene/worldmap/map_dwarf_ani_new.img_plist",
+   "DV2/480/scene/worldmap/map_dwarf_new.img_plist"
+  ],
+  "worldmap_elf_new": [
+   "DV2/480/scene/worldmap/map_elf_ani_new.img_plist",
+   "DV2/480/scene/worldmap/map_elf_new.img_plist"
+  ],
+  "worldmap_maps": [
+   "DV2/480/scene/worldmap/map_dwarf.img_plist",
+   "DV2/480/scene/worldmap/map_elf.img_plist",
+   "DV2/480/scene/worldmap/map_world.img_plist",
+   "DV2/480/scene/worldmap/map_yutakan.img_plist"
+  ],
+  "worldmap_ui": [
+   "DV2/480/scene/worldmap.img_plist"
+  ],
+  "worldmap_uno": [
+   "DV2/480/scene/worldmap/map_uno/background.img_plist"
+  ],
+  "worldmap_world": [
+   "DV2/480/scene/worldmap/map_world.img_plist"
+  ],
+  "worldmap_yutakan_new": [
+   "DV2/480/scene/worldmap/map_yutakan_ani_new.img_plist",
+   "DV2/480/scene/worldmap/map_yutakan_new.img_plist",
+   "DV2/480/scene/worldmap/map_yutakan_new/kades.img_plist",
+   "DV2/480/scene/worldmap/map_yutakan_new/night.img_plist"
+  ]
+ },
+ "spine_dragons": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40,
+  41,
+  42,
+  43,
+  44,
+  45,
+  46,
+  47,
+  48,
+  49,
+  50,
+  51,
+  52,
+  53,
+  54,
+  55,
+  56,
+  57,
+  58,
+  59,
+  60,
+  61,
+  62,
+  63,
+  64,
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72,
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79,
+  80,
+  81,
+  82,
+  83,
+  84,
+  85,
+  86,
+  87,
+  88,
+  89,
+  90,
+  91,
+  92,
+  93,
+  94,
+  95,
+  96,
+  100,
+  101,
+  102,
+  103,
+  104,
+  105,
+  106,
+  107,
+  108,
+  115,
+  116,
+  117,
+  118,
+  119,
+  120,
+  121,
+  122,
+  123,
+  124,
+  125,
+  129,
+  133,
+  137,
+  141,
+  145,
+  167,
+  168,
+  169,
+  170,
+  171,
+  172,
+  173,
+  174,
+  175,
+  176,
+  177,
+  178,
+  179,
+  180,
+  181,
+  182,
+  183,
+  184,
+  185,
+  186,
+  187,
+  188,
+  189,
+  195,
+  196,
+  666,
+  777,
+  800,
+  3001,
+  3002,
+  3003,
+  3004,
+  3005,
+  3006,
+  3007,
+  3008,
+  3009,
+  3010,
+  3011,
+  3012,
+  3013,
+  3014,
+  3015,
+  3016,
+  3017,
+  3018,
+  3019,
+  3020,
+  3021,
+  3022,
+  3023,
+  3024,
+  3025,
+  3026,
+  3027,
+  3028,
+  3029,
+  3030,
+  3031,
+  3032,
+  3033,
+  3034,
+  3035,
+  3036,
+  3037,
+  3038,
+  3039,
+  3040,
+  3041,
+  3042,
+  4000,
+  4001,
+  4002,
+  4003,
+  4004,
+  4005,
+  4006,
+  4007,
+  4008,
+  4009,
+  4010,
+  4011,
+  4012,
+  4013,
+  4014,
+  4015,
+  4016,
+  4017,
+  4018,
+  4019,
+  4020,
+  4021,
+  4022,
+  4023,
+  4024,
+  4025,
+  4026,
+  4027,
+  4028,
+  4029,
+  4030,
+  4031,
+  4032,
+  4033,
+  4034,
+  4035,
+  4036,
+  4037,
+  4038,
+  4039,
+  4040,
+  4041,
+  4042,
+  4043,
+  4044,
+  4045,
+  4046,
+  4047,
+  4048,
+  4049,
+  4050,
+  4051,
+  4052,
+  4053,
+  4055,
+  4056,
+  4057,
+  4058,
+  4059,
+  4060,
+  4061,
+  4062,
+  4064,
+  4065,
+  4066,
+  4067,
+  4068,
+  4069,
+  4070,
+  4071,
+  4072,
+  4073,
+  4075,
+  4083,
+  4096,
+  4097,
+  4098,
+  4099,
+  4100,
+  4101,
+  4102,
+  4103,
+  4104,
+  4105,
+  4106,
+  4107,
+  4108,
+  4109,
+  4110,
+  4111,
+  4112,
+  4113,
+  4114,
+  4115,
+  4116,
+  4117,
+  4118,
+  4119,
+  4120,
+  4121,
+  4122,
+  4123,
+  4124,
+  4125,
+  4126,
+  4127,
+  4128,
+  4129,
+  4130,
+  4131,
+  4132,
+  4135,
+  4136,
+  4137,
+  4138,
+  4139,
+  4140,
+  4141,
+  4142,
+  4143,
+  4144,
+  4145,
+  4146,
+  4147,
+  4148,
+  4149,
+  4150,
+  4151,
+  4152,
+  4153,
+  4154,
+  4155,
+  4156,
+  4157,
+  4158,
+  4159,
+  4160,
+  4161,
+  4162,
+  4163,
+  4164,
+  4165,
+  4166,
+  4173,
+  4174,
+  4175,
+  4176,
+  4177,
+  4178,
+  4179,
+  4180,
+  4181,
+  4182,
+  4183,
+  4184,
+  4185,
+  4186,
+  4187,
+  4188,
+  4189,
+  4190,
+  4191,
+  4192,
+  4193,
+  4194,
+  4195,
+  4196,
+  4197,
+  4198,
+  4199,
+  4200,
+  4201,
+  4202,
+  4203,
+  4204,
+  4205,
+  4206,
+  4207,
+  4208,
+  4209,
+  4210,
+  4211,
+  4212,
+  9001,
+  9002,
+  9003,
+  9004,
+  9005,
+  9006,
+  9007,
+  9008,
+  9009,
+  9010,
+  9011,
+  9012,
+  9013,
+  9014,
+  9998,
+  9999
+ ],
+ "spine_monsters": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40,
+  41,
+  42,
+  43,
+  44,
+  45,
+  46,
+  47,
+  48,
+  49,
+  50,
+  51,
+  52,
+  53,
+  54,
+  55,
+  56,
+  57,
+  58,
+  59,
+  60,
+  61,
+  62,
+  63,
+  64,
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72,
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79,
+  80,
+  81,
+  82,
+  83,
+  84,
+  85,
+  86,
+  87,
+  88,
+  89,
+  90,
+  91,
+  92,
+  93,
+  94,
+  95,
+  96,
+  97,
+  98,
+  99,
+  100,
+  101,
+  102,
+  103,
+  104,
+  105,
+  106,
+  107,
+  108,
+  109,
+  110,
+  111,
+  112,
+  113,
+  114,
+  115,
+  116,
+  117,
+  118,
+  119,
+  120,
+  121,
+  122,
+  123,
+  124,
+  125,
+  126,
+  127,
+  128,
+  130,
+  131,
+  132,
+  133,
+  134,
+  135,
+  136,
+  137,
+  138,
+  139,
+  160,
+  161,
+  162,
+  163,
+  164,
+  165,
+  166,
+  167,
+  168,
+  169,
+  170,
+  171,
+  172,
+  173,
+  174,
+  175,
+  176,
+  177,
+  178,
+  179,
+  180,
+  181,
+  182,
+  183,
+  184,
+  185,
+  186,
+  187,
+  188,
+  189,
+  190,
+  191,
+  192,
+  193
+ ],
+ "spine_scenes": {
+  "ani_cart_new_spine": "DV2/480/scene/worldmap/ani_cart_new_spine.spine_json",
+  "ani_cave_spine": "DV2/480/scene/worldmap/ani_cave_spine.spine_json",
+  "ani_dwarfstatue_new_spine": "DV2/480/scene/worldmap/ani_dwarfstatue_new_spine.spine_json",
+  "ani_elevator_new_spine": "DV2/480/scene/worldmap/ani_elevator_new_spine.spine_json",
+  "ani_elf_livingwaters_new_spine": "DV2/480/scene/worldmap/ani_elf_livingwaters_new_spine.spine_json",
+  "ani_elf_temple_spine": "DV2/480/scene/worldmap/ani_elf_temple_spine.spine_json",
+  "ani_elf_tree_spine": "DV2/480/scene/worldmap/ani_elf_tree_spine.spine_json",
+  "ani_elf_valley_new_spine": "DV2/480/scene/worldmap/ani_elf_valley_new_spine.spine_json",
+  "ani_elf_waterflow_spine": "DV2/480/scene/worldmap/ani_elf_waterflow_spine.spine_json",
+  "ani_elf_wave_new_spine": "DV2/480/scene/worldmap/ani_elf_wave_new_spine.spine_json",
+  "ani_elf_wood_new_spine": "DV2/480/scene/worldmap/ani_elf_wood_new_spine.spine_json",
+  "ani_fire_new_spine": "DV2/480/scene/worldmap/ani_fire_new_spine.spine_json",
+  "ani_grave_new_spine": "DV2/480/scene/worldmap/ani_grave_new_spine.spine_json",
+  "ani_kades_raid_spine": "DV2/480/scene/worldmap/ani_kades_raid_spine.spine_json",
+  "ani_lake_spine": "DV2/480/scene/worldmap/ani_lake_spine.spine_json",
+  "ani_lighttower_spine": "DV2/480/scene/worldmap/ani_lighttower_spine.spine_json",
+  "ani_ogre_spine": "DV2/480/scene/worldmap/ani_ogre_spine.spine_json",
+  "ani_sea_spine": "DV2/480/scene/worldmap/ani_sea_spine.spine_json",
+  "ani_shipwreck_spine": "DV2/480/scene/worldmap/ani_shipwreck_spine.spine_json",
+  "ani_snow_spine": "DV2/480/scene/worldmap/ani_snow_spine.spine_json",
+  "ani_treedungeon_spine": "DV2/480/scene/worldmap/ani_treedungeon_spine.spine_json",
+  "ani_veti_spine": "DV2/480/scene/worldmap/ani_veti_spine.spine_json",
+  "ani_waterfall_spine": "DV2/480/scene/worldmap/ani_waterfall_spine.spine_json",
+  "ani_waves_new_spine": "DV2/480/scene/worldmap/ani_waves_new_spine.spine_json",
+  "ani_wind_spine": "DV2/480/scene/worldmap/ani_wind_spine.spine_json",
+  "bg_black_island1": "DV2/480/scene/worldmap/map_uno/black_island/bg_black_island1.spine_json",
+  "bg_black_island2": "DV2/480/scene/worldmap/map_uno/black_island/bg_black_island2.spine_json",
+  "bg_unknown_ground1": "DV2/480/scene/worldmap/map_uno/unknown_site/bg_unknown_ground1.spine_json",
+  "bg_unknown_ground2": "DV2/480/scene/worldmap/map_uno/unknown_site/bg_unknown_ground2.spine_json",
+  "buildup_result_spine": "DV2/480/scene/cave/buildup_result_spine.spine_json",
+  "colo_waiting_spine": "DV2/480/scene/colosseum/colo_waiting_spine.spine_json",
+  "dragon_enchant_lvup": "DV2/480/scene/cave/dragon_enchant_lvup.spine_json",
+  "duck": "DV2/480/scene/town/elpis/duck.spine_json",
+  "egglight_spine": "DV2/480/scene/cave/egglight_spine.spine_json",
+  "fight_spine": "DV2/480/scene/colosseum/fight_spine.spine_json",
+  "fountain": "DV2/480/scene/town/elpis/fountain.spine_json",
+  "holy_wing_spine": "DV2/480/skill/ultimate/holy/holy_wing_spine.spine_json",
+  "intro2020_3_spine": "DV2/480/intro/intro2020_3_spine.spine_json",
+  "magicshop_alchemist": "DV2/480/scene/magicshop/magicshop_alchemist.spine_json",
+  "scene_colosseum_lightning_spine": "DV2/480/scene/colosseum/scene_colosseum_lightning_spine.spine_json",
+  "sd_annie": "DV2/480/scene/town/elpis/sd_annie.spine_json",
+  "sd_aria": "DV2/480/scene/town/elpis/sd_aria.spine_json",
+  "sd_baruseu": "DV2/480/scene/town/elpis/sd_baruseu.spine_json",
+  "sd_dilis": "DV2/480/scene/town/elpis/sd_dilis.spine_json",
+  "sd_grandma": "DV2/480/scene/town/elpis/sd_grandma.spine_json",
+  "sd_guy": "DV2/480/scene/town/elpis/sd_guy.spine_json",
+  "sd_kanggalo": "DV2/480/scene/town/elpis/sd_kanggalo.spine_json",
+  "sd_nelson": "DV2/480/scene/town/elpis/sd_nelson.spine_json",
+  "sd_nuri": "DV2/480/scene/town/elpis/sd_nuri.spine_json",
+  "sd_pino": "DV2/480/scene/town/elpis/sd_pino.spine_json",
+  "sd_popo": "DV2/480/scene/town/elpis/sd_popo.spine_json",
+  "sd_randolph": "DV2/480/scene/town/elpis/sd_randolph.spine_json",
+  "sd_raon": "DV2/480/scene/town/elpis/sd_raon.spine_json",
+  "sd_romini": "DV2/480/scene/town/elpis/sd_romini.spine_json",
+  "sd_yuria": "DV2/480/scene/town/elpis/sd_yuria.spine_json",
+  "sd_zumon": "DV2/480/scene/town/elpis/sd_zumon.spine_json",
+  "shadow_spine": "DV2/480/skill/ultimate/shadow/shadow_spine.spine_json",
+  "skill_100_spine": "DV2/480/skill/skill_100_spine.spine_json",
+  "skill_110_spine": "DV2/480/skill/skill_110_spine.spine_json",
+  "skill_11_spine": "DV2/480/skill/skill_11_spine.spine_json",
+  "skill_120_spine": "DV2/480/skill/skill_120_spine.spine_json",
+  "skill_12_spine": "DV2/480/skill/skill_12_spine.spine_json",
+  "skill_130_spine": "DV2/480/skill/skill_130_spine.spine_json",
+  "skill_13_ad_spine": "DV2/480/skill/skill_13_ad_spine.spine_json",
+  "skill_13_spine": "DV2/480/skill/skill_13_spine.spine_json",
+  "skill_140_spine": "DV2/480/skill/skill_140_spine.spine_json",
+  "skill_150_spine": "DV2/480/skill/skill_150_spine.spine_json",
+  "skill_15_spine": "DV2/480/skill/skill_15_spine.spine_json",
+  "skill_160_spine": "DV2/480/skill/skill_160_spine.spine_json",
+  "skill_170_spine": "DV2/480/skill/skill_170_spine.spine_json",
+  "skill_1_bite_spine": "DV2/480/skill/skill_1_bite_spine.spine_json",
+  "skill_1_hit_spine": "DV2/480/skill/skill_1_hit_spine.spine_json",
+  "skill_1_scratch_spine": "DV2/480/skill/skill_1_scratch_spine.spine_json",
+  "skill_20_spine": "DV2/480/skill/skill_20_spine.spine_json",
+  "skill_22_spine": "DV2/480/skill/skill_22_spine.spine_json",
+  "skill_23_spine": "DV2/480/skill/skill_23_spine.spine_json",
+  "skill_24_ad_spine": "DV2/480/skill/skill_24_ad_spine.spine_json",
+  "skill_24_spine": "DV2/480/skill/skill_24_spine.spine_json",
+  "skill_25_spine": "DV2/480/skill/skill_25_spine.spine_json",
+  "skill_26_spine": "DV2/480/skill/skill_26_spine.spine_json",
+  "skill_28_spine": "DV2/480/skill/skill_28_spine.spine_json",
+  "skill_2_spine": "DV2/480/skill/skill_2_spine.spine_json",
+  "skill_30_spine": "DV2/480/skill/skill_30_spine.spine_json",
+  "skill_32_spine": "DV2/480/skill/skill_32_spine.spine_json",
+  "skill_36_spine": "DV2/480/skill/skill_36_spine.spine_json",
+  "skill_38_spine": "DV2/480/skill/skill_38_spine.spine_json",
+  "skill_46_spine": "DV2/480/skill/skill_46_spine.spine_json",
+  "skill_50_spine": "DV2/480/skill/skill_50_spine.spine_json",
+  "skill_54_spine": "DV2/480/skill/skill_54_spine.spine_json",
+  "skill_55_spine": "DV2/480/skill/skill_55_spine.spine_json",
+  "skill_56_spine": "DV2/480/skill/skill_56_spine.spine_json",
+  "skill_57_spine": "DV2/480/skill/skill_57_spine.spine_json",
+  "skill_60_spine": "DV2/480/skill/skill_60_spine.spine_json",
+  "skill_70_spine": "DV2/480/skill/skill_70_spine.spine_json",
+  "skill_80_spine": "DV2/480/skill/skill_80_spine.spine_json",
+  "skill_90_spine": "DV2/480/skill/skill_90_spine.spine_json",
+  "skill_adbloking_spine": "DV2/480/skill/skill_adbloking_spine.spine_json",
+  "skill_zzing_spine": "DV2/480/skill/skill_zzing_spine.spine_json",
+  "u_village_lab": "DV2/480/scene/town/elpis/u_village_lab.spine_json",
+  "u_village_light_spine": "DV2/480/scene/town/elpis/u_village_light_spine.spine_json",
+  "w_darknix": "DV2/480/scene/worldmap/w_darknix.spine_json",
+  "worldmap_imp_spine": "DV2/480/scene/worldmap/worldmap_imp_spine.spine_json",
+  "worldmap_mamorudik": "DV2/480/scene/worldmap/map_uno/worldmap_mamorudik.spine_json"
+ },
+ "spine_scene_atlas": {
+  "bg_black_island1": "DV2/480/scene/worldmap/map_uno/black_island/effect1_spine.img_plist",
+  "bg_black_island2": "DV2/480/scene/worldmap/map_uno/black_island/effect2_spine.img_plist",
+  "bg_unknown_ground1": "DV2/480/scene/worldmap/map_uno/unknown_site/temple_spine.img_plist",
+  "bg_unknown_ground2": "DV2/480/scene/worldmap/map_uno/unknown_site/waterfall_spine.img_plist",
+  "dragon_enchant_lvup": "DV2/480/scene/cave/enchant_lvup_spine.img_plist",
+  "duck": "DV2/480/scene/town/elpis/duck_spine.img_plist",
+  "fountain": "DV2/480/scene/town/elpis/fountain_spine.img_plist",
+  "intro2020_3_spine": "DV2/480/intro/intro_spine2020_3_spine9.img_plist",
+  "magicshop_alchemist": "DV2/480/scene/magicshop/alchemy_spine.img_plist",
+  "sd_annie": "DV2/480/scene/town/elpis/annie_spine.img_plist",
+  "sd_aria": "DV2/480/scene/town/elpis/aria_spine.img_plist",
+  "sd_baruseu": "DV2/480/scene/town/elpis/baruseu_spine.img_plist",
+  "sd_dilis": "DV2/480/scene/town/elpis/dilis_spine.img_plist",
+  "sd_grandma": "DV2/480/scene/town/elpis/grandma_spine.img_plist",
+  "sd_guy": "DV2/480/scene/town/elpis/guy_spine.img_plist",
+  "sd_kanggalo": "DV2/480/scene/town/elpis/kanggalo_spine.img_plist",
+  "sd_nelson": "DV2/480/scene/town/elpis/nelson_spine.img_plist",
+  "sd_nuri": "DV2/480/scene/town/elpis/nuri_spine.img_plist",
+  "sd_pino": "DV2/480/scene/town/elpis/pino_spine.img_plist",
+  "sd_popo": "DV2/480/scene/town/elpis/popo_spine.img_plist",
+  "sd_randolph": "DV2/480/scene/town/elpis/randolph_spine.img_plist",
+  "sd_raon": "DV2/480/scene/town/elpis/raon_spine.img_plist",
+  "sd_romini": "DV2/480/scene/town/elpis/romini_spine.img_plist",
+  "sd_yuria": "DV2/480/scene/town/elpis/yuria_spine.img_plist",
+  "sd_zumon": "DV2/480/scene/town/elpis/zumon_spine.img_plist",
+  "u_village_lab": "DV2/480/scene/town/elpis/lab_spine.img_plist",
+  "u_village_light_spine": "DV2/480/scene/town/elpis/light_spine.img_plist",
+  "w_darknix": "DV2/480/scene/worldmap/ani_darknix_spine.img_plist",
+  "worldmap_imp_spine": "DV2/480/scene/worldmap/ani_imp_spine.img_plist",
+  "worldmap_mamorudik": "DV2/480/scene/worldmap/map_uno/ani_mamorudic_spine.img_plist"
+ },
+ "spine_custom": {
+  "egg_3001": {
+   "spine_json": "DV2/480/scene/laboratory/egg/3001_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_3002": {
+   "spine_json": "DV2/480/scene/laboratory/egg/3002_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_3003": {
+   "spine_json": "DV2/480/scene/laboratory/egg/3003_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_3039": {
+   "spine_json": "DV2/480/scene/laboratory/egg/3039_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_3040": {
+   "spine_json": "DV2/480/scene/laboratory/egg/3040_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_4035": {
+   "spine_json": "DV2/480/scene/laboratory/egg/4035_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "egg_4036": {
+   "spine_json": "DV2/480/scene/laboratory/egg/4036_spine.spine_json",
+   "jsons": [
+    "egg"
+   ]
+  },
+  "evol_evolution_effect": {
+   "spine_json": "DV2/480/scene/mamorudiclab/evolution_effect.spine_json",
+   "atlas": "DV2/480/scene/mamorudiclab/awake_spine.img_plist",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "evol_evolution_effect2": {
+   "spine_json": "DV2/480/scene/mamorudiclab/evolution_effect2.spine_json",
+   "atlas": "DV2/480/scene/mamorudiclab/effectevol_spine.img_plist",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "evol_evolution_wing": {
+   "spine_json": "DV2/480/scene/mamorudiclab/evolution_wing.spine_json",
+   "atlas": "DV2/480/scene/mamorudiclab/effectwing_spine.img_plist",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "fx_ascension": {
+   "spine_json": "DV2/480/scene/cave/ascension_event_spine.spine_json",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "fx_raon": {
+   "spine_json": "DV2/480/scene/town/elpis/sd_raon.spine_json",
+   "atlas": "DV2/480/scene/town/elpis/raon_spine.img_plist",
+   "jsons": [
+    "sd"
+   ]
+  },
+  "fx_yongsin": {
+   "spine_json": "DV2/480/scene/worldmap/event_dragonball/yongsin_ball.spine_json",
+   "atlas": "DV2/480/scene/worldmap/event_dragonball/yongsin_spine.img_plist",
+   "jsons": [
+    "ball"
+   ]
+  },
+  "lab_blast": {
+   "spine_json": "DV2/480/scene/laboratory/u_village_lab_blast.spine_json",
+   "atlas": "DV2/480/scene/laboratory/upgrade_spine.img_plist",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "lab_st": {
+   "spine_json": "DV2/480/scene/laboratory/u_village_lab_st.spine_json",
+   "atlas": "DV2/480/scene/laboratory/base_spine.img_plist",
+   "jsons": [
+    "fx"
+   ]
+  },
+  "npc_wonder": {
+   "spine_json": "DV2/480/scene/worldmap/ani_wonder_spine.spine_json",
+   "jsons": [
+    "npc"
+   ]
+  },
+  "stage_buff/aqua": {
+   "spine_json": "DV2/480/battle/stage_aqua_buff_spine.spine_json",
+   "jsons": [
+    "aqua"
+   ]
+  },
+  "stage_buff/chaos": {
+   "spine_json": "DV2/480/battle/stage_chaos_buff_spine.spine_json",
+   "jsons": [
+    "chaos"
+   ]
+  },
+  "stage_buff/dark": {
+   "spine_json": "DV2/480/battle/stage_dark_buff_spine.spine_json",
+   "jsons": [
+    "dark"
+   ]
+  },
+  "stage_buff/earth": {
+   "spine_json": "DV2/480/battle/stage_earth_buff_spine.spine_json",
+   "jsons": [
+    "earth"
+   ]
+  },
+  "stage_buff/fire": {
+   "spine_json": "DV2/480/battle/stage_fire_buff_spine.spine_json",
+   "jsons": [
+    "fire"
+   ]
+  },
+  "stage_buff/holy": {
+   "spine_json": "DV2/480/battle/stage_holy_buff_spine.spine_json",
+   "jsons": [
+    "holy"
+   ]
+  },
+  "stage_buff/light": {
+   "spine_json": "DV2/480/battle/stage_light_buff_spine.spine_json",
+   "jsons": [
+    "light"
+   ]
+  },
+  "stage_buff/shadow": {
+   "spine_json": "DV2/480/battle/stage_shadow_buff_spine.spine_json",
+   "jsons": [
+    "shadow"
+   ]
+  },
+  "stage_buff/wind": {
+   "spine_json": "DV2/480/battle/stage_wind_buff_spine.spine_json",
+   "jsons": [
+    "wind"
+   ]
+  }
+ },
+ "copies": {
+  "battle_bg": {
+   "bg_1.jpg": "DV2/480/scene/adventure/bg/1/bg.jpg"
+  },
+  "cave_bg": {
+   "cavebg1.jpg": "DV2/480/scene/cave/bg/cavebg1.jpg",
+   "cavebg10.jpg": "DV2/480/scene/cave/bg/cavebg10.jpg",
+   "cavebg11.jpg": "DV2/480/scene/cave/bg/cavebg11.jpg",
+   "cavebg12.jpg": "DV2/480/scene/cave/bg/cavebg12.jpg",
+   "cavebg13.jpg": "DV2/480/scene/cave/bg/cavebg13.jpg",
+   "cavebg14.jpg": "DV2/480/scene/cave/bg/cavebg14.jpg",
+   "cavebg15.jpg": "DV2/480/scene/cave/bg/cavebg15.jpg",
+   "cavebg2.jpg": "DV2/480/scene/cave/bg/cavebg2.jpg",
+   "cavebg3.jpg": "DV2/480/scene/cave/bg/cavebg3.jpg",
+   "cavebg4.jpg": "DV2/480/scene/cave/bg/cavebg4.jpg",
+   "cavebg5.jpg": "DV2/480/scene/cave/bg/cavebg5.jpg",
+   "cavebg6.jpg": "DV2/480/scene/cave/bg/cavebg6.jpg",
+   "cavebg7.jpg": "DV2/480/scene/cave/bg/cavebg7.jpg",
+   "cavebg8.jpg": "DV2/480/scene/cave/bg/cavebg8.jpg",
+   "cavebg9.jpg": "DV2/480/scene/cave/bg/cavebg9.jpg"
+  },
+  "colosseum_bg": {
+   "stage_0.jpg": "DV2/480/scene/colosseum/stage_0.jpg",
+   "stage_1.jpg": "DV2/480/scene/colosseum/stage_1.jpg",
+   "stage_2.jpg": "DV2/480/scene/colosseum/stage_2.jpg",
+   "stage_3.jpg": "DV2/480/scene/colosseum/stage_3.jpg",
+   "stage_4.jpg": "DV2/480/scene/colosseum/stage_4.jpg",
+   "stage_5.jpg": "DV2/480/scene/colosseum/stage_5.jpg",
+   "stage_6.jpg": "DV2/480/scene/colosseum/stage_6.jpg",
+   "stage_7.jpg": "DV2/480/scene/colosseum/stage_7.jpg",
+   "stage_ballok.jpg": "DV2/480/scene/colosseum/stage_ballok.jpg",
+   "stage_fire.jpg": "DV2/480/scene/colosseum/stage_fire.jpg",
+   "stage_kades_raid.jpg": "DV2/480/scene/colosseum/stage_kades_raid.jpg"
+  },
+  "guide_ui": {
+   "guide_1_1_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_1_1_KR.jpg",
+   "guide_1_2_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_2_1_KR.jpg",
+   "guide_1_2_2_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_2_2_KR.jpg",
+   "guide_1_2_3_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_2_3_KR.jpg",
+   "guide_1_3_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_3_1_KR.jpg",
+   "guide_1_4_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_4_1_KR.jpg",
+   "guide_1_4_2_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_4_2_KR.jpg",
+   "guide_1_5_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_5_1_KR.jpg",
+   "guide_1_6_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_1_6_1_KR.jpg",
+   "guide_2_1_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_2_1_1_KR.jpg",
+   "guide_2_1_2_KR.jpg": "DV2/480/scene/worldmap/guide/guide_2_1_2_KR.jpg",
+   "guide_2_2_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_2_2_1_KR.jpg",
+   "guide_3_1_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_3_1_1_KR.jpg",
+   "guide_3_2_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_3_2_1_KR.jpg",
+   "guide_3_2_2_KR.jpg": "DV2/480/scene/worldmap/guide/guide_3_2_2_KR.jpg",
+   "guide_4_1_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_4_1_1_KR.jpg",
+   "guide_4_2_1_KR.jpg": "DV2/480/scene/worldmap/guide/guide_4_2_1_KR.jpg",
+   "guide_4_2_2_KR.jpg": "DV2/480/scene/worldmap/guide/guide_4_2_2_KR.jpg",
+   "guide_4_2_3_KR.jpg": "DV2/480/scene/worldmap/guide/guide_4_2_3_KR.jpg",
+   "guide_4_2_4_KR.jpg": "DV2/480/scene/worldmap/guide/guide_4_2_4_KR.jpg"
+  },
+  "scenario": {
+   "bg/bighouse.jpg": "DV2/480/scenario/main_story/bg/bighouse.jpg",
+   "bg/bighouse_night.jpg": "DV2/480/scenario/main_story/bg/bighouse_night.jpg",
+   "bg/townfarm.jpg": "DV2/480/scenario/main_story/bg/townfarm.jpg",
+   "bg/townfarm_night.jpg": "DV2/480/scenario/main_story/bg/townfarm_night.jpg",
+   "bg/townsquare.jpg": "DV2/480/scenario/main_story/bg/townsquare.jpg",
+   "bg/townsquare_night.jpg": "DV2/480/scenario/main_story/bg/townsquare_night.jpg",
+   "sn_100_back.jpg": "DV2/480/scenario/main_story/sn_100/back.jpg",
+   "sn_101_1_illust.jpg": "DV2/480/scenario/main_story/sn_101_1_illust.jpg",
+   "sn_12_1_illust.jpg": "DV2/480/scenario/main_story/sn_12_1_illust.jpg",
+   "sn_12_2_illust.jpg": "DV2/480/scenario/main_story/sn_12_2_illust.jpg",
+   "sn_19_1_illust.jpg": "DV2/480/scenario/main_story/sn_19_1_illust.jpg",
+   "sn_19_2_illust.jpg": "DV2/480/scenario/main_story/sn_19_2_illust.jpg",
+   "sn_20_1_illust.jpg": "DV2/480/scenario/main_story/sn_20_1_illust.jpg",
+   "sn_21_1_illust.jpg": "DV2/480/scenario/main_story/sn_21_1_illust.jpg",
+   "sn_24_1_illust.jpg": "DV2/480/scenario/main_story/sn_24_1_illust.jpg",
+   "sn_24_2_illust.jpg": "DV2/480/scenario/main_story/sn_24_2_illust.jpg",
+   "sn_27_1_illust.jpg": "DV2/480/scenario/main_story/sn_27_1_illust.jpg",
+   "sn_28_1_illust.jpg": "DV2/480/scenario/main_story/sn_28_1_illust.jpg",
+   "sn_30_1_illust.jpg": "DV2/480/scenario/main_story/sn_30_1_illust.jpg",
+   "sn_31_1_illust.jpg": "DV2/480/scenario/main_story/sn_31_1_illust.jpg",
+   "sn_31_2_illust.jpg": "DV2/480/scenario/main_story/sn_31_2_illust.jpg",
+   "sn_33_1_illust.jpg": "DV2/480/scenario/main_story/sn_33_1_illust.jpg",
+   "sn_34_1_illust.jpg": "DV2/480/scenario/main_story/sn_34_1_illust.jpg",
+   "sn_34_2_illust.jpg": "DV2/480/scenario/main_story/sn_34_2_illust.jpg",
+   "sn_34_3_illust.jpg": "DV2/480/scenario/main_story/sn_34_3_illust.jpg",
+   "sn_34_4_illust.jpg": "DV2/480/scenario/main_story/sn_34_4_illust.jpg",
+   "sn_35_1_illust.jpg": "DV2/480/scenario/main_story/sn_35_1_illust.jpg",
+   "sn_35_2_illust.jpg": "DV2/480/scenario/main_story/sn_35_2_illust.jpg",
+   "sn_35_3_illust.jpg": "DV2/480/scenario/main_story/sn_35_3_illust.jpg",
+   "sn_36_1_illust.jpg": "DV2/480/scenario/main_story/sn_36_1_illust.jpg",
+   "sn_43_1_illust.jpg": "DV2/480/scenario/main_story/sn_43_1_illust.jpg",
+   "sn_43_2_illust.jpg": "DV2/480/scenario/main_story/sn_43_2_illust.jpg",
+   "sn_46_1_illust.jpg": "DV2/480/scenario/main_story/sn_46_1_illust.jpg",
+   "sn_46_2_illust.jpg": "DV2/480/scenario/main_story/sn_46_2_illust.jpg",
+   "sn_46_3_illust.jpg": "DV2/480/scenario/main_story/sn_46_3_illust.jpg",
+   "sn_46_4_illust.jpg": "DV2/480/scenario/main_story/sn_46_4_illust.jpg",
+   "sn_46_5_illust.jpg": "DV2/480/scenario/main_story/sn_46_5_illust.jpg",
+   "sn_46_6_illust.jpg": "DV2/480/scenario/main_story/sn_46_6_illust.jpg",
+   "sn_52_1_illust.jpg": "DV2/480/scenario/main_story/sn_52_1_illust.jpg",
+   "sn_57_1_illust.jpg": "DV2/480/scenario/main_story/sn_57_1_illust.jpg",
+   "sn_59_1_illust.jpg": "DV2/480/scenario/main_story/sn_59_1_illust.jpg",
+   "sn_62_1_illust.jpg": "DV2/480/scenario/main_story/sn_62_1_illust.jpg",
+   "sn_63_bg.jpg": "DV2/480/scenario/main_story/sn_63/bg.jpg",
+   "sn_66_1_illust.jpg": "DV2/480/scenario/main_story/sn_66_1_illust.jpg",
+   "sn_67_1_illust.jpg": "DV2/480/scenario/main_story/sn_67_1_illust.jpg",
+   "sn_70_1_illust.jpg": "DV2/480/scenario/main_story/sn_70_1_illust.jpg",
+   "sn_71_1_illust.jpg": "DV2/480/scenario/main_story/sn_71_1_illust.jpg",
+   "sn_72_1_illust.jpg": "DV2/480/scenario/main_story/sn_72_1_illust.jpg",
+   "sn_74_1_illust.jpg": "DV2/480/scenario/main_story/sn_74_1_illust.jpg",
+   "sn_75_1_illust.jpg": "DV2/480/scenario/main_story/sn_75_1_illust.jpg",
+   "sn_78_1_illust.jpg": "DV2/480/scenario/main_story/sn_78_1_illust.jpg",
+   "sn_79_1_illust.jpg": "DV2/480/scenario/main_story/sn_79_1_illust.jpg",
+   "sn_79_2_illust.jpg": "DV2/480/scenario/main_story/sn_79_2_illust.jpg",
+   "sn_80_1_illust.jpg": "DV2/480/scenario/main_story/sn_80_1_illust.jpg",
+   "sn_82_1_illust.jpg": "DV2/480/scenario/main_story/sn_82_1_illust.jpg",
+   "sn_85_1_illust.jpg": "DV2/480/scenario/main_story/sn_85_1_illust.jpg",
+   "sn_86_1_illust.jpg": "DV2/480/scenario/main_story/sn_86_1_illust.jpg",
+   "sn_8_1_illust.jpg": "DV2/480/scenario/main_story/sn_8_1_illust.jpg",
+   "sn_90_1_illust.jpg": "DV2/480/scenario/main_story/sn_90_1_illust.jpg",
+   "sn_91_1_illust.jpg": "DV2/480/scenario/main_story/sn_91_1_illust.jpg",
+   "sn_94_back.jpg": "DV2/480/scenario/main_story/sn_94/back.jpg",
+   "sn_98_1_illust.jpg": "DV2/480/scenario/main_story/sn_98_1_illust.jpg",
+   "sn_99_1_illust.jpg": "DV2/480/scenario/main_story/sn_99_1_illust.jpg",
+   "sn_99_back.jpg": "DV2/480/scenario/main_story/sn_99/back.jpg"
+  },
+  "tutorial_ui": {
+   "dungeon_tutorial_1_KR.jpg": "DV2/480/scene/adventure/dungeon_tutorial/dungeon_tutorial_1_KR.jpg",
+   "dungeon_tutorial_2_KR.jpg": "DV2/480/scene/adventure/dungeon_tutorial/dungeon_tutorial_2_KR.jpg"
+  }
+ },
+ "gd_scenes": {
+  "scenes/fx/ascension_event.tscn": "assets/converted/fx_ascension/fx.json",
+  "scenes/fx/colosseum_fight.tscn": "assets/converted/scenespine_fight_spine/scene.json",
+  "scenes/fx/colosseum_waiting.tscn": "assets/converted/scenespine_colo_waiting_spine/scene.json",
+  "scenes/fx/dragon_enchant_lvup.tscn": "assets/converted/scenespine_dragon_enchant_lvup/scene.json",
+  "scenes/fx/egglight.tscn": "assets/converted/scenespine_egglight_spine/scene.json",
+  "scenes/fx/evolution_effect.tscn": "assets/converted/evol_evolution_effect/fx.json",
+  "scenes/fx/evolution_effect2.tscn": "assets/converted/evol_evolution_effect2/fx.json",
+  "scenes/fx/evolution_wing.tscn": "assets/converted/evol_evolution_wing/fx.json",
+  "scenes/fx/intro_title_spine.tscn": "assets/converted/scenespine_intro2020_3_spine/scene.json",
+  "scenes/fx/lab_blast.tscn": "assets/converted/lab_blast/fx.json",
+  "scenes/fx/lab_furnace.tscn": "assets/converted/lab_furnace/fx.json",
+  "scenes/fx/lab_machine.tscn": "assets/converted/lab_machine/fx.json",
+  "scenes/fx/lab_st.tscn": "assets/converted/lab_st/fx.json",
+  "scenes/fx/sd_raon.tscn": "assets/converted/fx_raon/sd.json",
+  "scenes/fx/skill_100_spine.tscn": "assets/converted/scenespine_skill_100_spine/scene.json",
+  "scenes/fx/skill_110_spine.tscn": "assets/converted/scenespine_skill_110_spine/scene.json",
+  "scenes/fx/skill_11_spine.tscn": "assets/converted/scenespine_skill_11_spine/scene.json",
+  "scenes/fx/skill_120_spine.tscn": "assets/converted/scenespine_skill_120_spine/scene.json",
+  "scenes/fx/skill_12_spine.tscn": "assets/converted/scenespine_skill_12_spine/scene.json",
+  "scenes/fx/skill_130_spine.tscn": "assets/converted/scenespine_skill_130_spine/scene.json",
+  "scenes/fx/skill_13_ad_spine.tscn": "assets/converted/scenespine_skill_13_ad_spine/scene.json",
+  "scenes/fx/skill_13_spine.tscn": "assets/converted/scenespine_skill_13_spine/scene.json",
+  "scenes/fx/skill_140_spine.tscn": "assets/converted/scenespine_skill_140_spine/scene.json",
+  "scenes/fx/skill_150_spine.tscn": "assets/converted/scenespine_skill_150_spine/scene.json",
+  "scenes/fx/skill_15_spine.tscn": "assets/converted/scenespine_skill_15_spine/scene.json",
+  "scenes/fx/skill_160_spine.tscn": "assets/converted/scenespine_skill_160_spine/scene.json",
+  "scenes/fx/skill_170_spine.tscn": "assets/converted/scenespine_skill_170_spine/scene.json",
+  "scenes/fx/skill_1_bite_spine.tscn": "assets/converted/scenespine_skill_1_bite_spine/scene.json",
+  "scenes/fx/skill_1_hit_spine.tscn": "assets/converted/scenespine_skill_1_hit_spine/scene.json",
+  "scenes/fx/skill_1_scratch_spine.tscn": "assets/converted/scenespine_skill_1_scratch_spine/scene.json",
+  "scenes/fx/skill_20_spine.tscn": "assets/converted/scenespine_skill_20_spine/scene.json",
+  "scenes/fx/skill_22_spine.tscn": "assets/converted/scenespine_skill_22_spine/scene.json",
+  "scenes/fx/skill_23_spine.tscn": "assets/converted/scenespine_skill_23_spine/scene.json",
+  "scenes/fx/skill_24_ad_spine.tscn": "assets/converted/scenespine_skill_24_ad_spine/scene.json",
+  "scenes/fx/skill_24_spine.tscn": "assets/converted/scenespine_skill_24_spine/scene.json",
+  "scenes/fx/skill_25_spine.tscn": "assets/converted/scenespine_skill_25_spine/scene.json",
+  "scenes/fx/skill_26_spine.tscn": "assets/converted/scenespine_skill_26_spine/scene.json",
+  "scenes/fx/skill_28_spine.tscn": "assets/converted/scenespine_skill_28_spine/scene.json",
+  "scenes/fx/skill_2_spine.tscn": "assets/converted/scenespine_skill_2_spine/scene.json",
+  "scenes/fx/skill_30_spine.tscn": "assets/converted/scenespine_skill_30_spine/scene.json",
+  "scenes/fx/skill_32_spine.tscn": "assets/converted/scenespine_skill_32_spine/scene.json",
+  "scenes/fx/skill_36_spine.tscn": "assets/converted/scenespine_skill_36_spine/scene.json",
+  "scenes/fx/skill_38_spine.tscn": "assets/converted/scenespine_skill_38_spine/scene.json",
+  "scenes/fx/skill_46_spine.tscn": "assets/converted/scenespine_skill_46_spine/scene.json",
+  "scenes/fx/skill_50_spine.tscn": "assets/converted/scenespine_skill_50_spine/scene.json",
+  "scenes/fx/skill_54_spine.tscn": "assets/converted/scenespine_skill_54_spine/scene.json",
+  "scenes/fx/skill_55_spine.tscn": "assets/converted/scenespine_skill_55_spine/scene.json",
+  "scenes/fx/skill_56_spine.tscn": "assets/converted/scenespine_skill_56_spine/scene.json",
+  "scenes/fx/skill_57_spine.tscn": "assets/converted/scenespine_skill_57_spine/scene.json",
+  "scenes/fx/skill_60_spine.tscn": "assets/converted/scenespine_skill_60_spine/scene.json",
+  "scenes/fx/skill_70_spine.tscn": "assets/converted/scenespine_skill_70_spine/scene.json",
+  "scenes/fx/skill_80_spine.tscn": "assets/converted/scenespine_skill_80_spine/scene.json",
+  "scenes/fx/skill_90_spine.tscn": "assets/converted/scenespine_skill_90_spine/scene.json",
+  "scenes/fx/skill_adbloking_spine.tscn": "assets/converted/scenespine_skill_adbloking_spine/scene.json",
+  "scenes/fx/skill_zzing_spine.tscn": "assets/converted/scenespine_skill_zzing_spine/scene.json",
+  "scenes/fx/ultimate_holy_wing.tscn": "assets/converted/scenespine_holy_wing_spine/scene.json",
+  "scenes/fx/ultimate_shadow.tscn": "assets/converted/scenespine_shadow_spine/scene.json",
+  "scenes/fx/yongsin_ball.tscn": "assets/converted/fx_yongsin/ball.json",
+  "scenes/eggs/egg_3001.tscn": "assets/converted/egg_3001/egg.json",
+  "scenes/eggs/egg_3002.tscn": "assets/converted/egg_3002/egg.json",
+  "scenes/eggs/egg_3003.tscn": "assets/converted/egg_3003/egg.json",
+  "scenes/eggs/egg_3039.tscn": "assets/converted/egg_3039/egg.json",
+  "scenes/eggs/egg_3040.tscn": "assets/converted/egg_3040/egg.json",
+  "scenes/eggs/egg_4035.tscn": "assets/converted/egg_4035/egg.json",
+  "scenes/eggs/egg_4036.tscn": "assets/converted/egg_4036/egg.json"
+ },
+ "unresolved": [
+  {
+   "dir": "battle_extra",
+   "note": "출처 미상"
+  },
+  {
+   "dir": "critical_666",
+   "note": "출처 미상"
+  },
+  {
+   "dir": "critical_777",
+   "note": "출처 미상"
+  },
+  {
+   "dir": "lvup_ui",
+   "note": "출처 미상"
+  },
+  {
+   "dir": "portrait_666",
+   "note": "출처 미상"
+  },
+  {
+   "dir": "portrait_777",
+   "note": "출처 미상"
+  }
+ ]
+}

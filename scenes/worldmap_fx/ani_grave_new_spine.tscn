@@ -1,0 +1,599 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_grave_new_spine/ani_grave_new_spine.png" id="1_0q8k6"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_dla5n"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_euwqx"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(212, 74, 31, 30)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dgvhn"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(245, 74, 32, 27)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o0g6p"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(2, 50, 117, 72)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2h0pt"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(175, 2, 107, 70)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hn2t6"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(2, 2, 171, 46)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hxa6b"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(121, 50, 41, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_51khn"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(164, 74, 46, 41)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f64ib"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(212, 74, 31, 30)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0xjlq"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(245, 74, 32, 27)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nonjj"]
+atlas = ExtResource("1_0q8k6")
+region = Rect2(284, 2, 84, 93)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_ialmi"]
+length = 2.5
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/dust01:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-3.141592653589793, -3.141592653589793, -3.141592653589793]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/dust01:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.1333, 0.3666, 1.9),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(9.8, 47.74), Vector2(9.77, 47.74), Vector2(-4.5, 38.77), Vector2(-77.73, 47.74)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/dust01:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/dust02:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.00785398163397448, 0.00785398163397448, 0.00785398163397448]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/dust02:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.4, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(19.54, 60.08), Vector2(19.54, 60.08), Vector2(19.54, 60.08), Vector2(38.42, 47.72), Vector2(151.71, 60.08)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/dust02:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/dust03:rotation")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-1.5707963267948966, -1.5707963267948966, -1.5707963267948966]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/dust03:scale")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2332, 0.2333, 1.1666, 2.3666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1.477, 1.193), Vector2(1, 1)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/dust04:rotation")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.7332, 0.7333, 2.1332, 2.1333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-1.8249162658852711, -1.8249162658852711, -1.8249162658852711, -1.8249162658852711, -1.8249162658852711, -1.8249162658852711, -1.8249162658852711]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/dust04:position")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.7332, 0.7333, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-47.45, -55.47), Vector2(-47.45, -55.47), Vector2(-47.45, -55.47), Vector2(-47.45, -55.47), Vector2(-47.45, -55.47), Vector2(-67.54, -97.21)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/dust04:scale")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.7332, 0.7333, 2.1333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1.273, 1.273)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/dust05:rotation")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-2.2753857458250075, -2.2753857458250075, -2.2753857458250075]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/dust05:position")
+tracks/15/interp = 1
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.4333, 2.4, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-74.94, -34.72), Vector2(-74.94, -34.72), Vector2(-74.94, -34.72), Vector2(-65.67, -14.63), Vector2(-103.15, -113.17), Vector2(-103.15, -113.17), Vector2(-103.15, -113.17)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/dust05:scale")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.4332, 0.4333, 2.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1.485, 1.485)]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/screw01:rotation")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2999, 0.3, 0.5333, 0.8, 1, 1.3666, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-1.5470598489677738, -1.5470598489677738, -1.5470598489677738, -1.5470598489677738, -1.5470598489677738, -0.546637121724624, 1.7238617021947993, 3.2300808466659054, 5.576501493047083, 5.576501493047083, 5.576501493047083]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/screw01:position")
+tracks/18/interp = 1
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.3, 1.3666, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(49.6, 16.89), Vector2(49.6, 16.89), Vector2(49.6, 16.89), Vector2(49.6, 68.5), Vector2(111.3, 87.01), Vector2(111.3, 87.01), Vector2(111.3, 87.01)]
+}
+tracks/19/type = "value"
+tracks/19/imported = false
+tracks/19/enabled = true
+tracks/19/path = NodePath("root/screw01:scale")
+tracks/19/interp = 1
+tracks/19/loop_wrap = true
+tracks/19/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2999, 0.3, 1.3665, 1.3666, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/20/type = "value"
+tracks/20/imported = false
+tracks/20/enabled = true
+tracks/20/path = NodePath("root/screw02:rotation")
+tracks/20/interp = 1
+tracks/20/loop_wrap = true
+tracks/20/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2665, 0.2666, 0.5333, 0.9666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-1.5865042900628457, -1.5865042900628457, -1.5865042900628457, -1.5865042900628457, -1.5865042900628457, -0.27000243528352275, -2.36387393890112]
+}
+tracks/21/type = "value"
+tracks/21/imported = false
+tracks/21/enabled = true
+tracks/21/path = NodePath("root/screw02:position")
+tracks/21/interp = 1
+tracks/21/loop_wrap = true
+tracks/21/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2665, 0.2666, 0.5333, 0.9666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(71.47, 48.3), Vector2(71.47, 48.3), Vector2(71.47, 48.3), Vector2(71.47, 48.3), Vector2(71.47, 48.3), Vector2(71.47, 89.25), Vector2(48.47, 89.25)]
+}
+tracks/22/type = "value"
+tracks/22/imported = false
+tracks/22/enabled = true
+tracks/22/path = NodePath("root/screw02:scale")
+tracks/22/interp = 1
+tracks/22/loop_wrap = true
+tracks/22/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2665, 0.2666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/23/type = "value"
+tracks/23/imported = false
+tracks/23/enabled = true
+tracks/23/path = NodePath("root/screw01/w_drawf_grave_screw01_frame/w_drawf_grave_screw01:modulate")
+tracks/23/interp = 1
+tracks/23/loop_wrap = true
+tracks/23/keys = {
+"times": PackedFloat32Array(2.1333, 2.4333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/24/type = "value"
+tracks/24/imported = false
+tracks/24/enabled = true
+tracks/24/path = NodePath("root/screw02/w_drawf_grave_screw02_frame/w_drawf_grave_screw02:modulate")
+tracks/24/interp = 1
+tracks/24/loop_wrap = true
+tracks/24/keys = {
+"times": PackedFloat32Array(2.1333, 2.4333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/25/type = "value"
+tracks/25/imported = false
+tracks/25/enabled = true
+tracks/25/path = NodePath("root/dust01/w_drawf_grave_dust01_frame/w_drawf_grave_dust01:modulate")
+tracks/25/interp = 1
+tracks/25/loop_wrap = true
+tracks/25/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.4, 0.9332, 0.9333, 1.9),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/26/type = "value"
+tracks/26/imported = false
+tracks/26/enabled = true
+tracks/26/path = NodePath("root/dust02/w_drawf_grave_dust02_frame/w_drawf_grave_dust02:modulate")
+tracks/26/interp = 1
+tracks/26/loop_wrap = true
+tracks/26/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.6666, 1.0665, 1.0666, 1.7666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/27/type = "value"
+tracks/27/imported = false
+tracks/27/enabled = true
+tracks/27/path = NodePath("root/dust03/w_drawf_grave_dust03_frame/w_drawf_grave_dust03:modulate")
+tracks/27/interp = 1
+tracks/27/loop_wrap = true
+tracks/27/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.2332, 0.2333, 1, 1.7999, 1.8, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/28/type = "value"
+tracks/28/imported = false
+tracks/28/enabled = true
+tracks/28/path = NodePath("root/dust04/w_drawf_grave_dust04_frame/w_drawf_grave_dust04:modulate")
+tracks/28/interp = 1
+tracks/28/loop_wrap = true
+tracks/28/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.7332, 0.7333, 1.5333, 2.1333, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]
+}
+tracks/29/type = "value"
+tracks/29/imported = false
+tracks/29/enabled = true
+tracks/29/path = NodePath("root/dust05/w_drawf_grave_dust05_frame/w_drawf_grave_dust05:modulate")
+tracks/29/interp = 1
+tracks/29/loop_wrap = true
+tracks/29/keys = {
+"times": PackedFloat32Array(0, 0.1332, 0.1333, 0.4332, 0.4333, 1.3666, 2.2333, 2.4332, 2.4333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]
+}
+tracks/30/type = "value"
+tracks/30/imported = false
+tracks/30/enabled = true
+tracks/30/path = NodePath("root/book/w_drawf_grave_screw012_frame/w_drawf_grave_screw012:modulate")
+tracks/30/interp = 1
+tracks/30/loop_wrap = true
+tracks/30/keys = {
+"times": PackedFloat32Array(0, 2.1332, 2.1333, 2.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1)]
+}
+tracks/31/type = "value"
+tracks/31/imported = false
+tracks/31/enabled = true
+tracks/31/path = NodePath("root/book/book_slot_frame/book_slot:modulate")
+tracks/31/interp = 1
+tracks/31/loop_wrap = true
+tracks/31/keys = {
+"times": PackedFloat32Array(0, 2.1332, 2.1333, 2.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_x4r6a"]
+_data = {
+&"animation": SubResource("Animation_ialmi")
+}
+
+[node name="Dragon_ani_grave_new_spine_scene" type="Node2D" unique_id=1383743203]
+
+[node name="root" type="Node2D" parent="." unique_id=867393573]
+
+[node name="book" type="Node2D" parent="root" unique_id=1178355715]
+position = Vector2(-20.42, -63.54)
+rotation = 1.5470599
+
+[node name="w_drawf_grave_screw012_frame" type="Node2D" parent="root/book" unique_id=1207051290]
+position = Vector2(64, -18.91)
+rotation = -1.5470599
+
+[node name="w_drawf_grave_screw012" type="Sprite2D" parent="root/book/w_drawf_grave_screw012_frame" unique_id=170220863]
+z_index = 8
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(46.60804, 22.70122)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_euwqx")
+
+[node name="book_slot_frame" type="Node2D" parent="root/book" unique_id=834968921]
+position = Vector2(64, -18.91)
+rotation = -1.5470599
+
+[node name="book_slot" type="Sprite2D" parent="root/book/book_slot_frame" unique_id=848651923]
+z_index = 9
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(67.91457, 42.73171)
+rotation = 1.5707964
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_dgvhn")
+
+[node name="dust01" type="Node2D" parent="root" unique_id=172048923]
+position = Vector2(-28.37, 47.74)
+rotation = -3.1415927
+
+[node name="w_drawf_grave_dust01_frame" type="Node2D" parent="root/dust01" unique_id=790516043]
+position = Vector2(-28.37, 47.74)
+rotation = 3.1415927
+
+[node name="w_drawf_grave_dust01" type="Sprite2D" parent="root/dust01/w_drawf_grave_dust01_frame" unique_id=1019311846]
+z_index = 3
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(-54.59799, 49.408535)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_o0g6p")
+
+[node name="dust02" type="Node2D" parent="root" unique_id=168716312]
+position = Vector2(41.18, 60.08)
+rotation = 0.007853982
+
+[node name="w_drawf_grave_dust02_frame" type="Node2D" parent="root/dust02" unique_id=1712731089]
+position = Vector2(-41.63, -59.77)
+rotation = -0.007853982
+
+[node name="w_drawf_grave_dust02" type="Sprite2D" parent="root/dust02/w_drawf_grave_dust02_frame" unique_id=603962860]
+z_index = 4
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(61.256283, 60.091465)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_2h0pt")
+
+[node name="dust03" type="Node2D" parent="root" unique_id=194098595]
+position = Vector2(8.08, 56.38)
+rotation = -1.5707964
+
+[node name="w_drawf_grave_dust03_frame" type="Node2D" parent="root/dust03" unique_id=150887595]
+position = Vector2(84.21, -8.08)
+rotation = 1.5707964
+
+[node name="w_drawf_grave_dust03" type="Sprite2D" parent="root/dust03/w_drawf_grave_dust03_frame" unique_id=898882123]
+z_index = 5
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(18.643215, 72.10976)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_hn2t6")
+
+[node name="dust04" type="Node2D" parent="root" unique_id=2092954451]
+position = Vector2(-47.45, -55.47)
+rotation = -1.8249162
+
+[node name="w_drawf_grave_dust04_frame" type="Node2D" parent="root/dust04" unique_id=1524699568]
+position = Vector2(-65.62, 31.98)
+rotation = 1.8249162
+
+[node name="w_drawf_grave_dust04" type="Sprite2D" parent="root/dust04/w_drawf_grave_dust04_frame" unique_id=1393663631]
+z_index = 6
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(-51.934673, -73.44512)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_hxa6b")
+
+[node name="dust05" type="Node2D" parent="root" unique_id=2106479186]
+position = Vector2(-74.94, -34.72)
+rotation = -2.2753859
+
+[node name="w_drawf_grave_dust05_frame" type="Node2D" parent="root/dust05" unique_id=1970607485]
+position = Vector2(-74.99, 34.6)
+rotation = 2.2753859
+
+[node name="w_drawf_grave_dust05" type="Sprite2D" parent="root/dust05/w_drawf_grave_dust05_frame" unique_id=1458894370]
+z_index = 7
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(-85.22613, -42.73171)
+rotation = 1.5707964
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_51khn")
+
+[node name="screw01" type="Node2D" parent="root" unique_id=1777238727]
+position = Vector2(49.6, 16.89)
+rotation = -1.5470599
+
+[node name="w_drawf_grave_screw01_frame" type="Node2D" parent="root/screw01" unique_id=633924889]
+position = Vector2(15.71, -49.98)
+rotation = 1.5470599
+
+[node name="w_drawf_grave_screw01" type="Sprite2D" parent="root/screw01/w_drawf_grave_screw01_frame" unique_id=486937069]
+z_index = 1
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(46.60804, 22.70122)
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_f64ib")
+
+[node name="screw02" type="Node2D" parent="root" unique_id=136248462]
+position = Vector2(71.47, 48.3)
+rotation = -1.5865043
+
+[node name="w_drawf_grave_screw02_frame" type="Node2D" parent="root/screw02" unique_id=1185408768]
+position = Vector2(49.43, -70.7)
+rotation = 1.5865043
+
+[node name="w_drawf_grave_screw02" type="Sprite2D" parent="root/screw02/w_drawf_grave_screw02_frame" unique_id=599963782]
+z_index = 2
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(67.91457, 42.73171)
+rotation = 1.5707964
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_0xjlq")
+
+[node name="w_drawf_grave_base_frame" type="Node2D" parent="root" unique_id=1022251634]
+
+[node name="w_drawf_grave_base" type="Sprite2D" parent="root/w_drawf_grave_base_frame" unique_id=1266639552]
+material = SubResource("CanvasItemMaterial_dla5n")
+position = Vector2(50.603016, 34.719513)
+rotation = 1.5707964
+scale = Vector2(1.3316582, 1.3353659)
+texture = SubResource("AtlasTexture_nonjj")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=323726985]
+libraries/ = SubResource("AnimationLibrary_x4r6a")

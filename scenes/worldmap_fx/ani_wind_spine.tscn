@@ -1,0 +1,488 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_ani_wind_spine/ani_wind_spine.png" id="1_s6itc"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_k4mkx"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_exi6u"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(83, 195, 13, 15)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_286q5"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(29, 195, 17, 21)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pgng7"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(48, 195, 17, 18)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_86ca2"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(67, 195, 14, 15)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bisax"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(2, 195, 25, 21)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2mh5y"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(2, 2, 173, 191)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tuea0"]
+atlas = ExtResource("1_s6itc")
+region = Rect2(2, 2, 173, 191)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_04mqj"]
+length = 5.0333
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/worldmap_wind_leaf01:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.5, 2.2666, 3.5666),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [-2.1924826063552767, -4.495619087286994, -6.439217742307879, -8.997172294030769]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/worldmap_wind_leaf01:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1578, 0.2713, 0.3604, 0.4613, 0.638, 0.8903, 1.0417, 1.2183, 1.395, 1.5464, 1.7482, 1.8492, 1.9753, 2.1015, 2.2277, 2.48, 2.7828),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-103.44, 61.78), Vector2(-58.95, 77.33), Vector2(4.55, 75.6), Vector2(32.77, 67.85), Vector2(58.55, 50.55), Vector2(95.27, 6.06), Vector2(100.03, -41.03), Vector2(79.66, -63.81), Vector2(27.63, -94.22), Vector2(-24.39, -93.73), Vector2(-108.19, -71.7), Vector2(-132.97, -31.2), Vector2(-118.31, -26.56), Vector2(-93.08, -25.91), Vector2(-58.11, -33.19), Vector2(-20.93, -46.21), Vector2(45.59, -88.12), Vector2(101.32, -152.92)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/worldmap_wind_leaf01:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 2.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.5, 1.5)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/worldmap_wind_leaf02:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 1.7665, 1.7666, 2.4666, 3.3333, 4, 4.5333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-2.278876404328996, -2.278876404328996, -2.278876404328996, -4.318991766985167, -6.802595292573098, -8.87028685741078, -11.672762037338074]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/worldmap_wind_leaf02:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1.7665, 1.7666, 1.9333, 2.0666, 2.2666, 2.4666, 2.6666, 2.8, 2.9666, 3.1333, 3.3333, 3.4666, 3.5666, 3.7, 3.8666, 4, 4.1333, 4.2666, 4.5333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-81.11, 64.2), Vector2(-81.11, 64.2), Vector2(-81.11, 64.2), Vector2(-57.56, 77.79), Vector2(-13.17, 80.05), Vector2(21.72, 72.35), Vector2(75.17, 37.93), Vector2(101.44, -8.27), Vector2(101.44, -41.8), Vector2(74.26, -70.79), Vector2(43.01, -84.38), Vector2(-18.6, -91.63), Vector2(-77.94, -83.47), Vector2(-132.29, -57.2), Vector2(-140, -39.08), Vector2(-115.99, -26.85), Vector2(-58.01, -32.28), Vector2(-3.2, -53.12), Vector2(52.97, -93.44), Vector2(136.32, -197.18)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/worldmap_wind_leaf02:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 1.7665, 1.7666, 4.5333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.799, 0.799), Vector2(0.799, 0.799), Vector2(0.799, 0.799), Vector2(1.3, 1.3)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/worldmap_wind_leaf03:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 2.256, 2.2561, 2.9933, 3.7, 4.1666, 4.7333, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-0.4818854064756344, -0.4818854064756344, -0.4818854064756344, -2.321287905152458, -4.471882609459871, -5.6539941118356305, -7.524288938272754, -8.82770082366212]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/worldmap_wind_leaf03:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0, 2.256, 2.2561, 2.4609, 2.6247, 2.7333, 2.8333, 2.9933, 3.1161, 3.28, 3.4847, 3.7, 3.9, 4, 4.1666, 4.3, 4.5, 4.7333, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-93.49, 82.76), Vector2(-93.49, 82.76), Vector2(-93.49, 82.76), Vector2(-30.48, 87.26), Vector2(46.04, 58.97), Vector2(80.46, 30.41), Vector2(100.83, -5.97), Vector2(99.52, -49.15), Vector2(71.76, -67.05), Vector2(28.03, -84.41), Vector2(-31.77, -86.99), Vector2(-88.99, -79.27), Vector2(-133.35, -55.48), Vector2(-141.71, -33.62), Vector2(-126.28, -25.9), Vector2(-79.35, -27.19), Vector2(-28.55, -43.91), Vector2(24.17, -69.63), Vector2(110.34, -159)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/worldmap_wind_leaf03:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 2.256, 2.2561, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.799, 0.799), Vector2(0.799, 0.799), Vector2(0.799, 0.799), Vector2(1.3, 1.3)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/worldmap_wind_flowerleaf02:rotation")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 2.4999, 2.5, 3.1408, 3.7507, 4.1572, 4.5412, 4.88),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-1.5208799101878587, -1.5208799101878587, -1.5208799101878587, -3.644771076939758, -5.864829885476546, -8.192400975936183, -10.585596446270808, -13.532235822412837]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/worldmap_wind_flowerleaf02:position")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 2.4999, 2.5, 2.7666, 2.9333, 3.1408, 3.3441, 3.5474, 3.7507, 3.9765, 4.1572, 4.3379, 4.5412, 4.7219, 4.88),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-61.74, 80.34), Vector2(-61.74, 80.34), Vector2(-61.74, 80.34), Vector2(14.23, 75.1), Vector2(62.05, 50.87), Vector2(98.73, 3.05), Vector2(105.28, -44.1), Vector2(59.43, -77.51), Vector2(-6.73, -90.61), Vector2(-101.04, -73.58), Vector2(-137.06, -47.38), Vector2(-120.03, -28.38), Vector2(-64.36, -30.35), Vector2(16.85, -65.72), Vector2(99.38, -152.18)]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/worldmap_wind_flowerleaf02:scale")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 2.5, 4.88),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(0.6, 0.6), Vector2(0.799, 0.799)]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/worldmap_wind_flowerleaf01:rotation")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 0.8333, 1.7666, 2.4333, 2.9666, 3.3666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-0.9700539982584484, -2.646093678948603, -4.671548275888022, -7.151312077121566, -9.232093611349203, -10.99121096443429]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/worldmap_wind_flowerleaf01:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.3999, 0.4, 0.5268, 0.7193, 0.8782, 1.0899, 1.3017, 1.487, 1.6987, 1.9105, 2.0693, 2.2282, 2.334, 2.4135, 2.5193, 2.6517, 2.8105, 2.9693),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-87.93, 73.38), Vector2(-87.93, 73.38), Vector2(-87.93, 73.38), Vector2(-37.78, 83.65), Vector2(14.31, 70.8), Vector2(74.11, 37.37), Vector2(98.54, -10.21), Vector2(98.54, -44.94), Vector2(74.75, -72.59), Vector2(23.31, -87.37), Vector2(-37.13, -94.45), Vector2(-97.57, -78.37), Vector2(-135.5, -54.58), Vector2(-139.36, -38.51), Vector2(-114.93, -27.58), Vector2(-70.57, -29.5), Vector2(5.31, -59.08), Vector2(72.18, -113.09), Vector2(139.05, -187.04)]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/worldmap_wind_flowerleaf01:scale")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 2.9693),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.5, 0.5), Vector2(1, 1)]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/worldmap_wind_windroad:position")
+tracks/15/interp = 1
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 1.9896, 1.9897, 5.0332, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-2.49, 33.55), Vector2(-2.49, 33.55), Vector2(-2.49, 33.55), Vector2(-2.49, 33.55), Vector2(-2.49, 33.55)]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/worldmap_wind_windroad:scale")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 2.5, 4.1666, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.799, 0.799), Vector2(1, 1), Vector2(0.9, 0.9), Vector2(1, 1)]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/worldmap_wind_windroad2:rotation")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0, 0.1665, 0.1666, 3.6332, 3.6333, 5.0332, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-1.664869573477391, -1.664869573477391, -1.664869573477391, -1.664869573477391, -1.664869573477391, -1.664869573477391, -1.664869573477391]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/worldmap_wind_windroad2:position")
+tracks/18/interp = 1
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.1665, 0.1666, 3.6332, 3.6333, 5.0332, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-2.49, 45.07), Vector2(-2.49, 45.07), Vector2(-2.49, 45.07), Vector2(-2.49, 45.07), Vector2(-2.49, 45.07), Vector2(-2.49, 45.07), Vector2(-2.49, 45.07)]
+}
+tracks/19/type = "value"
+tracks/19/imported = false
+tracks/19/enabled = true
+tracks/19/path = NodePath("root/worldmap_wind_windroad2:scale")
+tracks/19/interp = 1
+tracks/19/loop_wrap = true
+tracks/19/keys = {
+"times": PackedFloat32Array(0, 0.1665, 0.1666, 2.4, 3.0333, 4.0666, 4.6333, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(0.9, 0.9), Vector2(0.9, 0.9), Vector2(1, 1), Vector2(0.9, 0.9), Vector2(1, 1)]
+}
+tracks/20/type = "value"
+tracks/20/imported = false
+tracks/20/enabled = true
+tracks/20/path = NodePath("root/worldmap_wind_leaf01/worldmap_wind_leaf01_slot_frame/worldmap_wind_leaf01_slot:modulate")
+tracks/20/interp = 1
+tracks/20/loop_wrap = true
+tracks/20/keys = {
+"times": PackedFloat32Array(0, 0.6819, 2.1665, 2.1666, 2.8333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/21/type = "value"
+tracks/21/imported = false
+tracks/21/enabled = true
+tracks/21/path = NodePath("root/worldmap_wind_leaf02/worldmap_wind_leaf02_slot_frame/worldmap_wind_leaf02_slot:modulate")
+tracks/21/interp = 1
+tracks/21/loop_wrap = true
+tracks/21/keys = {
+"times": PackedFloat32Array(0, 0.5999, 0.6, 1.7665, 1.7666, 2.2666, 4.1332, 4.1333, 4.5333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/22/type = "value"
+tracks/22/imported = false
+tracks/22/enabled = true
+tracks/22/path = NodePath("root/worldmap_wind_leaf03/worldmap_wind_leaf03_slot_frame/worldmap_wind_leaf03_slot:modulate")
+tracks/22/interp = 1
+tracks/22/loop_wrap = true
+tracks/22/keys = {
+"times": PackedFloat32Array(0, 2.256, 2.2561, 2.6247, 4.4999, 4.5, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/23/type = "value"
+tracks/23/imported = false
+tracks/23/enabled = true
+tracks/23/path = NodePath("root/worldmap_wind_flowerleaf01/worldmap_wind_flowerleaf01_slot_frame/worldmap_wind_flowerleaf01_slot:modulate")
+tracks/23/interp = 1
+tracks/23/loop_wrap = true
+tracks/23/keys = {
+"times": PackedFloat32Array(0, 0.3999, 0.4, 0.9333, 2.3332, 2.3333, 2.9),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/24/type = "value"
+tracks/24/imported = false
+tracks/24/enabled = true
+tracks/24/path = NodePath("root/worldmap_wind_flowerleaf02/worldmap_wind_flowerleaf02_slot_frame/worldmap_wind_flowerleaf02_slot:modulate")
+tracks/24/interp = 1
+tracks/24/loop_wrap = true
+tracks/24/keys = {
+"times": PackedFloat32Array(0, 2.4999, 2.5, 2.9333, 4.5665, 4.5666, 4.88),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/25/type = "value"
+tracks/25/imported = false
+tracks/25/enabled = true
+tracks/25/path = NodePath("root/worldmap_wind_windroad/worldmap_wind_windroad_slot_frame/worldmap_wind_windroad_slot:modulate")
+tracks/25/interp = 1
+tracks/25/loop_wrap = true
+tracks/25/keys = {
+"times": PackedFloat32Array(0, 0.6, 2, 3.3, 4.7666, 5.0332, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]
+}
+tracks/26/type = "value"
+tracks/26/imported = false
+tracks/26/enabled = true
+tracks/26/path = NodePath("root/worldmap_wind_windroad2/worldmap_wind_windroad2_slot_frame/worldmap_wind_windroad2_slot:modulate")
+tracks/26/interp = 1
+tracks/26/loop_wrap = true
+tracks/26/keys = {
+"times": PackedFloat32Array(0, 0.1665, 0.1666, 1.0666, 2, 2.4, 3.4333, 3.6333, 4.1666, 5.0332, 5.0333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0.39215687, 0.39215687, 0.39215687, 0.39215687), Color(0.15294118, 0.15294118, 0.15294118, 0.15294118), Color(0.18039216, 0.18039216, 0.18039216, 0.18039216), Color(0, 0, 0, 0), Color(0.44705883, 0.44705883, 0.44705883, 0.44705883), Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_bxbyo"]
+_data = {
+&"wind": SubResource("Animation_04mqj")
+}
+
+[node name="Dragon_ani_wind_spine_scene" type="Node2D" unique_id=1378467160]
+
+[node name="root" type="Node2D" parent="." unique_id=1291848630]
+
+[node name="worldmap_wind_flowerleaf01" type="Node2D" parent="root" unique_id=1241354762]
+position = Vector2(-110.43, 79.8)
+rotation = -0.970054
+
+[node name="worldmap_wind_flowerleaf01_slot_frame" type="Node2D" parent="root/worldmap_wind_flowerleaf01" unique_id=1050854867]
+position = Vector2(1.04, 1.48)
+rotation = 0.970054
+
+[node name="worldmap_wind_flowerleaf01_slot" type="Sprite2D" parent="root/worldmap_wind_flowerleaf01/worldmap_wind_flowerleaf01_slot_frame" unique_id=2104196822]
+z_index = 3
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-1.3043479, 0)
+scale = Vector2(1.3043479, 1.3333334)
+texture = SubResource("AtlasTexture_exi6u")
+
+[node name="worldmap_wind_flowerleaf02" type="Node2D" parent="root" unique_id=861150984]
+position = Vector2(-61.74, 80.34)
+rotation = -1.5208799
+
+[node name="worldmap_wind_flowerleaf02_slot_frame" type="Node2D" parent="root/worldmap_wind_flowerleaf02" unique_id=189294676]
+position = Vector2(-0.98, 3.72)
+rotation = 1.5208799
+
+[node name="worldmap_wind_flowerleaf02_slot" type="Sprite2D" parent="root/worldmap_wind_flowerleaf02/worldmap_wind_flowerleaf02_slot_frame" unique_id=1733275079]
+z_index = 4
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-1.3103448, 0)
+rotation = 1.5707964
+scale = Vector2(1.3103448, 1.3333334)
+texture = SubResource("AtlasTexture_286q5")
+
+[node name="worldmap_wind_leaf01" type="Node2D" parent="root" unique_id=1968156645]
+position = Vector2(-103.44, 61.78)
+rotation = -2.1924827
+
+[node name="worldmap_wind_leaf01_slot_frame" type="Node2D" parent="root/worldmap_wind_leaf01" unique_id=327935122]
+position = Vector2(8.7, -0.55)
+rotation = 2.1924827
+
+[node name="worldmap_wind_leaf01_slot" type="Sprite2D" parent="root/worldmap_wind_leaf01/worldmap_wind_leaf01_slot_frame" unique_id=1476902264]
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(2.6666667, -1.3333334)
+scale = Vector2(1.3333334, 1.3333334)
+texture = SubResource("AtlasTexture_pgng7")
+
+[node name="worldmap_wind_leaf02" type="Node2D" parent="root" unique_id=701952911]
+position = Vector2(-81.11, 64.2)
+rotation = -2.2788763
+
+[node name="worldmap_wind_leaf02_slot_frame" type="Node2D" parent="root/worldmap_wind_leaf02" unique_id=376406123]
+position = Vector2(3.58, 0.08)
+rotation = 2.2788763
+
+[node name="worldmap_wind_leaf02_slot" type="Sprite2D" parent="root/worldmap_wind_leaf02/worldmap_wind_leaf02_slot_frame" unique_id=586346349]
+z_index = 1
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-1.35, -2.6956522)
+scale = Vector2(1.35, 1.3478261)
+texture = SubResource("AtlasTexture_86ca2")
+
+[node name="worldmap_wind_leaf03" type="Node2D" parent="root" unique_id=856902186]
+position = Vector2(-93.49, 82.76)
+rotation = -0.4818854
+
+[node name="worldmap_wind_leaf03_slot_frame" type="Node2D" parent="root/worldmap_wind_leaf03" unique_id=682312582]
+position = Vector2(11.59, -2.47)
+rotation = 0.4818854
+
+[node name="worldmap_wind_leaf03_slot" type="Sprite2D" parent="root/worldmap_wind_leaf03/worldmap_wind_leaf03_slot_frame" unique_id=814171031]
+z_index = 2
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-1.3333334, 1.3142858)
+scale = Vector2(1.3333334, 1.3142858)
+texture = SubResource("AtlasTexture_bisax")
+
+[node name="worldmap_wind_windroad" type="Node2D" parent="root" unique_id=1259874188]
+position = Vector2(-2.49, 33.55)
+rotation = -1.5549139
+
+[node name="worldmap_wind_windroad_slot_frame" type="Node2D" parent="root/worldmap_wind_windroad" unique_id=599687309]
+position = Vector2(47.23, 1.63)
+rotation = 1.5549139
+
+[node name="worldmap_wind_windroad_slot" type="Sprite2D" parent="root/worldmap_wind_windroad/worldmap_wind_windroad_slot_frame" unique_id=1620930323]
+z_index = 5
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-11.978182, -13.350254)
+rotation = 1.5707964
+scale = Vector2(1.3309091, 1.3350254)
+texture = SubResource("AtlasTexture_2mh5y")
+
+[node name="worldmap_wind_windroad2" type="Node2D" parent="root" unique_id=1553575137]
+position = Vector2(-2.49, 45.07)
+rotation = -1.6648695
+
+[node name="worldmap_wind_windroad2_slot_frame" type="Node2D" parent="root/worldmap_wind_windroad2" unique_id=526343743]
+position = Vector2(57.78, 9.58)
+rotation = 1.6648695
+
+[node name="worldmap_wind_windroad2_slot" type="Sprite2D" parent="root/worldmap_wind_windroad2/worldmap_wind_windroad2_slot_frame" unique_id=1395059327]
+z_index = 6
+material = SubResource("CanvasItemMaterial_k4mkx")
+position = Vector2(-11.978182, -13.350254)
+rotation = 1.5707964
+scale = Vector2(1.3309091, 1.3350254)
+texture = SubResource("AtlasTexture_tuea0")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1489900819]
+libraries/ = SubResource("AnimationLibrary_bxbyo")

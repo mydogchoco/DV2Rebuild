@@ -1,0 +1,6597 @@
+{
+  "modes": {
+    "single": {
+      "label": "1 vs 1",
+      "party": 1,
+      "rating_key": "single",
+      "streak_key": "straight_single",
+      "energy_key": "energy_single",
+      "energy_at_key": "energy_at_single"
+    },
+    "team": {
+      "label": "3 vs 3",
+      "party": 3,
+      "rating_key": "tournament",
+      "streak_key": "straight_team",
+      "energy_key": "energy_team",
+      "energy_at_key": "energy_at_team"
+    }
+  },
+  "tier": {
+    "gap_mult": 5,
+    "gap_base": 1000,
+    "list": [
+      {
+        "id": 0,
+        "key": "bronze",
+        "name": "BRONZE",
+        "min_rating": 0
+      },
+      {
+        "id": 1,
+        "key": "silver",
+        "name": "SILVER",
+        "min_rating": 2000
+      },
+      {
+        "id": 2,
+        "key": "gold",
+        "name": "GOLD",
+        "min_rating": 3000
+      },
+      {
+        "id": 3,
+        "key": "platinum",
+        "name": "PLATINUM",
+        "min_rating": 4000
+      },
+      {
+        "id": 4,
+        "key": "diamond",
+        "name": "DIAMOND",
+        "min_rating": 5000,
+        "icon_fallback": "platinum"
+      },
+      {
+        "id": 5,
+        "key": "master",
+        "name": "MASTER",
+        "min_rating": 6000
+      }
+    ],
+    "frames": {
+      "border": "common/list_frame_%s.png",
+      "dragon": "common/dragon_frame_%s.png",
+      "icon": "common/tier_icon_%s.png",
+      "header": "scene/colosseumrank/txt_%s_kr.png"
+    }
+  },
+  "entry": {
+    "min_level": 25,
+    "matching_seconds": 3,
+    "_cut": "#fb394086"
+  },
+  "log": {
+    "attack": "#8f4c6ccf",
+    "defend": "#c7b467d0",
+    "evade": "#d503fd44",
+    "skill": "#c682f105",
+    "buff": "#24676ee6",
+    "recover": "#39d55d80",
+    "poison": "#3c1b2695",
+    "reflect": "#fad53386",
+    "confuse": "#80292d65",
+    "ultimate": "#4fd3b34f",
+    "ultimate_damage": "#18c88b3b",
+    "stun": "#2d581002",
+    "stuned": "#ca5fa2d7",
+    "skillblock": "#a3ec59e7",
+    "immune": "#a0fbd9d1",
+    "atk_normal": "#1c5fd614",
+    "atk_double": "#35b5789e",
+    "atk_critical": "#fab26fa1",
+    "level": "#453d0d2d",
+    "matching": "#0c7cd7c3",
+    "no_stamina": "#99976bed",
+    "no_dragon": "#1d96afdb",
+    "refill_ask": "#21fb217e",
+    "refill_title": "#12022a16",
+    "refill_error": "#0a0171ae",
+    "refill_full": "#c1ec9f2c",
+    "refill_done": "#bfb27a03",
+    "season_reset_title": "#bfaa7040",
+    "season_reset_ask": "#1fc37308",
+    "season_reset_error": "#731fbf4d",
+    "season_reset_done": "#571109ef",
+    "select_1vs1": "#f456123e",
+    "select_3vs3": "#26317216",
+    "ticket_eta": "#761d64fa",
+    "ticket_full": "#961b67b6"
+  },
+  "stage": {
+    "wheel": [
+      "aqua",
+      "chaos",
+      "dark",
+      "earth",
+      "fire",
+      "holy",
+      "light",
+      "wind",
+      "shadow"
+    ],
+    "bg": {
+      "earth": 3,
+      "aqua": 0,
+      "fire": 4,
+      "wind": 7,
+      "light": 6,
+      "dark": 2,
+      "holy": 5,
+      "chaos": 1,
+      "shadow": 3
+    },
+    "buff_pct": 10,
+    "buff_stats": [
+      "hp",
+      "att",
+      "def"
+    ],
+    "anim": {
+      "step_sec": 0.1,
+      "step_px": 150.0,
+      "base_steps": 11,
+      "window": 3,
+      "fade_sec": 0.3,
+      "icon_scale": 0.825,
+      "stamp_scale": 2.5,
+      "stamp_alpha": 200,
+      "stamp_sec": 0.25,
+      "lead_sec": 1.0,
+      "hold_sec": 1.0,
+      "out_sec": 0.5,
+      "buff_scale": 1.5
+    }
+  },
+  "bgm": {
+    "lobby": "bg_colosseum",
+    "battle": [
+      "bg_colosseum_battle_1",
+      "bg_colosseum_battle_2"
+    ]
+  },
+  "rating": {
+    "start": 1000,
+    "min": 0,
+    "win": 24,
+    "lose": -18,
+    "streak_bonus_per": 2,
+    "streak_bonus_max": 12,
+    "by_tier": {
+      "0": {
+        "win": 24,
+        "lose": -12
+      },
+      "1": {
+        "win": 24,
+        "lose": -16
+      },
+      "2": {
+        "win": 24,
+        "lose": -19
+      },
+      "3": {
+        "win": 24,
+        "lose": -22
+      },
+      "4": {
+        "win": 24,
+        "lose": -24
+      },
+      "5": {
+        "win": 24,
+        "lose": -27
+      }
+    }
+  },
+  "ticket": {
+    "max": 10,
+    "recover_seconds": 600,
+    "cost_per_match": 1,
+    "refill_dia": 20
+  },
+  "coin": {
+    "key": "colosseum_coin",
+    "name": "#b6dc30a3",
+    "daily": {
+      "0": {
+        "dia": 1,
+        "coin": 10
+      },
+      "1": {
+        "dia": 2,
+        "coin": 20
+      },
+      "2": {
+        "dia": 3,
+        "coin": 35
+      },
+      "3": {
+        "dia": 5,
+        "coin": 55
+      },
+      "4": {
+        "dia": 7,
+        "coin": 80
+      },
+      "5": {
+        "dia": 10,
+        "coin": 120
+      }
+    },
+    "season": {
+      "0": {
+        "dia": 15,
+        "coin": 150
+      },
+      "1": {
+        "dia": 30,
+        "coin": 300
+      },
+      "2": {
+        "dia": 55,
+        "coin": 550
+      },
+      "3": {
+        "dia": 90,
+        "coin": 900
+      },
+      "4": {
+        "dia": 135,
+        "coin": 1350
+      },
+      "5": {
+        "dia": 210,
+        "coin": 2100
+      }
+    },
+    "per_match": {
+      "win": 6,
+      "lose": 2,
+      "streak_bonus_per": 1,
+      "streak_bonus_max": 10,
+      "mode_mult": {
+        "single": 1.0,
+        "team": 2.0
+      }
+    },
+    "tier_up": {
+      "1": 50,
+      "2": 100,
+      "3": 200,
+      "4": 350,
+      "5": 500
+    }
+  },
+  "season": {
+    "days": 21,
+    "reset_dia": 300,
+    "reset": {
+      "rating": true,
+      "tier_drop": 2,
+      "streak": true,
+      "streak_best": true,
+      "guard_served": true
+    }
+  },
+  "streak": {
+    "guard_at": 25
+  },
+  "bots": {
+    "grades": {
+      "novice": {
+        "label": "#3f25ba4f",
+        "level": 50,
+        "awakened": false,
+        "gem": {
+          "categories": [
+            "normal",
+            "hybrid",
+            "soul"
+          ],
+          "tier": "random"
+        },
+        "skill": {
+          "count": 2,
+          "level_min": 1,
+          "level_max": 5
+        },
+        "equip": {
+          "slots": 4,
+          "grade_min": 0,
+          "grade_max": 5,
+          "random_catalog": true
+        }
+      },
+      "adept": {
+        "label": "#77d05a0d",
+        "level": 50,
+        "awakened": true,
+        "gem": {
+          "categories": [
+            "hybrid",
+            "soul"
+          ],
+          "tier": -1
+        },
+        "skill": {
+          "count": 2,
+          "level_min": 4,
+          "level_max": 5
+        },
+        "equip": {
+          "slots": 4,
+          "grade_min": 3,
+          "grade_max": 4,
+          "random_catalog": true
+        }
+      },
+      "ranker": {
+        "label": "#f4906da4",
+        "level": 50,
+        "awakened": true,
+        "gem": {
+          "categories": [
+            "hybrid",
+            "soul"
+          ],
+          "tier": -1
+        },
+        "skill": {
+          "count": 2,
+          "level_min": 5,
+          "level_max": 5
+        },
+        "equip": {
+          "slots": 4,
+          "grade_min": 4,
+          "grade_max": 5,
+          "random_catalog": true
+        }
+      }
+    },
+    "tier_mix": {
+      "bronze": {
+        "novice": 100,
+        "adept": 0,
+        "ranker": 0
+      },
+      "silver": {
+        "novice": 75,
+        "adept": 25,
+        "ranker": 0
+      },
+      "gold": {
+        "novice": 40,
+        "adept": 60,
+        "ranker": 0
+      },
+      "platinum": {
+        "novice": 10,
+        "adept": 85,
+        "ranker": 5
+      },
+      "diamond": {
+        "novice": 0,
+        "adept": 80,
+        "ranker": 20
+      },
+      "master": {
+        "novice": 0,
+        "adept": 50,
+        "ranker": 50
+      }
+    },
+    "list_size": 5
+  },
+  "guards": [
+    {
+      "order": 1,
+      "streak_at": 25,
+      "streak_at_first": 0,
+      "key": "nuri",
+      "name": "#d61251bf",
+      "orig": true,
+      "skip_if_admin": false,
+      "talk_stage": "A",
+      "lines": [
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 1,
+          "emotion": 1,
+          "pos": 2,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 1,
+          "emotion": 1,
+          "pos": 2,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 1,
+          "emotion": 1,
+          "pos": 1,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 1,
+          "emotion": 1,
+          "pos": 1,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 2,
+          "emotion": 2,
+          "pos": 2,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 2,
+          "emotion": 2,
+          "pos": 1,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 1,
+          "emotion": 3,
+          "pos": 2,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 1,
+          "emotion": 3,
+          "pos": 2,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 2,
+          "emotion": 2,
+          "pos": 2,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 3,
+          "emotion": 7,
+          "pos": 1,
+          "first_show": false,
+          "small": true
+        }
+      ],
+      "lines_first": [],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 4191,
+          "level": 50,
+          "awakened": false,
+          "skills": [
+            {
+              "id": 110,
+              "level": 5
+            },
+            {
+              "id": 36,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "def": 30000,
+            "cri": 2.7,
+            "evd": 5
+          },
+          "stats_roll": {
+            "hp": [
+              15.0,
+              40.0
+            ],
+            "att": [
+              250.0,
+              300.0
+            ]
+          },
+          "immune": {
+            "skills": [
+              13,
+              30
+            ],
+            "pure": true,
+            "bonus": true
+          }
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "streak_at": 50,
+      "streak_at_first": 0,
+      "key": "raon",
+      "name": "#77b1684c",
+      "orig": true,
+      "skip_if_admin": false,
+      "talk_stage": "A",
+      "lines": [
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 3,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "lines_first": [],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 14,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 13,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 929,
+            "def": 266
+          }
+        },
+        {
+          "id": 4000,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#be7b0535",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 30,
+              "level": 5
+            },
+            {
+              "id": 60,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 840,
+            "att": 500
+          }
+        },
+        {
+          "id": 83,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "DEF",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d372147",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 14,
+              "level": 5
+            },
+            {
+              "id": 70,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 561,
+            "att": 666
+          }
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "streak_at": 75,
+      "streak_at_first": 0,
+      "key": "nuri",
+      "name": "#d61251bf",
+      "orig": true,
+      "skip_if_admin": false,
+      "talk_stage": "B",
+      "lines": [
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 1,
+          "emotion": 1,
+          "pos": 1,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 2,
+          "emotion": 2,
+          "pos": 1,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 2,
+          "emotion": 2,
+          "pos": 2,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 3,
+          "emotion": 7,
+          "pos": 1,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 2,
+          "emotion": 2,
+          "pos": 2,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "nuri",
+          "name": "#d61251bf",
+          "body": 1,
+          "emotion": 1,
+          "pos": 2,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 1,
+          "emotion": 1,
+          "pos": 1,
+          "first_show": false,
+          "small": true
+        },
+        {
+          "text": "",
+          "npc": "jimon",
+          "name": "#2734e20a",
+          "body": 2,
+          "emotion": 2,
+          "pos": 1,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "lines_first": [],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 4191,
+          "level": 50,
+          "awakened": false,
+          "skills": [
+            {
+              "id": 110,
+              "level": 5
+            },
+            {
+              "id": 36,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "def": 30000,
+            "cri": 2.7,
+            "evd": 5
+          },
+          "stats_roll": {
+            "hp": [
+              15.0,
+              40.0
+            ],
+            "att": [
+              250.0,
+              300.0
+            ]
+          },
+          "immune": {
+            "skills": [
+              13,
+              30
+            ],
+            "pure": true,
+            "bonus": true
+          }
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "streak_at": 100,
+      "streak_at_first": 0,
+      "key": "raon",
+      "name": "#77b1684c",
+      "orig": true,
+      "skip_if_admin": false,
+      "talk_stage": "B",
+      "lines": [
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 2,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 3,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "lines_first": [],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 14,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 13,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 929,
+            "def": 266
+          }
+        },
+        {
+          "id": 4000,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#be7b0535",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 30,
+              "level": 5
+            },
+            {
+              "id": 60,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 840,
+            "att": 500
+          }
+        },
+        {
+          "id": 83,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "DEF",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d372147",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 14,
+              "level": 5
+            },
+            {
+              "id": 70,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 561,
+            "att": 666
+          }
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "streak_at": 150,
+      "streak_at_first": 0,
+      "key": "raon",
+      "name": "#77b1684c",
+      "orig": true,
+      "skip_if_admin": false,
+      "talk_stage": "C",
+      "lines": [
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 2,
+          "pos": 3,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 1,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 3,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        },
+        {
+          "text": "",
+          "npc": "raon",
+          "name": "#77b1684c",
+          "body": 1,
+          "emotion": 3,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "lines_first": [],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 14,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 13,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 929,
+            "def": 266
+          }
+        },
+        {
+          "id": 4000,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#be7b0535",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 30,
+              "level": 5
+            },
+            {
+              "id": 60,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 840,
+            "att": 500
+          }
+        },
+        {
+          "id": 83,
+          "level": 50,
+          "awakened": false,
+          "gems": {
+            "types": [
+              "ATT",
+              "DEF",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#7d3c4a21",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#7d372147",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#be7b0535",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 14,
+              "level": 5
+            },
+            {
+              "id": 70,
+              "level": 5
+            }
+          ],
+          "stats": {
+            "hp": 561,
+            "att": 666
+          }
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "streak_at": 999,
+      "streak_at_first": 333,
+      "key": "sundaegun",
+      "name": "선대군",
+      "orig": false,
+      "skip_if_admin": true,
+      "talk_stage": "",
+      "lines": [
+        {
+          "text": "선물은 마음에 드셨나요? 좋아하는 드래곤이 활약할 수 있는 경험은 즐겁죠.",
+          "npc": "sundaegun",
+          "name": "선대군",
+          "body": 1,
+          "emotion": 2,
+          "pos": 3,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "애정캐가 이겼으면 하는 마음은 저도 마찬가지니까요, 봐 드리진 않겠습니다!",
+          "npc": "sundaegun",
+          "name": "선대군",
+          "body": 1,
+          "emotion": 3,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "lines_first": [
+        {
+          "text": "안녕하세요, 여기서 다시 뵙네요! 모험은 재미있게 즐기고 계신가요?",
+          "npc": "sundaegun",
+          "name": "선대군",
+          "body": 1,
+          "emotion": 2,
+          "pos": 3,
+          "first_show": true,
+          "small": false
+        },
+        {
+          "text": "여기까지 오신 보상으로 특별한 선물을 하나 준비했습니다. 대결이 끝나면 점술집으로 가 보시겠어요?",
+          "npc": "sundaegun",
+          "name": "선대군",
+          "body": 1,
+          "emotion": 2,
+          "pos": 3,
+          "first_show": false,
+          "small": false
+        }
+      ],
+      "rating": 0,
+      "dragons": [
+        {
+          "id": 777,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "공격의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "공격의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "공격의 소울젬",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:한울의 불꽃",
+              "slot": "all"
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle"
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support"
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact"
+            }
+          ],
+          "grade": 7.0
+        },
+        {
+          "id": 666,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "체력의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "체력의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "체력의 소울젬",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 29,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:샛별의 날개장식",
+              "slot": "all"
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle"
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support"
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact"
+            }
+          ],
+          "grade": 7.0
+        },
+        {
+          "id": 800,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "체력의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "체력의 소울젬",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "체력의 소울젬",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 160,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all"
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle"
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support"
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact"
+            }
+          ],
+          "grade": 7.0
+        }
+      ]
+    }
+  ],
+  "nick": {
+    "prefix": [
+      "#f248ca62",
+      "#bcee99fe",
+      "#448f9601",
+      "#b164f33e",
+      "#9eed2835",
+      "#4c2786f1",
+      "#cc3ccae8",
+      "#e5a7aac5",
+      "#e1c48573",
+      "#6fadbd95",
+      "#19ca5c0a",
+      "#705e9629",
+      "#c90a835f",
+      "#bb40eec2",
+      "#e0a2d7d7",
+      "#9526a477",
+      "#f4559417",
+      "#070c0596"
+    ],
+    "noun": [
+      "#f09fb4a1",
+      "#9df02808",
+      "#8ce9a05d",
+      "#3d13f8cf",
+      "#46daafa0",
+      "#55655c3b",
+      "#13014003",
+      "#9ba3a7e7",
+      "#eec834de",
+      "#f90a0ecf",
+      "#a61d84c6",
+      "#65af934e",
+      "#4e6edbfa",
+      "#236ecf20",
+      "#cf71fdeb",
+      "#3884b290",
+      "#693be358",
+      "#a3255cc7",
+      "#42478c05"
+    ],
+    "suffix": [
+      "#ba901a12",
+      "#74741a5b",
+      "s",
+      "II",
+      "99",
+      "7",
+      "_1",
+      "0v0"
+    ]
+  },
+  "rankers": [
+    {
+      "nick": "#62c1903d",
+      "tier": "master",
+      "rating": 6917,
+      "dragons": [
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4174,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 160,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 150,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 3032,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#0d2db79b",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 54,
+              "level": 5
+            },
+            {
+              "id": 32,
+              "level": 5
+            },
+            {
+              "id": 23,
+              "level": 5
+            },
+            {
+              "id": 25,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:시타엘의 신성한 뿔",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "#1c1c5995",
+      "tier": "master",
+      "rating": 6834,
+      "dragons": [
+        {
+          "id": 4132,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#0d2db79b",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 90,
+              "level": 5
+            },
+            {
+              "id": 14,
+              "level": 5
+            },
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 110,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4020,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4023,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 150,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:다르고스의 파괴의 힘",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "#01613d26",
+      "tier": "master",
+      "rating": 6751,
+      "dragons": [
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4180,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 160,
+              "level": 5
+            },
+            {
+              "id": 38,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:불나래의 불꽃구슬",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4018,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#0d2db79b",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 54,
+              "level": 5
+            },
+            {
+              "id": 32,
+              "level": 5
+            },
+            {
+              "id": 23,
+              "level": 5
+            },
+            {
+              "id": 25,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:발록의 전투갑주",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "claude",
+      "tier": "master",
+      "rating": 6668,
+      "dragons": [
+        {
+          "id": 4140,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "DEF",
+              "DEF",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#f38cc6c6",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#f38cc6c6",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 50,
+              "level": 5
+            },
+            {
+              "id": 13,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:설리반의 가면",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4151,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#0d2db79b",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 32,
+              "level": 5
+            },
+            {
+              "id": 54,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:헤네스의 지성의 왕관",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "gemini",
+      "tier": "master",
+      "rating": 6585,
+      "dragons": [
+        {
+          "id": 4207,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ALL",
+              "ALL",
+              "ALL"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#62c27770",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#62c27770",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#62c27770",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:샤마쉬의 흉갑",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "ChatGPT",
+      "tier": "master",
+      "rating": 6502,
+      "dragons": [
+        {
+          "id": 4140,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "DEF",
+              "DEF",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#f38cc6c6",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#f38cc6c6",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 11,
+              "level": 5
+            },
+            {
+              "id": 50,
+              "level": 5
+            },
+            {
+              "id": 13,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:설리반의 가면",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4190,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "cosmos3",
+      "tier": "master",
+      "rating": 6419,
+      "dragons": [
+        {
+          "id": 4210,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 54,
+              "level": 5
+            },
+            {
+              "id": 29,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4210,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 54,
+              "level": 5
+            },
+            {
+              "id": 29,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "Haiku",
+      "tier": "master",
+      "rating": 6336,
+      "dragons": [
+        {
+          "id": 4210,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4174,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 160,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 150,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "Sonnet",
+      "tier": "master",
+      "rating": 6253,
+      "dragons": [
+        {
+          "id": 4180,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 160,
+              "level": 5
+            },
+            {
+              "id": 38,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:불나래의 불꽃구슬",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4210,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "Opus",
+      "tier": "master",
+      "rating": 6170,
+      "dragons": [
+        {
+          "id": 4210,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4173,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            },
+            {
+              "id": 56,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4208,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 150,
+              "level": 5
+            },
+            {
+              "id": 170,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    },
+    {
+      "nick": "Fable",
+      "tier": "master",
+      "rating": 6087,
+      "dragons": [
+        {
+          "id": 4179,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "ATT",
+              "ATT",
+              "ATT"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#14dd923f",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#14dd923f",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 150,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "special:balrog:카이저 발록의 팔찌",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 4162,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "DEF"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#f38cc6c6",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 56,
+              "level": 5
+            },
+            {
+              "id": 30,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:아틀라스의 마력 수정",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "att",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        },
+        {
+          "id": 92,
+          "level": 50,
+          "awakened": true,
+          "gems": {
+            "types": [
+              "HP",
+              "HP",
+              "HP"
+            ],
+            "list": [
+              {
+                "slot": 0,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 1,
+                "name": "#0d2db79b",
+                "tier": 9
+              },
+              {
+                "slot": 2,
+                "name": "#0d2db79b",
+                "tier": 9
+              }
+            ]
+          },
+          "skills": [
+            {
+              "id": 29,
+              "level": 5
+            },
+            {
+              "id": 26,
+              "level": 5
+            }
+          ],
+          "equip": [
+            {
+              "key": "exclusive:파이썬의 갑옷",
+              "slot": "all",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:balrog:카이저 발록의 투구",
+              "slot": "battle",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "special:fiod:피오드의 텅 빈 모래시계",
+              "slot": "support",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            },
+            {
+              "key": "artifact:이그니스:4",
+              "slot": "artifact",
+              "rarity": 4,
+              "options": [
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                },
+                {
+                  "stat": "pure",
+                  "value": 12
+                },
+                {
+                  "stat": "hp",
+                  "value": 10
+                }
+              ],
+              "enhance": 20
+            }
+          ],
+          "grade": 10.0
+        }
+      ]
+    }
+  ]
+}

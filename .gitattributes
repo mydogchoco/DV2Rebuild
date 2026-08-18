@@ -1,0 +1,8 @@
+# Godot 은 Windows 에서 project.godot 을 CRLF 로 다시 쓴다. 내용이 하나도 안 바뀌어도
+# 57줄짜리 diff 가 매번 뜨던 원인이라, 이 파일만 LF 로 정규화해 커밋한다.
+project.godot text eol=lf
+
+# 원본 반입 에셋(DV2/ORIGINAL/) — 바이너리로 못 박아 두지 않으면 git 이 .atlas/.json 을
+# 텍스트로 보고 줄끝을 건드릴 수 있다. 스파인 파서는 그대로의 바이트를 기대한다.
+*.pvr.ccz binary
+*.ccz      binary

@@ -1,0 +1,497 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_dragon_enchant_lvup/enchant_lvup_spine.png" id="1_euutg"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_3eyi2"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_edlme"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 857, 404, 332)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_16xpa"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 543, 406, 312)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j8eai"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 2, 414, 292)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_taxv4"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1191, 364, 306)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x87bt"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1499, 346, 228)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xbuh3"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1729, 274, 238)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u6brm"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 296, 407, 245)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rf8vn"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 857, 404, 332)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iukmd"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 543, 406, 312)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oyg8k"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 2, 414, 292)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mpq6v"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1191, 364, 306)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f70hy"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1499, 346, 228)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hkgc2"]
+atlas = ExtResource("1_euutg")
+region = Rect2(2, 1729, 274, 238)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_mdct8"]
+length = 2.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3333, 0.6666, 1, 1.3333, 1.6666, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [-0.5951572749300664, 0.04171336912266448, -0.5951572749300664, 0.04171336912266448, -0.5951572749300664, 0.04171336912266448, -0.5951572749300664]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333, 0.6665, 0.6666, 0.9999, 1, 1.3332, 1.3333, 1.6665, 1.6666, 1.9999, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92), Vector2(252.92, 0.92)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333, 0.6665, 0.6666, 0.9999, 1, 1.3332, 1.3333, 1.6665, 1.6666, 1.9999, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1), Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone3:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.3333, 0.6666, 1, 1.3333, 1.6666, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.6691592352146261, -0.03892084231947349, 0.6691592352146261, -0.03892084231947349, 0.6691592352146261, -0.03892084231947349, 0.6691592352146261]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone3:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333, 0.6665, 0.6666, 0.9999, 1, 1.3332, 1.3333, 1.6665, 1.6666, 1.9999, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92), Vector2(-269.78, 0.92)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone3:scale")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 0.3332, 0.3333, 0.6665, 0.6666, 0.9999, 1, 1.3332, 1.3333, 1.6665, 1.6666, 1.9999, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1), Vector2(-1.003, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/bone2:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("root/bone2:position")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(-0.5, 38.42)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("root/bone2:scale")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/9/type = "value"
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/path = NodePath("root/bone/skill_reset1__enchant_upwing1_frame/skill_reset1__enchant_upwing1:visible")
+tracks/9/interp = 0
+tracks/9/loop_wrap = true
+tracks/9/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true]
+}
+tracks/10/type = "value"
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/path = NodePath("root/bone/skill_reset1__enchant_upwing2_frame/skill_reset1__enchant_upwing2:visible")
+tracks/10/interp = 0
+tracks/10/loop_wrap = true
+tracks/10/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false]
+}
+tracks/11/type = "value"
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/path = NodePath("root/bone/skill_reset1__enchant_upwing3_frame/skill_reset1__enchant_upwing3:visible")
+tracks/11/interp = 0
+tracks/11/loop_wrap = true
+tracks/11/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false]
+}
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("root/bone/skill_reset1__enchant_upwing4_frame/skill_reset1__enchant_upwing4:visible")
+tracks/12/interp = 0
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("root/bone/skill_reset1__enchant_upwing5_frame/skill_reset1__enchant_upwing5:visible")
+tracks/13/interp = 0
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false]
+}
+tracks/14/type = "value"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("root/bone/skill_reset1__enchant_upwing6_frame/skill_reset1__enchant_upwing6:visible")
+tracks/14/interp = 0
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false]
+}
+tracks/15/type = "value"
+tracks/15/imported = false
+tracks/15/enabled = true
+tracks/15/path = NodePath("root/bone3/skill_reset12__enchant_upwing1_frame/skill_reset12__enchant_upwing1:visible")
+tracks/15/interp = 0
+tracks/15/loop_wrap = true
+tracks/15/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true]
+}
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("root/bone3/skill_reset12__enchant_upwing2_frame/skill_reset12__enchant_upwing2:visible")
+tracks/16/interp = 0
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("root/bone3/skill_reset12__enchant_upwing3_frame/skill_reset12__enchant_upwing3:visible")
+tracks/17/interp = 0
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false]
+}
+tracks/18/type = "value"
+tracks/18/imported = false
+tracks/18/enabled = true
+tracks/18/path = NodePath("root/bone3/skill_reset12__enchant_upwing4_frame/skill_reset12__enchant_upwing4:visible")
+tracks/18/interp = 0
+tracks/18/loop_wrap = true
+tracks/18/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false, false, false, true, false, false, false]
+}
+tracks/19/type = "value"
+tracks/19/imported = false
+tracks/19/enabled = true
+tracks/19/path = NodePath("root/bone3/skill_reset12__enchant_upwing5_frame/skill_reset12__enchant_upwing5:visible")
+tracks/19/interp = 0
+tracks/19/loop_wrap = true
+tracks/19/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, true, false, true, false, false, false, false]
+}
+tracks/20/type = "value"
+tracks/20/imported = false
+tracks/20/enabled = true
+tracks/20/path = NodePath("root/bone3/skill_reset12__enchant_upwing6_frame/skill_reset12__enchant_upwing6:visible")
+tracks/20/interp = 0
+tracks/20/loop_wrap = true
+tracks/20/keys = {
+"times": PackedFloat32Array(0, 0.0666, 0.1333, 0.2, 0.2666, 0.3333, 0.4, 0.4666, 0.5333, 0.6, 0.6666, 0.7333, 0.8, 0.8666, 0.9333, 1, 1.0666, 1.1333, 1.2, 1.2666, 1.3333, 1.4, 1.4666, 1.5333, 1.6, 1.6666, 1.7333, 1.8, 1.8666, 1.9333, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_gj6rk"]
+_data = {
+&"reset": SubResource("Animation_mdct8")
+}
+
+[node name="Dragon_dragon_enchant_lvup_scene" type="Node2D" unique_id=1143969174]
+
+[node name="root" type="Node2D" parent="." unique_id=1115079237]
+
+[node name="bone" type="Node2D" parent="root" unique_id=1722831512]
+position = Vector2(252.92, 0.92)
+rotation = -0.59515727
+
+[node name="skill_reset1__enchant_upwing1_frame" type="Node2D" parent="root/bone" unique_id=1624562846]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing1" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing1_frame" unique_id=1810924702]
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(5.330544, 1.3333334)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_edlme")
+
+[node name="skill_reset1__enchant_upwing2_frame" type="Node2D" parent="root/bone" unique_id=453821455]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing2" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing2_frame" unique_id=1199367341]
+visible = false
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(5.330544, 14.666667)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_16xpa")
+
+[node name="skill_reset1__enchant_upwing3_frame" type="Node2D" parent="root/bone" unique_id=1078550419]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing3" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing3_frame" unique_id=1829920203]
+visible = false
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(7.9958158, 26.666666)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_j8eai")
+
+[node name="skill_reset1__enchant_upwing4_frame" type="Node2D" parent="root/bone" unique_id=1695838811]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing4" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing4_frame" unique_id=659108787]
+visible = false
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-23.987448, 17.333334)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_taxv4")
+
+[node name="skill_reset1__enchant_upwing5_frame" type="Node2D" parent="root/bone" unique_id=1553172227]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing5" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing5_frame" unique_id=993280985]
+visible = false
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-35.98117, 69.333336)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_x87bt")
+
+[node name="skill_reset1__enchant_upwing6_frame" type="Node2D" parent="root/bone" unique_id=159208169]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset1__enchant_upwing6" type="Sprite2D" parent="root/bone/skill_reset1__enchant_upwing6_frame" unique_id=1965916077]
+visible = false
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-83.95607, 85.333336)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_xbuh3")
+
+[node name="bone2" type="Node2D" parent="root" unique_id=1942505627]
+position = Vector2(-0.5, 38.42)
+
+[node name="skill_resetp_frame" type="Node2D" parent="root/bone2" unique_id=287510811]
+position = Vector2(-3.95, -32.66)
+
+[node name="skill_resetp" type="Sprite2D" parent="root/bone2/skill_resetp_frame" unique_id=180764944]
+z_index = 2
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-1.3326133, 0)
+scale = Vector2(1.3326133, 1.3333334)
+texture = SubResource("AtlasTexture_u6brm")
+
+[node name="bone3" type="Node2D" parent="root" unique_id=2032345906]
+position = Vector2(-269.78, 0.92)
+rotation = 0.66915923
+scale = Vector2(-1.003, 1)
+
+[node name="skill_reset12__enchant_upwing1_frame" type="Node2D" parent="root/bone3" unique_id=1836014756]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing1" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing1_frame" unique_id=484372098]
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(5.330544, 1.3333334)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_rf8vn")
+
+[node name="skill_reset12__enchant_upwing2_frame" type="Node2D" parent="root/bone3" unique_id=1141211019]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing2" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing2_frame" unique_id=653931808]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(5.330544, 14.666667)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_iukmd")
+
+[node name="skill_reset12__enchant_upwing3_frame" type="Node2D" parent="root/bone3" unique_id=1924704553]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing3" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing3_frame" unique_id=1359380112]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(7.9958158, 26.666666)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_oyg8k")
+
+[node name="skill_reset12__enchant_upwing4_frame" type="Node2D" parent="root/bone3" unique_id=1902609542]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing4" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing4_frame" unique_id=1585286919]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-23.987448, 17.333334)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_mpq6v")
+
+[node name="skill_reset12__enchant_upwing5_frame" type="Node2D" parent="root/bone3" unique_id=1110233880]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing5" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing5_frame" unique_id=653878131]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-35.98117, 69.333336)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_f70hy")
+
+[node name="skill_reset12__enchant_upwing6_frame" type="Node2D" parent="root/bone3" unique_id=1805262044]
+position = Vector2(277.46, 19.3)
+rotation = 0.59515727
+
+[node name="skill_reset12__enchant_upwing6" type="Sprite2D" parent="root/bone3/skill_reset12__enchant_upwing6_frame" unique_id=726948696]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_3eyi2")
+position = Vector2(-83.95607, 85.333336)
+scale = Vector2(1.332636, 1.3333334)
+texture = SubResource("AtlasTexture_hkgc2")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1310122319]
+libraries/ = SubResource("AnimationLibrary_gj6rk")

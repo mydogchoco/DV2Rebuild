@@ -1,0 +1,136 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/converted/scenespine_skill_zzing_spine/skill_zzing_spine.png" id="1_47gyq"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_ctxpk"]
+blend_mode = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e5ftd"]
+atlas = ExtResource("1_47gyq")
+region = Rect2(2, 2, 176, 180)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xdgcc"]
+atlas = ExtResource("1_47gyq")
+region = Rect2(2, 184, 146, 140)
+filter_clip = true
+
+[sub_resource type="Animation" id="Animation_uxpw4"]
+length = 0.5
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/bone1:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [6.265557481734443, 3.3424800504943404]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/bone1:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.376, 0.376), Vector2(1.088, 1.088)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/bone2:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.2333, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0.591, 0.591), Vector2(2.07, 2.07)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/bone1/skill_zzing1_frame/skill_zzing1:modulate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.3332, 0.3333, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(0.4509804, 0.4509804, 0.4509804, 0.4509804), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/bone2/skill_zzing2_frame/skill_zzing2:visible")
+tracks/4/interp = 0
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.2333),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/bone2/skill_zzing2_frame/skill_zzing2:modulate")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.2333, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ey653"]
+_data = {
+&"animation": SubResource("Animation_uxpw4")
+}
+
+[node name="Dragon_skill_zzing_spine_scene" type="Node2D" unique_id=1392679000]
+
+[node name="root" type="Node2D" parent="." unique_id=1093479885]
+position = Vector2(0, 41.99)
+
+[node name="bone1" type="Node2D" parent="root" unique_id=1555289244]
+position = Vector2(-1.49, -42.99)
+rotation = 0.18046704
+
+[node name="skill_zzing1_frame" type="Node2D" parent="root/bone1" unique_id=1460883857]
+rotation = -0.18046704
+scale = Vector2(1.872, 1.872)
+
+[node name="skill_zzing1" type="Sprite2D" parent="root/bone1/skill_zzing1_frame" unique_id=1488933648]
+material = SubResource("CanvasItemMaterial_ctxpk")
+position = Vector2(-2.6633663, 0)
+rotation = 1.5707964
+scale = Vector2(1.3316832, 1.3333334)
+texture = SubResource("AtlasTexture_e5ftd")
+
+[node name="bone2" type="Node2D" parent="root" unique_id=1646727709]
+position = Vector2(-2.49, -44)
+rotation = 0.31922072
+
+[node name="skill_zzing2_frame" type="Node2D" parent="root/bone2" unique_id=349220750]
+position = Vector2(4.08, 12.34)
+rotation = -0.31922072
+
+[node name="skill_zzing2" type="Sprite2D" parent="root/bone2/skill_zzing2_frame" unique_id=1334901133]
+visible = false
+z_index = 1
+material = SubResource("CanvasItemMaterial_ctxpk")
+position = Vector2(0, -13.333333)
+scale = Vector2(1.3316832, 1.3333334)
+texture = SubResource("AtlasTexture_xdgcc")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1746615933]
+libraries/ = SubResource("AnimationLibrary_ey653")

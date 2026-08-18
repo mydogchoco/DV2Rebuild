@@ -1,0 +1,463 @@
+{
+  "exploration": {
+    "sources": {
+      "normal": {
+        "chance": 0.08,
+        "quality": 0
+      },
+      "chest": {
+        "chance": 1.0,
+        "quality": 2
+      },
+      "boss": {
+        "chance": 0.35,
+        "quality": 4
+      }
+    },
+    "kind_weights": {
+      "gem": 50,
+      "equip": 50
+    },
+    "gem_tier": {
+      "per_level": 0.1667,
+      "band": 2,
+      "min": 0,
+      "max": 18
+    },
+    "gem_pool": [
+      "#be7b0535",
+      "#7d3c4a21",
+      "#7d372147"
+    ],
+    "equip_grade": {
+      "per_level": 0.1,
+      "band": 1,
+      "min": 0,
+      "max": 6
+    },
+    "equip_kinds": [
+      "#a7206197",
+      "#4322a4a7",
+      "#cf313a30",
+      "#37b8235f",
+      "#a6eb559c",
+      "#faca7a18"
+    ]
+  },
+  "food": {
+    "chance": {
+      "normal": 0.1,
+      "chest": 0.3,
+      "boss": 0.45
+    },
+    "count": {
+      "min": 1,
+      "max": 2
+    }
+  },
+  "egg": {
+    "chance": {
+      "normal": 0.012,
+      "boss": 0.06
+    },
+    "hero_chance": {
+      "normal": 0.004,
+      "boss": 0.02
+    }
+  },
+  "essence": {
+    "chance": {
+      "normal": 0.18,
+      "chest": 0.35,
+      "boss": 0.5
+    },
+    "count": {
+      "min": 1,
+      "max": 3
+    }
+  },
+  "rare_element": {
+    "chance": 0.25,
+    "modes": {
+      "normal": "boss",
+      "night": "boss",
+      "hero": "any",
+      "kades": "any"
+    },
+    "pool": [
+      {
+        "key": "ele_holy",
+        "min": 1,
+        "max": 3
+      },
+      {
+        "key": "ele_chaos",
+        "min": 1,
+        "max": 3
+      },
+      {
+        "key": "ele_shadow",
+        "min": 1,
+        "max": 3
+      },
+      {
+        "key": "food_holy_big_ginseng",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "key": "food_chaos_toud",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "key": "food_shadow_chocolate",
+        "min": 1,
+        "max": 2
+      }
+    ]
+  },
+  "drink": {
+    "chance": 0.1,
+    "tiers": [
+      1,
+      2
+    ],
+    "count": {
+      "min": 1,
+      "max": 1
+    }
+  },
+  "kades": {
+    "artifact_chance": {
+      "normal": 0.06,
+      "chest": 0.5,
+      "boss": 0.3
+    },
+    "artifact_grade": {
+      "weights": [
+        45,
+        30,
+        15,
+        7,
+        3,
+        0
+      ]
+    },
+    "artifact_types": [
+      "#2fcae0cf",
+      "#27298e5f",
+      "#8c35670f",
+      "#95d7b0e1",
+      "#b5402a1c",
+      "#e33efdae"
+    ],
+    "quality_bonus": 6,
+    "artifact_by_dungeon": {
+      "1": [
+        "#e33efdae",
+        "#b5402a1c",
+        "#27298e5f",
+        "#8c35670f"
+      ],
+      "2": [
+        "#8c35670f",
+        "#b5402a1c",
+        "#95d7b0e1",
+        "#e33efdae"
+      ],
+      "3": [
+        "#2fcae0cf",
+        "#e33efdae",
+        "#27298e5f",
+        "#95d7b0e1"
+      ],
+      "4": [
+        "#b5402a1c",
+        "#27298e5f",
+        "#e33efdae",
+        "#2fcae0cf"
+      ],
+      "5": [
+        "#27298e5f",
+        "#b5402a1c",
+        "#2fcae0cf",
+        "#8c35670f"
+      ],
+      "6": [
+        "#95d7b0e1",
+        "#2fcae0cf",
+        "#e33efdae",
+        "#b5402a1c"
+      ],
+      "7": [
+        "#e33efdae",
+        "#95d7b0e1",
+        "#8c35670f",
+        "#27298e5f"
+      ],
+      "8": [
+        "#95d7b0e1",
+        "#2fcae0cf",
+        "#27298e5f",
+        "#b5402a1c"
+      ],
+      "9": [
+        "#8c35670f",
+        "#e33efdae",
+        "#95d7b0e1",
+        "#2fcae0cf"
+      ],
+      "10": [
+        "#27298e5f",
+        "#8c35670f",
+        "#b5402a1c",
+        "#95d7b0e1"
+      ],
+      "11": [
+        "#8c35670f",
+        "#27298e5f",
+        "#2fcae0cf",
+        "#e33efdae"
+      ],
+      "12": [
+        "#95d7b0e1",
+        "#8c35670f",
+        "#b5402a1c",
+        "#2fcae0cf"
+      ],
+      "13": [
+        "#8c35670f",
+        "#e33efdae",
+        "#27298e5f",
+        "#95d7b0e1"
+      ],
+      "14": [
+        "#b5402a1c",
+        "#e33efdae",
+        "#2fcae0cf",
+        "#8c35670f"
+      ],
+      "15": [
+        "#27298e5f",
+        "#2fcae0cf",
+        "#95d7b0e1",
+        "#b5402a1c"
+      ]
+    }
+  },
+  "shop": {
+    "gem_tiers": [
+      0,
+      1
+    ],
+    "gem_pool": [
+      "#be7b0535",
+      "#7d3c4a21",
+      "#7d372147"
+    ],
+    "gem_price": {
+      "base": 3000,
+      "per_tier": 2500
+    },
+    "equip_grades": [
+      0,
+      1
+    ],
+    "equip_kinds": [
+      "#a7206197",
+      "#4322a4a7",
+      "#cf313a30",
+      "#37b8235f",
+      "#a6eb559c",
+      "#faca7a18"
+    ],
+    "equip_price": {
+      "base": 4000,
+      "per_grade": 4000
+    }
+  },
+  "gacha": {
+    "gem": {
+      "price_single": 15,
+      "price_ten": 125,
+      "ten_count": 10,
+      "categories": [
+        "hybrid",
+        "soul"
+      ],
+      "tier_min": 0,
+      "tier_max": -1
+    },
+    "equip": {
+      "ten_count": 10,
+      "grades": {
+        "normal": {
+          "rarity_source": "shop_gold",
+          "event_weight": 0,
+          "basic_weight": 100,
+          "basic_grades": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "high": {
+          "rarity_source": "shop_gacha",
+          "event_weight": 55,
+          "basic_weight": 45,
+          "basic_grades": [
+            4,
+            5,
+            6
+          ]
+        },
+        "only": {
+          "rarity_source": "shop_gacha",
+          "exclusive_weight": 100,
+          "event_weight": 0,
+          "basic_weight": 0
+        },
+        "special": {
+          "rarity_source": "shop_gacha_special",
+          "special_weight": 100,
+          "exclusive_weight": 0,
+          "event_weight": 0,
+          "basic_weight": 0
+        }
+      }
+    }
+  },
+  "slot": {
+    "price_gold": 1000,
+    "win_rate": 0.2,
+    "gem": {
+      "categories": [
+        "hybrid",
+        "soul"
+      ],
+      "tier_min": 0,
+      "tier_max": 0
+    },
+    "items": [
+      "level_up",
+      "level_down",
+      "portal",
+      "mall_question_egg",
+      "mall_question_egg2"
+    ],
+    "weights": {
+      "hybrid": 40,
+      "soul": 10,
+      "level_up": 15,
+      "level_down": 10,
+      "portal": 15,
+      "mall_question_egg": 8,
+      "mall_question_egg2": 2
+    }
+  },
+  "box": {
+    "jem_random": {
+      "categories": [
+        "normal"
+      ],
+      "tier_min": 9,
+      "tier_max": 14
+    }
+  },
+  "cash": {
+    "gold_pack": {
+      "dia_tiers": [
+        10,
+        25,
+        50,
+        100,
+        200,
+        500
+      ],
+      "gold_per_dia": 1000,
+      "bonus_pct": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50
+      ]
+    },
+    "dia_pack": {
+      "dia_tiers": [
+        10,
+        25,
+        50,
+        100,
+        200,
+        500
+      ],
+      "gold_per_dia": 2500
+    }
+  },
+  "raid": {
+    "sources": {
+      "balrog": {
+        "equipment_sets": [
+          "balrog"
+        ],
+        "items": [
+          "balrog_core"
+        ]
+      },
+      "fiod": {
+        "equipment_sets": [
+          "fiod"
+        ],
+        "items": []
+      },
+      "cronak": {
+        "equipment_sets": [],
+        "items": [
+          "cronakscale"
+        ]
+      },
+      "kasiz": {
+        "equipment_sets": [],
+        "items": [
+          "kasizclaw"
+        ]
+      },
+      "elysium": {
+        "equipment_sets": [],
+        "items": [
+          "stone_spirit1",
+          "stone_spirit2",
+          "stone_spirit3",
+          "stone_spirit4"
+        ]
+      },
+      "metal_tower": {
+        "equipment_sets": [],
+        "items": [
+          "stone_heart1",
+          "stone_heart2",
+          "stone_heart3",
+          "stone_heart4"
+        ]
+      }
+    }
+  },
+  "battle_reward": {
+    "gold": {
+      "per_level": 12,
+      "base": 30,
+      "boss_mult": 16.0,
+      "elite_mult": 2.0
+    },
+    "exp": {
+      "per_level": 8,
+      "base": 20,
+      "boss_mult": 3.0,
+      "elite_mult": 2.0
+    }
+  }
+}

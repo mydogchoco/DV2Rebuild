@@ -1,0 +1,124 @@
+{
+ "_npc": "#2031eb4c",
+ "games": {
+  "match": {
+   "label": "#35eabbfa",
+   "cards": 8,
+   "chances": 4
+  },
+  "avoid": {
+   "label": "#e0d64dbe",
+   "cards": 3,
+   "blanks_min": 1,
+   "blanks_max": 2,
+   "chances": 1
+  }
+ },
+ "rewards": [
+  {
+   "kind": "heal",
+   "weight": 26,
+   "frame": "heart_bg",
+   "label": "#1c3a5461"
+  },
+  {
+   "kind": "buff_att",
+   "weight": 24,
+   "frame": "buf_atk",
+   "label": "#c5cbe959",
+   "tier": 1
+  },
+  {
+   "kind": "buff_def",
+   "weight": 24,
+   "frame": "buf_def",
+   "label": "#72802a7e",
+   "tier": 1
+  },
+  {
+   "kind": "gold",
+   "weight": 20,
+   "frame": "coin_small2",
+   "label": "#715d9a37",
+   "min": 100,
+   "max": 200
+  },
+  {
+   "kind": "diamond",
+   "weight": 4,
+   "frame": "diamond_big",
+   "label": "#c5e74713",
+   "min": 1,
+   "max": 2
+  },
+  {
+   "kind": "egg",
+   "weight": 2,
+   "frame": "dragon_bg",
+   "label": "#20b2ef8e",
+   "pool": [
+    100,
+    102,
+    83,
+    101
+   ]
+  }
+ ],
+ "blank": {
+  "kind": "none",
+  "frame": "fail",
+  "label": "#9ee3fcf3"
+ },
+ "talk": {
+  "_npc": "#9de5a899",
+  "dungeon": {
+   "ready": [
+    [
+     "",
+     ""
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "",
+     ""
+    ]
+   ],
+   "success": [
+    "#291a1db5"
+   ],
+   "fail": [
+    "#8861803e"
+   ]
+  },
+  "raid": {
+   "ready": [
+    [
+     "",
+     "",
+     ""
+    ]
+   ],
+   "success": [
+    "#a448b954"
+   ],
+   "fail": [
+    "#a8917ea6"
+   ]
+  }
+ }
+}

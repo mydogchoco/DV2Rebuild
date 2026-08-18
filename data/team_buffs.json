@@ -1,0 +1,731 @@
+{
+  "race_dim": "element",
+  "stat_order": [
+    "hp",
+    "att",
+    "def",
+    "evd",
+    "cri",
+    "blk",
+    "pure",
+    "cri_pow",
+    "depure",
+    "awaken_rate",
+    "accuracy"
+  ],
+  "stat_labels": {
+    "hp": "#a45ea58e",
+    "att": "#2a9c189a",
+    "def": "#2a87c14e",
+    "evd": "#13eff97f",
+    "cri": "#9046ff56",
+    "blk": "#2618fc99",
+    "pure": "#a27dbed6",
+    "cri_pow": "#137d1a00",
+    "depure": "#70228901",
+    "awaken_rate": "#eb8347e8",
+    "accuracy": "#7ce933dd"
+  },
+  "effect_mode": "typed",
+  "buffs": [
+    {
+      "no": 1,
+      "name": "#7878e812",
+      "combine": {
+        "aqua": 3
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 30
+        }
+      },
+      "effect_text": "HP+30%",
+      "img": "flood",
+      "icon_frames": [
+        "battle/flood/combine_mark.png",
+        "battle/flood/combine_outline.png"
+      ]
+    },
+    {
+      "no": 2,
+      "name": "#807e28eb",
+      "combine": {
+        "fire": 2,
+        "chaos": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 20
+        }
+      },
+      "effect_text": "HP+10% ATK+20%",
+      "img": "apocalypse",
+      "icon_frames": [
+        "battle/apocalypse/combine_mark.png",
+        "battle/apocalypse/combine_outline.png"
+      ]
+    },
+    {
+      "no": 3,
+      "name": "#a8aa0976",
+      "combine": {
+        "light": 1,
+        "dark": 1,
+        "holy": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 10
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+10% ATK+10% CRT+5%",
+      "img": "amagethon",
+      "icon_frames": [
+        "battle/amagethon/combine_mark.png",
+        "battle/amagethon/combine_outline.png"
+      ]
+    },
+    {
+      "no": 4,
+      "name": "#a9b12c9c",
+      "combine": {
+        "earth": 3
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 25
+        }
+      },
+      "effect_text": "DEF+25%",
+      "img": "gaia",
+      "icon_frames": [
+        "battle/gaia/combine_mark.png",
+        "battle/gaia/combine_outline.png"
+      ]
+    },
+    {
+      "no": 5,
+      "name": "#a962494b",
+      "combine": {
+        "fire": 3
+      },
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 25
+        }
+      },
+      "effect_text": "ATK+25%",
+      "img": "corona",
+      "icon_frames": [
+        "battle/corona/combine_mark.png",
+        "battle/corona/combine_outline.png"
+      ]
+    },
+    {
+      "no": 6,
+      "name": "#12bb6083",
+      "combine": {
+        "holy": 2,
+        "earth": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 20
+        }
+      },
+      "effect_text": "HP+10% DEF+20%",
+      "img": "highness",
+      "icon_frames": [
+        "battle/highness/combine_mark.png",
+        "battle/highness/combine_outline.png"
+      ]
+    },
+    {
+      "no": 7,
+      "name": "#39a2ea1e",
+      "combine": {
+        "fire": 2,
+        "light": 1
+      },
+      "effect": {
+        "evd": {
+          "mode": "point",
+          "value": 11
+        }
+      },
+      "effect_text": "EVD+11%",
+      "img": "supernova",
+      "icon_frames": [
+        "battle/supernova/combine_mark.png",
+        "battle/supernova/combine_outline.png"
+      ]
+    },
+    {
+      "no": 8,
+      "name": "#3d22c9b0",
+      "combine": {
+        "wind": 3
+      },
+      "effect": {
+        "blk": {
+          "mode": "point",
+          "value": 15
+        }
+      },
+      "effect_text": "BLK+15%",
+      "img": "hurricane",
+      "icon_frames": [
+        "battle/hurricane/combine_mark.png",
+        "battle/hurricane/combine_outline.png"
+      ]
+    },
+    {
+      "no": 9,
+      "name": "#36f016ae",
+      "combine": {
+        "chaos": 3
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% ATK+15%",
+      "img": "legion",
+      "icon_frames": [
+        "battle/legion/combine_mark.png",
+        "battle/legion/combine_outline.png"
+      ]
+    },
+    {
+      "no": 10,
+      "name": "#98954671",
+      "combine": {
+        "holy": 3
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 5
+        },
+        "def": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+5% DEF+15%",
+      "img": "avatar",
+      "icon_frames": [
+        "battle/avatar/combine_mark.png",
+        "battle/avatar/combine_outline.png"
+      ]
+    },
+    {
+      "no": 11,
+      "name": "#f066024a",
+      "combine": {
+        "light": 2,
+        "wind": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+10% ATK+5% EVD+5%",
+      "img": "rainbow",
+      "icon_frames": [
+        "battle/rainbow/combine_mark.png",
+        "battle/rainbow/combine_outline.png"
+      ]
+    },
+    {
+      "no": 12,
+      "name": "#b2c68e30",
+      "combine": {
+        "dark": 3
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "att": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% ATK+15%",
+      "img": "dark",
+      "icon_frames": [
+        "battle/dark/combine_mark.png",
+        "battle/dark/combine_outline.png"
+      ]
+    },
+    {
+      "no": 13,
+      "name": "#29f84945",
+      "combine": {
+        "light": 3
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 15
+        }
+      },
+      "effect_text": "CRT+10% DEF+15%",
+      "img": "light",
+      "icon_frames": [
+        "battle/light/combine_mark.png",
+        "battle/light/combine_outline.png"
+      ]
+    },
+    {
+      "no": 14,
+      "name": "#4d9dc5eb",
+      "combine": {
+        "wind": 2,
+        "dark": 1
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "blk": {
+          "mode": "point",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+10% BLK+5% CRT+5%",
+      "img": "storm",
+      "icon_frames": [
+        "battle/storm/combine_mark.png",
+        "battle/storm/combine_outline.png"
+      ]
+    },
+    {
+      "no": 15,
+      "name": "#1222eb68",
+      "combine": {
+        "aqua": 2,
+        "light": 1
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "blk": {
+          "mode": "point",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+10% BLK+5% CRT+5%",
+      "img": "aqualight",
+      "icon_frames": [
+        "battle/aqualight/combine_mark.png",
+        "battle/aqualight/combine_outline.png"
+      ]
+    },
+    {
+      "no": 16,
+      "name": "#c4239d20",
+      "combine": {
+        "fire": 2,
+        "earth": 1
+      },
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 15
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        }
+      },
+      "effect_text": "ATK+15% DEF+10%",
+      "img": "shimmer",
+      "icon_frames": [
+        "battle/shimmer/combine_mark.png",
+        "battle/shimmer/combine_outline.png"
+      ]
+    },
+    {
+      "no": 17,
+      "name": "#82c5090a",
+      "combine": {
+        "earth": 2,
+        "wind": 1
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 15
+        },
+        "blk": {
+          "mode": "point",
+          "value": 6
+        }
+      },
+      "effect_text": "DEF+15% BLK+6%",
+      "img": "landslide",
+      "icon_frames": [
+        "battle/landslide/combine_mark.png",
+        "battle/landslide/combine_outline.png"
+      ]
+    },
+    {
+      "no": 18,
+      "name": "#6f27cc53",
+      "combine": {
+        "dark": 2,
+        "wind": 1
+      },
+      "effect": {
+        "blk": {
+          "mode": "point",
+          "value": 8
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "BLK+8% EVD+5%",
+      "img": "blackwind",
+      "icon_frames": [
+        "battle/blackwind/combine_mark.png",
+        "battle/blackwind/combine_outline.png"
+      ]
+    },
+    {
+      "no": 19,
+      "name": "#9055ef52",
+      "combine": {
+        "holy": 2,
+        "aqua": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 14
+        },
+        "blk": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "HP+14% BLK+10%",
+      "img": "tearsofagod",
+      "icon_frames": [
+        "battle/tearsofagod/combine_mark.png",
+        "battle/tearsofagod/combine_outline.png"
+      ]
+    },
+    {
+      "no": 20,
+      "name": "#3ac5603c",
+      "combine": {
+        "fire": 2,
+        "dark": 1
+      },
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 15
+        },
+        "blk": {
+          "mode": "point",
+          "value": 8
+        }
+      },
+      "effect_text": "ATK+15% BLK+8%",
+      "img": "hellfire",
+      "icon_frames": [
+        "battle/hellfire/combine_mark.png",
+        "battle/hellfire/combine_outline.png"
+      ]
+    },
+    {
+      "no": 21,
+      "name": "#ed321a0f",
+      "combine": {
+        "fire": 1,
+        "earth": 1,
+        "wind": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 4
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+4% DEF+10% EVD+5%",
+      "img": "lavastorm",
+      "icon_frames": [
+        "battle/lavastorm/combine_mark.png",
+        "battle/lavastorm/combine_outline.png"
+      ]
+    },
+    {
+      "no": 22,
+      "name": "#4d3fb597",
+      "combine": {
+        "light": 2,
+        "shadow": 1
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 5
+        },
+        "blk": {
+          "mode": "point",
+          "value": 4
+        },
+        "cri": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "DEF+5% BLK+4% CRT+10%",
+      "img": "mirinae",
+      "icon_frames": [
+        "battle/mirinae/combine_mark.png",
+        "battle/mirinae/combine_outline.png"
+      ]
+    },
+    {
+      "no": 23,
+      "name": "#a7251040",
+      "combine": {
+        "holy": 2,
+        "wind": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 8
+        },
+        "att": {
+          "mode": "pct",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "HP+8% ATK+10% EVD+5%",
+      "img": "asgard",
+      "icon_frames": [
+        "battle/asgard/combine_mark.png",
+        "battle/asgard/combine_outline.png"
+      ]
+    },
+    {
+      "no": 24,
+      "name": "#0f903b7a",
+      "combine": {
+        "dark": 2,
+        "chaos": 1
+      },
+      "effect": {
+        "hp": {
+          "mode": "pct",
+          "value": 8
+        },
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "blk": {
+          "mode": "point",
+          "value": 10
+        }
+      },
+      "effect_text": "HP+8% ATK+5% BLK+10%",
+      "img": "dyingbreath",
+      "icon_frames": [
+        "battle/dyingbreath/combine_mark.png",
+        "battle/dyingbreath/combine_outline.png"
+      ]
+    },
+    {
+      "no": 25,
+      "name": "#3986301d",
+      "combine": {
+        "dark": 2,
+        "light": 1
+      },
+      "effect": {
+        "evd": {
+          "mode": "point",
+          "value": 5
+        },
+        "pure": {
+          "mode": "flat",
+          "value": 10
+        }
+      },
+      "effect_text": "EVD+5% PURE+10%"
+    },
+    {
+      "no": 26,
+      "name": "#7ed23c40",
+      "combine": {
+        "shadow": 2,
+        "dark": 1
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "cri_pow": {
+          "mode": "point",
+          "value": 30
+        }
+      },
+      "effect_text": "CRT+10% CRIPW+30%"
+    },
+    {
+      "no": 27,
+      "name": "#64f6fa07",
+      "combine": {
+        "shadow": 2,
+        "light": 1
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "def": {
+          "mode": "pct",
+          "value": 10
+        }
+      },
+      "effect_text": "CRT+10% DEF+10%"
+    },
+    {
+      "no": 28,
+      "name": "#64a393a3",
+      "combine": {
+        "shadow": 3
+      },
+      "effect": {
+        "att": {
+          "mode": "pct",
+          "value": 5
+        },
+        "cri": {
+          "mode": "point",
+          "value": 5
+        },
+        "pure": {
+          "mode": "flat",
+          "value": 5
+        }
+      },
+      "effect_text": "ATK+5% CRT+5% PURE+5%"
+    },
+    {
+      "no": 29,
+      "name": "#d6990215",
+      "combine": {
+        "shadow": 2,
+        "wind": 1
+      },
+      "effect": {
+        "cri": {
+          "mode": "point",
+          "value": 10
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "CRT+10% EVD+5%"
+    },
+    {
+      "no": 30,
+      "name": "#132fa34e",
+      "combine": {
+        "earth": 2,
+        "light": 1
+      },
+      "effect": {
+        "def": {
+          "mode": "pct",
+          "value": 15
+        },
+        "evd": {
+          "mode": "point",
+          "value": 5
+        }
+      },
+      "effect_text": "DEF+15% EVD+5%"
+    }
+  ]
+}
